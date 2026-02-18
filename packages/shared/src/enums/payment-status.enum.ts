@@ -1,0 +1,6 @@
+export enum PaymentStatus {
+  INITIALIZED = "INITIALIZED",
+  SUCCESS = "SUCCESS",
+  FAILED = "FAILED",
+  REFUNDED = "REFUNDED"
+}
