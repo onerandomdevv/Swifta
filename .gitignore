@@ -6,3 +6,11 @@ dist
 prisma/*.db
 .turbo
 coverage
+
+# Added by user request
+.env.*.local
+*.db
+.pnpm-store/
+.vscode/
+.idea/
+.DS_Store
