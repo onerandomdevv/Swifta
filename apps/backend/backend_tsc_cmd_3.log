@@ -1,5 +1,0 @@
-src/common/guards/merchant-verified.guard.ts(3,31): error TS2307: Cannot find module '../../../prisma/prisma.service' or its corresponding type declarations.
-src/common/middleware/merchant-context.middleware.ts(4,31): error TS2307: Cannot find module '../../../prisma/prisma.service' or its corresponding type declarations.
-src/modules/merchant/merchant.service.ts(24,9): error TS2353: Object literal may only specify known properties, and 'bgImgUrl' does not exist in type 'MerchantProfileSelect<DefaultArgs>'.
-src/modules/order/order.service.ts(56,29): error TS2345: Argument of type 'import("C:/Users/HP/OneDrive/Desktop/startup/Team/Coded-devs/Building/hardware-os/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index").$Enums.OrderStatus' is not assignable to parameter of type 'import("C:/Users/HP/OneDrive/Desktop/startup/Team/Coded-devs/Building/hardware-os/packages/shared/src/enums/order-status.enum").OrderStatus'.
-  Type '"PENDING_PAYMENT"' is not assignable to type 'OrderStatus'.
