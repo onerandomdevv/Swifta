@@ -6,7 +6,9 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    rawBody: true, // Required for Paystack webhook HMAC verification
+  });
 
   // Global validation pipe (whitelist + transform + formatted errors)
   app.useGlobalPipes(new AppValidationPipe());

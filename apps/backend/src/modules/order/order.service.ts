@@ -130,6 +130,46 @@ export class OrderService {
   }
 
   // ──────────────────────────────────────────────
+  //  SYSTEM-DRIVEN TRANSITION (e.g., payment webhook)
+  // ──────────────────────────────────────────────
+
+  async transitionBySystem(
+    orderId: string,
+    fromStatus: OrderStatus,
+    toStatus: OrderStatus,
+    metadata?: Record<string, any>,
+  ) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
+    if (!order) throw new NotFoundException('Order not found');
+
+    if (!validateTransition(fromStatus, toStatus)) {
+      throw new BadRequestException(
+        `Invalid state transition from ${fromStatus} to ${toStatus}`,
+      );
+    }
+
+    const updatedOrder = await this.prisma.order.update({
+      where: { id: orderId },
+      data: { status: toStatus },
+    });
+
+    await this.prisma.orderEvent.create({
+      data: {
+        orderId,
+        fromStatus,
+        toStatus,
+        triggeredBy: order.buyerId,
+        metadata: { ...(metadata || {}), triggeredBySystem: true },
+      },
+    });
+
+    this.logger.log(`Order ${orderId}: ${fromStatus} → ${toStatus} (system)`);
+    return updatedOrder;
+  }
+
+  // ──────────────────────────────────────────────
   //  GET ORDER BY ID (with ownership check)
   // ──────────────────────────────────────────────
 
