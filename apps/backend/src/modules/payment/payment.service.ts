@@ -4,6 +4,8 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -25,6 +27,7 @@ export class PaymentService {
   constructor(
     private prisma: PrismaService,
     private paystack: PaystackClient,
+    @Inject(forwardRef(() => OrderService))
     private orderService: OrderService,
     private notifications: NotificationTriggerService,
     private config: ConfigService,

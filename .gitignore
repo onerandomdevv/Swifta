@@ -32,3 +32,8 @@ Thumbs.db
 
 # Test coverage
 coverage/
+
+# Confidential Documentation
+ENGINEERING_AUDIT_REPORT.md
+HARDWARE_OS_Backend_Fullstack_Guide.md
+CLAUDE.md
