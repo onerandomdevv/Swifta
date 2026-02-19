@@ -10,6 +10,9 @@ module.exports = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        "primary-navy": "#1B2A4A",
+        "accent-blue": "#2E75B6",
+        "light-bg": "#F9FAFB",
         primary: {
           DEFAULT: "#0F172A", // Slate 900
           foreground: "#F8FAFC", // Slate 50
@@ -22,6 +25,13 @@ module.exports = {
           DEFAULT: "#2563EB", // Blue 600
           foreground: "#FFFFFF",
         },
+      },
+      fontFamily: {
+        display: ["Inter", "sans-serif"],
+      },
+      boxShadow: {
+        soft: "0 10px 40px -10px rgba(27, 42, 74, 0.08)",
+        "hover-soft": "0 20px 50px -12px rgba(27, 42, 74, 0.12)",
       },
     },
   },
