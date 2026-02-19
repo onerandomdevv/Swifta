@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Query, ForbiddenException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
 import { OrderService } from './order.service';
 import { ConfirmDeliveryDto } from './dto/confirm-delivery.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -14,17 +22,20 @@ export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
   @Get()
-  findAll(@CurrentUser() user: JwtPayload, @Query('page') page: number = 1, @Query('limit') limit: number = 20) {
+  findAll(
+    @CurrentUser() user: JwtPayload,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 20,
+  ) {
     if (user.role === UserRole.MERCHANT && user.merchantId) {
-        return this.orderService.listByMerchant(user.merchantId, page, limit);
-    } else {
-        return this.orderService.listByBuyer(user.sub, page, limit);
+      return this.orderService.listByMerchant(user.merchantId, page, limit);
     }
+    return this.orderService.listByBuyer(user.sub, page, limit);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.orderService.getById(id);
+  findOne(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.orderService.getById(id, user.sub, user.merchantId);
   }
 
   @Post(':id/dispatch')
@@ -35,13 +46,17 @@ export class OrderController {
 
   @Post(':id/confirm-delivery')
   @Roles(UserRole.BUYER)
-  confirmDelivery(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Body() dto: ConfirmDeliveryDto) {
+  confirmDelivery(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Body() dto: ConfirmDeliveryDto,
+  ) {
     return this.orderService.confirmDelivery(user.sub, id, dto.otp);
   }
 
   @Post(':id/cancel')
   cancel(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
-    return this.orderService.cancel(user.sub, id);
+    return this.orderService.cancel(user.sub, id, user.merchantId);
   }
 
   @Post(':id/dispute')
