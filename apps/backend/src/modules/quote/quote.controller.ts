@@ -1,4 +1,12 @@
-import { Controller, Post, Body, Param, UseGuards, Get, ForbiddenException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Param,
+  UseGuards,
+  Get,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { QuoteService } from './quote.service';
 import { SubmitQuoteDto } from './dto/submit-quote.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -21,18 +29,24 @@ export class QuoteController {
 
   @Post(':id/accept')
   @Roles(UserRole.BUYER)
-  accept(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+  accept(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     return this.quoteService.accept(user.sub, id);
   }
 
   @Post(':id/decline')
   @Roles(UserRole.BUYER)
-  decline(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+  decline(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     return this.quoteService.decline(user.sub, id);
   }
 
   @Get('rfq/:rfqId')
-  getByRFQ(@Param('rfqId') rfqId: string) {
+  getByRFQ(@Param('rfqId', ParseUUIDPipe) rfqId: string) {
     return this.quoteService.getByRFQ(rfqId);
   }
 }
