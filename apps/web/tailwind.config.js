@@ -8,20 +8,30 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
         primary: {
-          DEFAULT: "#0F172A", // Slate 900
-          foreground: "#F8FAFC", // Slate 50
-        },
-        secondary: {
-          DEFAULT: "#F1F5F9", // Slate 100
-          foreground: "#0F172A",
+          DEFAULT: "#1B2A4A",
+          light: "#2a3f6b",
         },
         accent: {
-          DEFAULT: "#2563EB", // Blue 600
-          foreground: "#FFFFFF",
+          DEFAULT: "#2E75B6",
+          light: "#4a8ec9",
         },
+        action: {
+          DEFAULT: "#E87722",
+          light: "#f09040",
+        },
+        success: {
+          DEFAULT: "#16A34A",
+        },
+        warning: {
+          DEFAULT: "#EAB308",
+        },
+        danger: {
+          DEFAULT: "#DC2626",
+        },
+        border: "#E5E7EB",
+        background: "#F9FAFB",
+        card: "#FFFFFF",
       },
     },
   },
