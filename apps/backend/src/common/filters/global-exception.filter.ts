@@ -1,29 +1,115 @@
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
 import { Response } from 'express';
 import { ApiError } from '@hardware-os/shared';
 
+// Prisma error types — imported by name to avoid hard dependency on @prisma/client at filter level
+const PRISMA_UNIQUE_CONSTRAINT = 'P2002';
+const PRISMA_NOT_FOUND = 'P2025';
+
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(GlobalExceptionFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
 
-    const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+    let status: number;
+    let errorMessage: string;
+    let code: string;
 
-    const message =
-      exception instanceof HttpException
-        ? exception.getResponse()
-        : 'Internal server error';
-        
+    if (exception instanceof HttpException) {
+      // NestJS HTTP exceptions (BadRequest, Unauthorized, etc.)
+      status = exception.getStatus();
+      const exceptionResponse = exception.getResponse();
+      errorMessage =
+        typeof exceptionResponse === 'object'
+          ? (exceptionResponse as any).message || exception.message
+          : exceptionResponse;
+      code = status.toString();
+    } else if (this.isPrismaKnownError(exception)) {
+      // Prisma known request errors (unique constraint, not found, etc.)
+      const prismaResult = this.handlePrismaError(exception);
+      status = prismaResult.status;
+      errorMessage = prismaResult.message;
+      code = prismaResult.code;
+    } else if (this.isPrismaValidationError(exception)) {
+      // Prisma validation errors (bad query shape)
+      status = HttpStatus.BAD_REQUEST;
+      errorMessage = 'Invalid request data';
+      code = 'VALIDATION_ERROR';
+    } else {
+      // Unknown errors — log full details, return generic message
+      this.logger.error('Unhandled exception', exception);
+      status = HttpStatus.INTERNAL_SERVER_ERROR;
+      errorMessage = 'Internal server error';
+      code = 'INTERNAL_ERROR';
+    }
+
+    // Flatten array messages (from ValidationPipe)
+    if (Array.isArray(errorMessage)) {
+      errorMessage = errorMessage.join('; ');
+    }
+
     const errorResponse: ApiError = {
       statusCode: status,
-      code: status.toString(),
-      error: typeof message === 'object' ? (message as any).message || message : message,
+      code,
+      error: errorMessage,
     };
 
     response.status(status).json(errorResponse);
+  }
+
+  private isPrismaKnownError(exception: unknown): boolean {
+    return (
+      typeof exception === 'object' &&
+      exception !== null &&
+      'code' in exception &&
+      'clientVersion' in exception
+    );
+  }
+
+  private isPrismaValidationError(exception: unknown): boolean {
+    return (
+      typeof exception === 'object' &&
+      exception !== null &&
+      exception.constructor?.name === 'PrismaClientValidationError'
+    );
+  }
+
+  private handlePrismaError(exception: any): {
+    status: number;
+    message: string;
+    code: string;
+  } {
+    switch (exception.code) {
+      case PRISMA_UNIQUE_CONSTRAINT: {
+        const fields = exception.meta?.target?.join(', ') || 'field';
+        return {
+          status: HttpStatus.CONFLICT,
+          message: `A record with this ${fields} already exists`,
+          code: 'UNIQUE_CONSTRAINT',
+        };
+      }
+      case PRISMA_NOT_FOUND:
+        return {
+          status: HttpStatus.NOT_FOUND,
+          message: exception.meta?.cause || 'Record not found',
+          code: 'NOT_FOUND',
+        };
+      default:
+        return {
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Database operation failed',
+          code: `PRISMA_${exception.code}`,
+        };
+    }
   }
 }
