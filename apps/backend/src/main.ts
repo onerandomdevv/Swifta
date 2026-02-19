@@ -1,18 +1,24 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
+import { AppValidationPipe } from './common/pipes/validation.pipe';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    transform: true,
-  }));
-  
+
+  // Global validation pipe (whitelist + transform + formatted errors)
+  app.useGlobalPipes(new AppValidationPipe());
+
+  // Global exception filter (formats all errors including Prisma)
+  app.useGlobalFilters(new GlobalExceptionFilter());
+
+  // Global response transform (wraps all responses in { success: true, data })
+  app.useGlobalInterceptors(new ResponseTransformInterceptor());
+
   app.use(helmet());
-  
+
   app.enableCors({
     origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : '*',
     credentials: true,
