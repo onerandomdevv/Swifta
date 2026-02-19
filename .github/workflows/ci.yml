@@ -28,7 +28,7 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: Validate Prisma schema
-        run: pnpm --filter @hardware-os/backend exec prisma validate --schema=apps/backend/src/prisma/schema.prisma
+        run: pnpm --filter @hardware-os/backend exec prisma validate --schema=src/prisma/schema.prisma
 
       - name: Build all packages
         run: pnpm build
