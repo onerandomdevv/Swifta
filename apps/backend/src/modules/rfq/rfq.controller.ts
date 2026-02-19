@@ -1,6 +1,16 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Query, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  UseGuards,
+  Query,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { RFQService } from './rfq.service';
 import { CreateRFQDto } from './dto/create-rfq.dto';
+import { PaginationQueryDto } from './dto/pagination-query.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -15,30 +25,43 @@ export class RFQController {
 
   @Post()
   @Roles(UserRole.BUYER)
-  create(@CurrentUser() user: JwtPayload, @Body() createRFQDto: CreateRFQDto) {
-    return this.rfqService.create(user.sub, createRFQDto);
+  create(@CurrentUser() user: JwtPayload, @Body() dto: CreateRFQDto) {
+    return this.rfqService.create(user.sub, dto);
   }
 
   @Get()
   @Roles(UserRole.BUYER)
-  findAllMyRFQs(@CurrentUser() user: JwtPayload, @Query('page') page: number = 1, @Query('limit') limit: number = 20) {
-    return this.rfqService.listByBuyer(user.sub, page, limit);
+  findAllMyRFQs(
+    @CurrentUser() user: JwtPayload,
+    @Query() query: PaginationQueryDto,
+  ) {
+    return this.rfqService.listByBuyer(user.sub, query.page, query.limit);
   }
 
   @Get('merchant')
   @Roles(UserRole.MERCHANT)
-  findAllIncomingRFQs(@CurrentMerchant() merchantId: string, @Query('page') page: number = 1, @Query('limit') limit: number = 20) {
-    return this.rfqService.listByMerchant(merchantId, page, limit);
+  findAllIncomingRFQs(
+    @CurrentMerchant() merchantId: string,
+    @Query() query: PaginationQueryDto,
+  ) {
+    return this.rfqService.listByMerchant(merchantId, query.page, query.limit);
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.rfqService.getById(id);
+  findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: JwtPayload,
+    @CurrentMerchant() merchantId: string,
+  ) {
+    return this.rfqService.getById(id, user.sub, merchantId);
   }
 
   @Post(':id/cancel')
   @Roles(UserRole.BUYER)
-  cancel(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+  cancel(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     return this.rfqService.cancel(user.sub, id);
   }
 }

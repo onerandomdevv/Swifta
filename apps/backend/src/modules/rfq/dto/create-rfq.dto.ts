@@ -1,7 +1,8 @@
-import { IsUUID, IsInt, Min, IsString, IsOptional } from 'class-validator';
+import { IsUUID, IsInt, Min, IsString, IsOptional, IsNotEmpty } from 'class-validator';
 
 export class CreateRFQDto {
   @IsUUID()
+  @IsNotEmpty()
   productId: string;
 
   @IsInt()
@@ -9,6 +10,7 @@ export class CreateRFQDto {
   quantity: number;
 
   @IsString()
+  @IsNotEmpty()
   deliveryAddress: string;
 
   @IsOptional()
