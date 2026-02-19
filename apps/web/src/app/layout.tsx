@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
-import Providers from "../providers/providers";
-import "./globals.css";
+import type { Metadata } from 'next';
+import Providers from '../providers/providers';
+import './globals.css';
 
 export const metadata: Metadata = {
-  title: "Hardware OS",
-  description: "B2B Trade Platform for Construction Materials",
+  title: 'Hardware OS',
+  description: 'B2B Trade Platform for Construction Materials',
 };
 
 export default function RootLayout({
@@ -14,7 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
+      <body className="antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>

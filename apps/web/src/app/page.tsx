@@ -1,12 +1,36 @@
-import Image from "next/image";
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/providers/auth-provider';
+import { UserRole } from '@hardware-os/shared';
 
 export default function Home() {
+  const router = useRouter();
+  const { user, isLoggedIn, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    if (!isLoggedIn || !user) {
+      router.replace('/login');
+      return;
+    }
+
+    if (user.role === UserRole.MERCHANT) {
+      router.replace('/merchant/dashboard');
+    } else {
+      router.replace('/buyer/dashboard');
+    }
+  }, [isLoading, isLoggedIn, user, router]);
+
+  // Show a simple loading state while redirecting
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <h1 className="text-4xl font-bold">HARDWARE OS — V1</h1>
-        <p>B2B Trade Platform for Construction Materials</p>
-      </main>
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold text-primary mb-2">HARDWARE OS</h1>
+        <p className="text-sm text-gray-500">Loading...</p>
+      </div>
     </div>
   );
 }
