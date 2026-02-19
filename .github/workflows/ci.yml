@@ -27,6 +27,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      - name: Generate Prisma client
+        run: pnpm --filter @hardware-os/backend exec prisma generate --schema=src/prisma/schema.prisma
+
       - name: Validate Prisma schema
         run: DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" pnpm --filter @hardware-os/backend exec prisma validate --schema=src/prisma/schema.prisma
 
