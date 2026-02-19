@@ -37,6 +37,10 @@ export class NotificationTriggerService {
       await this.addJob(merchantId, 'QUOTE_DECLINED', 'Quote Declined', 'Your quote has been declined.', { quoteId, isMerchantId: true });
   }
 
+  async triggerRFQExpired(buyerId: string, rfqId: string) {
+      await this.addJob(buyerId, 'RFQ_EXPIRED', 'RFQ Expired', 'Your request for quote has expired without receiving a response.', { rfqId });
+  }
+
   async triggerOrderDispatched(buyerId: string, orderId: string) {
       await this.addJob(buyerId, 'ORDER_DISPATCHED', 'Order Dispatched', 'Your order has been dispatched.', { orderId });
   }
