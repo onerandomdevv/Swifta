@@ -1,4 +1,5 @@
-import { PrismaClient, UserRole, VerificationStatus } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+import { UserRole, VerificationStatus } from '@hardware-os/shared';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
