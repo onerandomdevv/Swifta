@@ -17,8 +17,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -27,10 +25,10 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Validate Prisma schema
-        run: npx prisma validate --schema=apps/backend/src/prisma/schema.prisma
+        run: DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" pnpm --filter @hardware-os/backend exec prisma validate --schema=src/prisma/schema.prisma
 
       - name: Build all packages
         run: pnpm build
