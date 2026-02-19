@@ -4,10 +4,13 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationTriggerService } from '../notification/notification-trigger.service';
 import { InventoryService } from '../inventory/inventory.service';
+import { PaymentService } from '../payment/payment.service';
 import { OrderStatus, OTP_LENGTH } from '@hardware-os/shared';
 import { validateTransition } from './order-state-machine';
 import * as crypto from 'crypto';
@@ -20,6 +23,8 @@ export class OrderService {
     private prisma: PrismaService,
     private notifications: NotificationTriggerService,
     private inventoryService: InventoryService,
+    @Inject(forwardRef(() => PaymentService))
+    private paymentService: PaymentService,
   ) {}
 
   // ──────────────────────────────────────────────
@@ -320,6 +325,19 @@ export class OrderService {
     );
 
     // Trigger payout notification (PaymentService handles actual payout)
+    // AUTO-PAYOUT: Initiate payout now that order is COMPLETED
+    try {
+      this.logger.log(`Initiating auto-payout for order ${orderId}`);
+      await this.paymentService.initiatePayout(orderId);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(
+        `Auto-payout failed for order ${orderId} (will need manual retry): ${msg}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      // Swallow error so we don't rollback the delivery confirmation
+    }
+
     await this.notifications.triggerPayoutInitiated(
       order.merchantId,
       orderId,
