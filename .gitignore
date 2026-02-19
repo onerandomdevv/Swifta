@@ -32,3 +32,8 @@ Thumbs.db
 
 # Test coverage
 coverage/
+
+# Confidential reference files (local only)
+CLAUDE.md
+HARDWARE_OS_Backend_Fullstack_Guide.md
+GIT_WORKFLOW_FOR_AI_AGENT.md
