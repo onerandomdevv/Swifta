@@ -7,33 +7,46 @@ export class NotificationService {
 
   async getUserNotifications(userId: string, page: number, limit: number) {
     const skip = (page - 1) * limit;
-    const [data, total] = await Promise.all([
+    const [data, total, unreadCount] = await Promise.all([
       this.prisma.notification.findMany({
         where: { userId },
         skip,
-        take: +limit,
-        orderBy: { createdAt: 'desc' }
+        take: limit,
+        orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.notification.count({ where: { userId } })
+      this.prisma.notification.count({ where: { userId } }),
+      this.prisma.notification.count({ where: { userId, isRead: false } }),
     ]);
-    return { data, meta: { page, limit, total } };
+    return { data, meta: { page, limit, total, unreadCount } };
+  }
+
+  async getUnreadCount(userId: string) {
+    const count = await this.prisma.notification.count({
+      where: { userId, isRead: false },
+    });
+    return { unreadCount: count };
   }
 
   async markAsRead(userId: string, id: string) {
-    const notification = await this.prisma.notification.findUnique({ where: { id } });
-    if (!notification || notification.userId !== userId) throw new NotFoundException('Notification not found');
+    const notification = await this.prisma.notification.findUnique({
+      where: { id },
+    });
+
+    if (!notification || notification.userId !== userId) {
+      throw new NotFoundException('Notification not found');
+    }
 
     return this.prisma.notification.update({
       where: { id },
-      data: { isRead: true }
+      data: { isRead: true },
     });
   }
 
   async markAllAsRead(userId: string) {
-      await this.prisma.notification.updateMany({
-          where: { userId, isRead: false },
-          data: { isRead: true }
-      });
-      return { message: 'All marked as read' };
+    const result = await this.prisma.notification.updateMany({
+      where: { userId, isRead: false },
+      data: { isRead: true },
+    });
+    return { message: 'All marked as read', count: result.count };
   }
 }

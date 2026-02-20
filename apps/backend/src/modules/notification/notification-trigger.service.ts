@@ -16,6 +16,11 @@ export class NotificationTriggerService {
         body,
         channels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
         metadata
+    }, {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 2000 },
+        removeOnComplete: true,
+        removeOnFail: false,
     });
   }
 
