@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: "class",
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -10,19 +11,20 @@ module.exports = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        "primary": "#10a24b",
         "primary-navy": "#1B2A4A",
+        "accent-orange": "#E87722",
+        "navy-dark": "#1b2a4b",
         "accent-blue": "#2E75B6",
         "light-bg": "#F9FAFB",
-        primary: {
-          DEFAULT: "#0F172A", // Slate 900
-          foreground: "#F8FAFC", // Slate 50
-        },
+        "background-light": "#f6f8f7",
+        "background-dark": "#112117",
         secondary: {
-          DEFAULT: "#F1F5F9", // Slate 100
+          DEFAULT: "#F1F5F9",
           foreground: "#0F172A",
         },
         accent: {
-          DEFAULT: "#2563EB", // Blue 600
+          DEFAULT: "#2563EB",
           foreground: "#FFFFFF",
         },
       },

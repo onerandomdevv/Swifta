@@ -4,6 +4,7 @@ const nextConfig = {
   images: {
     domains: ["res.cloudinary.com", "ui-avatars.com"],
   },
+  transpilePackages: ["@hardware-os/shared"],
 };
 
 export default nextConfig;
