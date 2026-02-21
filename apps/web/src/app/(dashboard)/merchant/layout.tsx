@@ -12,7 +12,16 @@ export default function MerchantLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const { unreadCount } = useNotifications();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && searchQuery.trim()) {
+      router.push(
+        `/merchant/orders?search=${encodeURIComponent(searchQuery.trim())}`,
+      );
+    }
+  };
 
   useEffect(() => {
     if (user && user.role !== "MERCHANT") {
@@ -71,13 +80,13 @@ export default function MerchantLayout({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="p-4 mt-auto border-t border-white/10">
-          <Link
-            href="/logout"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-white/70 hover:bg-white/5 hover:text-white transition-colors"
+          <button
+            onClick={() => logout()}
+            className="flex w-full items-center justify-start gap-3 px-4 py-3 rounded-lg text-white/70 hover:bg-white/5 hover:text-white transition-colors"
           >
             <span className="material-symbols-outlined">logout</span>
             Logout
-          </Link>
+          </button>
         </div>
       </aside>
 
@@ -94,6 +103,9 @@ export default function MerchantLayout({ children }: { children: ReactNode }) {
                 className="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg focus:ring-2 focus:ring-primary/20 text-sm transition-all outline-none"
                 placeholder="Search RFQs, products, or buyers..."
                 type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearch}
               />
             </div>
           </div>
@@ -112,18 +124,18 @@ export default function MerchantLayout({ children }: { children: ReactNode }) {
             <div className="flex items-center gap-3 cursor-pointer group">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-semibold text-slate-900 dark:text-white leading-none group-hover:text-primary transition-colors">
-                  {user?.fullName || "User"}
+                  {user?.fullName || user?.email?.split("@")[0] || "Merchant"}
                 </p>
                 <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider mt-1">
-                  Lagos Merchant
+                  {user?.merchantId ? "Verified Merchant" : "Pending Profile"}
                 </p>
               </div>
-              <div className="h-10 w-10 rounded-full bg-slate-200 overflow-hidden ring-2 ring-transparent group-hover:ring-primary/20 transition-all border border-slate-300">
-                <img
-                  alt="User Profile"
-                  className="h-full w-full object-cover"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHQ78_-YuWy8Xr7XFNITbF4dB3lK83jZx0BlF55yDt2HZlZrK-av9Q6SbRyUKlHH_pydlRnPyhYMireyCzktFvj5I-krxT8OwGb1TR1qRqZZhm3Q-uTlE0aYm1LD2--3TWjybxZJIaFHkCX6l4YYaF3NVDfhXAUKqIRQ3XcwXKhJuhZ9Gy8aH0lSOEyH20j30n9eJPaNcf3AgnJgJqubUSqiGWn7EzV2c0pTmxcFDWoQ3WGgqkcqlhclFnzTxnSiKQ8o7LCruXVQ"
-                />
+              <div className="h-10 w-10 rounded-full overflow-hidden ring-2 ring-transparent group-hover:ring-primary/20 transition-all shadow-sm flex items-center justify-center bg-gradient-to-br from-primary to-blue-600 text-white font-bold text-lg">
+                {user?.fullName
+                  ? user.fullName[0].toUpperCase()
+                  : user?.email
+                    ? user.email[0].toUpperCase()
+                    : "M"}
               </div>
             </div>
           </div>

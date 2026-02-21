@@ -11,12 +11,16 @@ export default function MerchantOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [activeTab, setActiveTab] = useState<
+    "ALL" | "PENDING" | "DISPATCH_READY" | "COMPLETED"
+  >("ALL");
 
   useEffect(() => {
     async function fetchOrders() {
       try {
-        const data = await getOrders();
-        setOrders(Array.isArray(data) ? data : []);
+        const payload = (await getOrders()) as any;
+        const data = Array.isArray(payload) ? payload : payload?.data || [];
+        setOrders(data);
       } catch (err: any) {
         setError(err?.message || "Failed to load orders");
       } finally {
@@ -64,8 +68,22 @@ export default function MerchantOrdersPage() {
   ).length;
   const paidCount = orders.filter((o) => o.status === "PAID").length;
   const totalRevenue = orders
-    .filter((o) => o.status !== "CANCELLED" && o.status !== "PENDING_PAYMENT")
+    .filter(
+      (o) =>
+        o.status !== "CANCELLED" &&
+        o.status !== "PENDING_PAYMENT" &&
+        o.status !== "DISPUTE",
+    )
     .reduce((sum, o) => sum + BigInt(o.totalAmountKobo), 0n);
+
+  const filteredOrders = orders.filter((order) => {
+    if (activeTab === "ALL") return true;
+    if (activeTab === "PENDING") return order.status === "PENDING_PAYMENT";
+    if (activeTab === "DISPATCH_READY") return order.status === "PAID";
+    if (activeTab === "COMPLETED")
+      return order.status === "COMPLETED" || order.status === "DELIVERED";
+    return true;
+  });
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
@@ -121,7 +139,21 @@ export default function MerchantOrdersPage() {
           </div>
         </div>
 
-        {orders.length > 0 ? (
+        <div className="flex items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-1 overflow-x-auto no-scrollbar">
+          {(["ALL", "PENDING", "DISPATCH_READY", "COMPLETED"] as const).map(
+            (tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`pb-4 px-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors whitespace-nowrap ${activeTab === tab ? "border-navy-dark text-navy-dark dark:border-white dark:text-white" : "border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"}`}
+              >
+                {tab.replace("_", " ")}
+              </button>
+            ),
+          )}
+        </div>
+
+        {filteredOrders.length > 0 ? (
           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-2xl shadow-navy-dark/5 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left">
@@ -145,7 +177,7 @@ export default function MerchantOrdersPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                  {orders.map((order) => (
+                  {filteredOrders.map((order) => (
                     <tr
                       key={order.id}
                       className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-all duration-300"

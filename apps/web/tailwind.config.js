@@ -11,7 +11,7 @@ module.exports = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
-        "primary": "#10a24b",
+        primary: "#10a24b",
         "primary-navy": "#1B2A4A",
         "accent-orange": "#E87722",
         "navy-dark": "#1b2a4b",
@@ -34,6 +34,15 @@ module.exports = {
       boxShadow: {
         soft: "0 10px 40px -10px rgba(27, 42, 74, 0.08)",
         "hover-soft": "0 20px 50px -12px rgba(27, 42, 74, 0.12)",
+      },
+      keyframes: {
+        "slide-in": {
+          "0%": { opacity: 0, transform: "translateX(100%)" },
+          "100%": { opacity: 1, transform: "translateX(0)" },
+        },
+      },
+      animation: {
+        "slide-in": "slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
       },
     },
   },
