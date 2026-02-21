@@ -74,6 +74,7 @@ model User {
   id             String    @id @default(uuid()) @db.Uuid
   email          String    @unique
   phone          String    @unique
+  fullName       String?   @map("full_name")
   passwordHash   String    @map("password_hash")
   role           UserRole
   emailVerified  Boolean   @default(false) @map("email_verified")
@@ -111,7 +112,7 @@ model MerchantProfile {
   createdAt       DateTime           @default(now()) @map("created_at")
   updatedAt       DateTime           @updatedAt @map("updated_at")
 
-  user            User              @relation(fields: [userId], references: [id])
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   products        Product[]
   rfqs            RFQ[]
   quotes          Quote[]
@@ -157,7 +158,7 @@ model RFQ {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  buyer    User            @relation(fields: [buyerId], references: [id])
+  buyer    User            @relation(fields: [buyerId], references: [id], onDelete: Cascade)
   product  Product         @relation(fields: [productId], references: [id])
   merchant MerchantProfile @relation(fields: [merchantId], references: [id])
   quotes   Quote[]
@@ -206,7 +207,7 @@ model Order {
   updatedAt        DateTime    @updatedAt @map("updated_at")
 
   quote    Quote           @relation(fields: [quoteId], references: [id])
-  buyer    User            @relation("BuyerOrders", fields: [buyerId], references: [id])
+  buyer    User            @relation("BuyerOrders", fields: [buyerId], references: [id], onDelete: Cascade)
   merchant MerchantProfile @relation("MerchantOrders", fields: [merchantId], references: [id])
   events   OrderEvent[]
   payments Payment[]
@@ -227,7 +228,7 @@ model OrderEvent {
   createdAt   DateTime @default(now()) @map("created_at")
 
   order   Order @relation(fields: [orderId], references: [id])
-  trigger User  @relation(fields: [triggeredBy], references: [id])
+  trigger User  @relation(fields: [triggeredBy], references: [id], onDelete: Cascade)
 
   @@index([orderId])
   @@map("order_events")
@@ -307,7 +308,7 @@ model Notification {
   metadata  Json?
   createdAt DateTime            @default(now()) @map("created_at")
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, isRead])

@@ -8,6 +8,10 @@ export class RegisterDto {
   @IsString()
   phone: string;
 
+  @IsOptional()
+  @IsString()
+  fullName?: string;
+
   @IsString()
   @MinLength(8)
   password: string;
