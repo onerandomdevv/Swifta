@@ -40,7 +40,8 @@ export default function MerchantOnboardingPage() {
   useEffect(() => {
     async function loadProfile() {
       try {
-        const profile = await getProfile();
+        const response = await getProfile();
+        const profile = response.data;
         setFormData((prev) => ({
           ...prev,
           businessName: profile.businessName || "",
@@ -51,8 +52,10 @@ export default function MerchantOnboardingPage() {
           taxId: profile.taxId || "",
           businessAddress: profile.businessAddress || "",
           warehouseLocation: profile.warehouseLocation || "",
-          warehouseCapacity: profile.warehouseCapacity || prev.warehouseCapacity,
-          distributionCenter: profile.distributionCenter || prev.distributionCenter,
+          warehouseCapacity:
+            profile.warehouseCapacity || prev.warehouseCapacity,
+          distributionCenter:
+            profile.distributionCenter || prev.distributionCenter,
           bankCode: profile.bankCode || "",
           bankAccountNo: profile.bankAccountNo || "",
           bankAccountName: profile.bankAccountName || "",
@@ -541,7 +544,9 @@ export default function MerchantOnboardingPage() {
                         onChange={(e) =>
                           setFormData({
                             ...formData,
-                            bankAccountNo: e.target.value.replace(/\D/g, "").slice(0, 10),
+                            bankAccountNo: e.target.value
+                              .replace(/\D/g, "")
+                              .slice(0, 10),
                           })
                         }
                         className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white"
