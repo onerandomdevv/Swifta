@@ -1,7 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { PaginatedResponse, Product } from '@hardware-os/shared';
+import { paginate } from '../../common/utils/pagination';
 
 @Injectable()
 export class ProductService {
@@ -16,31 +18,22 @@ export class ProductService {
     });
   }
 
-  async listByMerchant(merchantId: string, page: number, limit: number) {
-    const skip = (page - 1) * limit;
-    const where = { merchantId };
+  async listByMerchant(merchantId: string, page: number, limit: number): Promise<PaginatedResponse<Product>> {
+    const response = await paginate(this.prisma.product, { page, limit }, {
+      where: { merchantId },
+      orderBy: { createdAt: 'desc' },
+    });
 
-    const [data, total] = await Promise.all([
-      this.prisma.product.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-      }),
-      this.prisma.product.count({ where }),
-    ]);
-
-    // Mark soft-deleted products with a flag
-    const products = data.map((product) => ({
+    // Mark soft-deleted products with a flag (for frontend convenience if needed)
+    response.data = response.data.map((product: any) => ({
       ...product,
       isDeleted: product.deletedAt !== null,
     }));
 
-    return { data: products, meta: { page, limit, total } };
+    return response;
   }
 
-  async catalogue(search: string = '', page: number, limit: number) {
-    const skip = (page - 1) * limit;
+  async catalogue(search: string = '', page: number, limit: number): Promise<PaginatedResponse<Product>> {
     const where: any = {
       isActive: true,
       deletedAt: null,
@@ -53,25 +46,18 @@ export class ProductService {
       ];
     }
 
-    const [data, total] = await Promise.all([
-      this.prisma.product.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          merchant: {
-            select: {
-              id: true,
-              businessName: true,
-            },
+    return paginate(this.prisma.product, { page, limit }, {
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        merchant: {
+          select: {
+            id: true,
+            businessName: true,
           },
         },
-      }),
-      this.prisma.product.count({ where }),
-    ]);
-
-    return { data, meta: { page, limit, total } };
+      },
+    });
   }
 
   async getById(id: string) {
@@ -121,6 +107,22 @@ export class ProductService {
       where: { id: productId },
       data: { deletedAt: null },
     });
+  }
+
+  async validateProductAvailability(productId: string) {
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+    });
+
+    if (!product || product.deletedAt) {
+      throw new NotFoundException('Product not found');
+    }
+
+    if (!product.isActive) {
+      throw new BadRequestException('Product is not currently active');
+    }
+
+    return product;
   }
 
   private async verifyProductOwnership(

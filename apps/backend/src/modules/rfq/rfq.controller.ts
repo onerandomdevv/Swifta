@@ -8,6 +8,7 @@ import {
   Query,
   ParseUUIDPipe,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { RFQService } from './rfq.service';
 import { CreateRFQDto } from './dto/create-rfq.dto';
 import { PaginationQueryDto } from './dto/pagination-query.dto';
@@ -23,6 +24,7 @@ import { UserRole, JwtPayload } from '@hardware-os/shared';
 export class RFQController {
   constructor(private readonly rfqService: RFQService) {}
 
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post()
   @Roles(UserRole.BUYER)
   create(@CurrentUser() user: JwtPayload, @Body() dto: CreateRFQDto) {

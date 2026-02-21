@@ -23,12 +23,19 @@ import { NotificationModule } from './modules/notification/notification.module';
 
 import { MerchantContextMiddleware } from './common/middleware/merchant-context.middleware';
 
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration, databaseConfig, redisConfig, jwtConfig, paystackConfig],
     }),
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 60,
+    }]),
     PrismaModule,
     RedisModule,
     QueueModule,
@@ -44,7 +51,12 @@ import { MerchantContextMiddleware } from './common/middleware/merchant-context.
     NotificationModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {

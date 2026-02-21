@@ -11,7 +11,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationTriggerService } from '../notification/notification-trigger.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { PaymentService } from '../payment/payment.service';
-import { OrderStatus, OTP_LENGTH } from '@hardware-os/shared';
+import { OrderStatus, OTP_LENGTH, PaginatedResponse, Order } from '@hardware-os/shared';
+import { paginate } from '../../common/utils/pagination';
 import { validateTransition } from './order-state-machine';
 import * as crypto from 'crypto';
 
@@ -202,34 +203,20 @@ export class OrderService {
   //  LIST ORDERS
   // ──────────────────────────────────────────────
 
-  async listByBuyer(buyerId: string, page: number, limit: number) {
-    const skip = (+page - 1) * +limit;
-    const [data, total] = await Promise.all([
-      this.prisma.order.findMany({
-        where: { buyerId },
-        skip,
-        take: +limit,
-        orderBy: { createdAt: 'desc' },
-        include: { merchant: { select: { businessName: true } } },
-      }),
-      this.prisma.order.count({ where: { buyerId } }),
-    ]);
-    return { data, meta: { page: +page, limit: +limit, total } };
+  async listByBuyer(buyerId: string, page: number, limit: number): Promise<PaginatedResponse<Order>> {
+    return paginate(this.prisma.order, { page, limit }, {
+      where: { buyerId },
+      orderBy: { createdAt: 'desc' },
+      include: { merchant: { select: { businessName: true } } },
+    });
   }
 
-  async listByMerchant(merchantId: string, page: number, limit: number) {
-    const skip = (+page - 1) * +limit;
-    const [data, total] = await Promise.all([
-      this.prisma.order.findMany({
-        where: { merchantId },
-        skip,
-        take: +limit,
-        orderBy: { createdAt: 'desc' },
-        include: { buyer: { select: { email: true, phone: true } } },
-      }),
-      this.prisma.order.count({ where: { merchantId } }),
-    ]);
-    return { data, meta: { page: +page, limit: +limit, total } };
+  async listByMerchant(merchantId: string, page: number, limit: number): Promise<PaginatedResponse<Order>> {
+    return paginate(this.prisma.order, { page, limit }, {
+      where: { merchantId },
+      orderBy: { createdAt: 'desc' },
+      include: { buyer: { select: { email: true, phone: true } } },
+    });
   }
 
   // ──────────────────────────────────────────────

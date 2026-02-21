@@ -7,32 +7,21 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationTriggerService } from '../notification/notification-trigger.service';
 import { CreateRFQDto } from './dto/create-rfq.dto';
-import { RFQStatus, RFQ_EXPIRY_HOURS } from '@hardware-os/shared';
+import { ProductService } from '../product/product.service';
+import { RFQStatus, RFQ_EXPIRY_HOURS, PaginatedResponse, RFQ } from '@hardware-os/shared';
+import { paginate } from '../../common/utils/pagination';
 
 @Injectable()
 export class RFQService {
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationTriggerService,
+    private productService: ProductService,
   ) {}
 
   async create(buyerId: string, dto: CreateRFQDto) {
-    // Validate product exists, is active, and not soft-deleted
-    const product = await this.prisma.product.findUnique({
-      where: { id: dto.productId },
-    });
-
-    if (!product) {
-      throw new NotFoundException('Product not found');
-    }
-
-    if (!product.isActive) {
-      throw new BadRequestException('Product is not currently active');
-    }
-
-    if (product.deletedAt) {
-      throw new NotFoundException('Product not found');
-    }
+    // Use unified validation from ProductService
+    const product = await this.productService.validateProductAvailability(dto.productId);
 
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + RFQ_EXPIRY_HOURS);
@@ -54,41 +43,27 @@ export class RFQService {
     return rfq;
   }
 
-  async listByBuyer(buyerId: string, page: number, limit: number) {
-    const skip = (page - 1) * limit;
-    const [data, total] = await Promise.all([
-      this.prisma.rFQ.findMany({
-        where: { buyerId },
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          product: true,
-          quotes: true,
-          merchant: { select: { businessName: true } },
-        },
-      }),
-      this.prisma.rFQ.count({ where: { buyerId } }),
-    ]);
-    return { data, meta: { page, limit, total } };
+  async listByBuyer(buyerId: string, page: number, limit: number): Promise<PaginatedResponse<RFQ>> {
+    return paginate(this.prisma.rFQ, { page, limit }, {
+      where: { buyerId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        product: true,
+        quotes: true,
+        merchant: { select: { businessName: true } },
+      },
+    });
   }
 
-  async listByMerchant(merchantId: string, page: number, limit: number) {
-    const skip = (page - 1) * limit;
-    const [data, total] = await Promise.all([
-      this.prisma.rFQ.findMany({
-        where: { merchantId },
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          product: true,
-          buyer: { select: { email: true, phone: true } },
-        },
-      }),
-      this.prisma.rFQ.count({ where: { merchantId } }),
-    ]);
-    return { data, meta: { page, limit, total } };
+  async listByMerchant(merchantId: string, page: number, limit: number): Promise<PaginatedResponse<RFQ>> {
+    return paginate(this.prisma.rFQ, { page, limit }, {
+      where: { merchantId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        product: true,
+        buyer: { select: { email: true, phone: true } },
+      },
+    });
   }
 
   async getById(id: string, userId?: string, merchantId?: string) {
