@@ -1,21 +1,27 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { useAuth } from "@/providers/auth-provider";
+import { getProfile } from "@/lib/api/merchant.api";
 
 export default function MerchantVerificationPage() {
   const [loading, setLoading] = useState(true);
-  const [idType, setIdType] = useState("NIN");
-  const [isVerified, setIsVerified] = useState(false);
-  const [accountNumber, setAccountNumber] = useState("");
-  const [selectedBank, setSelectedBank] = useState("Access Bank");
-  const { user } = useAuth();
+  const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 800);
-    return () => clearTimeout(timer);
+    async function loadProfile() {
+      try {
+        const response = await getProfile();
+        setProfile(response.data);
+      } catch (err) {
+        console.error("Failed to load profile", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadProfile();
   }, []);
 
   if (loading) {
@@ -26,12 +32,56 @@ export default function MerchantVerificationPage() {
           <Skeleton className="h-12 w-96 rounded-xl" />
         </div>
         <div className="space-y-8">
-          <Skeleton className="h-96 w-full rounded-[2rem]" />
+          <Skeleton className="h-64 w-full rounded-[2rem]" />
           <Skeleton className="h-64 w-full rounded-[2rem]" />
         </div>
       </div>
     );
   }
+
+  const {
+    businessName,
+    cacNumber,
+    taxId,
+    bankCode,
+    bankAccountNo,
+    bankAccountName,
+    verification,
+    onboardingStep,
+  } = profile || {};
+
+  const getBankName = (code: string) => {
+    const banks = {
+      "044": "Access Bank",
+      "023": "Citibank Nigeria",
+      "063": "Diamond Bank",
+      "050": "Ecobank Nigeria",
+      "084": "Enterprise Bank",
+      "070": "Fidelity Bank",
+      "011": "First Bank of Nigeria",
+      "214": "First City Monument Bank",
+      "058": "Guaranty Trust Bank",
+      "030": "Heritage Bank",
+      "301": "Jaiz Bank",
+      "082": "Keystone Bank",
+      "526": "Parallex Bank",
+      "076": "Polaris Bank",
+      "101": "Providus Bank",
+      "221": "Stanbic IBTC Bank",
+      "068": "Standard Chartered Bank",
+      "232": "Sterling Bank",
+      "100": "Suntrust Bank",
+      "032": "Union Bank of Nigeria",
+      "033": "United Bank for Africa",
+      "215": "Unity Bank",
+      "035": "Wema Bank",
+      "057": "Zenith Bank",
+    } as Record<string, string>;
+    return banks[code] || code || "Not Provided";
+  };
+
+  const isIncomplete =
+    !profile || onboardingStep < 5 || !cacNumber || !bankAccountNo;
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -50,178 +100,140 @@ export default function MerchantVerificationPage() {
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
             Merchant Status
           </p>
-          <StatusBadge status="PENDING" className="px-5 py-2" />
+          <StatusBadge
+            status={verification || "UNVERIFIED"}
+            className="px-5 py-2"
+          />
         </div>
       </div>
 
-      {/* Stepper Indicator */}
-      <div className="flex gap-4">
-        <div className="flex-1 h-1.5 bg-navy-dark dark:bg-blue-500 rounded-full"></div>
-        <div className="flex-1 h-1.5 bg-navy-dark dark:bg-blue-500 rounded-full"></div>
-        <div className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full relative overflow-hidden">
-          <div className="absolute inset-0 bg-navy-dark/30 dark:bg-blue-500/30 w-full animate-pulse"></div>
+      {isIncomplete ? (
+        <div className="bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-100 dark:border-amber-900/20 rounded-[2rem] p-8 text-center space-y-6">
+          <div className="size-16 mx-auto rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-500">
+            <span className="material-symbols-outlined text-3xl">warning</span>
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-lg font-black text-navy-dark dark:text-white uppercase tracking-tight">
+              Onboarding Incomplete
+            </h2>
+            <p className="text-slate-500 text-sm max-w-lg mx-auto font-medium leading-relaxed">
+              You must complete your business profile, including bank details
+              and KYC documents, before your account can be verified for trading
+              and payouts.
+            </p>
+          </div>
+          <Link
+            href="/merchant/onboarding"
+            className="inline-block px-8 py-4 bg-navy-dark dark:bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:-translate-y-1 transition-all active:scale-95"
+          >
+            Complete Onboarding Now
+          </Link>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-8">
-        {/* 1. Identity Verification Section */}
-        <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden group">
-          <div className="p-8 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="size-10 rounded-xl bg-navy-dark text-white flex items-center justify-center font-black text-xs shadow-lg shadow-navy-dark/20 text-blue-400">
-                01
-              </div>
-              <div>
-                <h3 className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-widest">
-                  Business Identity
-                </h3>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight mt-0.5">
-                  Provide valid business owner identification
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="p-8 space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                  ID Document Type
-                </label>
-                <select
-                  value={idType}
-                  onChange={(e) => setIdType(e.target.value)}
-                  className="w-full px-6 py-4 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-2xl focus:border-navy-dark dark:focus:border-blue-500 outline-none transition-all appearance-none cursor-pointer dark:text-white"
-                >
-                  <option value="NIN">National Identity Number (NIN)</option>
-                  <option value="DL">Driver's License</option>
-                  <option value="Passport">International Passport</option>
-                  <option value="Voters">Voter's Card</option>
-                </select>
-              </div>
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                  ID Number
-                </label>
-                <input
-                  className="w-full px-6 py-4 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-2xl focus:border-navy-dark dark:focus:border-blue-500 outline-none transition-all placeholder:text-slate-300 dark:text-white"
-                  placeholder="Enter ID number"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl p-10 flex flex-col items-center justify-center text-center space-y-4 hover:border-navy-dark dark:hover:border-blue-500 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-all cursor-pointer group/upload">
-                <div className="size-14 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center group-hover/upload:scale-110 transition-transform">
-                  <span className="material-symbols-outlined text-3xl text-slate-300 group-hover/upload:text-navy-dark dark:group-hover/upload:text-blue-400 transition-colors">
-                    back_hand
-                  </span>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-navy-dark dark:text-white">
-                    ID Front Face
-                  </p>
-                  <p className="text-[9px] text-slate-400 font-bold uppercase">
-                    Click to upload photo
-                  </p>
-                </div>
-              </div>
-              <div className="border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl p-10 flex flex-col items-center justify-center text-center space-y-4 hover:border-navy-dark dark:hover:border-blue-500 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-all cursor-pointer group/upload">
-                <div className="size-14 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center group-hover/upload:scale-110 transition-transform">
-                  <span className="material-symbols-outlined text-3xl text-slate-300 group-hover/upload:text-navy-dark dark:group-hover/upload:text-blue-400 transition-colors">
-                    back_hand
-                  </span>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-navy-dark dark:text-white">
-                    ID Back Face
-                  </p>
-                  <p className="text-[9px] text-slate-400 font-bold uppercase">
-                    Click to upload photo
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 2. Bank Account Verification Section */}
-        <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden group">
-          <div className="p-8 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="size-10 rounded-xl bg-navy-dark text-white flex items-center justify-center font-black text-xs shadow-lg shadow-navy-dark/20 text-blue-400">
-                02
-              </div>
-              <div>
-                <h3 className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-widest">
-                  Settlement Payout Bank
-                </h3>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight mt-0.5">
-                  Where your hardware trade earnings will be sent
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="p-8 space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                  Select Bank
-                </label>
-                <select
-                  value={selectedBank}
-                  onChange={(e) => setSelectedBank(e.target.value)}
-                  className="w-full px-6 py-4 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-2xl focus:border-navy-dark dark:focus:border-blue-500 outline-none transition-all appearance-none cursor-pointer dark:text-white"
-                >
-                  <option>Access Bank</option>
-                  <option>GTBank</option>
-                  <option>Zenith Bank</option>
-                  <option>First Bank</option>
-                  <option>UBA</option>
-                </select>
-              </div>
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                  Account Number
-                </label>
-                <div className="flex gap-4">
-                  <input
-                    type="text"
-                    maxLength={10}
-                    value={accountNumber}
-                    onChange={(e) => setAccountNumber(e.target.value)}
-                    className="flex-1 px-6 py-4 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-2xl focus:border-navy-dark dark:focus:border-blue-500 outline-none transition-all placeholder:text-slate-300 dark:text-white"
-                    placeholder="10-digit number"
-                  />
-                  <button
-                    onClick={() => setIsVerified(true)}
-                    className="px-8 py-4 bg-navy-dark dark:bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 dark:hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-navy-dark/10 dark:shadow-blue-500/20"
-                  >
-                    Verify
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {isVerified && (
-              <div className="bg-emerald-50 dark:bg-emerald-900/10 border-2 border-emerald-100 dark:border-emerald-900/20 rounded-[1.5rem] p-6 flex items-center gap-6 animate-in fade-in slide-in-from-top-2 duration-300">
-                <div className="size-14 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shrink-0 shadow-lg shadow-emerald-500/20">
-                  <span className="material-symbols-outlined text-2xl font-black">
-                    check
-                  </span>
+      ) : (
+        <div className="grid grid-cols-1 gap-8">
+          {/* 1. Identity Verification Display */}
+          <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden group">
+            <div className="p-8 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="size-10 rounded-xl bg-navy-dark text-white flex items-center justify-center font-black text-xs shadow-lg shadow-navy-dark/20 text-blue-400">
+                  01
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-1">
-                    Business Identity Confirmed
-                  </p>
-                  <p className="text-lg font-black text-navy-dark dark:text-white uppercase tracking-tight font-display">
-                    {user?.fullName || "User"} Trading Enterprise
+                  <h3 className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-widest">
+                    Business Identity
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight mt-0.5">
+                    Official business registration details
                   </p>
                 </div>
               </div>
-            )}
+              <StatusBadge status={verification || "PENDING"} />
+            </div>
+            <div className="p-8 space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-1 border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800 pb-6 md:pb-0">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Business Name
+                  </p>
+                  <p className="font-bold text-navy-dark dark:text-white">
+                    {businessName || "Not Provided"}
+                  </p>
+                </div>
+                <div className="space-y-1 border-b md:border-b-0 border-slate-100 dark:border-slate-800 pb-6 md:pb-0">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    CAC Registration Number
+                  </p>
+                  <p className="font-bold text-navy-dark dark:text-white">
+                    {cacNumber || "Not Provided"}
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Tax Identification Number (TIN)
+                  </p>
+                  <p className="font-bold text-navy-dark dark:text-white">
+                    {taxId || "Not Provided"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Bank Account Display */}
+          <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden group">
+            <div className="p-8 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="size-10 rounded-xl bg-navy-dark text-white flex items-center justify-center font-black text-xs shadow-lg shadow-navy-dark/20 text-blue-400">
+                  02
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-widest">
+                    Settlement Payout Bank
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight mt-0.5">
+                    Where your hardware trade earnings will be sent
+                  </p>
+                </div>
+              </div>
+              <StatusBadge status={bankAccountNo ? "VERIFIED" : "PENDING"} />
+            </div>
+            <div className="p-8 space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-1 border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800 pb-6 md:pb-0">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Bank Name
+                  </p>
+                  <p className="font-bold text-navy-dark dark:text-white">
+                    {getBankName(bankCode)}
+                  </p>
+                </div>
+                <div className="space-y-1 border-b md:border-b-0 border-slate-100 dark:border-slate-800 pb-6 md:pb-0">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Account Number
+                  </p>
+                  <p className="font-bold text-navy-dark dark:text-white">
+                    {bankAccountNo
+                      ? `******${bankAccountNo.slice(-4)}`
+                      : "Not Provided"}
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Account Name
+                  </p>
+                  <p className="font-bold text-navy-dark dark:text-white">
+                    {bankAccountName || "Not Provided"}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Platform Help Note */}
       <div className="bg-navy-dark rounded-[2.5rem] p-8 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden group">
@@ -231,52 +243,25 @@ export default function MerchantVerificationPage() {
           </div>
           <div className="space-y-1">
             <p className="text-sm font-bold leading-relaxed max-w-sm">
-              Verification usually takes 24-48 business hours after submission.
+              If any of your verification details look incorrect, please update
+              your profile via the Onboarding flow.
             </p>
             <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.2em]">
-              Securely processed via 256-bit encryption
+              Changes require re-verification
             </p>
           </div>
         </div>
         <div className="flex gap-4 relative z-10 w-full md:w-auto">
-          <button className="flex-1 md:flex-none px-8 py-4 bg-white/10 hover:bg-white/20 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
-            Save Draft
-          </button>
-          <button className="flex-1 md:flex-none px-10 py-4 bg-white text-navy-dark rounded-xl text-[10px] font-black uppercase tracking-widest shadow-2xl hover:-translate-y-1 transition-all active:scale-95">
-            Submit For Verification
-          </button>
+          <Link
+            href="/merchant/onboarding"
+            className="flex-1 md:flex-none px-10 py-4 bg-white text-navy-dark rounded-xl text-[10px] font-black uppercase tracking-widest shadow-2xl hover:-translate-y-1 transition-all active:scale-95 text-center"
+          >
+            Update Details
+          </Link>
         </div>
         <span className="material-symbols-outlined absolute -right-12 -bottom-12 text-[180px] text-white/5 font-light group-hover:scale-110 group-hover:rotate-12 transition-all duration-700">
           verified_user
         </span>
-      </div>
-
-      {/* Footer Links */}
-      <div className="text-center space-y-4 pt-10">
-        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-          © 2024 Hardware OS. All documents are processed securely via 256-bit
-          encryption.
-        </p>
-        <div className="flex justify-center gap-8 text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">
-          <a
-            href="#"
-            className="hover:text-navy-dark dark:hover:text-white transition-colors"
-          >
-            Privacy Policy
-          </a>
-          <a
-            href="#"
-            className="hover:text-navy-dark dark:hover:text-white transition-colors"
-          >
-            Merchant Terms
-          </a>
-          <a
-            href="#"
-            className="hover:text-navy-dark dark:hover:text-white transition-colors"
-          >
-            Support
-          </a>
-        </div>
       </div>
     </div>
   );
