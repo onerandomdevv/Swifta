@@ -8,6 +8,8 @@ import type { RegisterDto } from "@hardware-os/shared";
 import { useAuth } from "@/providers/auth-provider";
 import { useToast } from "@/providers/toast-provider";
 import { authApi } from "@/lib/api/auth.api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -18,6 +20,7 @@ export default function RegisterPage() {
     fullName: "",
     businessName: "",
     email: "",
+    phone: "",
     password: "",
   });
 
@@ -57,7 +60,8 @@ export default function RegisterPage() {
       // Attempt real registration
       await register({
         email: formData.email,
-        phone: "08000000000", // Default phone for DTO
+        phone: formData.phone,
+        fullName: formData.fullName,
         password: formData.password,
         businessName: formData.businessName,
         role: role as UserRole,
@@ -67,7 +71,13 @@ export default function RegisterPage() {
       toast.success("Registration successful! Check your inbox.");
     } catch (err: any) {
       console.error("Registration error:", err);
-      toast.error(err.error || "Registration failed. Please try again.");
+      const errorMessage =
+        typeof err === "string"
+          ? err
+          : err.error ||
+            err.message ||
+            "Registration failed. Please try again.";
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -257,14 +267,13 @@ export default function RegisterPage() {
 
           {/* Footer Action */}
           <div className="pt-8 flex flex-col items-center gap-4">
-            <button
+            <Button
               onClick={handleContinueToDetails}
               disabled={!role}
-              className={`w-full max-w-xs bg-primary text-white font-bold py-4 rounded-lg shadow-lg transition-all
-                ${!role ? "opacity-50 cursor-not-allowed" : "hover:bg-primary/95 active:scale-[0.98]"}`}
+              className="w-full max-w-xs h-12 text-md font-bold shadow-lg"
             >
               Continue to Onboarding
-            </button>
+            </Button>
             <div className="flex items-center gap-6 text-sm text-slate-500 font-medium">
               <p>
                 Already have an account?{" "}
@@ -357,8 +366,8 @@ export default function RegisterPage() {
                 >
                   Full Name
                 </label>
-                <input
-                  className="w-full h-12 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-primary transition-all text-sm placeholder:text-slate-400 outline-none"
+                <Input
+                  className="h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
                   id="full_name"
                   placeholder="e.g. John Doe"
                   type="text"
@@ -377,8 +386,8 @@ export default function RegisterPage() {
                 >
                   Business Name
                 </label>
-                <input
-                  className="w-full h-12 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-primary transition-all text-sm placeholder:text-slate-400 outline-none"
+                <Input
+                  className="h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
                   id="business_name"
                   placeholder="e.g. Lagos Hardware Ltd"
                   type="text"
@@ -397,8 +406,8 @@ export default function RegisterPage() {
                 >
                   Email Address
                 </label>
-                <input
-                  className="w-full h-12 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-primary transition-all text-sm placeholder:text-slate-400 outline-none"
+                <Input
+                  className="h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
                   id="email"
                   placeholder="name@company.com"
                   type="email"
@@ -406,6 +415,26 @@ export default function RegisterPage() {
                   value={formData.email}
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
+                  }
+                />
+              </div>
+              {/* Phone Number */}
+              <div className="space-y-1.5">
+                <label
+                  className="block text-sm font-bold text-slate-700 dark:text-slate-300"
+                  htmlFor="phone"
+                >
+                  Phone Number
+                </label>
+                <Input
+                  className="h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                  id="phone"
+                  placeholder="e.g. 08012345678"
+                  type="tel"
+                  required
+                  value={formData.phone}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: e.target.value })
                   }
                 />
               </div>
@@ -418,8 +447,8 @@ export default function RegisterPage() {
                   Password
                 </label>
                 <div className="relative">
-                  <input
-                    className="w-full h-12 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-primary transition-all text-sm placeholder:text-slate-400 outline-none pr-10"
+                  <Input
+                    className="h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 pr-10"
                     id="password"
                     placeholder="••••••••"
                     type={showPassword ? "text" : "password"}
@@ -445,13 +474,13 @@ export default function RegisterPage() {
               </div>
               {/* Actions */}
               <div className="pt-2">
-                <button
+                <Button
                   disabled={isLoading}
-                  className="w-full bg-primary text-white font-bold py-4 rounded-lg hover:bg-primary/95 active:scale-[0.98] transition-all shadow-md disabled:opacity-50"
+                  className="w-full h-12 text-md font-bold shadow-md"
                   type="submit"
                 >
                   {isLoading ? "Creating Account..." : "Create Account"}
-                </button>
+                </Button>
               </div>
             </form>
             <div className="mt-8 flex flex-col items-center gap-4">
@@ -520,13 +549,13 @@ export default function RegisterPage() {
                   />
                 ))}
               </div>
-              <button
+              <Button
                 disabled={isLoading || otp.some((d) => !d)}
-                className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 px-6 rounded-lg transition-all shadow-md active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full h-12 text-md font-bold shadow-md flex items-center justify-center gap-2"
                 type="submit"
               >
                 {isLoading ? "Verifying..." : "Verify Code"}
-              </button>
+              </Button>
             </form>
             <div className="mt-8 text-center">
               <p className="text-sm text-slate-500 dark:text-slate-500 mb-2 font-medium">
