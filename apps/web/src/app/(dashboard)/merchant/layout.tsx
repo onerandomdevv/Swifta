@@ -112,7 +112,7 @@ export default function MerchantLayout({ children }: { children: ReactNode }) {
             <div className="flex items-center gap-3 cursor-pointer group">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-semibold text-slate-900 dark:text-white leading-none group-hover:text-primary transition-colors">
-                  Adeyemi Okafor
+                  {user?.fullName || "User"}
                 </p>
                 <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider mt-1">
                   Lagos Merchant

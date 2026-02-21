@@ -1,42 +1,24 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatKobo } from "@hardware-os/shared";
-import { getMyRFQs } from "@/lib/api/rfq.api";
-import { getOrders } from "@/lib/api/order.api";
-import type { RFQ, Order } from "@hardware-os/shared";
+import { Money } from "@/components/ui/money";
+
+import { useBuyerDashboard } from "@/hooks/use-buyer-data";
 
 export default function BuyerDashboard() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [rfqs, setRfqs] = useState<RFQ[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const { rfqs, orders, isLoading, isError, error } = useBuyerDashboard();
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [rfqData, orderData] = await Promise.all([
-          getMyRFQs(1, 100) as unknown as Promise<RFQ[]>,
-          getOrders(1, 100) as unknown as Promise<Order[]>,
-        ]);
-        setRfqs(Array.isArray(rfqData) ? rfqData : []);
-        setOrders(Array.isArray(orderData) ? orderData : []);
-      } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Failed to load dashboard");
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
-
-  const activeRfqCount = rfqs.filter((r) => r.status === "OPEN" || r.status === "QUOTED").length;
+  const activeRfqCount = rfqs.filter(
+    (r) => r.status === "OPEN" || r.status === "QUOTED",
+  ).length;
   const pendingPayments = orders
     .filter((o) => o.status === "PENDING_PAYMENT")
     .reduce((sum, o) => sum + BigInt(o.totalAmountKobo || 0), 0n);
-  const pendingPaymentCount = orders.filter((o) => o.status === "PENDING_PAYMENT").length;
+  const pendingPaymentCount = orders.filter(
+    (o) => o.status === "PENDING_PAYMENT",
+  ).length;
   const totalOrders = orders.length;
   const inTransit = orders.filter((o) => o.status === "DISPATCHED").length;
 
@@ -51,8 +33,11 @@ export default function BuyerDashboard() {
     },
     {
       label: "Pending Payments",
-      value: formatKobo(pendingPayments),
-      badge: pendingPaymentCount > 0 ? `${pendingPaymentCount} OUTSTANDING` : undefined,
+      value: <Money amount={pendingPayments} />,
+      badge:
+        pendingPaymentCount > 0
+          ? `${pendingPaymentCount} OUTSTANDING`
+          : undefined,
       icon: "account_balance_wallet",
       subtext: pendingPaymentCount > 0 ? "Action required" : "All clear",
     },
@@ -90,7 +75,7 @@ export default function BuyerDashboard() {
     },
   ];
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="space-y-10 py-4 animate-in fade-in duration-500">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -129,10 +114,12 @@ export default function BuyerDashboard() {
     );
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="py-20 text-center">
-        <span className="material-symbols-outlined text-5xl text-red-400 mb-4">error</span>
+        <span className="material-symbols-outlined text-5xl text-red-400 mb-4">
+          error
+        </span>
         <p className="text-red-500 font-bold">{error}</p>
       </div>
     );
@@ -141,18 +128,56 @@ export default function BuyerDashboard() {
   // Build recent activity from real orders
   const recentOrders = orders.slice(0, 4);
   const activities = recentOrders.map((order) => {
-    const statusMap: Record<string, { title: string; icon: string; iconColor: string; bg: string }> = {
-      PENDING_PAYMENT: { title: "Payment Required", icon: "payments", iconColor: "text-amber-500", bg: "bg-amber-50/50" },
-      PAID: { title: "Payment Confirmed", icon: "check_circle", iconColor: "text-emerald-500", bg: "bg-emerald-50/50" },
-      DISPATCHED: { title: "Order Shipped", icon: "local_shipping", iconColor: "text-blue-500", bg: "bg-blue-50/50" },
-      COMPLETED: { title: "Order Delivered", icon: "verified", iconColor: "text-emerald-500", bg: "bg-emerald-50/50" },
-      CANCELLED: { title: "Order Cancelled", icon: "cancel", iconColor: "text-red-500", bg: "bg-red-50/50" },
+    const statusMap: Record<
+      string,
+      { title: string; icon: string; iconColor: string; bg: string }
+    > = {
+      PENDING_PAYMENT: {
+        title: "Payment Required",
+        icon: "payments",
+        iconColor: "text-amber-500",
+        bg: "bg-amber-50/50",
+      },
+      PAID: {
+        title: "Payment Confirmed",
+        icon: "check_circle",
+        iconColor: "text-emerald-500",
+        bg: "bg-emerald-50/50",
+      },
+      DISPATCHED: {
+        title: "Order Shipped",
+        icon: "local_shipping",
+        iconColor: "text-blue-500",
+        bg: "bg-blue-50/50",
+      },
+      COMPLETED: {
+        title: "Order Delivered",
+        icon: "verified",
+        iconColor: "text-emerald-500",
+        bg: "bg-emerald-50/50",
+      },
+      CANCELLED: {
+        title: "Order Cancelled",
+        icon: "cancel",
+        iconColor: "text-red-500",
+        bg: "bg-red-50/50",
+      },
     };
-    const info = statusMap[order.status] || { title: order.status, icon: "info", iconColor: "text-slate-400", bg: "bg-slate-50/50" };
+    const info = statusMap[order.status] || {
+      title: order.status,
+      icon: "info",
+      iconColor: "text-slate-400",
+      bg: "bg-slate-50/50",
+    };
     return {
       ...info,
       orderId: order.id,
-      desc: `Order #${order.id.slice(0, 8)} — ${formatKobo(BigInt(order.totalAmountKobo))}`,
+      desc: (
+        <>
+          Order #{order.id.slice(0, 8)} —{" "}
+          <Money amount={BigInt(order.totalAmountKobo)} />
+        </>
+      ),
       time: new Date(order.createdAt).toLocaleDateString(),
     };
   });
@@ -307,15 +332,22 @@ export default function BuyerDashboard() {
                 Recent Activity
               </h3>
             </div>
-            <Link href="/buyer/orders" className="text-[10px] font-black text-slate-400 hover:text-navy-dark dark:hover:text-white uppercase tracking-widest transition-colors">
+            <Link
+              href="/buyer/orders"
+              className="text-[10px] font-black text-slate-400 hover:text-navy-dark dark:hover:text-white uppercase tracking-widest transition-colors"
+            >
               View All
             </Link>
           </div>
 
           {activities.length === 0 ? (
             <div className="text-center py-16">
-              <span className="material-symbols-outlined text-5xl text-slate-200 mb-4">inbox</span>
-              <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">No recent activity</p>
+              <span className="material-symbols-outlined text-5xl text-slate-200 mb-4">
+                inbox
+              </span>
+              <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">
+                No recent activity
+              </p>
             </div>
           ) : (
             <div className="relative pl-0 sm:pl-8 space-y-10">
