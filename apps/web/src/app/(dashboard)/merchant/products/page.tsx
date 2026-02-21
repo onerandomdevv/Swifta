@@ -2,22 +2,39 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { formatKobo } from '@hardware-os/shared';
+import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getMyProducts, deleteProduct } from '@/lib/api/product.api';
+import type { Product } from '@hardware-os/shared';
 
 export default function MerchantProductsPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1000);
-    return () => clearTimeout(timer);
+    async function fetchProducts() {
+      try {
+        const data = await getMyProducts();
+        setProducts(Array.isArray(data) ? data : []);
+      } catch (err: any) {
+        setError(err?.message || 'Failed to load products');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProducts();
   }, []);
 
-  const products = [
-    { id: 'PROD-001', name: 'Elephant Cement (50kg)', price: 7000n, category: 'Building Materials', stock: 5000 },
-    { id: 'PROD-002', name: 'Premium Steel Rods (12mm)', price: 12000n, category: 'Metal & Steel', stock: 120 },
-    { id: 'PROD-003', name: 'Industrial Power Drill XL', price: 185000n, category: 'Power Tools', stock: 15 },
-  ];
+  const handleDelist = async (productId: string) => {
+    try {
+      await deleteProduct(productId);
+      setProducts((prev) => prev.filter((p) => p.id !== productId));
+    } catch (err: any) {
+      setError(err?.message || 'Failed to delist product');
+    }
+  };
 
   if (loading) {
     return (
@@ -39,6 +56,18 @@ export default function MerchantProductsPage() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 text-center space-y-6">
+        <span className="material-symbols-outlined text-5xl text-red-400">error</span>
+        <p className="text-sm font-bold text-red-600 dark:text-red-400 uppercase tracking-wide">{error}</p>
+        <button onClick={() => window.location.reload()} className="px-6 py-3 bg-navy-dark text-white rounded-2xl text-[10px] font-black uppercase tracking-widest">
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-10 py-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -52,42 +81,57 @@ export default function MerchantProductsPage() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        {products.map((product) => (
-          <div key={product.id} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden hover:shadow-2xl transition-all duration-500 group">
-            <div className="h-48 bg-slate-50 dark:bg-slate-800 relative flex items-center justify-center overflow-hidden">
-              <span className="material-symbols-outlined text-6xl text-slate-200 group-hover:scale-125 transition-transform duration-700">hardware</span>
-              <div className="absolute top-6 left-6 px-3 py-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-full text-[8px] font-black uppercase tracking-widest text-navy-dark dark:text-white shadow-sm">
-                {product.category}
+      {products.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          {products.map((product) => (
+            <div key={product.id} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden hover:shadow-2xl transition-all duration-500 group">
+              <div className="h-48 bg-slate-50 dark:bg-slate-800 relative flex items-center justify-center overflow-hidden">
+                <span className="material-symbols-outlined text-6xl text-slate-200 group-hover:scale-125 transition-transform duration-700">hardware</span>
+                <div className="absolute top-6 left-6 px-3 py-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-full text-[8px] font-black uppercase tracking-widest text-navy-dark dark:text-white shadow-sm">
+                  {product.categoryTag}
+                </div>
+                {!product.isActive && (
+                  <div className="absolute top-6 right-6 px-3 py-1 bg-red-500/90 backdrop-blur-md rounded-full text-[8px] font-black uppercase tracking-widest text-white shadow-sm">
+                    Inactive
+                  </div>
+                )}
               </div>
-            </div>
-            <div className="p-8 space-y-6">
-              <div className="space-y-1">
-                <h3 className="text-xl font-black text-navy-dark dark:text-white uppercase tracking-tight leading-tight group-hover:text-blue-600 transition-colors line-clamp-1">{product.name}</h3>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">SKU: {product.id}</p>
-              </div>
-
-              <div className="flex items-end justify-between">
+              <div className="p-8 space-y-6">
                 <div className="space-y-1">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Market Price</p>
-                  <p className="text-2xl font-black text-navy-dark dark:text-white tabular-nums">{formatKobo(product.price)}</p>
+                  <h3 className="text-xl font-black text-navy-dark dark:text-white uppercase tracking-tight leading-tight group-hover:text-blue-600 transition-colors line-clamp-1">{product.name}</h3>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ID: {product.id.slice(0, 8)}</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Stock Pool</p>
-                  <p className="text-sm font-black text-navy-dark dark:text-white">{product.stock.toLocaleString()}</p>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <button className="py-3 bg-slate-50 dark:bg-slate-800 text-navy-dark dark:text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-colors">Edit</button>
-                <button className="py-3 border-2 border-slate-50 dark:border-slate-800 text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-red-100 hover:text-red-500 transition-colors">Delist</button>
+                <div className="flex items-end justify-between">
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Unit</p>
+                    <p className="text-sm font-black text-navy-dark dark:text-white">{product.unit}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Min Order</p>
+                    <p className="text-sm font-black text-navy-dark dark:text-white">{product.minOrderQuantity.toLocaleString()}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    onClick={() => router.push(`/merchant/products/${product.id}/edit`)}
+                    className="py-3 bg-slate-50 dark:bg-slate-800 text-navy-dark dark:text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-colors"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelist(product.id)}
+                    className="py-3 border-2 border-slate-50 dark:border-slate-800 text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-red-100 hover:text-red-500 transition-colors"
+                  >
+                    Delist
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
-
-      {products.length === 0 && (
+          ))}
+        </div>
+      ) : (
         <div className="flex flex-col items-center justify-center py-32 text-center space-y-8 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[3rem] shadow-sm">
           <div className="size-24 rounded-[2rem] bg-slate-50 dark:bg-slate-800 flex items-center justify-center border border-slate-100 dark:border-slate-700">
             <span className="material-symbols-outlined text-4xl text-slate-200">shopping_bag</span>

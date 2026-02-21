@@ -1,16 +1,25 @@
-import { Injectable, UnauthorizedException, ConflictException, Logger } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { randomInt } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
+import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { TokenPair, JwtPayload } from '@hardware-os/shared';
 
 const SALT_ROUNDS = 10;
 const REFRESH_TOKEN_PREFIX = 'refresh_token:';
 const REFRESH_TOKEN_TTL = 7 * 24 * 60 * 60; // 7 days in seconds
+
+const EMAIL_OTP_PREFIX = 'email_otp:';
+const EMAIL_OTP_TTL = 600; // 10 minutes in seconds
+const EMAIL_OTP_RATE_PREFIX = 'email_otp_count:';
+const EMAIL_OTP_RATE_TTL = 600; // 10 minutes window
+const EMAIL_OTP_MAX_RESENDS = 3;
 
 @Injectable()
 export class AuthService {
@@ -52,7 +61,71 @@ export class AuthService {
       include: { merchantProfile: true },
     });
 
+    // Generate and store OTP for email verification
+    await this.generateAndStoreOtp(dto.email);
+
     return this.generateAndStoreTokens(user);
+  }
+
+  async verifyEmail(dto: VerifyEmailDto): Promise<{ message: string }> {
+    const storedOtp = await this.redis.get(`${EMAIL_OTP_PREFIX}${dto.email}`);
+
+    if (!storedOtp) {
+      throw new BadRequestException('Verification code expired or not found. Please request a new one.');
+    }
+
+    if (storedOtp !== dto.code) {
+      throw new BadRequestException('Invalid verification code.');
+    }
+
+    // Mark user as verified
+    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    if (!user) {
+      throw new BadRequestException('User not found.');
+    }
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerified: true },
+    });
+
+    // Clean up OTP and rate limit keys
+    await this.redis.del(`${EMAIL_OTP_PREFIX}${dto.email}`);
+    await this.redis.del(`${EMAIL_OTP_RATE_PREFIX}${dto.email}`);
+
+    this.logger.log(`Email verified for user ${dto.email}`);
+
+    return { message: 'Email verified successfully.' };
+  }
+
+  async resendVerification(dto: ResendVerificationDto): Promise<{ message: string }> {
+    // Verify the user exists and isn't already verified
+    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    if (!user) {
+      // Return success even if user not found (don't leak user existence)
+      return { message: 'If an account with that email exists, a new code has been sent.' };
+    }
+
+    if (user.emailVerified) {
+      throw new BadRequestException('Email is already verified.');
+    }
+
+    // Rate limiting: max 3 resends per 10 minutes
+    const rateKey = `${EMAIL_OTP_RATE_PREFIX}${dto.email}`;
+    const currentCount = await this.redis.get(rateKey);
+    const count = currentCount ? parseInt(currentCount, 10) : 0;
+
+    if (count >= EMAIL_OTP_MAX_RESENDS) {
+      throw new BadRequestException('Too many resend attempts. Please wait 10 minutes before trying again.');
+    }
+
+    // Generate and store new OTP (overwrites the old one)
+    await this.generateAndStoreOtp(dto.email);
+
+    // Increment rate limit counter
+    await this.redis.set(rateKey, (count + 1).toString(), EMAIL_OTP_RATE_TTL);
+
+    return { message: 'If an account with that email exists, a new code has been sent.' };
   }
 
   async login(dto: LoginDto): Promise<TokenPair> {
@@ -89,6 +162,22 @@ export class AuthService {
     // Delete refresh token from Redis — invalidates all sessions for this user
     await this.redis.del(`${REFRESH_TOKEN_PREFIX}${userId}`);
     return { message: 'Logged out successfully' };
+  }
+
+  /**
+   * Generates a cryptographically random 6-digit OTP, stores it in Redis,
+   * and logs it to the console.
+   */
+  private async generateAndStoreOtp(email: string): Promise<void> {
+    const otp = randomInt(100000, 999999).toString();
+
+    await this.redis.set(`${EMAIL_OTP_PREFIX}${email}`, otp, EMAIL_OTP_TTL);
+
+    // TODO: Replace console.log with actual email delivery (Resend/SendGrid)
+    // Example: await this.emailService.sendVerificationEmail(email, otp);
+    this.logger.log(`========================================`);
+    this.logger.log(`📧 OTP for ${email}: ${otp}`);
+    this.logger.log(`========================================`);
   }
 
   /**

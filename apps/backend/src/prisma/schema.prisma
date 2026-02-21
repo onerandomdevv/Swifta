@@ -91,15 +91,22 @@ model User {
 }
 
 model MerchantProfile {
-  id              String             @id @default(uuid()) @db.Uuid
-  userId          String             @unique @map("user_id") @db.Uuid
-  businessName    String             @map("business_name")
-  businessAddress String?            @map("business_address")
-  cacNumber       String?            @map("cac_number")
-  bankCode        String?            @map("bank_code")
-  bankAccountNo   String?            @map("bank_account_no")
-  bankAccountName String?            @map("bank_account_name")
-  verification    VerificationStatus @default(UNVERIFIED)
+  id                 String             @id @default(uuid()) @db.Uuid
+  userId             String             @unique @map("user_id") @db.Uuid
+  businessName       String             @map("business_name")
+  businessType       String?            @map("business_type")
+  estYear            String?            @map("est_year")
+  category           String?
+  businessAddress    String?            @map("business_address")
+  cacNumber          String?            @map("cac_number")
+  taxId              String?            @map("tax_id")
+  warehouseLocation  String?            @map("warehouse_location")
+  distributionCenter String?            @map("distribution_center")
+  warehouseCapacity  String?            @map("warehouse_capacity")
+  bankCode           String?            @map("bank_code")
+  bankAccountNo      String?            @map("bank_account_no")
+  bankAccountName    String?            @map("bank_account_name")
+  verification       VerificationStatus @default(UNVERIFIED)
   onboardingStep  Int                @default(1) @map("onboarding_step")
   createdAt       DateTime           @default(now()) @map("created_at")
   updatedAt       DateTime           @updatedAt @map("updated_at")

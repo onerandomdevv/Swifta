@@ -4,38 +4,65 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatKobo } from "@hardware-os/shared";
+import { getMyRFQs } from "@/lib/api/rfq.api";
+import { getOrders } from "@/lib/api/order.api";
+import type { RFQ, Order } from "@hardware-os/shared";
 
 export default function BuyerDashboard() {
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [rfqs, setRfqs] = useState<RFQ[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1000);
-    return () => clearTimeout(timer);
+    async function load() {
+      try {
+        const [rfqData, orderData] = await Promise.all([
+          getMyRFQs(1, 100) as unknown as Promise<RFQ[]>,
+          getOrders(1, 100) as unknown as Promise<Order[]>,
+        ]);
+        setRfqs(Array.isArray(rfqData) ? rfqData : []);
+        setOrders(Array.isArray(orderData) ? orderData : []);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Failed to load dashboard");
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
   }, []);
+
+  const activeRfqCount = rfqs.filter((r) => r.status === "OPEN" || r.status === "QUOTED").length;
+  const pendingPayments = orders
+    .filter((o) => o.status === "PENDING_PAYMENT")
+    .reduce((sum, o) => sum + BigInt(o.totalAmountKobo || 0), 0n);
+  const pendingPaymentCount = orders.filter((o) => o.status === "PENDING_PAYMENT").length;
+  const totalOrders = orders.length;
+  const inTransit = orders.filter((o) => o.status === "DISPATCHED").length;
 
   const kpis = [
     {
       label: "Active RFQs",
-      value: "12",
-      trend: "+2% this week",
-      trendType: "up",
+      value: String(activeRfqCount),
+      trend: `${rfqs.length} total`,
+      trendType: "up" as const,
       icon: "description",
-      subtext: "8 awaiting responses",
+      subtext: `${rfqs.filter((r) => r.status === "OPEN").length} awaiting responses`,
     },
     {
       label: "Pending Payments",
-      value: formatKobo(245000000n),
-      badge: "3 OUTSTANDING",
+      value: formatKobo(pendingPayments),
+      badge: pendingPaymentCount > 0 ? `${pendingPaymentCount} OUTSTANDING` : undefined,
       icon: "account_balance_wallet",
-      subtext: "DUE: 5 DAYS",
+      subtext: pendingPaymentCount > 0 ? "Action required" : "All clear",
     },
     {
       label: "Total Orders",
-      value: "148",
-      trend: "-5% vs last month",
-      trendType: "down",
+      value: String(totalOrders),
+      trend: `${inTransit} in transit`,
+      trendType: "up" as const,
       icon: "local_shipping",
-      subtext: "12 currently in transit",
+      subtext: `${inTransit} currently in transit`,
     },
   ];
 
@@ -49,7 +76,7 @@ export default function BuyerDashboard() {
     },
     {
       label: "Browse Catalogue",
-      sub: "View 10,000+ verified items",
+      sub: "View verified items",
       icon: "storefront",
       color: "bg-white",
       textColor: "text-navy-dark",
@@ -60,46 +87,6 @@ export default function BuyerDashboard() {
       icon: "verified",
       color: "bg-white",
       textColor: "text-navy-dark",
-    },
-  ];
-
-  const activities = [
-    {
-      title: "RFQ #1042 Approved",
-      time: "2 mins ago",
-      desc: 'Quotation for "Industrial Cement Mixer" has been approved by Vendor: LagosTools Ltd.',
-      type: "approval",
-      icon: "check_circle",
-      iconColor: "text-emerald-500",
-      bg: "bg-emerald-50/50",
-    },
-    {
-      title: "Order Shipped",
-      time: "3 hours ago",
-      desc: "Batch of 50kg Steel Reinforcement Bars is now out for delivery to Lekki Site 4.",
-      type: "shipping",
-      icon: "local_shipping",
-      iconColor: "text-blue-500",
-      bg: "bg-blue-50/50",
-      action: "Track Shipment",
-    },
-    {
-      title: "Payment Reminder",
-      time: "5 hours ago",
-      desc: `Invoice #INV-2024-012 (${formatKobo(85000000n)}) is due in 24 hours.`,
-      type: "reminder",
-      icon: "payments",
-      iconColor: "text-amber-500",
-      bg: "bg-amber-50/50",
-    },
-    {
-      title: "RFQ Created",
-      time: "Yesterday",
-      desc: 'You created a new RFQ for "Electrical Wiring Kits". Sent to 5 suppliers.',
-      type: "creation",
-      icon: "add",
-      iconColor: "text-slate-400",
-      bg: "bg-slate-50/50",
     },
   ];
 
@@ -142,6 +129,34 @@ export default function BuyerDashboard() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="py-20 text-center">
+        <span className="material-symbols-outlined text-5xl text-red-400 mb-4">error</span>
+        <p className="text-red-500 font-bold">{error}</p>
+      </div>
+    );
+  }
+
+  // Build recent activity from real orders
+  const recentOrders = orders.slice(0, 4);
+  const activities = recentOrders.map((order) => {
+    const statusMap: Record<string, { title: string; icon: string; iconColor: string; bg: string }> = {
+      PENDING_PAYMENT: { title: "Payment Required", icon: "payments", iconColor: "text-amber-500", bg: "bg-amber-50/50" },
+      PAID: { title: "Payment Confirmed", icon: "check_circle", iconColor: "text-emerald-500", bg: "bg-emerald-50/50" },
+      DISPATCHED: { title: "Order Shipped", icon: "local_shipping", iconColor: "text-blue-500", bg: "bg-blue-50/50" },
+      COMPLETED: { title: "Order Delivered", icon: "verified", iconColor: "text-emerald-500", bg: "bg-emerald-50/50" },
+      CANCELLED: { title: "Order Cancelled", icon: "cancel", iconColor: "text-red-500", bg: "bg-red-50/50" },
+    };
+    const info = statusMap[order.status] || { title: order.status, icon: "info", iconColor: "text-slate-400", bg: "bg-slate-50/50" };
+    return {
+      ...info,
+      orderId: order.id,
+      desc: `Order #${order.id.slice(0, 8)} — ${formatKobo(BigInt(order.totalAmountKobo))}`,
+      time: new Date(order.createdAt).toLocaleDateString(),
+    };
+  });
+
   return (
     <div className="space-y-10 py-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Header Section */}
@@ -153,14 +168,6 @@ export default function BuyerDashboard() {
           <p className="text-slate-500 font-bold text-sm tracking-wide mt-2">
             Manage your hardware procurement and marketplace activity in Lagos.
           </p>
-        </div>
-        <div className="flex bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-2xl p-1.5 shadow-sm">
-          <button className="flex items-center gap-2 px-6 py-2.5 bg-navy-dark text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-navy-dark/20 transition-all active:scale-95">
-            <span className="material-symbols-outlined text-lg">
-              calendar_today
-            </span>
-            Last 30 Days
-          </button>
         </div>
       </div>
 
@@ -220,7 +227,7 @@ export default function BuyerDashboard() {
               )}
             </div>
 
-            {idx === 1 && (
+            {idx === 1 && pendingPaymentCount > 0 && (
               <div className="absolute bottom-0 left-0 h-1 bg-amber-500 w-[65%]"></div>
             )}
           </div>
@@ -284,9 +291,6 @@ export default function BuyerDashboard() {
               <h4 className="text-lg font-black leading-tight uppercase">
                 Get better rates by bundling RFQs for similar materials.
               </h4>
-              <button className="px-6 py-3 bg-white text-navy-dark rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all active:scale-95">
-                Learn More
-              </button>
             </div>
             <div className="absolute -bottom-10 -right-10 size-40 bg-white/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-[2s]"></div>
           </div>
@@ -303,73 +307,56 @@ export default function BuyerDashboard() {
                 Recent Activity
               </h3>
             </div>
-            <button className="text-[10px] font-black text-slate-400 hover:text-navy-dark dark:hover:text-white uppercase tracking-widest transition-colors">
+            <Link href="/buyer/orders" className="text-[10px] font-black text-slate-400 hover:text-navy-dark dark:hover:text-white uppercase tracking-widest transition-colors">
               View All
-            </button>
+            </Link>
           </div>
 
-          <div className="relative pl-0 sm:pl-8 space-y-10">
-            <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-slate-100 dark:bg-slate-800 hidden sm:block"></div>
+          {activities.length === 0 ? (
+            <div className="text-center py-16">
+              <span className="material-symbols-outlined text-5xl text-slate-200 mb-4">inbox</span>
+              <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">No recent activity</p>
+            </div>
+          ) : (
+            <div className="relative pl-0 sm:pl-8 space-y-10">
+              <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-slate-100 dark:bg-slate-800 hidden sm:block"></div>
 
-            {activities.map((activity, idx) => (
-              <div key={idx} className="relative group">
-                <div
-                  className={`absolute -left-[45px] top-0 size-8 rounded-full ${activity.bg} dark:bg-slate-900 border-2 border-white dark:border-slate-950 items-center justify-center z-10 group-hover:scale-110 transition-transform hidden sm:flex`}
-                >
-                  <span
-                    className={`material-symbols-outlined text-lg font-black ${activity.iconColor}`}
+              {activities.map((activity, idx) => (
+                <div key={idx} className="relative group">
+                  <div
+                    className={`absolute -left-[45px] top-0 size-8 rounded-full ${activity.bg} dark:bg-slate-900 border-2 border-white dark:border-slate-950 items-center justify-center z-10 group-hover:scale-110 transition-transform hidden sm:flex`}
                   >
-                    {activity.icon}
-                  </span>
-                </div>
-
-                <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-6 sm:p-8 border border-slate-50 dark:border-slate-800 shadow-sm group-hover:shadow-xl transition-all">
-                  <div className="flex flex-col sm:flex-row justify-between items-start gap-2 mb-4">
-                    <h4 className="font-black text-navy-dark dark:text-white text-sm uppercase tracking-widest">
-                      {activity.title}
-                    </h4>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                      {activity.time}
+                    <span
+                      className={`material-symbols-outlined text-lg font-black ${activity.iconColor}`}
+                    >
+                      {activity.icon}
                     </span>
                   </div>
-                  <p className="text-slate-500 dark:text-slate-400 text-[11px] font-bold leading-relaxed mb-6 uppercase tracking-tight opacity-80">
-                    {activity.desc}
-                  </p>
 
-                  <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-                    {activity.type === "approval" && (
-                      <>
-                        <Link
-                          href="/buyer/rfqs"
-                          className="px-6 py-2.5 bg-navy-dark text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-navy-dark/10 active:scale-95 transition-all text-center"
-                        >
-                          Review Quote
-                        </Link>
-                        <Link
-                          href="/buyer/rfqs"
-                          className="px-6 py-2.5 border-2 border-slate-100 dark:border-slate-800 text-slate-500 rounded-xl text-[9px] font-black uppercase tracking-widest hover:border-navy-dark transition-all text-center"
-                        >
-                          Details
-                        </Link>
-                      </>
-                    )}
+                  <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-6 sm:p-8 border border-slate-50 dark:border-slate-800 shadow-sm group-hover:shadow-xl transition-all">
+                    <div className="flex flex-col sm:flex-row justify-between items-start gap-2 mb-4">
+                      <h4 className="font-black text-navy-dark dark:text-white text-sm uppercase tracking-widest">
+                        {activity.title}
+                      </h4>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        {activity.time}
+                      </span>
+                    </div>
+                    <p className="text-slate-500 dark:text-slate-400 text-[11px] font-bold leading-relaxed mb-6 uppercase tracking-tight opacity-80">
+                      {activity.desc}
+                    </p>
 
-                    {activity.action && (
-                      <Link
-                        href="/buyer/orders"
-                        className="flex items-center gap-2 text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase tracking-widest hover:underline"
-                      >
-                        <span className="material-symbols-outlined text-lg">
-                          location_on
-                        </span>
-                        {activity.action}
-                      </Link>
-                    )}
+                    <Link
+                      href={`/buyer/orders/${activity.orderId}`}
+                      className="px-6 py-2.5 bg-navy-dark text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-navy-dark/10 active:scale-95 transition-all text-center inline-block"
+                    >
+                      View Order
+                    </Link>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

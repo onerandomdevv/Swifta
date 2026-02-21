@@ -22,6 +22,12 @@ export const authApi = {
   register: (dto: RegisterDto) =>
     apiClient.post<AuthResponse>('/auth/register', dto),
 
+  verifyEmail: (dto: { email: string; code: string }) =>
+    apiClient.post<{ message: string }>('/auth/verify-email', dto),
+
+  resendVerification: (dto: { email: string }) =>
+    apiClient.post<{ message: string }>('/auth/resend-verification', dto),
+
   refresh: (refreshToken: string) =>
     apiClient.post<TokenPair>('/auth/refresh', { refreshToken }),
 

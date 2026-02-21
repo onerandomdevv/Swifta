@@ -4,45 +4,137 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { getProfile, updateProfile } from "@/lib/api/merchant.api";
 
 export default function MerchantOnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     businessName: "",
     businessType: "Wholesale Distributor",
     estYear: "",
     category: "Power Tools",
-    regNumber: "",
+    cacNumber: "",
     taxId: "",
+    businessAddress: "",
     warehouseLocation: "",
-    warehouseCapacity: "Medium",
+    warehouseCapacity: "Medium (500 - 2000 sqm)",
     distributionCenter: "Lagos Island",
+    bankCode: "",
+    bankAccountNo: "",
+    bankAccountName: "",
   });
 
   const steps = [
     { id: 1, label: "Business Profile", icon: "store" },
     { id: 2, label: "Identity & KYC", icon: "badge" },
     { id: 3, label: "Warehouse Setup", icon: "inventory_2" },
-    { id: 4, label: "Review & Finish", icon: "verified" },
+    { id: 4, label: "Bank Details", icon: "account_balance" },
+    { id: 5, label: "Review & Finish", icon: "verified" },
   ];
 
-  const handleContinue = () => {
-    if (step < 4) {
-      setLoading(true);
-      setTimeout(() => {
-        setStep((s) => s + 1);
-        setLoading(false);
-      }, 600);
-    } else {
-      // Final submission logic
-      setLoading(true);
-      setTimeout(() => {
-        router.push("/merchant/dashboard");
-      }, 1500);
+  // Load existing merchant profile on mount
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        const response = await getProfile();
+        const profile = response.data;
+        setFormData((prev) => ({
+          ...prev,
+          businessName: profile.businessName || "",
+          businessType: profile.businessType || prev.businessType,
+          estYear: profile.estYear || "",
+          category: profile.category || prev.category,
+          cacNumber: profile.cacNumber || "",
+          taxId: profile.taxId || "",
+          businessAddress: profile.businessAddress || "",
+          warehouseLocation: profile.warehouseLocation || "",
+          warehouseCapacity:
+            profile.warehouseCapacity || prev.warehouseCapacity,
+          distributionCenter:
+            profile.distributionCenter || prev.distributionCenter,
+          bankCode: profile.bankCode || "",
+          bankAccountNo: profile.bankAccountNo || "",
+          bankAccountName: profile.bankAccountName || "",
+        }));
+        // Resume from saved onboarding step
+        if (profile.onboardingStep > 1) {
+          setStep(profile.onboardingStep);
+        }
+      } catch {
+        // Fresh profile — start from step 1
+      } finally {
+        setInitialLoading(false);
+      }
+    }
+    loadProfile();
+  }, []);
+
+  const getStepPayload = () => {
+    switch (step) {
+      case 1:
+        return {
+          businessName: formData.businessName,
+          businessType: formData.businessType,
+          estYear: formData.estYear,
+          category: formData.category,
+        };
+      case 2:
+        return {
+          cacNumber: formData.cacNumber,
+          taxId: formData.taxId,
+        };
+      case 3:
+        return {
+          businessAddress: formData.businessAddress,
+          warehouseLocation: formData.warehouseLocation,
+          distributionCenter: formData.distributionCenter,
+          warehouseCapacity: formData.warehouseCapacity,
+        };
+      case 4:
+        return {
+          bankCode: formData.bankCode,
+          bankAccountNo: formData.bankAccountNo,
+          bankAccountName: formData.bankAccountName,
+        };
+      default:
+        return {};
     }
   };
+
+  const handleContinue = async () => {
+    setError(null);
+    setLoading(true);
+
+    try {
+      if (step < 5) {
+        // Save current step's data via PATCH /merchants/me
+        await updateProfile(getStepPayload());
+        setStep((s) => s + 1);
+      } else {
+        // Final step — all data already saved, redirect to dashboard
+        router.push("/merchant/dashboard");
+      }
+    } catch (err: any) {
+      setError(err?.message || "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (initialLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
+        <div className="space-y-6 w-full max-w-md">
+          <Skeleton className="h-10 w-48 mx-auto" />
+          <Skeleton className="h-64 w-full rounded-3xl" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-6 sm:p-10">
@@ -125,6 +217,17 @@ export default function MerchantOnboardingPage() {
             </div>
           ) : (
             <div className="flex-1 flex flex-col space-y-10">
+              {error && (
+                <div className="p-6 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded-2xl flex gap-4 animate-in fade-in duration-300">
+                  <span className="material-symbols-outlined text-red-500">
+                    error
+                  </span>
+                  <p className="text-xs font-bold text-red-700 dark:text-red-400 uppercase tracking-wide">
+                    {error}
+                  </p>
+                </div>
+              )}
+
               {step === 1 && (
                 <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
                   <div className="space-y-2">
@@ -239,11 +342,11 @@ export default function MerchantOnboardingPage() {
                         CAC Registration Number
                       </label>
                       <input
-                        value={formData.regNumber}
+                        value={formData.cacNumber}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
-                            regNumber: e.target.value,
+                            cacNumber: e.target.value,
                           })
                         }
                         className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white"
@@ -300,6 +403,23 @@ export default function MerchantOnboardingPage() {
                   <div className="space-y-8">
                     <div className="space-y-3">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                        Business Address
+                      </label>
+                      <textarea
+                        value={formData.businessAddress}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            businessAddress: e.target.value,
+                          })
+                        }
+                        className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white h-32 resize-none"
+                        placeholder="Enter your registered business address..."
+                      />
+                    </div>
+
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
                         Warehouse Physical Address
                       </label>
                       <textarea
@@ -311,7 +431,7 @@ export default function MerchantOnboardingPage() {
                           })
                         }
                         className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white h-32 resize-none"
-                        placeholder="Enter full street address in Lagos..."
+                        placeholder="Enter warehouse street address in Lagos..."
                       />
                     </div>
 
@@ -361,6 +481,111 @@ export default function MerchantOnboardingPage() {
               )}
 
               {step === 4 && (
+                <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="space-y-2">
+                    <h3 className="text-2xl font-black text-navy-dark dark:text-white uppercase tracking-tight">
+                      Bank Details
+                    </h3>
+                    <p className="text-slate-500 font-bold text-sm leading-relaxed">
+                      Payout account for receiving trade payments. This must
+                      match your registered business name.
+                    </p>
+                  </div>
+
+                  <div className="space-y-8">
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                        Bank Name / Code
+                      </label>
+                      <select
+                        value={formData.bankCode}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            bankCode: e.target.value,
+                          })
+                        }
+                        className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all text-slate-400 appearance-none bg-transparent"
+                      >
+                        <option value="">Select your bank...</option>
+                        <option value="044">Access Bank</option>
+                        <option value="023">Citibank Nigeria</option>
+                        <option value="063">Diamond Bank</option>
+                        <option value="050">Ecobank Nigeria</option>
+                        <option value="084">Enterprise Bank</option>
+                        <option value="070">Fidelity Bank</option>
+                        <option value="011">First Bank of Nigeria</option>
+                        <option value="214">First City Monument Bank</option>
+                        <option value="058">Guaranty Trust Bank</option>
+                        <option value="030">Heritage Bank</option>
+                        <option value="301">Jaiz Bank</option>
+                        <option value="082">Keystone Bank</option>
+                        <option value="526">Parallex Bank</option>
+                        <option value="076">Polaris Bank</option>
+                        <option value="101">Providus Bank</option>
+                        <option value="221">Stanbic IBTC Bank</option>
+                        <option value="068">Standard Chartered Bank</option>
+                        <option value="232">Sterling Bank</option>
+                        <option value="100">Suntrust Bank</option>
+                        <option value="032">Union Bank of Nigeria</option>
+                        <option value="033">United Bank for Africa</option>
+                        <option value="215">Unity Bank</option>
+                        <option value="035">Wema Bank</option>
+                        <option value="057">Zenith Bank</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                        Account Number
+                      </label>
+                      <input
+                        value={formData.bankAccountNo}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            bankAccountNo: e.target.value
+                              .replace(/\D/g, "")
+                              .slice(0, 10),
+                          })
+                        }
+                        className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white"
+                        placeholder="0123456789"
+                        inputMode="numeric"
+                      />
+                    </div>
+
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                        Account Name
+                      </label>
+                      <input
+                        value={formData.bankAccountName}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            bankAccountName: e.target.value,
+                          })
+                        }
+                        className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white"
+                        placeholder="LAGOS TOOLS & MACHINERY LTD"
+                      />
+                    </div>
+
+                    <div className="p-6 bg-amber-50 dark:bg-amber-950/10 border border-amber-100 dark:border-amber-900/20 rounded-2xl flex gap-4">
+                      <span className="material-symbols-outlined text-amber-500">
+                        info
+                      </span>
+                      <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wide leading-relaxed">
+                        Account name must match your registered business name
+                        for payout verification.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {step === 5 && (
                 <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-y-auto max-h-[500px] pr-4">
                   <div className="space-y-2">
                     <h3 className="text-2xl font-black text-navy-dark dark:text-white uppercase tracking-tight">
@@ -385,13 +610,18 @@ export default function MerchantOnboardingPage() {
                       },
                       {
                         label: "Registration",
-                        val: formData.regNumber || "Pending",
+                        val: formData.cacNumber || "Pending",
                         icon: "badge",
                       },
                       {
                         label: "Warehouse",
                         val: formData.distributionCenter,
                         icon: "location_on",
+                      },
+                      {
+                        label: "Bank",
+                        val: formData.bankAccountName || "Not Provided",
+                        icon: "account_balance",
                       },
                     ].map((item, i) => (
                       <div
@@ -446,7 +676,7 @@ export default function MerchantOnboardingPage() {
               disabled={loading}
               className="px-10 py-5 bg-navy-dark text-white text-[10px] font-black uppercase tracking-[0.3em] rounded-2xl shadow-2xl shadow-navy-dark/30 hover:-translate-y-1 transition-all active:scale-95 disabled:opacity-50 disabled:translate-y-0"
             >
-              {step === 4 ? "Complete Registration" : "Continue Step"}
+              {step === 5 ? "Complete Registration" : "Continue Step"}
             </button>
           </div>
         </main>

@@ -176,6 +176,7 @@ export default function BuyerSuppliersPage() {
                                 View Inventory
                             </Link>
                             <button
+                                onClick={() => alert('Messaging coming soon')}
                                 className="size-14 bg-navy-dark text-white rounded-2xl flex items-center justify-center shadow-lg shadow-navy-dark/20 hover:scale-105 active:scale-90 transition-all"
                             >
                                 <span className="material-symbols-outlined font-black">chat</span>
