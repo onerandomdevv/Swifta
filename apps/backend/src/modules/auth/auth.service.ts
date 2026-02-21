@@ -32,7 +32,7 @@ export class AuthService {
     private redis: RedisService,
   ) {}
 
-  async register(dto: RegisterDto): Promise<TokenPair> {
+  async register(dto: RegisterDto): Promise<TokenPair & { user: any }> {
     const existingUser = await this.prisma.user.findFirst({
       where: { OR: [{ email: dto.email }, { phone: dto.phone }] },
     });
@@ -128,7 +128,7 @@ export class AuthService {
     return { message: 'If an account with that email exists, a new code has been sent.' };
   }
 
-  async login(dto: LoginDto): Promise<TokenPair> {
+  async login(dto: LoginDto): Promise<TokenPair & { user: any }> {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
       include: { merchantProfile: true },
@@ -141,7 +141,7 @@ export class AuthService {
     return this.generateAndStoreTokens(user);
   }
 
-  async refreshTokens(userId: string, refreshToken: string): Promise<TokenPair> {
+  async refreshTokens(userId: string, refreshToken: string): Promise<TokenPair & { user: any }> {
     // Validate the refresh token against Redis
     await this.validateRefreshToken(userId, refreshToken);
 
@@ -204,7 +204,7 @@ export class AuthService {
    * Generates access + refresh tokens, hashes the refresh token,
    * and stores it in Redis with a 7-day TTL.
    */
-  private async generateAndStoreTokens(user: any): Promise<TokenPair> {
+  private async generateAndStoreTokens(user: any): Promise<TokenPair & { user: any }> {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
@@ -231,6 +231,16 @@ export class AuthService {
       REFRESH_TOKEN_TTL,
     );
 
-    return { accessToken, refreshToken };
+    return { 
+      accessToken, 
+      refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        merchantId: user.merchantProfile?.id,
+      }
+    };
   }
 }
