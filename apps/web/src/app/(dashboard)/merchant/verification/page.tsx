@@ -14,7 +14,7 @@ export default function MerchantVerificationPage() {
     async function loadProfile() {
       try {
         const response = await getProfile();
-        setProfile(response.data);
+        setProfile(response);
       } catch (err) {
         console.error("Failed to load profile", err);
       } finally {

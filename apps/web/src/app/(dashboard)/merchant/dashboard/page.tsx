@@ -10,7 +10,10 @@ import { useMerchantDashboard } from "@/hooks/use-merchant-data";
 export default function MerchantDashboard() {
   const { rfqs, orders, isLoading, isError, error } = useMerchantDashboard();
 
-  const pipelineValue = orders.reduce(
+  const activeOrders = orders.filter(
+    (o) => o.status !== "CANCELLED" && o.status !== "DISPUTE",
+  );
+  const pipelineValue = activeOrders.reduce(
     (sum, o) => sum + BigInt(o.totalAmountKobo || 0),
     0n,
   );
@@ -73,17 +76,17 @@ export default function MerchantDashboard() {
       label: "Pipeline Value",
       value: pipelineValue,
       isMoney: true,
-      trend: `${orders.length} orders`,
-      trendType: "up",
+      trend: `${activeOrders.length} orders`,
+      trendType: activeOrders.length > 0 ? "up" : "neutral",
       icon: "account_balance_wallet",
-      sub: `Calculated from ${orders.length} orders`,
+      sub: `Calculated from ${activeOrders.length} active orders`,
     },
     {
       label: "Active RFQs",
       value: String(activeRfqCount),
       isMoney: false,
       trend: `${rfqs.length} total`,
-      trendType: "up",
+      trendType: activeRfqCount > 0 ? "up" : "neutral",
       icon: "description",
       sub: "Requires immediate response",
     },
@@ -100,7 +103,7 @@ export default function MerchantDashboard() {
       value: String(orders.length),
       isMoney: false,
       trend: "All time",
-      trendType: "up",
+      trendType: orders.length > 0 ? "up" : "neutral",
       icon: "speed",
       sub: "Completed + in-progress",
     },
@@ -144,7 +147,7 @@ export default function MerchantDashboard() {
               </div>
               {stat.trend && (
                 <span
-                  className={`px-3 py-1 rounded-full text-[9px] font-black tracking-widest uppercase border ${stat.trendType === "up" ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-red-50 text-red-600 border-red-100"}`}
+                  className={`px-3 py-1 rounded-full text-[9px] font-black tracking-widest uppercase border ${stat.trendType === "up" ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-slate-50 text-slate-500 border-slate-200"}`}
                 >
                   {stat.trend}
                 </span>

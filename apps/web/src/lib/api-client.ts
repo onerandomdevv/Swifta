@@ -100,6 +100,8 @@ class ApiClient {
     }
 
     // Unwrapping the { success, data } envelope
+    // Note: this discards `meta` for pagination! If components need pagination later, 
+    // a separate `getPaginated` method must be added to ApiClient.
     const result = (await response.json()) as ApiResponse<T>;
     return result.data;
   }
@@ -107,8 +109,17 @@ class ApiClient {
   private async handleError(response: Response): Promise<ApiError> {
     try {
       const errorData = await response.json();
+      
+      // NestJS often puts the descriptive human-readable error in 'message'
+      // It can be a string, or an array of strings for validation errors.
+      let detailedMessage = typeof errorData.message === 'string' 
+        ? errorData.message 
+        : Array.isArray(errorData.message) 
+          ? errorData.message[0] 
+          : null;
+
       return {
-        error: errorData.error || 'An unexpected error occurred',
+        error: detailedMessage || errorData.error || 'An unexpected error occurred',
         code: errorData.code || 'UNKNOWN_ERROR',
         statusCode: response.status,
       } as ApiError;

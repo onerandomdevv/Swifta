@@ -41,28 +41,31 @@ export default function MerchantOnboardingPage() {
     async function loadProfile() {
       try {
         const response = await getProfile();
-        const profile = response.data;
-        setFormData((prev) => ({
-          ...prev,
-          businessName: profile.businessName || "",
-          businessType: profile.businessType || prev.businessType,
-          estYear: profile.estYear || "",
-          category: profile.category || prev.category,
-          cacNumber: profile.cacNumber || "",
-          taxId: profile.taxId || "",
-          businessAddress: profile.businessAddress || "",
-          warehouseLocation: profile.warehouseLocation || "",
-          warehouseCapacity:
-            profile.warehouseCapacity || prev.warehouseCapacity,
-          distributionCenter:
-            profile.distributionCenter || prev.distributionCenter,
-          bankCode: profile.bankCode || "",
-          bankAccountNo: profile.bankAccountNo || "",
-          bankAccountName: profile.bankAccountName || "",
-        }));
-        // Resume from saved onboarding step
-        if (profile.onboardingStep > 1) {
-          setStep(profile.onboardingStep);
+        const profile = response;
+        if (profile) {
+          setFormData((prev) => ({
+            ...prev,
+            businessName: profile.businessName || prev.businessName,
+            businessType: profile.businessType || prev.businessType,
+            estYear: profile.estYear || prev.estYear,
+            category: profile.category || prev.category,
+            cacNumber: profile.cacNumber || prev.cacNumber,
+            taxId: profile.taxId || prev.taxId,
+            businessAddress: profile.businessAddress || prev.businessAddress,
+            warehouseLocation:
+              profile.warehouseLocation || prev.warehouseLocation,
+            warehouseCapacity:
+              profile.warehouseCapacity || prev.warehouseCapacity,
+            distributionCenter:
+              profile.distributionCenter || prev.distributionCenter,
+            bankCode: profile.bankCode || prev.bankCode,
+            bankAccountNo: profile.bankAccountNo || prev.bankAccountNo,
+            bankAccountName: profile.bankAccountName || prev.bankAccountName,
+          }));
+          // Resume from saved onboarding step
+          if (profile.onboardingStep > 1) {
+            setStep(profile.onboardingStep);
+          }
         }
       } catch {
         // Fresh profile — start from step 1
