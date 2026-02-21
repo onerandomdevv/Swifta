@@ -10,6 +10,7 @@ export interface AuthResponse extends TokenPair {
   user: {
     id: string;
     email: string;
+    fullName?: string;
     role: UserRole;
     merchantId?: string;
   };
