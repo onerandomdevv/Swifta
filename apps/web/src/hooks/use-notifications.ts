@@ -2,7 +2,12 @@
 
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import * as notificationApi from '@/lib/api/notification.api';
+import { 
+  getNotifications, 
+  getUnreadCount, 
+  markAsRead, 
+  markAllAsRead 
+} from '@/lib/api/notification.api';
 import { Notification as BackendNotification, NotificationType } from '@hardware-os/shared';
 
 export interface NotificationUI {
@@ -79,33 +84,33 @@ export function useNotifications(isOpen: boolean = true) {
     const { data: notifications = [], isLoading: loading, refetch } = useQuery({
         queryKey: ['notifications', 'list'],
         queryFn: async () => {
-            const data = await notificationApi.getNotifications(1, 20);
-            const list = Array.isArray(data) ? data : (data as any)?.data || [];
+            const result = await getNotifications(1, 20);
+            const list = Array.isArray(result) ? result : (result as any)?.data || [];
             return list.map(mapNotification);
         },
         enabled: isOpen,
-        refetchInterval: isOpen ? 60000 : false, // Poll every minute when open
+        refetchInterval: isOpen ? 60000 : false,
     });
 
     const { data: unreadData } = useQuery({
         queryKey: ['notifications', 'unread-count'],
         queryFn: async () => {
-            const data = await notificationApi.getUnreadCount();
-            return (data as any)?.count ?? (data as any)?.data?.count ?? 0;
+            const result = await getUnreadCount();
+            return (result as any)?.count ?? (result as any)?.data?.count ?? 0;
         },
         enabled: isOpen,
         refetchInterval: isOpen ? 60000 : false,
     });
 
     const markAsReadMutation = useMutation({
-        mutationFn: (id: string) => notificationApi.markAsRead(id),
+        mutationFn: (id: string) => markAsRead(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['notifications'] });
         },
     });
 
     const markAllAsReadMutation = useMutation({
-        mutationFn: () => notificationApi.markAllAsRead(),
+        mutationFn: () => markAllAsRead(),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['notifications'] });
         },

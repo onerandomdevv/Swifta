@@ -12,3 +12,7 @@ export async function markAsRead(id: string): Promise<ApiResponse<void>> {
 export async function getUnreadCount(): Promise<ApiResponse<{ count: number }>> {
   return apiClient.get('/notifications/unread-count');
 }
+
+export async function markAllAsRead(): Promise<ApiResponse<void>> {
+  return apiClient.patch('/notifications/read-all', {});
+}
