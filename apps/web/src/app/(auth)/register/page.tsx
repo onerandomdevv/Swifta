@@ -111,7 +111,9 @@ export default function RegisterPage() {
 
       // Auto redirect after 2 seconds
       const dashboardPath =
-        role === UserRole.MERCHANT ? "/merchant/dashboard" : "/buyer/dashboard";
+        role === UserRole.MERCHANT
+          ? "/merchant/onboarding"
+          : "/buyer/dashboard";
       setTimeout(() => {
         router.push(dashboardPath);
       }, 2000);
@@ -636,13 +638,15 @@ export default function RegisterPage() {
                   onClick={() =>
                     router.push(
                       role === UserRole.MERCHANT
-                        ? "/merchant/dashboard"
+                        ? "/merchant/onboarding"
                         : "/buyer/dashboard",
                     )
                   }
                   className="w-full bg-primary hover:bg-primary/90 text-white font-black py-4 px-6 rounded-lg transition-all shadow-lg active:scale-[0.98] flex items-center justify-center gap-2"
                 >
-                  Go to Dashboard
+                  {role === UserRole.MERCHANT
+                    ? "Complete Profile"
+                    : "Go to Dashboard"}
                   <span className="material-symbols-outlined font-bold">
                     dashboard
                   </span>
