@@ -1,60 +1,86 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { formatKobo } from '@hardware-os/shared';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getOrder } from '@/lib/api/order.api';
+import { initializePayment } from '@/lib/api/payment.api';
+import type { Order } from '@hardware-os/shared';
 
 export default function RFQCheckoutPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const orderId = searchParams.get('orderId');
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [order, setOrder] = useState<Order | null>(null);
 
     useEffect(() => {
-        const timer = setTimeout(() => setLoading(false), 1200);
-        return () => clearTimeout(timer);
-    }, []);
-
-    const cartItems = [
-        { id: 1, name: 'Bosch GBH 2-28 F Rotary Hammer', qty: 2, price: 185000n, merchant: 'Mainland Tools & Co.' },
-        { id: 2, name: 'Premium Type 2 Safety Helmets', qty: 10, price: 15000n, merchant: 'Safety First Nigeria' },
-    ];
-
-    const subtotal = cartItems.reduce((acc, item) => acc + (BigInt(item.qty) * item.price), 0n);
-    const tax = subtotal / 20n;
-    const total = subtotal + tax;
+        async function fetchOrder() {
+            if (!orderId) {
+                setError('No order specified. Please accept a quote first.');
+                setLoading(false);
+                return;
+            }
+            try {
+                const data = await getOrder(orderId);
+                setOrder(data as any as Order);
+            } catch (err: any) {
+                setError(err?.message || 'Failed to load order');
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchOrder();
+    }, [orderId]);
 
     const handleCheckout = async () => {
+        if (!order) return;
         setIsSubmitting(true);
-        // Simulate API call
-        setTimeout(() => {
-            router.push('/buyer/orders/ORD-2024-X99');
-        }, 2000);
+        setError(null);
+        try {
+            const result = await initializePayment({ orderId: order.id });
+            const paymentData = result as any;
+            if (paymentData.authorization_url) {
+                window.location.href = paymentData.authorization_url;
+            }
+        } catch (err: any) {
+            setError(err?.message || 'Failed to initialize payment');
+            setIsSubmitting(false);
+        }
     };
 
     if (loading) {
         return (
             <div className="space-y-10 py-4 animate-in fade-in duration-500">
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                    <div className="space-y-4">
-                        <Skeleton className="h-10 w-64 rounded-xl" />
-                        <Skeleton className="h-4 w-96" />
-                    </div>
+                <div className="space-y-4">
+                    <Skeleton className="h-10 w-64 rounded-xl" />
+                    <Skeleton className="h-4 w-96" />
                 </div>
-
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                    <div className="lg:col-span-8 space-y-8">
-                        <Skeleton className="h-80 w-full rounded-[2.5rem]" />
-                        <Skeleton className="h-64 w-full rounded-[2.5rem]" />
-                    </div>
-                    <div className="lg:col-span-4">
-                        <Skeleton className="h-[500px] w-full rounded-[2.5rem]" />
-                    </div>
+                    <div className="lg:col-span-8"><Skeleton className="h-80 w-full rounded-[2.5rem]" /></div>
+                    <div className="lg:col-span-4"><Skeleton className="h-[500px] w-full rounded-[2.5rem]" /></div>
                 </div>
             </div>
         );
     }
+
+    if (error && !order) {
+        return (
+            <div className="flex flex-col items-center justify-center py-32 text-center space-y-6">
+                <span className="material-symbols-outlined text-5xl text-red-400">error</span>
+                <p className="text-sm font-bold text-red-600 dark:text-red-400 uppercase tracking-wide">{error}</p>
+                <button onClick={() => router.push('/buyer/orders')} className="px-6 py-3 bg-navy-dark text-white rounded-2xl text-[10px] font-black uppercase tracking-widest">View Orders</button>
+            </div>
+        );
+    }
+
+    if (!order) return null;
+
+    const total = BigInt(order.totalAmountKobo);
+    const deliveryFee = BigInt(order.deliveryFeeKobo);
 
     return (
         <div className="space-y-10 py-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -64,48 +90,23 @@ export default function RFQCheckoutPage() {
                 </button>
                 <div className="space-y-1">
                     <h1 className="text-4xl font-black text-navy-dark dark:text-white tracking-tight uppercase leading-none font-display">Secure Checkout</h1>
-                    <p className="text-slate-500 font-bold text-sm tracking-wide mt-2">Finalize your procurement for project execution</p>
+                    <p className="text-slate-500 font-bold text-sm tracking-wide mt-2">Finalize payment for your order</p>
                 </div>
             </div>
 
+            {error && (
+                <div className="p-6 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded-2xl flex gap-4">
+                    <span className="material-symbols-outlined text-red-500">error</span>
+                    <p className="text-xs font-bold text-red-700 dark:text-red-400 uppercase tracking-wide">{error}</p>
+                </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
                 <div className="lg:col-span-8 space-y-10">
-                    {/* Shipping & Delivery Section */}
-                    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-10 shadow-sm relative overflow-hidden group">
-                        <div className="flex items-center gap-3 mb-8 relative z-10">
-                            <span className="material-symbols-outlined text-navy-dark dark:text-white font-black">location_on</span>
-                            <h3 className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-widest">Job Site Delivery</h3>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 relative z-10">
-                            <div className="space-y-6">
-                                <div className="p-6 bg-slate-50 dark:bg-slate-800 border-2 border-navy-dark rounded-3xl relative">
-                                    <span className="absolute top-4 right-4 text-navy-dark material-symbols-outlined font-black">check_circle</span>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Primary Job Site</p>
-                                    <p className="text-sm font-black text-navy-dark dark:text-white uppercase leading-relaxed">
-                                        Plot 15, Admiralty Way, Lekki Phase 1, Lagos State, Nigeria.
-                                    </p>
-                                </div>
-                                <button className="flex items-center gap-2 text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline">
-                                    <span className="material-symbols-outlined text-lg">add_location_alt</span>
-                                    Add New Site
-                                </button>
-                            </div>
-                            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-6 border border-slate-100 dark:border-slate-700">
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Delivery Notes</p>
-                                <textarea
-                                    className="w-full h-24 bg-transparent border-none focus:ring-0 text-sm font-bold text-slate-600 dark:text-slate-400 placeholder:text-slate-300 resize-none"
-                                    placeholder="E.g. Call site engineer before arrival, exit by block A..."
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Payment Method Section */}
                     <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-10 shadow-sm">
                         <div className="flex items-center gap-3 mb-8">
                             <span className="material-symbols-outlined text-navy-dark dark:text-white font-black">payments</span>
-                            <h3 className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-widest">Vault Settlement</h3>
+                            <h3 className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-widest">Payment Method</h3>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -114,7 +115,7 @@ export default function RFQCheckoutPage() {
                                 { id: 'wallet', label: 'Vault Wallet', icon: 'account_balance_wallet', active: false },
                                 { id: 'transfer', label: 'Bank Transfer', icon: 'account_balance', active: false },
                             ].map((method) => (
-                                <button key={method.id} className={`p-6 rounded-[2rem] border-2 transition-all text-center space-y-3 ${method.active ? 'border-navy-dark bg-slate-50 dark:bg-slate-800' : 'border-slate-100 dark:border-slate-800 hover:border-slate-200'}`}>
+                                <button key={method.id} className={`p-6 rounded-[2rem] border-2 transition-all text-center space-y-3 ${method.active ? 'border-navy-dark bg-slate-50 dark:bg-slate-800' : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 opacity-50 cursor-not-allowed'}`} disabled={!method.active}>
                                     <span className={`material-symbols-outlined text-3xl ${method.active ? 'text-navy-dark dark:text-white' : 'text-slate-300'}`}>{method.icon}</span>
                                     <p className={`text-[10px] font-black uppercase tracking-widest ${method.active ? 'text-navy-dark dark:text-white' : 'text-slate-400'}`}>{method.label}</p>
                                 </button>
@@ -123,35 +124,18 @@ export default function RFQCheckoutPage() {
                     </div>
                 </div>
 
-                {/* Right Column: Checkout Summary */}
                 <div className="lg:col-span-4">
                     <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-10 shadow-sm sticky top-10">
-                        <h3 className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-widest mb-10 pb-4 border-b border-slate-50 dark:border-slate-800">Review Items</h3>
+                        <h3 className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-widest mb-10 pb-4 border-b border-slate-50 dark:border-slate-800">Order Summary</h3>
 
-                        <div className="space-y-6 mb-10">
-                            {cartItems.map((item) => (
-                                <div key={item.id} className="flex justify-between items-center group">
-                                    <div>
-                                        <p className="text-[11px] font-black text-navy-dark dark:text-white uppercase tracking-tight group-hover:text-blue-600 transition-colors">{item.name}</p>
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Qty: {item.qty} × {formatKobo(item.price)}</p>
-                                    </div>
-                                    <p className="text-[11px] font-black text-navy-dark dark:text-white">{formatKobo(BigInt(item.qty) * item.price)}</p>
-                                </div>
-                            ))}
-                        </div>
-
-                        <div className="space-y-4 pt-8 border-t border-slate-100 dark:border-slate-800 mb-10">
+                        <div className="space-y-4 mb-10">
                             <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                <span>Subtotal</span>
-                                <span className="text-navy-dark dark:text-white">{formatKobo(subtotal)}</span>
+                                <span>Order Total</span>
+                                <span className="text-navy-dark dark:text-white">{formatKobo(total - deliveryFee)}</span>
                             </div>
                             <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                <span>Trading VAT (5.0%)</span>
-                                <span className="text-navy-dark dark:text-white">{formatKobo(tax)}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                <span>Handling Fee</span>
-                                <span className="text-emerald-600">COVERED BY VAULT</span>
+                                <span>Delivery Fee</span>
+                                <span className="text-navy-dark dark:text-white">{formatKobo(deliveryFee)}</span>
                             </div>
                         </div>
 
@@ -170,12 +154,12 @@ export default function RFQCheckoutPage() {
                             {isSubmitting ? (
                                 <>
                                     <div className="size-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-                                    Verifying Transaction...
+                                    Redirecting to Paystack...
                                 </>
                             ) : (
                                 <>
                                     <span className="material-symbols-outlined text-lg">verified_user</span>
-                                    Pay and Finalize RFQ
+                                    Pay with Paystack
                                 </>
                             )}
                         </button>

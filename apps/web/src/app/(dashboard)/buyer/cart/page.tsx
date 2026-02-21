@@ -89,11 +89,17 @@ export default function BuyerCartPage() {
                                     </div>
                                     <div className="flex items-center justify-center sm:justify-start gap-6 pt-2">
                                         <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-2 border border-slate-100 dark:border-slate-700">
-                                            <button className="text-slate-400 hover:text-navy-dark dark:hover:text-white transition-colors">
+                                            <button
+                                                onClick={() => setItems(items.map(i => i.id === item.id ? { ...i, qty: Math.max(1, i.qty - 1) } : i))}
+                                                className="text-slate-400 hover:text-navy-dark dark:hover:text-white transition-colors"
+                                            >
                                                 <span className="material-symbols-outlined text-sm font-black">remove</span>
                                             </button>
                                             <span className="font-black text-sm text-navy-dark dark:text-white tabular-nums w-4 text-center">{item.qty}</span>
-                                            <button className="text-slate-400 hover:text-navy-dark dark:hover:text-white transition-colors">
+                                            <button
+                                                onClick={() => setItems(items.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i))}
+                                                className="text-slate-400 hover:text-navy-dark dark:hover:text-white transition-colors"
+                                            >
                                                 <span className="material-symbols-outlined text-sm font-black">add</span>
                                             </button>
                                         </div>

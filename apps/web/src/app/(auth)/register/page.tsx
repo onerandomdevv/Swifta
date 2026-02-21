@@ -1,12 +1,13 @@
-'use client';
+"use client";
 
-import { useState, useRef, useEffect } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { UserRole } from '@hardware-os/shared';
-import type { RegisterDto } from '@hardware-os/shared';
-import { useAuth } from '@/providers/auth-provider';
-import { useToast } from '@/providers/toast-provider';
+import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { UserRole } from "@hardware-os/shared";
+import type { RegisterDto } from "@hardware-os/shared";
+import { useAuth } from "@/providers/auth-provider";
+import { useToast } from "@/providers/toast-provider";
+import { authApi } from "@/lib/api/auth.api";
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -14,20 +15,30 @@ export default function RegisterPage() {
   const [step, setStep] = useState<Step>(1);
   const [role, setRole] = useState<UserRole | null>(null);
   const [formData, setFormData] = useState({
-    fullName: '',
-    businessName: '',
-    email: '',
-    password: '',
+    fullName: "",
+    businessName: "",
+    email: "",
+    password: "",
   });
 
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const router = useRouter();
   const { register } = useAuth();
   const toast = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Resend cooldown countdown
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
   const handleRoleSelect = (selectedRole: UserRole) => {
     setRole(selectedRole);
@@ -46,20 +57,17 @@ export default function RegisterPage() {
       // Attempt real registration
       await register({
         email: formData.email,
-        phone: '08000000000', // Default phone for DTO
+        phone: "08000000000", // Default phone for DTO
         password: formData.password,
         businessName: formData.businessName,
         role: role as UserRole,
       } as RegisterDto);
 
       setStep(3);
-      toast.success('Registration successful! Check your inbox.');
+      toast.success("Registration successful! Check your inbox.");
     } catch (err: any) {
-      console.error('Registration error:', err);
-      // Fallback for design verification: If backend is down, still allow moving to Step 3
-      // but warn the user.
-      toast.error(err.error || 'Backend unreachable. Moving to Step 3 for UI verification.');
-      setTimeout(() => setStep(3), 1000);
+      console.error("Registration error:", err);
+      toast.error(err.error || "Registration failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -71,32 +79,51 @@ export default function RegisterPage() {
     newOtp[index] = value;
     setOtp(newOtp);
 
-    if (value !== '' && index < 5) {
+    if (value !== "" && index < 5) {
       otpRefs.current[index + 1]?.focus();
     }
   };
 
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
       otpRefs.current[index - 1]?.focus();
     }
   };
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return;
     setIsLoading(true);
-    // Simulate verification
-    setTimeout(() => {
+    try {
+      await authApi.verifyEmail({ email: formData.email, code: otp.join("") });
       setStep(4);
-      setIsLoading(false);
-      toast.success('Email verified successfully!');
+      toast.success("Email verified successfully!");
 
       // Auto redirect after 2 seconds
-      const dashboardPath = role === UserRole.MERCHANT ? '/merchant/dashboard' : '/buyer/dashboard';
+      const dashboardPath =
+        role === UserRole.MERCHANT ? "/merchant/dashboard" : "/buyer/dashboard";
       setTimeout(() => {
         router.push(dashboardPath);
       }, 2000);
-    }, 1500);
+    } catch (err: any) {
+      toast.error(err.error || "Invalid verification code. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (resendCooldown > 0 || isLoading) return;
+    try {
+      await authApi.resendVerification({ email: formData.email });
+      toast.success("A new verification code has been sent.");
+      setResendCooldown(60);
+      setOtp(["", "", "", "", "", ""]);
+    } catch (err: any) {
+      toast.error(
+        err.error || "Could not resend code. Please try again later.",
+      );
+    }
   };
 
   return (
@@ -106,7 +133,9 @@ export default function RegisterPage() {
           {/* Progress Stepper */}
           <div className="max-w-md mx-auto space-y-4">
             <div className="flex justify-between items-center text-sm">
-              <span className="font-semibold text-primary uppercase tracking-wider">Registration Step 1 of 4</span>
+              <span className="font-semibold text-primary uppercase tracking-wider">
+                Registration Step 1 of 4
+              </span>
               <span className="text-slate-500 font-medium">25% Complete</span>
             </div>
             <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
@@ -116,9 +145,12 @@ export default function RegisterPage() {
 
           {/* Title Section */}
           <div className="text-center space-y-3">
-            <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Join Hardware OS</h1>
+            <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
+              Join Hardware OS
+            </h1>
             <p className="text-slate-600 dark:text-slate-400 text-lg max-w-xl mx-auto">
-              Choose the role that best fits your business needs. You can always change this later in your account settings.
+              Choose the role that best fits your business needs. You can always
+              change this later in your account settings.
             </p>
           </div>
 
@@ -128,33 +160,48 @@ export default function RegisterPage() {
             <button
               onClick={() => handleRoleSelect(UserRole.BUYER)}
               className={`group relative flex flex-col items-start p-8 bg-white dark:bg-slate-900 border-2 rounded-xl transition-all text-left focus:outline-none focus:ring-4 focus:ring-primary/20 
-                ${role === UserRole.BUYER ? 'border-primary shadow-xl ring-2 ring-primary/10' : 'border-slate-200 dark:border-slate-800 hover:border-primary/50 dark:hover:border-primary/30 hover:shadow-xl'}`}
+                ${role === UserRole.BUYER ? "border-primary shadow-xl ring-2 ring-primary/10" : "border-slate-200 dark:border-slate-800 hover:border-primary/50 dark:hover:border-primary/30 hover:shadow-xl"}`}
             >
               <div className="w-16 h-16 bg-primary/10 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <span className="material-symbols-outlined text-primary text-4xl" aria-hidden="true">shopping_cart</span>
+                <span
+                  className="material-symbols-outlined text-primary text-4xl"
+                  aria-hidden="true"
+                >
+                  shopping_cart
+                </span>
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Register as a Buyer</h3>
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                  Register as a Buyer
+                </h3>
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
-                  Source hardware items across Lagos, request instant quotes, and secure payment via our escrow system.
+                  Source hardware items across Lagos, request instant quotes,
+                  and secure payment via our escrow system.
                 </p>
                 <ul className="space-y-2">
                   <li className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 font-medium">
-                    <span className="material-symbols-outlined text-primary text-sm font-bold">check_circle</span>
+                    <span className="material-symbols-outlined text-primary text-sm font-bold">
+                      check_circle
+                    </span>
                     Request Unlimited Quotes
                   </li>
                   <li className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 font-medium">
-                    <span className="material-symbols-outlined text-primary text-sm font-bold">check_circle</span>
+                    <span className="material-symbols-outlined text-primary text-sm font-bold">
+                      check_circle
+                    </span>
                     Escrow Protection
                   </li>
                   <li className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 font-medium">
-                    <span className="material-symbols-outlined text-primary text-sm font-bold">check_circle</span>
+                    <span className="material-symbols-outlined text-primary text-sm font-bold">
+                      check_circle
+                    </span>
                     Verified Supplier Network
                   </li>
                 </ul>
               </div>
               <div className="mt-8 flex items-center text-primary font-bold gap-1 group-hover:translate-x-1 transition-transform">
-                Select Buyer <span className="material-symbols-outlined">chevron_right</span>
+                Select Buyer{" "}
+                <span className="material-symbols-outlined">chevron_right</span>
               </div>
             </button>
 
@@ -162,33 +209,48 @@ export default function RegisterPage() {
             <button
               onClick={() => handleRoleSelect(UserRole.MERCHANT)}
               className={`group relative flex flex-col items-start p-8 bg-white dark:bg-slate-900 border-2 rounded-xl transition-all text-left focus:outline-none focus:ring-4 focus:ring-primary/20
-                ${role === UserRole.MERCHANT ? 'border-primary shadow-xl ring-2 ring-primary/10' : 'border-slate-200 dark:border-slate-800 hover:border-primary/50 dark:hover:border-primary/30 hover:shadow-xl'}`}
+                ${role === UserRole.MERCHANT ? "border-primary shadow-xl ring-2 ring-primary/10" : "border-slate-200 dark:border-slate-800 hover:border-primary/50 dark:hover:border-primary/30 hover:shadow-xl"}`}
             >
               <div className="w-16 h-16 bg-primary/10 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <span className="material-symbols-outlined text-primary text-4xl" aria-hidden="true">storefront</span>
+                <span
+                  className="material-symbols-outlined text-primary text-4xl"
+                  aria-hidden="true"
+                >
+                  storefront
+                </span>
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Register as a Merchant</h3>
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                  Register as a Merchant
+                </h3>
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
-                  List your inventory, reach thousands of construction firms, and automate your quotation process.
+                  List your inventory, reach thousands of construction firms,
+                  and automate your quotation process.
                 </p>
                 <ul className="space-y-2">
                   <li className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 font-medium">
-                    <span className="material-symbols-outlined text-primary text-sm font-bold">check_circle</span>
+                    <span className="material-symbols-outlined text-primary text-sm font-bold">
+                      check_circle
+                    </span>
                     Inventory Management
                   </li>
                   <li className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 font-medium">
-                    <span className="material-symbols-outlined text-primary text-sm font-bold">check_circle</span>
+                    <span className="material-symbols-outlined text-primary text-sm font-bold">
+                      check_circle
+                    </span>
                     Direct Quotation Tools
                   </li>
                   <li className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 font-medium">
-                    <span className="material-symbols-outlined text-primary text-sm font-bold">check_circle</span>
+                    <span className="material-symbols-outlined text-primary text-sm font-bold">
+                      check_circle
+                    </span>
                     Sales Analytics Dashboard
                   </li>
                 </ul>
               </div>
               <div className="mt-8 flex items-center text-primary font-bold gap-1 group-hover:translate-x-1 transition-transform">
-                Select Merchant <span className="material-symbols-outlined">chevron_right</span>
+                Select Merchant{" "}
+                <span className="material-symbols-outlined">chevron_right</span>
               </div>
             </button>
           </div>
@@ -199,15 +261,28 @@ export default function RegisterPage() {
               onClick={handleContinueToDetails}
               disabled={!role}
               className={`w-full max-w-xs bg-primary text-white font-bold py-4 rounded-lg shadow-lg transition-all
-                ${!role ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary/95 active:scale-[0.98]'}`}
+                ${!role ? "opacity-50 cursor-not-allowed" : "hover:bg-primary/95 active:scale-[0.98]"}`}
             >
               Continue to Onboarding
             </button>
             <div className="flex items-center gap-6 text-sm text-slate-500 font-medium">
-              <p>Already have an account? <Link className="text-primary font-bold hover:underline" href="/login">Log in</Link></p>
+              <p>
+                Already have an account?{" "}
+                <Link
+                  className="text-primary font-bold hover:underline"
+                  href="/login"
+                >
+                  Log in
+                </Link>
+              </p>
               <span className="w-1.5 h-1.5 bg-slate-300 rounded-full"></span>
-              <a className="text-primary font-bold hover:underline flex items-center gap-1" href="#">
-                <span className="material-symbols-outlined text-base">help</span>
+              <a
+                className="text-primary font-bold hover:underline flex items-center gap-1"
+                href="#"
+              >
+                <span className="material-symbols-outlined text-base">
+                  help
+                </span>
                 Need Help?
               </a>
             </div>
@@ -220,8 +295,12 @@ export default function RegisterPage() {
           {/* Progress Stepper Container */}
           <div className="w-full max-w-[480px] mb-8">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold uppercase tracking-wider text-primary">Step 2: Account Details</span>
-              <span className="text-xs font-medium text-slate-500">66% Complete</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-primary">
+                Step 2: Account Details
+              </span>
+              <span className="text-xs font-medium text-slate-500">
+                66% Complete
+              </span>
             </div>
             <div className="h-2 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
               <div className="h-full bg-primary w-2/3 rounded-full"></div>
@@ -229,23 +308,31 @@ export default function RegisterPage() {
             <div className="flex justify-between mt-4 px-2">
               <div className="flex flex-col items-center">
                 <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center mb-1 ring-4 ring-primary/10">
-                  <span className="material-symbols-outlined text-sm font-bold">check</span>
+                  <span className="material-symbols-outlined text-sm font-bold">
+                    check
+                  </span>
                 </div>
-                <span className="text-[10px] font-medium text-slate-500 uppercase">Role</span>
+                <span className="text-[10px] font-medium text-slate-500 uppercase">
+                  Role
+                </span>
               </div>
               <div className="flex-1 border-t-2 border-primary mt-4 mx-2"></div>
               <div className="flex flex-col items-center">
                 <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center mb-1 ring-4 ring-primary/10">
                   <span className="text-xs font-bold">2</span>
                 </div>
-                <span className="text-[10px] font-bold text-primary uppercase">Details</span>
+                <span className="text-[10px] font-bold text-primary uppercase">
+                  Details
+                </span>
               </div>
               <div className="flex-1 border-t-2 border-slate-200 dark:border-slate-800 mt-4 mx-2"></div>
               <div className="flex flex-col items-center">
                 <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-400 flex items-center justify-center mb-1">
                   <span className="text-xs font-bold">3</span>
                 </div>
-                <span className="text-[10px] font-medium text-slate-500 uppercase">Verify</span>
+                <span className="text-[10px] font-medium text-slate-500 uppercase">
+                  Verify
+                </span>
               </div>
             </div>
           </div>
@@ -253,13 +340,23 @@ export default function RegisterPage() {
           {/* Registration Card */}
           <div className="w-full max-w-[480px] bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 p-8 md:p-10">
             <div className="mb-8">
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 leading-tight">Account Details</h2>
-              <p className="text-slate-500 dark:text-slate-400 text-sm mt-2">Please enter your business account information for the Lagos B2B marketplace.</p>
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 leading-tight">
+                Account Details
+              </h2>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mt-2">
+                Please enter your business account information for the Lagos B2B
+                marketplace.
+              </p>
             </div>
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Full Name */}
               <div className="space-y-1.5">
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300" htmlFor="full_name">Full Name</label>
+                <label
+                  className="block text-sm font-bold text-slate-700 dark:text-slate-300"
+                  htmlFor="full_name"
+                >
+                  Full Name
+                </label>
                 <input
                   className="w-full h-12 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-primary transition-all text-sm placeholder:text-slate-400 outline-none"
                   id="full_name"
@@ -267,12 +364,19 @@ export default function RegisterPage() {
                   type="text"
                   required
                   value={formData.fullName}
-                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, fullName: e.target.value })
+                  }
                 />
               </div>
               {/* Business Name */}
               <div className="space-y-1.5">
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300" htmlFor="business_name">Business Name</label>
+                <label
+                  className="block text-sm font-bold text-slate-700 dark:text-slate-300"
+                  htmlFor="business_name"
+                >
+                  Business Name
+                </label>
                 <input
                   className="w-full h-12 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-primary transition-all text-sm placeholder:text-slate-400 outline-none"
                   id="business_name"
@@ -280,12 +384,19 @@ export default function RegisterPage() {
                   type="text"
                   required
                   value={formData.businessName}
-                  onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, businessName: e.target.value })
+                  }
                 />
               </div>
               {/* Email Address */}
               <div className="space-y-1.5">
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300" htmlFor="email">Email Address</label>
+                <label
+                  className="block text-sm font-bold text-slate-700 dark:text-slate-300"
+                  htmlFor="email"
+                >
+                  Email Address
+                </label>
                 <input
                   className="w-full h-12 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-primary transition-all text-sm placeholder:text-slate-400 outline-none"
                   id="email"
@@ -293,21 +404,30 @@ export default function RegisterPage() {
                   type="email"
                   required
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
                 />
               </div>
               {/* Password */}
               <div className="space-y-1.5">
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300" htmlFor="password">Password</label>
+                <label
+                  className="block text-sm font-bold text-slate-700 dark:text-slate-300"
+                  htmlFor="password"
+                >
+                  Password
+                </label>
                 <div className="relative">
                   <input
                     className="w-full h-12 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-primary transition-all text-sm placeholder:text-slate-400 outline-none pr-10"
                     id="password"
                     placeholder="••••••••"
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword ? "text" : "password"}
                     required
                     value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, password: e.target.value })
+                    }
                   />
                   <button
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
@@ -315,11 +435,13 @@ export default function RegisterPage() {
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     <span className="material-symbols-outlined text-[20px]">
-                      {showPassword ? 'visibility_off' : 'visibility'}
+                      {showPassword ? "visibility_off" : "visibility"}
                     </span>
                   </button>
                 </div>
-                <p className="text-[11px] text-slate-400 mt-1 font-medium">Minimum 8 characters with at least one number.</p>
+                <p className="text-[11px] text-slate-400 mt-1 font-medium">
+                  Minimum 8 characters with at least one number.
+                </p>
               </div>
               {/* Actions */}
               <div className="pt-2">
@@ -328,7 +450,7 @@ export default function RegisterPage() {
                   className="w-full bg-primary text-white font-bold py-4 rounded-lg hover:bg-primary/95 active:scale-[0.98] transition-all shadow-md disabled:opacity-50"
                   type="submit"
                 >
-                  {isLoading ? 'Creating Account...' : 'Create Account'}
+                  {isLoading ? "Creating Account..." : "Create Account"}
                 </button>
               </div>
             </form>
@@ -338,12 +460,19 @@ export default function RegisterPage() {
                 className="flex items-center gap-2 text-slate-500 hover:text-primary text-sm font-semibold transition-colors"
                 type="button"
               >
-                <span className="material-symbols-outlined text-[18px] font-bold">arrow_back</span>
+                <span className="material-symbols-outlined text-[18px] font-bold">
+                  arrow_back
+                </span>
                 Back to Role Selection
               </button>
               <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
                 Already have an account?
-                <Link className="text-primary font-bold hover:underline ml-1" href="/login">Log in</Link>
+                <Link
+                  className="text-primary font-bold hover:underline ml-1"
+                  href="/login"
+                >
+                  Log in
+                </Link>
               </p>
             </div>
           </div>
@@ -357,11 +486,19 @@ export default function RegisterPage() {
           <div className="w-full max-w-md bg-white dark:bg-slate-900 p-8 md:p-10 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800">
             <div className="mb-8 text-center">
               <div className="inline-flex items-center justify-center size-14 rounded-full bg-primary/10 text-primary mb-6 ring-4 ring-primary/5">
-                <span className="material-symbols-outlined text-3xl font-bold">mail_lock</span>
+                <span className="material-symbols-outlined text-3xl font-bold">
+                  mail_lock
+                </span>
               </div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-3 tracking-tight">Check your inbox</h1>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-3 tracking-tight">
+                Check your inbox
+              </h1>
               <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
-                We've sent a 6-digit verification code to <span className="font-bold text-slate-900 dark:text-white">{formData.email || 'john.doe@lagostrade.com'}</span>. Enter it below to secure your account.
+                We've sent a 6-digit verification code to{" "}
+                <span className="font-bold text-slate-900 dark:text-white">
+                  {formData.email || "john.doe@lagostrade.com"}
+                </span>
+                . Enter it below to secure your account.
               </p>
             </div>
             <form onSubmit={handleVerifyOtp} className="space-y-8">
@@ -369,7 +506,9 @@ export default function RegisterPage() {
                 {otp.map((digit, index) => (
                   <input
                     key={index}
-                    ref={(el) => { otpRefs.current[index] = el; }}
+                    ref={(el) => {
+                      otpRefs.current[index] = el;
+                    }}
                     className="w-12 h-14 text-center text-xl font-black bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all text-slate-900 dark:text-white outline-none"
                     max={1}
                     maxLength={1}
@@ -382,18 +521,29 @@ export default function RegisterPage() {
                 ))}
               </div>
               <button
-                disabled={isLoading || otp.some(d => !d)}
+                disabled={isLoading || otp.some((d) => !d)}
                 className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 px-6 rounded-lg transition-all shadow-md active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
                 type="submit"
               >
-                {isLoading ? 'Verifying...' : 'Verify Code'}
+                {isLoading ? "Verifying..." : "Verify Code"}
               </button>
             </form>
             <div className="mt-8 text-center">
-              <p className="text-sm text-slate-500 dark:text-slate-500 mb-2 font-medium">Didn't receive the code?</p>
-              <button className="text-primary font-bold text-sm hover:underline flex items-center gap-1 mx-auto transition-all">
-                <span className="material-symbols-outlined text-sm font-bold">refresh</span>
-                Resend Code
+              <p className="text-sm text-slate-500 dark:text-slate-500 mb-2 font-medium">
+                Didn't receive the code?
+              </p>
+              <button
+                onClick={handleResendCode}
+                disabled={resendCooldown > 0}
+                className={`text-primary font-bold text-sm hover:underline flex items-center gap-1 mx-auto transition-all ${resendCooldown > 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+                type="button"
+              >
+                <span className="material-symbols-outlined text-sm font-bold">
+                  refresh
+                </span>
+                {resendCooldown > 0
+                  ? `Resend Code (${resendCooldown}s)`
+                  : "Resend Code"}
               </button>
             </div>
             <div className="mt-10 pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-center">
@@ -401,12 +551,16 @@ export default function RegisterPage() {
                 onClick={() => setStep(2)}
                 className="flex items-center gap-2 text-slate-500 hover:text-primary transition-colors text-sm font-bold"
               >
-                <span className="material-symbols-outlined text-lg font-bold">arrow_back</span>
+                <span className="material-symbols-outlined text-lg font-bold">
+                  arrow_back
+                </span>
                 Back to Details
               </button>
             </div>
           </div>
-          <p className="mt-6 text-[10px] text-slate-400 text-center uppercase tracking-[0.2em] font-black">Verification State</p>
+          <p className="mt-6 text-[10px] text-slate-400 text-center uppercase tracking-[0.2em] font-black">
+            Verification State
+          </p>
         </div>
       )}
 
@@ -420,32 +574,58 @@ export default function RegisterPage() {
             <div className="relative z-10">
               <div className="mb-8">
                 <div className="inline-flex items-center justify-center size-24 rounded-full bg-primary/10 text-primary mb-6 ring-[12px] ring-primary/5 animate-pulse-slow">
-                  <span className="material-symbols-outlined text-5xl font-black">check_circle</span>
+                  <span className="material-symbols-outlined text-5xl font-black">
+                    check_circle
+                  </span>
                 </div>
-                <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-3 tracking-tight">Verification Successful</h1>
+                <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-3 tracking-tight">
+                  Verification Successful
+                </h1>
                 <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-8 font-medium">
-                  Your email has been verified and your account is now fully active. Welcome to the Hardware OS trading marketplace!
+                  Your email has been verified and your account is now fully
+                  active. Welcome to the Hardware OS trading marketplace!
                 </p>
               </div>
 
               <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-5 mb-8 text-left flex items-start gap-4 border border-slate-100 dark:border-slate-800 transition-all hover:border-primary/20">
-                <span className="material-symbols-outlined text-primary mt-0.5 font-bold">info</span>
+                <span className="material-symbols-outlined text-primary mt-0.5 font-bold">
+                  info
+                </span>
                 <div>
-                  <p className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-tight mb-1">What's next?</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Complete your company profile to start listing hardware for trade in Lagos.</p>
+                  <p className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-tight mb-1">
+                    What's next?
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    Complete your company profile to start listing hardware for
+                    trade in Lagos.
+                  </p>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <button
-                  onClick={() => router.push(role === UserRole.MERCHANT ? '/merchant/dashboard' : '/buyer/dashboard')}
+                  onClick={() =>
+                    router.push(
+                      role === UserRole.MERCHANT
+                        ? "/merchant/dashboard"
+                        : "/buyer/dashboard",
+                    )
+                  }
                   className="w-full bg-primary hover:bg-primary/90 text-white font-black py-4 px-6 rounded-lg transition-all shadow-lg active:scale-[0.98] flex items-center justify-center gap-2"
                 >
                   Go to Dashboard
-                  <span className="material-symbols-outlined font-bold">dashboard</span>
+                  <span className="material-symbols-outlined font-bold">
+                    dashboard
+                  </span>
                 </button>
                 <button
-                  onClick={() => router.push(role === UserRole.MERCHANT ? '/merchant/profile' : '/buyer/profile')}
+                  onClick={() =>
+                    router.push(
+                      role === UserRole.MERCHANT
+                        ? "/merchant/profile"
+                        : "/buyer/profile",
+                    )
+                  }
                   className="w-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-3.5 px-6 rounded-lg transition-all flex items-center justify-center gap-2"
                 >
                   View Profile
@@ -453,7 +633,9 @@ export default function RegisterPage() {
               </div>
             </div>
           </div>
-          <p className="mt-6 text-[10px] text-slate-400 text-center uppercase tracking-[0.2em] font-black">Success State</p>
+          <p className="mt-6 text-[10px] text-slate-400 text-center uppercase tracking-[0.2em] font-black">
+            Success State
+          </p>
         </div>
       )}
     </div>

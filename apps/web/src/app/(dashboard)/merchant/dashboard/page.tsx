@@ -4,27 +4,38 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatKobo } from '@hardware-os/shared';
+import { getMerchantRFQs } from '@/lib/api/rfq.api';
+import { getOrders } from '@/lib/api/order.api';
+import type { RFQ, Order } from '@hardware-os/shared';
 
 export default function MerchantDashboard() {
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [rfqs, setRfqs] = useState<RFQ[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1000);
-    return () => clearTimeout(timer);
+    async function load() {
+      try {
+        const [rfqData, orderData] = await Promise.all([
+          getMerchantRFQs(1, 5) as unknown as Promise<RFQ[]>,
+          getOrders(1, 100) as unknown as Promise<Order[]>,
+        ]);
+        setRfqs(Array.isArray(rfqData) ? rfqData : []);
+        setOrders(Array.isArray(orderData) ? orderData : []);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Failed to load dashboard');
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
   }, []);
 
-  const stats = [
-    { label: 'Pipeline Value', value: 12450000n, trend: '+12% this month', trendType: 'up', icon: 'account_balance_wallet', sub: 'Calculated from 48 active quotes' },
-    { label: 'Active RFQs', value: '32', trend: '+5 new today', trendType: 'up', icon: 'description', sub: 'Requires immediate response' },
-    { label: 'Incomplete Orders', value: '14', badge: '8 URGENT', icon: 'inventory_2', sub: 'Awaiting dispatch verification' },
-    { label: 'Sales Velocity', value: '4.8/5', trend: 'Top 5% in Lagos', trendType: 'up', icon: 'speed', sub: 'Avg response time: 42 mins' },
-  ];
-
-  const recentRFQs = [
-    { id: 'RFQ-2024-001', buyer: 'Dangote Construction', items: '500 Bags of Cement', value: 3500000n, time: '12 mins ago', status: 'NEW' },
-    { id: 'RFQ-2024-002', buyer: 'Lagos State Govt', items: 'Iron Rods (16mm)', value: 12000000n, time: '1 hour ago', status: 'NEW' },
-    { id: 'RFQ-2024-003', buyer: 'Julius Berger', items: 'Industrial Drill Bits', value: 850000n, time: '3 hours ago', status: 'QUOTED' },
-  ];
+  const pipelineValue = orders.reduce((sum, o) => sum + BigInt(o.totalAmountKobo || 0), 0n);
+  const activeRfqCount = rfqs.filter(r => r.status === 'OPEN' || r.status === 'QUOTED').length;
+  const incompleteOrders = orders.filter(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED').length;
+  const recentRfqs = rfqs.slice(0, 3);
 
   if (loading) {
     return (
@@ -61,19 +72,31 @@ export default function MerchantDashboard() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="py-20 text-center">
+        <span className="material-symbols-outlined text-5xl text-red-400 mb-4">error</span>
+        <p className="text-red-500 font-bold">{error}</p>
+      </div>
+    );
+  }
+
+  const stats = [
+    { label: 'Pipeline Value', value: pipelineValue, isMoney: true, trend: `${orders.length} orders`, trendType: 'up', icon: 'account_balance_wallet', sub: `Calculated from ${orders.length} orders` },
+    { label: 'Active RFQs', value: String(activeRfqCount), isMoney: false, trend: `${rfqs.length} total`, trendType: 'up', icon: 'description', sub: 'Requires immediate response' },
+    { label: 'Incomplete Orders', value: String(incompleteOrders), isMoney: false, badge: incompleteOrders > 5 ? `${incompleteOrders} PENDING` : undefined, icon: 'inventory_2', sub: 'Awaiting dispatch or payment' },
+    { label: 'Total Orders', value: String(orders.length), isMoney: false, trend: 'All time', trendType: 'up', icon: 'speed', sub: 'Completed + in-progress' },
+  ];
+
   return (
     <div className="space-y-10 py-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
           <h1 className="text-4xl font-black text-navy-dark dark:text-white tracking-tight uppercase leading-none font-display">Merchant Dashboard</h1>
-          <p className="text-slate-500 font-bold text-sm tracking-wide mt-2">Enterprise Trading Hub • Mainland Tools & Co.</p>
+          <p className="text-slate-500 font-bold text-sm tracking-wide mt-2">Enterprise Trading Hub</p>
         </div>
         <div className="flex gap-4">
-          <button className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-500 transition-all hover:border-navy-dark active:scale-95 shadow-sm">
-            <span className="material-symbols-outlined text-lg font-black">download</span>
-            Export Reports
-          </button>
           <Link href="/merchant/products/new" className="flex items-center gap-2 px-8 py-3 bg-navy-dark text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-navy-dark/20 transition-all active:scale-95">
             <span className="material-symbols-outlined text-lg">add_box</span>
             Add Product
@@ -103,7 +126,7 @@ export default function MerchantDashboard() {
 
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 relative z-10">{stat.label}</p>
             <h3 className="text-3xl font-black text-navy-dark dark:text-white tracking-tighter uppercase leading-none relative z-10">
-              {typeof stat.value === 'bigint' ? formatKobo(stat.value) : stat.value}
+              {stat.isMoney ? formatKobo(stat.value as bigint) : stat.value}
             </h3>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-6 relative z-10">{stat.sub}</p>
 
@@ -124,79 +147,62 @@ export default function MerchantDashboard() {
             <Link href="/merchant/rfqs" className="text-[10px] font-black text-slate-400 hover:text-navy-dark dark:hover:text-white uppercase tracking-widest transition-colors">View All Requests</Link>
           </div>
 
-          <div className="space-y-4">
-            {recentRFQs.map((rfq) => (
-              <div key={rfq.id} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] p-6 hover:shadow-xl transition-all duration-300 group">
-                <div className="flex flex-col sm:flex-row items-center gap-6">
-                  <div className="size-16 rounded-3xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center border border-slate-100 dark:border-slate-700 shadow-inner group-hover:scale-110 transition-transform">
-                    <span className="material-symbols-outlined text-navy-dark dark:text-white">description</span>
-                  </div>
-                  <div className="flex-1 text-center sm:text-left">
-                    <div className="flex flex-wrap justify-center sm:justify-start items-center gap-3 mb-1">
-                      <h4 className="font-black text-navy-dark dark:text-white text-base uppercase tracking-tight">{rfq.buyer}</h4>
-                      <span className={`px-2 py-0.5 rounded text-[8px] font-black tracking-widest ${rfq.status === 'NEW' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
-                        {rfq.status}
-                      </span>
+          {recentRfqs.length === 0 ? (
+            <div className="text-center py-16">
+              <span className="material-symbols-outlined text-5xl text-slate-200 mb-4">inbox</span>
+              <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">No RFQs yet</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {recentRfqs.map((rfq) => (
+                <div key={rfq.id} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] p-6 hover:shadow-xl transition-all duration-300 group">
+                  <div className="flex flex-col sm:flex-row items-center gap-6">
+                    <div className="size-16 rounded-3xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center border border-slate-100 dark:border-slate-700 shadow-inner group-hover:scale-110 transition-transform">
+                      <span className="material-symbols-outlined text-navy-dark dark:text-white">description</span>
                     </div>
-                    <p className="text-[11px] text-slate-500 font-bold uppercase tracking-tight">{rfq.items} • Expected Value: {formatKobo(rfq.value)}</p>
-                  </div>
-                  <div className="flex items-center gap-6">
-                    <div className="text-right hidden sm:block">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{rfq.time}</p>
-                      <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Lagos, NG</p>
+                    <div className="flex-1 text-center sm:text-left">
+                      <div className="flex flex-wrap justify-center sm:justify-start items-center gap-3 mb-1">
+                        <h4 className="font-black text-navy-dark dark:text-white text-base uppercase tracking-tight">RFQ #{rfq.id.slice(0, 8)}</h4>
+                        <span className={`px-2 py-0.5 rounded text-[8px] font-black tracking-widest ${rfq.status === 'OPEN' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                          {rfq.status}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 font-bold uppercase tracking-tight">Qty: {rfq.quantity} • {rfq.deliveryAddress}</p>
                     </div>
-                    <Link href={`/merchant/rfqs/${rfq.id}`} className="size-12 rounded-2xl bg-navy-dark text-white flex items-center justify-center shadow-lg shadow-navy-dark/10 hover:bg-slate-800 transition-all active:scale-95">
-                      <span className="material-symbols-outlined">chevron_right</span>
-                    </Link>
+                    <div className="flex items-center gap-6">
+                      <div className="text-right hidden sm:block">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{new Date(rfq.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      <Link href={`/merchant/rfqs/${rfq.id}`} className="size-12 rounded-2xl bg-navy-dark text-white flex items-center justify-center shadow-lg shadow-navy-dark/10 hover:bg-slate-800 transition-all active:scale-95">
+                        <span className="material-symbols-outlined">chevron_right</span>
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Right Column: Mini Analytics / Inventory Alert */}
+        {/* Right Column */}
         <div className="lg:col-span-4 space-y-8">
           <div className="flex items-center gap-3">
             <span className="material-symbols-outlined text-navy-dark dark:text-white font-black">warehouse</span>
-            <h3 className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-widest">Inventory Health</h3>
+            <h3 className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-widest">Quick Actions</h3>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-8 shadow-sm">
-            <div className="space-y-8">
-              <div className="space-y-4">
-                <div className="flex justify-between items-end">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Power Tools</p>
-                  <p className="text-[11px] font-black text-navy-dark dark:text-white uppercase">85% In Stock</p>
-                </div>
-                <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500 w-[85%]"></div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex justify-between items-end">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Safety Gear</p>
-                  <p className="text-[11px] font-black text-orange-500 uppercase">22% — Restock soon</p>
-                </div>
-                <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <div className="h-full bg-orange-500 w-[22%]"></div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex justify-between items-end">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Bulk Materials</p>
-                  <p className="text-[11px] font-black text-navy-dark dark:text-white uppercase">64% In Stock</p>
-                </div>
-                <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-500 w-[64%]"></div>
-                </div>
-              </div>
-            </div>
-
-            <Link href="/merchant/inventory" className="w-full mt-12 py-4 border-2 border-slate-100 dark:border-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-navy-dark dark:text-white transition-all hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center gap-3">
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-8 shadow-sm space-y-4">
+            <Link href="/merchant/inventory" className="w-full py-4 border-2 border-slate-100 dark:border-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-navy-dark dark:text-white transition-all hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center gap-3">
+              <span className="material-symbols-outlined text-lg">inventory_2</span>
               Manage Inventory
+            </Link>
+            <Link href="/merchant/orders" className="w-full py-4 border-2 border-slate-100 dark:border-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-navy-dark dark:text-white transition-all hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center gap-3">
+              <span className="material-symbols-outlined text-lg">local_shipping</span>
+              View Orders
+            </Link>
+            <Link href="/merchant/products" className="w-full py-4 border-2 border-slate-100 dark:border-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-navy-dark dark:text-white transition-all hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center gap-3">
+              <span className="material-symbols-outlined text-lg">storefront</span>
+              My Products
             </Link>
           </div>
 
@@ -204,7 +210,6 @@ export default function MerchantDashboard() {
             <div className="relative z-10 space-y-4">
               <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40">Trading Tip</p>
               <h4 className="text-xl font-black leading-tight uppercase">Update your stock levels daily to rank higher in buyer searches.</h4>
-              <button className="text-blue-400 font-black text-[10px] uppercase tracking-widest hover:underline underline-offset-8 decoration-2 mt-4 inline-block">Learn Performance Hacks</button>
             </div>
             <span className="material-symbols-outlined absolute -right-10 -bottom-10 text-[15rem] text-white/5 group-hover:scale-125 transition-transform duration-[2s] rotate-12">lightbulb</span>
           </div>
