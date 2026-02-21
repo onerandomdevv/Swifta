@@ -47,28 +47,50 @@ export class MerchantService {
     // Build the data to update — only provided fields
     const updateData: Record<string, any> = { ...dto };
 
-    // Progressive onboarding auto-advance
+    // Progressive onboarding auto-advance (5-step flow)
     const merged = { ...existing, ...dto };
 
     let newStep = existing.onboardingStep;
 
-    // Step 1 → 2: When businessAddress and cacNumber are provided
-    if (newStep === 1 && merged.businessAddress && merged.cacNumber) {
+    // Step 1 → 2: Business profile complete (businessName, businessType, estYear, category)
+    if (
+      newStep === 1 &&
+      merged.businessName &&
+      merged.businessType &&
+      merged.estYear &&
+      merged.category
+    ) {
       newStep = 2;
     }
 
-    // Step 2 → 3: When bankCode, bankAccountNo, and bankAccountName are provided
+    // Step 2 → 3: Registration details complete (cacNumber, taxId)
+    if (newStep === 2 && merged.cacNumber && merged.taxId) {
+      newStep = 3;
+    }
+
+    // Step 3 → 4: Warehouse/logistics complete (businessAddress, warehouseLocation, distributionCenter, warehouseCapacity)
     if (
-      newStep === 2 &&
+      newStep === 3 &&
+      merged.businessAddress &&
+      merged.warehouseLocation &&
+      merged.distributionCenter &&
+      merged.warehouseCapacity
+    ) {
+      newStep = 4;
+    }
+
+    // Step 4 → 5: Bank details complete (bankCode, bankAccountNo, bankAccountName)
+    if (
+      newStep === 4 &&
       merged.bankCode &&
       merged.bankAccountNo &&
       merged.bankAccountName
     ) {
-      newStep = 3;
+      newStep = 5;
     }
 
-    // Step 3 complete: Set verification = PENDING
-    if (newStep === 3 && existing.onboardingStep < 3) {
+    // Step 5 reached: Set verification = PENDING (review & submit step)
+    if (newStep === 5 && existing.onboardingStep < 5) {
       updateData.verification = VerificationStatus.PENDING;
     }
 
