@@ -5,6 +5,7 @@ export interface OnboardingFormData {
   category: string;
   cacNumber: string;
   taxId: string;
+  cacDocumentUrl: string;
   businessAddress: string;
   warehouseLocation: string;
   warehouseCapacity: string;

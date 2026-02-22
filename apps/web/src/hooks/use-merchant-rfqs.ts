@@ -1,25 +1,19 @@
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { getMerchantRFQs } from "@/lib/api/rfq.api";
 import type { RFQ } from "@hardware-os/shared";
 
 export function useMerchantRFQs() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [rfqs, setRfqs] = useState<RFQ[]>([]);
-
-  useEffect(() => {
-    async function fetchRFQs() {
-      try {
-        const response = await getMerchantRFQs();
-        setRfqs(response);
-      } catch (err: any) {
-        setError(err?.message || "Failed to load RFQs");
-      } finally {
-        setLoading(false);
-      }
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['merchant', 'rfqs', 'recent'],
+    queryFn: async () => {
+      const response = await getMerchantRFQs();
+      return response as RFQ[];
     }
-    fetchRFQs();
-  }, []);
+  });
 
-  return { rfqs, loading, error };
+  return { 
+    rfqs: data || [], 
+    loading: isLoading, 
+    error: error ? (error as Error).message : null 
+  };
 }

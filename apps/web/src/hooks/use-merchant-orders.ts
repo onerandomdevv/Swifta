@@ -1,25 +1,19 @@
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { getOrders } from "@/lib/api/order.api";
 import type { Order } from "@hardware-os/shared";
 
 export function useMerchantOrders() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [orders, setOrders] = useState<Order[]>([]);
-
-  useEffect(() => {
-    async function fetchOrders() {
-      try {
-        const response = await getOrders();
-        setOrders(response);
-      } catch (err: any) {
-        setError(err?.message || "Failed to load orders");
-      } finally {
-        setLoading(false);
-      }
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['merchant', 'orders', 'all'],
+    queryFn: async () => {
+      const response = await getOrders();
+      return response as Order[];
     }
-    fetchOrders();
-  }, []);
+  });
 
-  return { orders, loading, error };
+  return { 
+    orders: data || [], 
+    loading: isLoading, 
+    error: error ? (error as Error).message : null 
+  };
 }

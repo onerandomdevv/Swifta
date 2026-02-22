@@ -12,3 +12,9 @@ export async function updateProfile(dto: UpdateMerchantDto): Promise<MerchantPro
 export async function getPublicProfile(id: string): Promise<MerchantProfile> {
   return apiClient.get(`/merchants/${id}`);
 }
+
+export async function uploadDocument(file: File): Promise<{ url: string; message: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+  return apiClient.post('/upload/document', formData);
+}

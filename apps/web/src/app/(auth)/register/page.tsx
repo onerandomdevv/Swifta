@@ -2,6 +2,12 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useForm, FormProvider } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  baseRegistrationSchema,
+  type RegistrationFormData,
+} from "@/lib/validations/auth";
 import { UserRole } from "@hardware-os/shared";
 import type { RegisterDto } from "@hardware-os/shared";
 import { useAuth } from "@/providers/auth-provider";
@@ -18,12 +24,17 @@ type Step = 1 | 2 | 3 | 4;
 export default function RegisterPage() {
   const [step, setStep] = useState<Step>(1);
   const [role, setRole] = useState<UserRole | null>(null);
-  const [formData, setFormData] = useState({
-    fullName: "",
-    businessName: "",
-    email: "",
-    phone: "",
-    password: "",
+
+  const methods = useForm<RegistrationFormData>({
+    resolver: zodResolver(baseRegistrationSchema),
+    defaultValues: {
+      fullName: "",
+      businessName: "",
+      email: "",
+      phone: "",
+      password: "",
+    },
+    mode: "onChange",
   });
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -31,7 +42,7 @@ export default function RegisterPage() {
   const [resendCooldown, setResendCooldown] = useState(0);
 
   const router = useRouter();
-  const { register } = useAuth();
+  const { register: authRegister } = useAuth();
   const toast = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -47,26 +58,26 @@ export default function RegisterPage() {
 
   const handleRoleSelect = (selectedRole: UserRole) => {
     setRole(selectedRole);
+    methods.setValue("role", selectedRole);
   };
 
   const handleContinueToDetails = () => {
     if (role) setStep(2);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: RegistrationFormData) => {
     if (isLoading) return;
 
     setIsLoading(true);
     setFormError(null);
     try {
-      await register({
-        email: formData.email,
-        phone: formData.phone,
-        fullName: formData.fullName,
-        password: formData.password,
-        businessName: formData.businessName,
-        role: role as UserRole,
+      await authRegister({
+        email: data.email,
+        phone: data.phone,
+        fullName: data.fullName,
+        password: data.password,
+        businessName: data.businessName,
+        role: data.role,
       } as RegisterDto);
 
       setStep(3);
@@ -108,7 +119,10 @@ export default function RegisterPage() {
     if (isLoading) return;
     setIsLoading(true);
     try {
-      await authApi.verifyEmail({ email: formData.email, code: otp.join("") });
+      await authApi.verifyEmail({
+        email: methods.getValues("email"),
+        code: otp.join(""),
+      });
       setStep(4);
       toast.success("Email verified successfully!");
 
@@ -129,7 +143,7 @@ export default function RegisterPage() {
   const handleResendCode = async () => {
     if (resendCooldown > 0 || isLoading) return;
     try {
-      await authApi.resendVerification({ email: formData.email });
+      await authApi.resendVerification({ email: methods.getValues("email") });
       toast.success("A new verification code has been sent.");
       setResendCooldown(60);
       setOtp(["", "", "", "", "", ""]);
@@ -142,41 +156,41 @@ export default function RegisterPage() {
 
   return (
     <div className="w-full flex-grow flex flex-col items-center justify-center py-10">
-      {step === 1 && (
-        <RoleSelectionStep
-          role={role}
-          onRoleSelect={handleRoleSelect}
-          onContinue={handleContinueToDetails}
-        />
-      )}
+      <FormProvider {...methods}>
+        {step === 1 && (
+          <RoleSelectionStep
+            role={role}
+            onRoleSelect={handleRoleSelect}
+            onContinue={handleContinueToDetails}
+          />
+        )}
 
-      {step === 2 && (
-        <AccountDetailsStep
-          formData={formData}
-          setFormData={setFormData}
-          onSubmit={handleSubmit}
-          isLoading={isLoading}
-          formError={formError}
-          onBack={() => setStep(1)}
-        />
-      )}
+        {step === 2 && (
+          <AccountDetailsStep
+            onSubmit={methods.handleSubmit(onSubmit)}
+            isLoading={isLoading}
+            formError={formError}
+            onBack={() => setStep(1)}
+          />
+        )}
 
-      {step === 3 && (
-        <OtpVerificationStep
-          email={formData.email}
-          otp={otp}
-          otpRefs={otpRefs}
-          onOtpChange={handleOtpChange}
-          onOtpKeyDown={handleOtpKeyDown}
-          onVerify={handleVerifyOtp}
-          isLoading={isLoading}
-          resendCooldown={resendCooldown}
-          onResend={handleResendCode}
-          onBack={() => setStep(2)}
-        />
-      )}
+        {step === 3 && (
+          <OtpVerificationStep
+            email={methods.getValues("email")}
+            otp={otp}
+            otpRefs={otpRefs}
+            onOtpChange={handleOtpChange}
+            onOtpKeyDown={handleOtpKeyDown}
+            onVerify={handleVerifyOtp}
+            isLoading={isLoading}
+            resendCooldown={resendCooldown}
+            onResend={handleResendCode}
+            onBack={() => setStep(2)}
+          />
+        )}
 
-      {step === 4 && <RegistrationSuccessStep role={role} />}
+        {step === 4 && <RegistrationSuccessStep role={role} />}
+      </FormProvider>
     </div>
   );
 }

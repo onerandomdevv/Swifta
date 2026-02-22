@@ -27,6 +27,10 @@ export class UpdateMerchantDto {
 
   @IsOptional()
   @IsString()
+  cacDocumentUrl?: string;
+
+  @IsOptional()
+  @IsString()
   taxId?: string;
 
   @IsOptional()

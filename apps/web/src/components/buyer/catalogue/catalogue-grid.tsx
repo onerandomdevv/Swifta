@@ -58,9 +58,17 @@ export function CatalogueGrid({
           className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 flex flex-col group"
         >
           <div className="aspect-square bg-slate-50 dark:bg-slate-900/50 relative overflow-hidden flex items-center justify-center p-8">
-            <span className="material-symbols-outlined text-slate-200 dark:text-slate-700 text-[120px] group-hover:scale-110 transition-transform duration-700 leading-none">
-              {categoryIcons[p.categoryTag] || "inventory_2"}
-            </span>
+            {p.imageUrl ? (
+              <img
+                src={p.imageUrl}
+                alt={p.name}
+                className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+              />
+            ) : (
+              <span className="material-symbols-outlined text-slate-200 dark:text-slate-700 text-[120px] group-hover:scale-110 transition-transform duration-700 leading-none">
+                {categoryIcons[p.categoryTag] || "inventory_2"}
+              </span>
+            )}
             {/* Overlay on hover */}
             <div className="absolute inset-0 bg-navy-dark/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
               <Link

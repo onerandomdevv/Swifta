@@ -1,5 +1,8 @@
 import { Module, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
+
 import configuration from './config/app.config';
 import databaseConfig from './config/database.config';
 import redisConfig from './config/redis.config';
@@ -26,12 +29,17 @@ import { MerchantContextMiddleware } from './common/middleware/merchant-context.
 
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { UploadModule } from './modules/upload/upload.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration, databaseConfig, redisConfig, jwtConfig, paystackConfig],
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', '..', 'uploads'),
+      serveRoot: '/uploads',
     }),
     ThrottlerModule.forRoot([{
       ttl: 60000,
@@ -51,6 +59,7 @@ import { APP_GUARD } from '@nestjs/core';
     InventoryModule,
     NotificationModule,
     EmailModule,
+    UploadModule,
   ],
   controllers: [],
   providers: [

@@ -55,9 +55,17 @@ export function MerchantProductsGrid({ products, onDelist }: Props) {
             className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden hover:shadow-2xl transition-all duration-500 group"
           >
             <div className="h-48 bg-slate-50 dark:bg-slate-800 relative flex items-center justify-center overflow-hidden">
-              <span className="material-symbols-outlined text-6xl text-slate-200 group-hover:scale-125 transition-transform duration-700">
-                hardware
-              </span>
+              {product.imageUrl ? (
+                <img
+                  src={product.imageUrl}
+                  alt={product.name}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                />
+              ) : (
+                <span className="material-symbols-outlined text-6xl text-slate-200 group-hover:scale-125 transition-transform duration-700">
+                  hardware
+                </span>
+              )}
               <div className="absolute top-6 left-6 px-3 py-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-full text-[8px] font-black uppercase tracking-widest text-navy-dark dark:text-white shadow-sm">
                 {product.categoryTag}
               </div>

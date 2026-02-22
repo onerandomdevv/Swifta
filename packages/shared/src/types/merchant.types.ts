@@ -10,6 +10,7 @@ export interface MerchantProfile {
   businessAddress?: string;
   cacNumber?: string;
   taxId?: string;
+  cacDocumentUrl?: string;
   warehouseLocation?: string;
   distributionCenter?: string;
   warehouseCapacity?: string;
@@ -29,6 +30,7 @@ export interface UpdateMerchantDto {
   businessAddress?: string;
   cacNumber?: string;
   taxId?: string;
+  cacDocumentUrl?: string;
   warehouseLocation?: string;
   distributionCenter?: string;
   warehouseCapacity?: string;

@@ -1,11 +1,11 @@
 import Link from "next/link";
+import { useFormContext } from "react-hook-form";
+import type { RegistrationFormData } from "@/lib/validations/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 
 interface AccountDetailsStepProps {
-  formData: any;
-  setFormData: (data: any) => void;
   onSubmit: (e: React.FormEvent) => void;
   isLoading: boolean;
   formError: string | null;
@@ -13,13 +13,15 @@ interface AccountDetailsStepProps {
 }
 
 export function AccountDetailsStep({
-  formData,
-  setFormData,
   onSubmit,
   isLoading,
   formError,
   onBack,
 }: AccountDetailsStepProps) {
+  const {
+    register,
+    formState: { errors },
+  } = useFormContext<RegistrationFormData>();
   return (
     <div className="flex flex-col items-center py-12 md:py-20 w-full px-4">
       {/* Progress Stepper Container */}
@@ -100,16 +102,17 @@ export function AccountDetailsStep({
               Full Name
             </label>
             <Input
-              className="h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+              className={`h-12 bg-slate-50 dark:bg-slate-800 ${errors.fullName ? "border-red-500 ring-1 ring-red-500" : "border-slate-200 dark:border-slate-700"}`}
               id="full_name"
               placeholder="e.g. John Doe"
               type="text"
-              required
-              value={formData.fullName}
-              onChange={(e) =>
-                setFormData({ ...formData, fullName: e.target.value })
-              }
+              {...register("fullName")}
             />
+            {errors.fullName && (
+              <p className="text-sm font-semibold text-red-500 mt-1 animate-slide-in">
+                {errors.fullName.message}
+              </p>
+            )}
           </div>
           {/* Business Name */}
           <div className="space-y-1.5">
@@ -120,16 +123,17 @@ export function AccountDetailsStep({
               Business Name
             </label>
             <Input
-              className="h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+              className={`h-12 bg-slate-50 dark:bg-slate-800 ${errors.businessName ? "border-red-500 ring-1 ring-red-500" : "border-slate-200 dark:border-slate-700"}`}
               id="business_name"
               placeholder="e.g. Lagos Hardware Ltd"
               type="text"
-              required
-              value={formData.businessName}
-              onChange={(e) =>
-                setFormData({ ...formData, businessName: e.target.value })
-              }
+              {...register("businessName")}
             />
+            {errors.businessName && (
+              <p className="text-sm font-semibold text-red-500 mt-1 animate-slide-in">
+                {errors.businessName.message}
+              </p>
+            )}
           </div>
           {/* Email Address */}
           <div className="space-y-1.5">
@@ -140,16 +144,17 @@ export function AccountDetailsStep({
               Email Address
             </label>
             <Input
-              className="h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+              className={`h-12 bg-slate-50 dark:bg-slate-800 ${errors.email ? "border-red-500 ring-1 ring-red-500" : "border-slate-200 dark:border-slate-700"}`}
               id="email"
               placeholder="name@company.com"
               type="email"
-              required
-              value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
+              {...register("email")}
             />
+            {errors.email && (
+              <p className="text-sm font-semibold text-red-500 mt-1 animate-slide-in">
+                {errors.email.message}
+              </p>
+            )}
           </div>
           {/* Phone Number */}
           <div className="space-y-1.5">
@@ -160,16 +165,17 @@ export function AccountDetailsStep({
               Phone Number
             </label>
             <Input
-              className="h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+              className={`h-12 bg-slate-50 dark:bg-slate-800 ${errors.phone ? "border-red-500 ring-1 ring-red-500" : "border-slate-200 dark:border-slate-700"}`}
               id="phone"
               placeholder="e.g. 08012345678"
               type="tel"
-              required
-              value={formData.phone}
-              onChange={(e) =>
-                setFormData({ ...formData, phone: e.target.value })
-              }
+              {...register("phone")}
             />
+            {errors.phone && (
+              <p className="text-sm font-semibold text-red-500 mt-1 animate-slide-in">
+                {errors.phone.message}
+              </p>
+            )}
           </div>
           {/* Password */}
           <div className="space-y-1.5">
@@ -180,15 +186,16 @@ export function AccountDetailsStep({
               Password
             </label>
             <PasswordInput
-              className="h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+              className={`h-12 bg-slate-50 dark:bg-slate-800 ${errors.password ? "border-red-500 ring-1 ring-red-500" : "border-slate-200 dark:border-slate-700"}`}
               id="password"
               placeholder="••••••••"
-              required
-              value={formData.password}
-              onChange={(e) =>
-                setFormData({ ...formData, password: e.target.value })
-              }
+              {...register("password")}
             />
+            {errors.password && (
+              <p className="text-sm font-semibold text-red-500 mt-1 animate-slide-in">
+                {errors.password.message}
+              </p>
+            )}
           </div>
           {/* Actions */}
           <div className="pt-2">

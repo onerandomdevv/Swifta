@@ -138,7 +138,11 @@ export class AuthService {
       include: { merchantProfile: true },
     });
 
-    if (!user || !(await bcrypt.compare(dto.password, user.passwordHash))) {
+    if (!user) {
+      throw new UnauthorizedException('Account not found. Please sign up to create an account.');
+    }
+
+    if (!(await bcrypt.compare(dto.password, user.passwordHash))) {
       throw new UnauthorizedException('Invalid credentials');
     }
 

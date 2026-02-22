@@ -30,3 +30,9 @@ export async function getCatalogue(search = '', page = 1, limit = 20): Promise<P
 export async function getProduct(id: string): Promise<Product> {
   return apiClient.get(`/products/${id}`);
 }
+
+export async function uploadProductImage(file: File): Promise<{ url: string; message: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+  return apiClient.post('/upload/product-image', formData);
+}

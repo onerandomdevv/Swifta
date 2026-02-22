@@ -8,11 +8,26 @@ interface PasswordInputProps extends Omit<InputProps, "type"> {}
 export const PasswordInput = React.forwardRef<
   HTMLInputElement,
   PasswordInputProps
->(({ className, value = "", ...props }, ref) => {
+>(({ className, value, onChange, ...props }, ref) => {
   const [showPassword, setShowPassword] = useState(false);
+  const [localValue, setLocalValue] = useState(value || "");
+
+  // Sync internal state if a controlled value is explicitly passed from outside
+  React.useEffect(() => {
+    if (value !== undefined) {
+      setLocalValue(value);
+    }
+  }, [value]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLocalValue(e.target.value);
+    if (onChange) {
+      onChange(e);
+    }
+  };
 
   // Ensure value is always a string for safety
-  const strValue = String(value || "");
+  const strValue = String(value !== undefined ? value : localValue);
 
   const rules = [
     {
@@ -44,7 +59,8 @@ export const PasswordInput = React.forwardRef<
         <Input
           ref={ref}
           type={showPassword ? "text" : "password"}
-          value={value}
+          value={value !== undefined ? value : localValue}
+          onChange={handleChange}
           className={`pr-10 ${className || ""}`}
           {...props}
         />
