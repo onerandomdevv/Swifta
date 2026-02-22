@@ -103,6 +103,7 @@ model MerchantProfile {
   businessAddress    String?            @map("business_address")
   cacNumber          String?            @map("cac_number")
   taxId              String?            @map("tax_id")
+  cacDocumentUrl     String?            @map("cac_document_url")
   warehouseLocation  String?            @map("warehouse_location")
   distributionCenter String?            @map("distribution_center")
   warehouseCapacity  String?            @map("warehouse_capacity")
@@ -131,6 +132,7 @@ model Product {
   description      String?
   unit             String
   categoryTag      String    @map("category_tag")
+  imageUrl         String?   @map("image_url")
   minOrderQuantity Int       @default(1) @map("min_order_quantity")
   isActive         Boolean   @default(true) @map("is_active")
   createdAt        DateTime  @default(now()) @map("created_at")

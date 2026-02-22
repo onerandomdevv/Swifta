@@ -26,6 +26,7 @@ export default function MerchantOnboardingPage() {
     category: "Power Tools",
     cacNumber: "",
     taxId: "",
+    cacDocumentUrl: "",
     businessAddress: "",
     warehouseLocation: "",
     warehouseCapacity: "Medium (500 - 2000 sqm)",
@@ -63,6 +64,7 @@ export default function MerchantOnboardingPage() {
             category: profile.category || prev.category,
             cacNumber: profile.cacNumber || prev.cacNumber,
             taxId: profile.taxId || prev.taxId,
+            cacDocumentUrl: profile.cacDocumentUrl || prev.cacDocumentUrl,
             businessAddress: profile.businessAddress || prev.businessAddress,
             warehouseLocation:
               profile.warehouseLocation || prev.warehouseLocation,
@@ -101,6 +103,7 @@ export default function MerchantOnboardingPage() {
         return {
           cacNumber: formData.cacNumber,
           taxId: formData.taxId,
+          cacDocumentUrl: formData.cacDocumentUrl,
         };
       case 3:
         return {

@@ -1,20 +1,44 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { createProduct } from '@/lib/api/product.api';
+import React, { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { createProduct, uploadProductImage } from "@/lib/api/product.api";
 
 export default function NewProductPage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    unit: 'bag',
-    categoryTag: 'Building Materials',
+    name: "",
+    description: "",
+    unit: "bag",
+    categoryTag: "Building Materials",
     minOrderQuantity: 1,
+    imageUrl: "",
   });
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image must be under 5MB");
+      return;
+    }
+
+    try {
+      setIsUploadingImage(true);
+      setError(null);
+      const res = await uploadProductImage(file);
+      setFormData((prev) => ({ ...prev, imageUrl: res.url }));
+    } catch (err: any) {
+      setError(err?.message || "Failed to upload image");
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,10 +52,11 @@ export default function NewProductPage() {
         unit: formData.unit,
         categoryTag: formData.categoryTag,
         minOrderQuantity: formData.minOrderQuantity,
+        imageUrl: formData.imageUrl || undefined,
       });
-      router.push('/merchant/products');
+      router.push("/merchant/products");
     } catch (err: any) {
-      setError(err?.message || 'Failed to create product');
+      setError(err?.message || "Failed to create product");
     } finally {
       setLoading(false);
     }
@@ -57,11 +82,64 @@ export default function NewProductPage() {
       {error && (
         <div className="p-6 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded-2xl flex gap-4">
           <span className="material-symbols-outlined text-red-500">error</span>
-          <p className="text-xs font-bold text-red-700 dark:text-red-400 uppercase tracking-wide">{error}</p>
+          <p className="text-xs font-bold text-red-700 dark:text-red-400 uppercase tracking-wide">
+            {error}
+          </p>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-8">
+        <div className="space-y-3">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+            Product Image
+          </label>
+          <div
+            onClick={() => !isUploadingImage && fileInputRef.current?.click()}
+            className={`w-full h-48 border-2 border-dashed rounded-[1.5rem] flex flex-col items-center justify-center cursor-pointer transition-all ${formData.imageUrl ? "border-green-400 bg-green-50/50 dark:bg-green-900/10" : "border-slate-200 dark:border-slate-800 hover:border-navy-dark dark:hover:border-slate-600 bg-slate-50 dark:bg-slate-900/50"}`}
+          >
+            {formData.imageUrl ? (
+              <div className="flex flex-col items-center text-green-600 dark:text-green-500">
+                <span className="material-symbols-outlined text-4xl mb-2">
+                  check_circle
+                </span>
+                <span className="text-xs font-black uppercase tracking-widest text-green-700 dark:text-green-400">
+                  Image Uploaded
+                </span>
+                <img
+                  src={formData.imageUrl}
+                  alt="Preview"
+                  className="h-16 mt-4 rounded border border-green-200"
+                />
+              </div>
+            ) : isUploadingImage ? (
+              <div className="flex flex-col items-center">
+                <div className="size-8 border-4 border-slate-200 border-t-navy-dark rounded-full animate-spin mb-4" />
+                <span className="text-xs font-black uppercase tracking-widest text-slate-400">
+                  Uploading...
+                </span>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center text-slate-400">
+                <span className="material-symbols-outlined text-4xl mb-2">
+                  add_photo_alternate
+                </span>
+                <span className="text-xs font-black uppercase tracking-widest">
+                  Click to Upload Photo
+                </span>
+                <span className="text-[10px] tracking-widest font-bold opacity-60 mt-1">
+                  MAX 5MB (JPG, PNG)
+                </span>
+              </div>
+            )}
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              accept="image/*"
+              onChange={handleImageChange}
+            />
+          </div>
+        </div>
         <div className="space-y-3">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
             Product Name
@@ -81,7 +159,9 @@ export default function NewProductPage() {
           </label>
           <textarea
             value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, description: e.target.value })
+            }
             className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white h-32 resize-none"
             placeholder="Describe the product specifications, quality, origin..."
           />
@@ -94,7 +174,9 @@ export default function NewProductPage() {
             </label>
             <select
               value={formData.unit}
-              onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, unit: e.target.value })
+              }
               className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all text-slate-400 appearance-none bg-transparent"
             >
               <option value="bag">Bag</option>
@@ -114,7 +196,9 @@ export default function NewProductPage() {
             </label>
             <select
               value={formData.categoryTag}
-              onChange={(e) => setFormData({ ...formData, categoryTag: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, categoryTag: e.target.value })
+              }
               className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all text-slate-400 appearance-none bg-transparent"
             >
               <option>Building Materials</option>
@@ -138,7 +222,12 @@ export default function NewProductPage() {
             min={1}
             required
             value={formData.minOrderQuantity}
-            onChange={(e) => setFormData({ ...formData, minOrderQuantity: parseInt(e.target.value) || 1 })}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                minOrderQuantity: parseInt(e.target.value) || 1,
+              })
+            }
             className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all dark:text-white"
           />
         </div>
@@ -149,7 +238,7 @@ export default function NewProductPage() {
             disabled={loading}
             className="px-10 py-5 bg-navy-dark text-white text-[10px] font-black uppercase tracking-[0.3em] rounded-2xl shadow-2xl shadow-navy-dark/30 hover:-translate-y-1 transition-all active:scale-95 disabled:opacity-50 disabled:translate-y-0"
           >
-            {loading ? 'Creating...' : 'Create Listing'}
+            {loading ? "Creating..." : "Create Listing"}
           </button>
         </div>
       </form>

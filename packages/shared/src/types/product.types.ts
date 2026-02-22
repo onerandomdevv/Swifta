@@ -5,6 +5,7 @@ export interface Product {
   description?: string;
   unit: string;
   categoryTag: string;
+  imageUrl?: string;
   minOrderQuantity: number;
   isActive: boolean;
   createdAt: Date;
@@ -16,6 +17,7 @@ export interface CreateProductDto {
   description?: string;
   unit: string;
   categoryTag: string;
+  imageUrl?: string;
   minOrderQuantity?: number;
 }
 

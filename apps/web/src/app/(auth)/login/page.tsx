@@ -1,8 +1,11 @@
 "use client";
 
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { loginSchema, type LoginFormData } from "../../../lib/validations/auth";
 import { useAuth } from "../../../providers/auth-provider";
 import { useToast } from "../../../providers/toast-provider";
 import { Button } from "../../../components/ui/button";
@@ -13,10 +16,17 @@ export default function LoginPage() {
   const { login, user } = useAuth();
   const toast = useToast();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" },
+  });
 
   // Redirect on successful login
   useEffect(() => {
@@ -27,13 +37,10 @@ export default function LoginPage() {
     }
   }, [user, router]);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (isLoading) return;
-
-    setIsLoading(true);
+  const onSubmit = async (data: LoginFormData) => {
+    setFormError(null);
     try {
-      await login(email, password);
+      await login(data.email, data.password);
       toast.success("Welcome back!");
     } catch (err: any) {
       console.error("Login error:", err);
@@ -43,9 +50,8 @@ export default function LoginPage() {
           : err.error ||
             err.message ||
             "Invalid credentials. Please try again.";
+      setFormError(errorMessage);
       toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -69,7 +75,15 @@ export default function LoginPage() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {/* Inline Error Display */}
+          {formError && (
+            <div className="p-3 text-sm font-medium text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 border border-red-100 dark:border-red-900/50 rounded-lg flex items-start gap-2 animate-slide-in">
+              <span className="material-symbols-outlined text-lg">error</span>
+              <span>{formError}</span>
+            </div>
+          )}
+
           {/* Email Field */}
           <div className="space-y-2">
             <label
@@ -83,15 +97,18 @@ export default function LoginPage() {
                 mail
               </span>
               <Input
-                className="pl-10 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 h-12"
+                className={`pl-10 bg-slate-50 dark:bg-slate-800 h-12 ${errors.email ? "border-red-500 ring-1 ring-red-500 focus-visible:ring-red-500" : "border-slate-200 dark:border-slate-700"}`}
                 id="email"
                 type="email"
                 placeholder="e.g. name@company.com"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                {...register("email", { onChange: () => setFormError(null) })}
               />
             </div>
+            {errors.email && (
+              <p className="text-sm font-semibold text-red-500 mt-1 animate-slide-in">
+                {errors.email.message}
+              </p>
+            )}
           </div>
 
           {/* Password Field */}
@@ -115,13 +132,13 @@ export default function LoginPage() {
                 lock
               </span>
               <Input
-                className="pl-10 pr-10 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 h-12"
+                className={`pl-10 pr-10 bg-slate-50 dark:bg-slate-800 h-12 ${errors.password ? "border-red-500 ring-1 ring-red-500 focus-visible:ring-red-500" : "border-slate-200 dark:border-slate-700"}`}
                 id="password"
                 type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                {...register("password", {
+                  onChange: () => setFormError(null),
+                })}
               />
               <button
                 type="button"
@@ -133,16 +150,21 @@ export default function LoginPage() {
                 </span>
               </button>
             </div>
+            {errors.password && (
+              <p className="text-sm font-semibold text-red-500 mt-1 animate-slide-in">
+                {errors.password.message}
+              </p>
+            )}
           </div>
 
           {/* Submit Button */}
           <Button
-            disabled={isLoading}
+            disabled={isSubmitting}
             className="w-full h-12 text-md font-bold shadow-md gap-2"
             type="submit"
           >
-            {isLoading ? "Signing in..." : "Sign In"}
-            {!isLoading && (
+            {isSubmitting ? "Signing in..." : "Sign In"}
+            {!isSubmitting && (
               <span className="material-symbols-outlined text-sm font-bold">
                 arrow_forward
               </span>

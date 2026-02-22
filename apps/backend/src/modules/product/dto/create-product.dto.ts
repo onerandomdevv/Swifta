@@ -18,6 +18,10 @@ export class CreateProductDto {
   categoryTag: string;
 
   @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
   @IsInt()
   @Min(1)
   minOrderQuantity?: number;
