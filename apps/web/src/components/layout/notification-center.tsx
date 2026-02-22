@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { useNotifications, NotificationUI } from "../hooks/use-notifications";
+import { useNotifications, NotificationUI } from "@/hooks/use-notifications";
 
-export default function NotificationCenter({
+export function NotificationCenter({
   isOpen,
   onClose,
 }: {

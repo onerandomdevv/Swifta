@@ -2,12 +2,16 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { formatKobo } from "@hardware-os/shared";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getOrder, confirmDelivery } from "@/lib/api/order.api";
 import { initializePayment } from "@/lib/api/payment.api";
 import type { Order } from "@hardware-os/shared";
+
+// Extracted Components
+import { BuyerOrderSummary } from "@/components/buyer/orders/buyer-order-summary";
+import { BuyerOrderActions } from "@/components/buyer/orders/buyer-order-actions";
+import { OrderInfoSidebar } from "@/components/buyer/orders/order-info-sidebar";
 
 export default function BuyerOrderDetailsPage() {
   const { id } = useParams();
@@ -141,130 +145,21 @@ export default function BuyerOrderDetailsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div className="lg:col-span-8 space-y-8">
-          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden shadow-sm">
-            <div className="p-8 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between">
-              <h3 className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-widest">
-                Order Summary
-              </h3>
-            </div>
-
-            <div className="p-10 space-y-8">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                    Total Amount
-                  </p>
-                  <p className="text-3xl font-black text-navy-dark dark:text-white tabular-nums">
-                    {formatKobo(BigInt(order.totalAmountKobo))}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                    Delivery Fee
-                  </p>
-                  <p className="text-lg font-black text-navy-dark dark:text-white tabular-nums">
-                    {formatKobo(BigInt(order.deliveryFeeKobo))}
-                  </p>
-                </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                    Currency
-                  </p>
-                  <p className="text-sm font-black text-navy-dark dark:text-white">
-                    {order.currency}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                    Created
-                  </p>
-                  <p className="text-sm font-black text-navy-dark dark:text-white">
-                    {new Date(order.createdAt).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <BuyerOrderSummary order={order} />
         </div>
 
         <div className="lg:col-span-4 space-y-10">
-          {/* Pay Now - only for PENDING_PAYMENT */}
-          {order.status === "PENDING_PAYMENT" && (
-            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-10 shadow-sm">
-              <h3 className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-widest mb-6">
-                Payment Required
-              </h3>
-              <p className="text-xs font-bold text-slate-500 mb-8">
-                Complete payment to process your order.
-              </p>
-              <button
-                onClick={handlePay}
-                disabled={paying}
-                className="w-full py-5 bg-navy-dark text-white rounded-2xl text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-navy-dark/20 flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-80"
-              >
-                {paying ? (
-                  <>
-                    <div className="size-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-                    Initializing Payment...
-                  </>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined text-lg">
-                      payments
-                    </span>
-                    Pay {formatKobo(BigInt(order.totalAmountKobo))}
-                  </>
-                )}
-              </button>
-            </div>
-          )}
+          <BuyerOrderActions
+            order={order}
+            paying={paying}
+            onPay={handlePay}
+            confirming={confirming}
+            confirmingOtp={confirmingOtp}
+            setConfirmingOtp={setConfirmingOtp}
+            onConfirmDelivery={handleConfirmDelivery}
+          />
 
-          {/* Confirm Delivery - only for DISPATCHED */}
-          {order.status === "DISPATCHED" && (
-            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-10 shadow-sm">
-              <h3 className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-widest mb-6">
-                Confirm Delivery
-              </h3>
-              <div className="space-y-4">
-                <input
-                  type="text"
-                  value={confirmingOtp}
-                  onChange={(e) => setConfirmingOtp(e.target.value)}
-                  placeholder="Enter delivery OTP"
-                  className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl py-4 px-6 text-sm font-black text-navy-dark dark:text-white outline-none focus:border-navy-dark transition-all text-center tracking-widest"
-                />
-                <button
-                  onClick={handleConfirmDelivery}
-                  disabled={confirming || !confirmingOtp}
-                  className="w-full py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all disabled:opacity-50"
-                >
-                  {confirming ? "Confirming..." : "Confirm Receipt"}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Order Info */}
-          <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-10 space-y-6">
-            <div className="space-y-2">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                Order Reference
-              </p>
-              <p className="text-xs font-black text-navy-dark dark:text-white uppercase tracking-widest break-all">
-                {order.id}
-              </p>
-            </div>
-            <div className="space-y-2">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                Quote Reference
-              </p>
-              <p className="text-xs font-black text-navy-dark dark:text-white uppercase tracking-widest break-all">
-                {order.quoteId}
-              </p>
-            </div>
-          </div>
+          <OrderInfoSidebar order={order} />
         </div>
       </div>
     </div>
