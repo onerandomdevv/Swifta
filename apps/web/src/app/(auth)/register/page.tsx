@@ -651,18 +651,6 @@ export default function RegisterPage() {
                     dashboard
                   </span>
                 </button>
-                <button
-                  onClick={() =>
-                    router.push(
-                      role === UserRole.MERCHANT
-                        ? "/merchant/profile"
-                        : "/buyer/profile",
-                    )
-                  }
-                  className="w-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-3.5 px-6 rounded-lg transition-all flex items-center justify-center gap-2"
-                >
-                  View Profile
-                </button>
               </div>
             </div>
           </div>
