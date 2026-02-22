@@ -3,8 +3,15 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { getProfile, updateProfile } from "@/lib/api/merchant.api";
+
+// Extracted Components
+import { OnboardingFormData } from "@/components/merchant/onboarding/types";
+import { BusinessProfileStep } from "@/components/merchant/onboarding/business-profile-step";
+import { KycStep } from "@/components/merchant/onboarding/kyc-step";
+import { WarehouseStep } from "@/components/merchant/onboarding/warehouse-step";
+import { BankDetailsStep } from "@/components/merchant/onboarding/bank-details-step";
+import { ReviewStep } from "@/components/merchant/onboarding/review-step";
 
 export default function MerchantOnboardingPage() {
   const router = useRouter();
@@ -12,7 +19,7 @@ export default function MerchantOnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<OnboardingFormData>({
     businessName: "",
     businessType: "Wholesale Distributor",
     estYear: "",
@@ -35,6 +42,11 @@ export default function MerchantOnboardingPage() {
     { id: 4, label: "Bank Details", icon: "account_balance" },
     { id: 5, label: "Review & Finish", icon: "verified" },
   ];
+
+  // Helper for components to easily update state
+  const updateForm = (updates: Partial<OnboardingFormData>) => {
+    setFormData((prev) => ({ ...prev, ...updates }));
+  };
 
   // Load existing merchant profile on mount
   useEffect(() => {
@@ -232,436 +244,21 @@ export default function MerchantOnboardingPage() {
               )}
 
               {step === 1 && (
-                <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <div className="space-y-2">
-                    <h3 className="text-2xl font-black text-navy-dark dark:text-white uppercase tracking-tight">
-                      Business Profile
-                    </h3>
-                    <p className="text-slate-500 font-bold text-sm leading-relaxed">
-                      Tell us about your hardware business to help buyers trust
-                      your trades.
-                    </p>
-                  </div>
-
-                  <div className="space-y-8">
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                        Trade Entity Name
-                      </label>
-                      <input
-                        value={formData.businessName}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            businessName: e.target.value,
-                          })
-                        }
-                        className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white"
-                        placeholder="e.g. Lagos Tools & Machinery Ltd."
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                          Business Type
-                        </label>
-                        <select
-                          value={formData.businessType}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              businessType: e.target.value,
-                            })
-                          }
-                          className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all text-slate-400 appearance-none bg-transparent"
-                        >
-                          <option>Wholesale Distributor</option>
-                          <option>Retail Store</option>
-                          <option>Manufacturer</option>
-                          <option>Importer</option>
-                        </select>
-                      </div>
-                      <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                          Establishment Year
-                        </label>
-                        <input
-                          value={formData.estYear}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              estYear: e.target.value,
-                            })
-                          }
-                          className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all dark:text-white"
-                          placeholder="YYYY"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                        Primary Trade Category
-                      </label>
-                      <div className="flex flex-wrap gap-3">
-                        {[
-                          "Heavy Machinery",
-                          "Building Materials",
-                          "Power Tools",
-                          "Safety Gear",
-                        ].map((cat) => (
-                          <button
-                            key={cat}
-                            onClick={() =>
-                              setFormData({ ...formData, category: cat })
-                            }
-                            className={`px-6 py-3 border-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${formData.category === cat ? "border-navy-dark bg-navy-dark text-white" : "border-slate-100 dark:border-slate-800 text-slate-400 hover:border-navy-dark hover:text-navy-dark"}`}
-                          >
-                            {cat}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <BusinessProfileStep
+                  formData={formData}
+                  updateForm={updateForm}
+                />
               )}
-
               {step === 2 && (
-                <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <div className="space-y-2">
-                    <h3 className="text-2xl font-black text-navy-dark dark:text-white uppercase tracking-tight">
-                      Identity & KYC
-                    </h3>
-                    <p className="text-slate-500 font-bold text-sm leading-relaxed">
-                      Official business registration details for trust
-                      verification.
-                    </p>
-                  </div>
-
-                  <div className="space-y-8">
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                        CAC Registration Number
-                      </label>
-                      <input
-                        value={formData.cacNumber}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            cacNumber: e.target.value,
-                          })
-                        }
-                        className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white"
-                        placeholder="RC-1234567"
-                      />
-                    </div>
-
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                        Tax Identification Number (TIN)
-                      </label>
-                      <input
-                        value={formData.taxId}
-                        onChange={(e) =>
-                          setFormData({ ...formData, taxId: e.target.value })
-                        }
-                        className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white"
-                        placeholder="23145678-0001"
-                      />
-                    </div>
-
-                    <div className="p-8 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem] bg-slate-50/50 dark:bg-slate-950/50 group hover:border-navy-dark transition-all cursor-pointer">
-                      <div className="flex flex-col items-center gap-4 py-4">
-                        <div className="size-16 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center shadow-sm">
-                          <span className="material-symbols-outlined text-3xl text-slate-300 group-hover:text-navy-dark transition-colors">
-                            upload_file
-                          </span>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-navy-dark dark:text-white">
-                            Upload CAC Document
-                          </p>
-                          <p className="text-[9px] font-bold text-slate-400 uppercase mt-1">
-                            PDF, JPG or PNG (MAX. 5MB)
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <KycStep formData={formData} updateForm={updateForm} />
               )}
-
               {step === 3 && (
-                <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <div className="space-y-2">
-                    <h3 className="text-2xl font-black text-navy-dark dark:text-white uppercase tracking-tight">
-                      Warehouse Setup
-                    </h3>
-                    <p className="text-slate-500 font-bold text-sm leading-relaxed">
-                      Define your distribution point for logistics integration.
-                    </p>
-                  </div>
-
-                  <div className="space-y-8">
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                        Business Address
-                      </label>
-                      <textarea
-                        value={formData.businessAddress}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            businessAddress: e.target.value,
-                          })
-                        }
-                        className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white h-32 resize-none"
-                        placeholder="Enter your registered business address..."
-                      />
-                    </div>
-
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                        Warehouse Physical Address
-                      </label>
-                      <textarea
-                        value={formData.warehouseLocation}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            warehouseLocation: e.target.value,
-                          })
-                        }
-                        className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white h-32 resize-none"
-                        placeholder="Enter warehouse street address in Lagos..."
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                          Distribution Hub
-                        </label>
-                        <select
-                          value={formData.distributionCenter}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              distributionCenter: e.target.value,
-                            })
-                          }
-                          className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all text-slate-400 appearance-none bg-transparent"
-                        >
-                          <option>Lagos Island</option>
-                          <option>Ikeja Industrial</option>
-                          <option>Lekki Free Zone</option>
-                          <option>Apapa Wharf</option>
-                        </select>
-                      </div>
-                      <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                          Storage Capacity
-                        </label>
-                        <select
-                          value={formData.warehouseCapacity}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              warehouseCapacity: e.target.value,
-                            })
-                          }
-                          className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all text-slate-400 appearance-none bg-transparent"
-                        >
-                          <option>Small (Under 500 sqm)</option>
-                          <option>Medium (500 - 2000 sqm)</option>
-                          <option>Large (2000+ sqm)</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <WarehouseStep formData={formData} updateForm={updateForm} />
               )}
-
               {step === 4 && (
-                <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <div className="space-y-2">
-                    <h3 className="text-2xl font-black text-navy-dark dark:text-white uppercase tracking-tight">
-                      Bank Details
-                    </h3>
-                    <p className="text-slate-500 font-bold text-sm leading-relaxed">
-                      Payout account for receiving trade payments. This must
-                      match your registered business name.
-                    </p>
-                  </div>
-
-                  <div className="space-y-8">
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                        Bank Name / Code
-                      </label>
-                      <select
-                        value={formData.bankCode}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            bankCode: e.target.value,
-                          })
-                        }
-                        className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all text-slate-400 appearance-none bg-transparent"
-                      >
-                        <option value="">Select your bank...</option>
-                        <option value="044">Access Bank</option>
-                        <option value="023">Citibank Nigeria</option>
-                        <option value="063">Diamond Bank</option>
-                        <option value="050">Ecobank Nigeria</option>
-                        <option value="084">Enterprise Bank</option>
-                        <option value="070">Fidelity Bank</option>
-                        <option value="011">First Bank of Nigeria</option>
-                        <option value="214">First City Monument Bank</option>
-                        <option value="058">Guaranty Trust Bank</option>
-                        <option value="030">Heritage Bank</option>
-                        <option value="301">Jaiz Bank</option>
-                        <option value="082">Keystone Bank</option>
-                        <option value="526">Parallex Bank</option>
-                        <option value="076">Polaris Bank</option>
-                        <option value="101">Providus Bank</option>
-                        <option value="221">Stanbic IBTC Bank</option>
-                        <option value="068">Standard Chartered Bank</option>
-                        <option value="232">Sterling Bank</option>
-                        <option value="100">Suntrust Bank</option>
-                        <option value="032">Union Bank of Nigeria</option>
-                        <option value="033">United Bank for Africa</option>
-                        <option value="215">Unity Bank</option>
-                        <option value="035">Wema Bank</option>
-                        <option value="057">Zenith Bank</option>
-                      </select>
-                    </div>
-
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                        Account Number
-                      </label>
-                      <input
-                        value={formData.bankAccountNo}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            bankAccountNo: e.target.value
-                              .replace(/\D/g, "")
-                              .slice(0, 10),
-                          })
-                        }
-                        className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white"
-                        placeholder="0123456789"
-                        inputMode="numeric"
-                      />
-                    </div>
-
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                        Account Name
-                      </label>
-                      <input
-                        value={formData.bankAccountName}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            bankAccountName: e.target.value,
-                          })
-                        }
-                        className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white"
-                        placeholder="LAGOS TOOLS & MACHINERY LTD"
-                      />
-                    </div>
-
-                    <div className="p-6 bg-amber-50 dark:bg-amber-950/10 border border-amber-100 dark:border-amber-900/20 rounded-2xl flex gap-4">
-                      <span className="material-symbols-outlined text-amber-500">
-                        info
-                      </span>
-                      <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wide leading-relaxed">
-                        Account name must match your registered business name
-                        for payout verification.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                <BankDetailsStep formData={formData} updateForm={updateForm} />
               )}
-
-              {step === 5 && (
-                <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-y-auto max-h-[500px] pr-4">
-                  <div className="space-y-2">
-                    <h3 className="text-2xl font-black text-navy-dark dark:text-white uppercase tracking-tight">
-                      Review & Finish
-                    </h3>
-                    <p className="text-slate-500 font-bold text-sm leading-relaxed">
-                      Confirm your details before activation.
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-6">
-                    {[
-                      {
-                        label: "Business",
-                        val: formData.businessName || "Not Provided",
-                        icon: "store",
-                      },
-                      {
-                        label: "Type",
-                        val: formData.businessType,
-                        icon: "category",
-                      },
-                      {
-                        label: "Registration",
-                        val: formData.cacNumber || "Pending",
-                        icon: "badge",
-                      },
-                      {
-                        label: "Warehouse",
-                        val: formData.distributionCenter,
-                        icon: "location_on",
-                      },
-                      {
-                        label: "Bank",
-                        val: formData.bankAccountName || "Not Provided",
-                        icon: "account_balance",
-                      },
-                    ].map((item, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between p-6 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="size-10 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center text-navy-dark dark:text-white">
-                            <span className="material-symbols-outlined text-lg">
-                              {item.icon}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                              {item.label}
-                            </p>
-                            <p className="text-sm font-black text-navy-dark dark:text-white uppercase mt-0.5">
-                              {item.val}
-                            </p>
-                          </div>
-                        </div>
-                        <StatusBadge status="PENDING" />
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="p-8 bg-emerald-50 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/20 rounded-[2rem] flex gap-5">
-                    <span className="material-symbols-outlined text-emerald-500 scale-125">
-                      info
-                    </span>
-                    <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 leading-relaxed uppercase tracking-wide">
-                      Upon completion, your profile will enter internal review.
-                      You can still list products meanwhile.
-                    </p>
-                  </div>
-                </div>
-              )}
+              {step === 5 && <ReviewStep formData={formData} />}
             </div>
           )}
 

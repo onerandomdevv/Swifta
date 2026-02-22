@@ -2,11 +2,15 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { formatKobo } from "@hardware-os/shared";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getOrder, dispatchOrder } from "@/lib/api/order.api";
 import type { Order } from "@hardware-os/shared";
+
+// Extracted Components
+import { FulfillmentDetails } from "@/components/merchant/orders/fulfillment-details";
+import { MerchantOrderGuide } from "@/components/merchant/orders/merchant-order-guide";
+import { OrderReferenceSidebar } from "@/components/merchant/orders/order-reference-sidebar";
 
 export default function MerchantOrderDetailsPage() {
   const { id } = useParams();
@@ -138,124 +142,11 @@ export default function MerchantOrderDetailsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div className="lg:col-span-8 space-y-8">
-          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden shadow-sm">
-            <div className="p-8 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between">
-              <h3 className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-widest">
-                Fulfillment Details
-              </h3>
-            </div>
-
-            <div className="p-10 space-y-8">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                    Total Order Value
-                  </p>
-                  <p className="text-4xl font-black text-navy-dark dark:text-white tabular-nums tracking-tighter">
-                    {formatKobo(BigInt(order.totalAmountKobo))}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                    Delivery Fee
-                  </p>
-                  <p className="text-lg font-black text-navy-dark dark:text-white tabular-nums">
-                    {formatKobo(BigInt(order.deliveryFeeKobo))}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-10 bg-slate-50 dark:bg-slate-800/50 flex flex-col sm:flex-row justify-between items-start gap-10">
-              <div className="flex-1 space-y-3">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  Settlement Info
-                </p>
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`size-2 rounded-full ${order.status === "PENDING_PAYMENT" ? "bg-amber-500" : "bg-emerald-500"}`}
-                  ></div>
-                  <p className="text-sm font-black text-navy-dark dark:text-white uppercase">
-                    {order.status.replace("_", " ")}
-                  </p>
-                </div>
-                <p className="text-[10px] text-slate-500 font-bold uppercase leading-relaxed max-w-xs">
-                  Funds are held in escrow and will be released upon buyer OTP
-                  verification.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Dispatch CTA for PAID orders */}
-          {order.status === "PAID" && (
-            <div className="bg-gradient-to-br from-navy-dark to-slate-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden group shadow-2xl">
-              <div className="relative z-10 space-y-6">
-                <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40">
-                  Logistic Action Required
-                </p>
-                <h3 className="text-2xl font-black uppercase tracking-tight leading-tight max-w-lg">
-                  Please dispatch materials to the buyer and request their OTP
-                  for payout release.
-                </h3>
-              </div>
-            </div>
-          )}
-
-          {/* Delivery OTP Section - shown to merchant when dispatched */}
-          {order.status === "DISPATCHED" && order.deliveryOtp && (
-            <div className="bg-navy-dark rounded-[2.5rem] p-10 text-white relative overflow-hidden group shadow-2xl shadow-navy-dark/20">
-              <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
-                <div className="space-y-4 text-center md:text-left">
-                  <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40">
-                    Delivery Verification
-                  </p>
-                  <h3 className="text-2xl font-black uppercase tracking-tight leading-tight max-w-sm">
-                    Provide this OTP to the rider for the buyer to verify
-                    receiving the goods.
-                  </h3>
-                </div>
-                <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-8 rounded-[2rem] text-center min-w-[240px]">
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60 mb-2">
-                    Delivery OTP
-                  </p>
-                  <p className="text-5xl font-black tracking-widest">
-                    {order.deliveryOtp}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+          <FulfillmentDetails order={order} />
+          <MerchantOrderGuide order={order} />
         </div>
 
-        <div className="lg:col-span-4 space-y-10">
-          <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-10 space-y-8">
-            <div className="space-y-2">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                Order Reference
-              </p>
-              <p className="text-xs font-black text-navy-dark dark:text-white uppercase tracking-widest break-all">
-                {order.id}
-              </p>
-            </div>
-            <div className="space-y-2">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                Quote Reference
-              </p>
-              <p className="text-xs font-black text-navy-dark dark:text-white uppercase tracking-widest break-all">
-                {order.quoteId}
-              </p>
-            </div>
-            <div className="space-y-2">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                Currency
-              </p>
-              <p className="text-xs font-black text-navy-dark dark:text-white uppercase">
-                {order.currency}
-              </p>
-            </div>
-          </div>
-        </div>
+        <OrderReferenceSidebar order={order} />
       </div>
     </div>
   );
