@@ -9,9 +9,11 @@ import { initializePayment } from "@/lib/api/payment.api";
 import type { Order } from "@hardware-os/shared";
 
 // Extracted Components
-import { BuyerOrderSummary } from "@/components/buyer/orders/buyer-order-summary";
-import { BuyerOrderActions } from "@/components/buyer/orders/buyer-order-actions";
-import { OrderInfoSidebar } from "@/components/buyer/orders/order-info-sidebar";
+import {
+  BuyerOrderSummary,
+  BuyerOrderActions,
+  OrderInfoSidebar,
+} from "@/components/buyer/orders";
 
 export default function BuyerOrderDetailsPage() {
   const { id } = useParams();

@@ -1,37 +1,20 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Money } from "@/components/ui/money";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getOrders } from "@/lib/api/order.api";
-import type { Order } from "@hardware-os/shared";
+import { useMerchantOrders } from "@/hooks/use-merchant-orders";
 
 // Extracted Components
-import { MerchantOrdersTable } from "@/components/merchant/orders/merchant-orders-table";
 import {
+  MerchantOrdersTable,
   OrderFilters,
-  MerchantOrderFilter,
-} from "@/components/merchant/orders/order-filters";
+  type MerchantOrderFilter,
+} from "@/components/merchant/orders";
 
 export default function MerchantOrdersPage() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const { orders, loading, error } = useMerchantOrders();
   const [activeTab, setActiveTab] = useState<MerchantOrderFilter>("ALL");
-
-  useEffect(() => {
-    async function fetchOrders() {
-      try {
-        const response = await getOrders();
-        setOrders(response);
-      } catch (err: any) {
-        setError(err?.message || "Failed to load orders");
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchOrders();
-  }, []);
 
   if (loading) {
     return (

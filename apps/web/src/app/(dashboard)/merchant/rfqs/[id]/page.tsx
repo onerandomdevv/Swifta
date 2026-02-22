@@ -9,8 +9,7 @@ import { submitQuote } from "@/lib/api/quote.api";
 import type { RFQ } from "@hardware-os/shared";
 
 // Extracted Components
-import { RfqSummary } from "@/components/merchant/rfqs/rfq-summary";
-import { QuoteSubmissionForm } from "@/components/merchant/rfqs/quote-submission-form";
+import { RfqSummary, QuoteSubmissionForm } from "@/components/merchant/rfqs";
 
 export default function MerchantRFQDetailsPage() {
   const { id } = useParams();

@@ -8,9 +8,11 @@ import { getOrder, dispatchOrder } from "@/lib/api/order.api";
 import type { Order } from "@hardware-os/shared";
 
 // Extracted Components
-import { FulfillmentDetails } from "@/components/merchant/orders/fulfillment-details";
-import { MerchantOrderGuide } from "@/components/merchant/orders/merchant-order-guide";
-import { OrderReferenceSidebar } from "@/components/merchant/orders/order-reference-sidebar";
+import {
+  FulfillmentDetails,
+  MerchantOrderGuide,
+  OrderReferenceSidebar,
+} from "@/components/merchant/orders";
 
 export default function MerchantOrderDetailsPage() {
   const { id } = useParams();
