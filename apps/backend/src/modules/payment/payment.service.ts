@@ -390,4 +390,19 @@ export class PaymentService {
     this.logger.log(`Payout ${payout.id} for order ${orderId} initiated`);
     return payout;
   }
+
+  // ──────────────────────────────────────────────
+  //  RESOLVE ACCOUNT (Proxy to Paystack)
+  // ──────────────────────────────────────────────
+
+  async resolveAccount(accountNumber: string, bankCode: string) {
+    try {
+      return await this.paystack.resolveAccount(accountNumber, bankCode);
+    } catch (err) {
+      if (err instanceof Error) {
+        throw new BadRequestException(err.message);
+      }
+      throw new BadRequestException('Could not resolve account');
+    }
+  }
 }

@@ -3,6 +3,8 @@ import {
   Post,
   Body,
   UseGuards,
+  Get,
+  Query,
 } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { InitializePaymentDto } from './dto/initialize-payment.dto';
@@ -33,5 +35,14 @@ export class PaymentController {
   @UseGuards(WebhookSignatureGuard)
   webhook(@Body() payload: any) {
     return this.paymentService.handleWebhook(payload);
+  }
+
+  @Get('resolve-account')
+  @UseGuards(JwtAuthGuard)
+  resolveAccount(
+    @Query('accountNumber') accountNumber: string,
+    @Query('bankCode') bankCode: string,
+  ) {
+    return this.paymentService.resolveAccount(accountNumber, bankCode);
   }
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { OnboardingFormData } from "./types";
-import { getNigerianBanks } from "@/lib/api/payment.api";
+import { getNigerianBanks, resolveBankAccount } from "@/lib/api/payment.api";
 
 interface Props {
   formData: OnboardingFormData;
@@ -13,10 +13,15 @@ export function BankDetailsStep({ formData, updateForm }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
 
+  // Resolution States
+  const [resolvingAccount, setResolvingAccount] = useState(false);
+  const [resolveError, setResolveError] = useState("");
+
   const filteredBanks = banks.filter((bank) =>
     bank.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
+  // 1. Load active banks on mount
   useEffect(() => {
     async function loadBanks() {
       try {
@@ -30,6 +35,40 @@ export function BankDetailsStep({ formData, updateForm }: Props) {
     }
     loadBanks();
   }, []);
+
+  // 2. Automatically resolve account name when 10 digits + a bank are present
+  useEffect(() => {
+    async function verifyAccount() {
+      // Only fire when precisely 10 characters exist alongside a valid bankCode
+      if (formData.bankAccountNo?.length === 10 && formData.bankCode) {
+        setResolvingAccount(true);
+        setResolveError("");
+        try {
+          const result = await resolveBankAccount(
+            formData.bankAccountNo,
+            formData.bankCode,
+          );
+          updateForm({ bankAccountName: result.account_name });
+        } catch (err: any) {
+          console.error("Account resolution failed", err);
+          // apiClient throws an object with an `error` string property for 400 responses
+          const errorMsg = err?.error || "Could not verify account details";
+          setResolveError(errorMsg);
+          updateForm({ bankAccountName: "" }); // Clear bad names
+        } finally {
+          setResolvingAccount(false);
+        }
+      } else {
+        // Automatically clear any stale error if the user erases digits
+        if (resolveError) setResolveError("");
+      }
+    }
+
+    // Slight debounce for stability regarding auto-fills or rapid typing
+    const timeout = setTimeout(verifyAccount, 400);
+    return () => clearTimeout(timeout);
+  }, [formData.bankAccountNo, formData.bankCode]);
+
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="space-y-2">
@@ -115,21 +154,34 @@ export function BankDetailsStep({ formData, updateForm }: Props) {
           )}
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-3 relative">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
             Account Number
           </label>
-          <input
-            value={formData.bankAccountNo}
-            onChange={(e) =>
-              updateForm({
-                bankAccountNo: e.target.value.replace(/\D/g, "").slice(0, 10),
-              })
-            }
-            className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white"
-            placeholder="0123456789"
-            inputMode="numeric"
-          />
+          <div className="relative">
+            <input
+              value={formData.bankAccountNo}
+              onChange={(e) =>
+                updateForm({
+                  bankAccountNo: e.target.value.replace(/\D/g, "").slice(0, 10),
+                })
+              }
+              disabled={resolvingAccount}
+              className={`w-full px-8 py-5 text-sm font-bold border-2 rounded-[1.5rem] focus:outline-none transition-all placeholder:text-slate-300 dark:text-white ${resolveError ? "border-red-500/50 focus:border-red-500 bg-red-50/10" : "border-slate-50 dark:border-slate-800 dark:bg-slate-950 focus:border-navy-dark"} ${resolvingAccount ? "opacity-50" : ""}`}
+              placeholder="0123456789"
+              inputMode="numeric"
+            />
+            {resolvingAccount && (
+              <span className="material-symbols-outlined absolute right-6 top-5 text-navy-dark dark:text-white animate-spin">
+                progress_activity
+              </span>
+            )}
+          </div>
+          {resolveError && (
+            <p className="text-[10px] font-bold text-red-500 uppercase tracking-wide px-2 animate-in fade-in slide-in-from-top-1">
+              {resolveError}
+            </p>
+          )}
         </div>
 
         <div className="space-y-3">
@@ -139,7 +191,8 @@ export function BankDetailsStep({ formData, updateForm }: Props) {
           <input
             value={formData.bankAccountName}
             onChange={(e) => updateForm({ bankAccountName: e.target.value })}
-            className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white"
+            disabled={resolvingAccount}
+            className={`w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white ${resolvingAccount ? "opacity-50" : ""}`}
             placeholder="LAGOS TOOLS & MACHINERY LTD"
           />
         </div>
