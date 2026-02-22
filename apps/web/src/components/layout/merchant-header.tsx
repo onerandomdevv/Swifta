@@ -12,7 +12,7 @@ export function MerchantHeader({
 }) {
   const router = useRouter();
   const { user } = useAuth();
-  const { unreadCount } = useNotifications();
+  const { unreadCount } = useNotifications(true, true);
   const [searchQuery, setSearchQuery] = useState("");
 
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {

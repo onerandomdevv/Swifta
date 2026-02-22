@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/providers/toast-provider';
 import { 
   getNotifications, 
   getUnreadCount, 
@@ -24,8 +25,10 @@ export interface NotificationUI {
   category: "Orders" | "Financials" | "System";
 }
 
-export function useNotifications(isOpen: boolean = true) {
+export function useNotifications(isOpen: boolean = true, enableToasts: boolean = false) {
     const queryClient = useQueryClient();
+    const { info } = useToast();
+    const [prevUnreadCount, setPrevUnreadCount] = useState<number | null>(null);
 
     const mapNotification = useCallback((n: BackendNotification): NotificationUI => {
         let icon = "info";
@@ -116,9 +119,18 @@ export function useNotifications(isOpen: boolean = true) {
         },
     });
 
+    const unreadCount = unreadData || 0;
+
+    useEffect(() => {
+        if (enableToasts && prevUnreadCount !== null && unreadCount > prevUnreadCount) {
+            info("You have new notifications.");
+        }
+        setPrevUnreadCount(unreadCount);
+    }, [unreadCount, prevUnreadCount, enableToasts, info]);
+
     return {
         notifications,
-        unreadCount: unreadData || 0,
+        unreadCount,
         loading,
         refresh: refetch,
         markAsRead: (id: string) => markAsReadMutation.mutate(id),
