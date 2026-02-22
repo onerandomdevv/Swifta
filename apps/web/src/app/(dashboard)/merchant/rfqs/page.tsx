@@ -1,33 +1,16 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getMerchantRFQs } from "@/lib/api/rfq.api";
-import type { RFQ } from "@hardware-os/shared";
+import { useMerchantRFQs } from "@/hooks/use-merchant-rfqs";
 
 export default function MerchantRFQsPage() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [rfqs, setRfqs] = useState<RFQ[]>([]);
+  const { rfqs, loading, error } = useMerchantRFQs();
   const [activeTab, setActiveTab] = useState<
     "ALL" | "OPEN" | "QUOTED" | "CLOSED"
   >("ALL");
-
-  useEffect(() => {
-    async function fetchRFQs() {
-      try {
-        const response = await getMerchantRFQs();
-        setRfqs(response);
-      } catch (err: any) {
-        setError(err?.message || "Failed to load RFQs");
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchRFQs();
-  }, []);
 
   const filteredRfqs = rfqs.filter((rfq) => {
     if (activeTab === "ALL") return true;

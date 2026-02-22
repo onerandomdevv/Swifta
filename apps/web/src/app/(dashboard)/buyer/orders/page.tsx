@@ -1,30 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import Link from "next/link";
 import { formatKobo } from "@hardware-os/shared";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getOrders } from "@/lib/api/order.api";
-import type { Order } from "@hardware-os/shared";
+import { useBuyerOrders } from "@/hooks/use-buyer-orders";
 
 export default function BuyerOrdersPage() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [orders, setOrders] = useState<Order[]>([]);
-
-  useEffect(() => {
-    async function fetchOrders() {
-      try {
-        const response = await getOrders();
-        setOrders(response);
-      } catch (err: any) {
-        setError(err?.message || "Failed to load orders");
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchOrders();
-  }, []);
+  const { orders, loading, error } = useBuyerOrders();
 
   if (loading) {
     return (

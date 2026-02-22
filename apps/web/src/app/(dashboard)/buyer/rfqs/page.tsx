@@ -1,30 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import Link from "next/link";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getMyRFQs } from "@/lib/api/rfq.api";
-import type { RFQ } from "@hardware-os/shared";
+import { useBuyerRFQs } from "@/hooks/use-buyer-rfqs";
 
 export default function BuyerRFQsPage() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [rfqs, setRfqs] = useState<RFQ[]>([]);
-
-  useEffect(() => {
-    async function fetchRFQs() {
-      try {
-        const response = await getMyRFQs();
-        setRfqs(response);
-      } catch (err: any) {
-        setError(err?.message || "Failed to load RFQs");
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchRFQs();
-  }, []);
+  const { rfqs, loading, error } = useBuyerRFQs();
 
   if (loading) {
     return (
