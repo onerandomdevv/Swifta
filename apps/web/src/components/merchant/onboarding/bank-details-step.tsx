@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { OnboardingFormData } from "./types";
+import { getNigerianBanks } from "@/lib/api/payment.api";
 
 interface Props {
   formData: OnboardingFormData;
@@ -7,6 +8,22 @@ interface Props {
 }
 
 export function BankDetailsStep({ formData, updateForm }: Props) {
+  const [banks, setBanks] = useState<{ name: string; code: string }[]>([]);
+  const [fetchingBanks, setFetchingBanks] = useState(true);
+
+  useEffect(() => {
+    async function loadBanks() {
+      try {
+        const list = await getNigerianBanks();
+        setBanks(list.sort((a, b) => a.name.localeCompare(b.name)));
+      } catch (err) {
+        console.error("Failed to fetch banks", err);
+      } finally {
+        setFetchingBanks(false);
+      }
+    }
+    loadBanks();
+  }, []);
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="space-y-2">
@@ -27,33 +44,17 @@ export function BankDetailsStep({ formData, updateForm }: Props) {
           <select
             value={formData.bankCode}
             onChange={(e) => updateForm({ bankCode: e.target.value })}
-            className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all text-slate-400 appearance-none bg-transparent"
+            disabled={fetchingBanks}
+            className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all text-slate-400 appearance-none bg-transparent disabled:opacity-50"
           >
-            <option value="">Select your bank...</option>
-            <option value="044">Access Bank</option>
-            <option value="023">Citibank Nigeria</option>
-            <option value="063">Diamond Bank</option>
-            <option value="050">Ecobank Nigeria</option>
-            <option value="084">Enterprise Bank</option>
-            <option value="070">Fidelity Bank</option>
-            <option value="011">First Bank of Nigeria</option>
-            <option value="214">First City Monument Bank</option>
-            <option value="058">Guaranty Trust Bank</option>
-            <option value="030">Heritage Bank</option>
-            <option value="301">Jaiz Bank</option>
-            <option value="082">Keystone Bank</option>
-            <option value="526">Parallex Bank</option>
-            <option value="076">Polaris Bank</option>
-            <option value="101">Providus Bank</option>
-            <option value="221">Stanbic IBTC Bank</option>
-            <option value="068">Standard Chartered Bank</option>
-            <option value="232">Sterling Bank</option>
-            <option value="100">Suntrust Bank</option>
-            <option value="032">Union Bank of Nigeria</option>
-            <option value="033">United Bank for Africa</option>
-            <option value="215">Unity Bank</option>
-            <option value="035">Wema Bank</option>
-            <option value="057">Zenith Bank</option>
+            <option value="">
+              {fetchingBanks ? "Loading banks..." : "Select your bank..."}
+            </option>
+            {banks.map((bank) => (
+              <option key={bank.code} value={bank.code}>
+                {bank.name}
+              </option>
+            ))}
           </select>
         </div>
 
