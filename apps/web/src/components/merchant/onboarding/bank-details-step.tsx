@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { OnboardingFormData } from "./types";
+import { getNigerianBanks } from "@/lib/api/payment.api";
 
 interface Props {
   formData: OnboardingFormData;
@@ -7,6 +8,28 @@ interface Props {
 }
 
 export function BankDetailsStep({ formData, updateForm }: Props) {
+  const [banks, setBanks] = useState<{ name: string; code: string }[]>([]);
+  const [fetchingBanks, setFetchingBanks] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+
+  const filteredBanks = banks.filter((bank) =>
+    bank.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
+  useEffect(() => {
+    async function loadBanks() {
+      try {
+        const list = await getNigerianBanks();
+        setBanks(list.sort((a, b) => a.name.localeCompare(b.name)));
+      } catch (err) {
+        console.error("Failed to fetch banks", err);
+      } finally {
+        setFetchingBanks(false);
+      }
+    }
+    loadBanks();
+  }, []);
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="space-y-2">
@@ -20,41 +43,76 @@ export function BankDetailsStep({ formData, updateForm }: Props) {
       </div>
 
       <div className="space-y-8">
-        <div className="space-y-3">
+        <div className="space-y-3 relative">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
             Bank Name / Code
           </label>
-          <select
-            value={formData.bankCode}
-            onChange={(e) => updateForm({ bankCode: e.target.value })}
-            className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all text-slate-400 appearance-none bg-transparent"
+
+          <button
+            type="button"
+            onClick={() => !fetchingBanks && setIsOpen(!isOpen)}
+            disabled={fetchingBanks}
+            className="w-full px-8 py-5 text-left text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all text-slate-400 bg-transparent disabled:opacity-50 flex items-center justify-between"
           >
-            <option value="">Select your bank...</option>
-            <option value="044">Access Bank</option>
-            <option value="023">Citibank Nigeria</option>
-            <option value="063">Diamond Bank</option>
-            <option value="050">Ecobank Nigeria</option>
-            <option value="084">Enterprise Bank</option>
-            <option value="070">Fidelity Bank</option>
-            <option value="011">First Bank of Nigeria</option>
-            <option value="214">First City Monument Bank</option>
-            <option value="058">Guaranty Trust Bank</option>
-            <option value="030">Heritage Bank</option>
-            <option value="301">Jaiz Bank</option>
-            <option value="082">Keystone Bank</option>
-            <option value="526">Parallex Bank</option>
-            <option value="076">Polaris Bank</option>
-            <option value="101">Providus Bank</option>
-            <option value="221">Stanbic IBTC Bank</option>
-            <option value="068">Standard Chartered Bank</option>
-            <option value="232">Sterling Bank</option>
-            <option value="100">Suntrust Bank</option>
-            <option value="032">Union Bank of Nigeria</option>
-            <option value="033">United Bank for Africa</option>
-            <option value="215">Unity Bank</option>
-            <option value="035">Wema Bank</option>
-            <option value="057">Zenith Bank</option>
-          </select>
+            <span
+              className={
+                formData.bankCode ? "text-navy-dark dark:text-white" : ""
+              }
+            >
+              {fetchingBanks
+                ? "Loading banks..."
+                : formData.bankCode
+                  ? banks.find((b) => b.code === formData.bankCode)?.name ||
+                    "Select your bank..."
+                  : "Select your bank..."}
+            </span>
+            <span className="material-symbols-outlined text-slate-400">
+              expand_more
+            </span>
+          </button>
+
+          {isOpen && (
+            <div className="absolute top-100 left-0 right-0 mt-2 bg-white dark:bg-slate-900 border-2 border-slate-50 dark:border-slate-800 rounded-[1.5rem] shadow-xl z-50 overflow-hidden flex flex-col max-h-72 animate-in fade-in zoom-in-95 duration-200">
+              <div className="p-4 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
+                <div className="relative flex items-center">
+                  <span className="material-symbols-outlined absolute left-4 text-slate-400">
+                    search
+                  </span>
+                  <input
+                    type="text"
+                    autoFocus
+                    placeholder="Search for a bank..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3 text-sm font-bold border-2 border-transparent bg-white dark:bg-slate-950 rounded-xl focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="overflow-y-auto flex-1 p-2">
+                {filteredBanks.length === 0 ? (
+                  <div className="p-4 text-center text-sm font-bold text-slate-400">
+                    No banks found
+                  </div>
+                ) : (
+                  filteredBanks.map((bank) => (
+                    <button
+                      key={bank.code}
+                      type="button"
+                      onClick={() => {
+                        updateForm({ bankCode: bank.code });
+                        setIsOpen(false);
+                        setSearchQuery("");
+                      }}
+                      className={`w-full text-left px-6 py-4 text-sm font-bold rounded-xl transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 ${formData.bankCode === bank.code ? "bg-navy-dark text-white hover:bg-navy-dark dark:hover:bg-navy-dark" : "text-slate-600 dark:text-slate-300"}`}
+                    >
+                      {bank.name}
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="space-y-3">
