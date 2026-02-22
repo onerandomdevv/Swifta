@@ -102,7 +102,10 @@ class ApiClient {
     // Unwrapping the { success, data } envelope
     // Note: this discards `meta` for pagination! If components need pagination later, 
     // a separate `getPaginated` method must be added to ApiClient.
-    const result = (await response.json()) as ApiResponse<T>;
+    const text = await response.text();
+    if (!text) return {} as T;
+    
+    const result = JSON.parse(text) as ApiResponse<T>;
     return result.data;
   }
 

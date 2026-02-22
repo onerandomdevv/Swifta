@@ -10,6 +10,7 @@ import { useToast } from "@/providers/toast-provider";
 import { authApi } from "@/lib/api/auth.api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -32,7 +33,7 @@ export default function RegisterPage() {
   const { register } = useAuth();
   const toast = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Resend cooldown countdown
   useEffect(() => {
@@ -56,6 +57,7 @@ export default function RegisterPage() {
     if (isLoading) return;
 
     setIsLoading(true);
+    setFormError(null);
     try {
       // Attempt real registration
       await register({
@@ -77,6 +79,7 @@ export default function RegisterPage() {
           : err.error ||
             err.message ||
             "Registration failed. Please try again.";
+      setFormError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -359,6 +362,18 @@ export default function RegisterPage() {
                 marketplace.
               </p>
             </div>
+
+            {formError && (
+              <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                <span className="material-symbols-outlined text-red-500 mt-0.5">
+                  error
+                </span>
+                <p className="text-sm font-medium text-red-700 dark:text-red-400 leading-snug">
+                  {formError}
+                </p>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Full Name */}
               <div className="space-y-1.5">
@@ -448,31 +463,16 @@ export default function RegisterPage() {
                 >
                   Password
                 </label>
-                <div className="relative">
-                  <Input
-                    className="h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 pr-10"
-                    id="password"
-                    placeholder="••••••••"
-                    type={showPassword ? "text" : "password"}
-                    required
-                    value={formData.password}
-                    onChange={(e) =>
-                      setFormData({ ...formData, password: e.target.value })
-                    }
-                  />
-                  <button
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    <span className="material-symbols-outlined text-[20px]">
-                      {showPassword ? "visibility_off" : "visibility"}
-                    </span>
-                  </button>
-                </div>
-                <p className="text-[11px] text-slate-400 mt-1 font-medium">
-                  Minimum 8 characters with at least one number.
-                </p>
+                <PasswordInput
+                  className="h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                  id="password"
+                  placeholder="••••••••"
+                  required
+                  value={formData.password}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
+                />
               </div>
               {/* Actions */}
               <div className="pt-2">

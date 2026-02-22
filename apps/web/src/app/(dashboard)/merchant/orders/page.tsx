@@ -18,9 +18,8 @@ export default function MerchantOrdersPage() {
   useEffect(() => {
     async function fetchOrders() {
       try {
-        const payload = (await getOrders()) as any;
-        const data = Array.isArray(payload) ? payload : payload?.data || [];
-        setOrders(data);
+        const response = await getOrders();
+        setOrders(response);
       } catch (err: any) {
         setError(err?.message || "Failed to load orders");
       } finally {

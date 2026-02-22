@@ -20,6 +20,7 @@ import { OrderModule } from './modules/order/order.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { EmailModule } from './modules/email/email.module';
 
 import { MerchantContextMiddleware } from './common/middleware/merchant-context.middleware';
 
@@ -49,6 +50,7 @@ import { APP_GUARD } from '@nestjs/core';
     PaymentModule,
     InventoryModule,
     NotificationModule,
+    EmailModule,
   ],
   controllers: [],
   providers: [

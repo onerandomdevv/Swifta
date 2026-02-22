@@ -1,14 +1,17 @@
 import { Injectable, UnauthorizedException, ConflictException, BadRequestException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { randomInt } from 'crypto';
+import { randomInt, randomBytes, createHash } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
+import { EmailService } from '../email/email.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { TokenPair, JwtPayload } from '@hardware-os/shared';
 
 const SALT_ROUNDS = 10;
@@ -30,6 +33,7 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private redis: RedisService,
+    private emailService: EmailService,
   ) {}
 
   async register(dto: RegisterDto): Promise<TokenPair & { user: any }> {
@@ -37,7 +41,7 @@ export class AuthService {
       where: { OR: [{ email: dto.email }, { phone: dto.phone }] },
     });
     if (existingUser) {
-      throw new ConflictException('User with email or phone already exists');
+      throw new ConflictException('This email or phone number is already registered. Please log in instead.');
     }
 
     const passwordHash = await bcrypt.hash(dto.password, SALT_ROUNDS);
@@ -164,6 +168,74 @@ export class AuthService {
     return { message: 'Logged out successfully' };
   }
 
+  async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string }> {
+    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    
+    // Always return same message to prevent email enumeration
+    const successMessage = 'If an account exists for that email, a password reset link has been sent.';
+    
+    if (!user) {
+      return { message: successMessage };
+    }
+
+    // Generate secure token
+    const resetToken = randomBytes(32).toString('hex');
+    const hashedToken = createHash('sha256').update(resetToken).digest('hex');
+    
+    // Set expiry to 15 mins
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetToken: hashedToken,
+        resetTokenExpiry: expiresAt,
+      },
+    });
+
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    await this.emailService.sendPasswordResetEmail(dto.email, resetToken, frontendUrl);
+
+    return { message: successMessage };
+  }
+
+  async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
+    // Hash the plain token to match what is stored in the database
+    const hashedToken = createHash('sha256').update(dto.token).digest('hex');
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        resetToken: hashedToken,
+        resetTokenExpiry: {
+          gt: new Date(), // must not be expired
+        },
+      },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Invalid or expired password reset token');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, SALT_ROUNDS);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        resetToken: null,
+        resetTokenExpiry: null,
+      },
+    });
+
+    // Log out all active sessions for this user globally for security
+    await this.redis.del(`${REFRESH_TOKEN_PREFIX}${user.id}`);
+
+    this.logger.log(`Password reset successfully for user: ${user.email}`);
+
+    return { message: 'Password has been successfully reset' };
+  }
+
   /**
    * Generates a cryptographically random 6-digit OTP, stores it in Redis,
    * and logs it to the console.
@@ -173,11 +245,7 @@ export class AuthService {
 
     await this.redis.set(`${EMAIL_OTP_PREFIX}${email}`, otp, EMAIL_OTP_TTL);
 
-    // TODO: Replace console.log with actual email delivery (Resend/SendGrid)
-    // Example: await this.emailService.sendVerificationEmail(email, otp);
-    this.logger.log(`========================================`);
-    this.logger.log(`📧 OTP for ${email}: ${otp}`);
-    this.logger.log(`========================================`);
+    await this.emailService.sendVerificationEmail(email, otp);
   }
 
   /**

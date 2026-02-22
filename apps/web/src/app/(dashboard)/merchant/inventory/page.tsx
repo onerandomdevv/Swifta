@@ -22,10 +22,10 @@ export default function MerchantInventoryPage() {
   useEffect(() => {
     async function load() {
       try {
-        const payload = (await getMyProducts()) as any;
-        const products: Product[] = Array.isArray(payload)
-          ? payload
-          : payload?.data || [];
+        const response = await getMyProducts();
+        const products: Product[] = response.filter(
+          (p) => !(p as any).isDeleted,
+        );
         const items: InventoryItem[] = await Promise.all(
           products.map(async (product) => {
             try {

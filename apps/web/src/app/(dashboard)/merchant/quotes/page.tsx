@@ -21,8 +21,7 @@ export default function MerchantQuotesPage() {
   useEffect(() => {
     async function load() {
       try {
-        const rfqs = (await getMerchantRFQs(1, 50)) as unknown as RFQ[];
-        const rfqList = Array.isArray(rfqs) ? rfqs : [];
+        const rfqList = await getMerchantRFQs(1, 50);
 
         const results = await Promise.all(
           rfqList.map(async (rfq) => {

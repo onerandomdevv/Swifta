@@ -25,9 +25,8 @@ export default function NewInventoryItemPage() {
   useEffect(() => {
     async function load() {
       try {
-        const payload = (await getMyProducts()) as any;
-        const data = Array.isArray(payload) ? payload : payload?.data || [];
-        setProducts(data);
+        const response = await getMyProducts();
+        setProducts(response.filter((p) => !(p as any).isDeleted));
         if (preselectedProductId) setProductId(preselectedProductId);
       } catch (err: unknown) {
         setError(
