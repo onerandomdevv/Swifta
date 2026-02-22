@@ -1,5 +1,6 @@
 import React from "react";
 import { OnboardingFormData } from "./types";
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 
 interface Props {
   formData: OnboardingFormData;
@@ -19,29 +20,19 @@ export function WarehouseStep({ formData, updateForm }: Props) {
       </div>
 
       <div className="space-y-8">
-        <div className="space-y-3">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-            Business Address
-          </label>
-          <textarea
-            value={formData.businessAddress}
-            onChange={(e) => updateForm({ businessAddress: e.target.value })}
-            className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white h-32 resize-none"
-            placeholder="Enter your registered business address..."
-          />
-        </div>
+        <AddressAutocomplete
+          label="Business Address"
+          value={formData.businessAddress}
+          onChange={(val) => updateForm({ businessAddress: val })}
+          placeholder="Enter your registered business address..."
+        />
 
-        <div className="space-y-3">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-            Warehouse Physical Address
-          </label>
-          <textarea
-            value={formData.warehouseLocation}
-            onChange={(e) => updateForm({ warehouseLocation: e.target.value })}
-            className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white h-32 resize-none"
-            placeholder="Enter warehouse street address in Lagos..."
-          />
-        </div>
+        <AddressAutocomplete
+          label="Warehouse Physical Address"
+          value={formData.warehouseLocation}
+          onChange={(val) => updateForm({ warehouseLocation: val })}
+          placeholder="Enter warehouse street address in Lagos..."
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-3">

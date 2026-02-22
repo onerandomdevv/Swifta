@@ -25,6 +25,12 @@ interface PaystackRecipientResponse {
   recipient_code: string;
 }
 
+export interface PaystackResolveResponse {
+  account_number: string;
+  account_name: string;
+  bank_id: number;
+}
+
 @Injectable()
 export class PaystackClient {
   private readonly logger = new Logger(PaystackClient.name);
@@ -162,5 +168,31 @@ export class PaystackClient {
 
     this.logger.log(`Payout initiated: ${reference}`);
     return json.data as PaystackTransferResponse;
+  }
+
+  // ──────────────────────────────────────────────
+  //  RESOLVE ACCOUNT NUMBER
+  // ──────────────────────────────────────────────
+
+  async resolveAccount(
+    accountNumber: string,
+    bankCode: string,
+  ): Promise<PaystackResolveResponse> {
+    const response = await fetch(
+      `${this.baseUrl}/bank/resolve?account_number=${accountNumber}&bank_code=${bankCode}`,
+      {
+        method: 'GET',
+        headers: this.headers,
+      },
+    );
+
+    const json = await response.json();
+
+    if (!json.status) {
+      this.logger.error(`Paystack account resolution failed: ${json.message}`, json);
+      throw new Error(`Account resolution failed: ${json.message}`);
+    }
+
+    return json.data as PaystackResolveResponse;
   }
 }
