@@ -26,8 +26,8 @@ export default function CreateRFQPage() {
   useEffect(() => {
     async function fetchProducts() {
       try {
-        const data = await getCatalogue();
-        setProducts(Array.isArray(data) ? data : []);
+        const response = await getCatalogue();
+        setProducts(response);
       } catch {
         // Products may fail to load — user can still type productId
       } finally {
@@ -96,8 +96,12 @@ export default function CreateRFQPage() {
       <div className="max-w-4xl">
         {error && (
           <div className="mb-8 p-6 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded-2xl flex gap-4">
-            <span className="material-symbols-outlined text-red-500">error</span>
-            <p className="text-xs font-bold text-red-700 dark:text-red-400 uppercase tracking-wide">{error}</p>
+            <span className="material-symbols-outlined text-red-500">
+              error
+            </span>
+            <p className="text-xs font-bold text-red-700 dark:text-red-400 uppercase tracking-wide">
+              {error}
+            </p>
           </div>
         )}
 
@@ -121,7 +125,8 @@ export default function CreateRFQPage() {
                 <option value="">Choose a product...</option>
                 {products.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name} ({p.categoryTag}) — Min: {p.minOrderQuantity} {p.unit}
+                    {p.name} ({p.categoryTag}) — Min: {p.minOrderQuantity}{" "}
+                    {p.unit}
                   </option>
                 ))}
               </select>
@@ -205,8 +210,7 @@ export default function CreateRFQPage() {
             <span className="text-navy-dark dark:text-white font-black">
               merchant who listed this product
             </span>
-            . You will receive quotes directly in your dashboard for
-            comparison.
+            . You will receive quotes directly in your dashboard for comparison.
           </p>
         </div>
       </div>

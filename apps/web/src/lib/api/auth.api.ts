@@ -34,4 +34,10 @@ export const authApi = {
 
   logout: () =>
     apiClient.post<void>('/auth/logout'),
+
+  forgotPassword: (email: string) =>
+    apiClient.post<{ message: string }>('/auth/forgot-password', { email }),
+
+  resetPassword: (dto: { token: string; newPassword: string }) =>
+    apiClient.post<{ message: string }>('/auth/reset-password', dto),
 };

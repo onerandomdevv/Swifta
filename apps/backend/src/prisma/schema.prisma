@@ -81,6 +81,8 @@ model User {
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
   deletedAt      DateTime? @map("deleted_at")
+  resetToken     String?   @map("reset_token")
+  resetTokenExpiry DateTime? @map("reset_token_expiry")
 
   merchantProfile MerchantProfile?
   rfqs            RFQ[]

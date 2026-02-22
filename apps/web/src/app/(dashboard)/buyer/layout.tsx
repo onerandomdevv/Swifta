@@ -65,12 +65,6 @@ export default function BuyerLayout({ children }: { children: ReactNode }) {
               <span className="absolute top-2 right-2 size-2 bg-accent-orange rounded-full border-2 border-navy-dark animate-pulse"></span>
             )}
           </button>
-          <Link
-            href="/buyer/cart"
-            className="p-2 hover:bg-white/10 rounded-full transition-colors"
-          >
-            <span className="material-symbols-outlined">shopping_cart</span>
-          </Link>
           <div className="h-8 w-[1px] bg-white/20 mx-2 hidden sm:block"></div>
           <div className="flex items-center gap-3 cursor-pointer hover:bg-white/10 p-1 pr-3 rounded-full transition-colors group">
             <div className="size-8 rounded-full bg-accent-orange flex items-center justify-center font-bold text-xs text-white">
@@ -112,11 +106,6 @@ export default function BuyerLayout({ children }: { children: ReactNode }) {
                   label: "My Orders",
                   icon: "local_shipping",
                   href: "/buyer/orders",
-                },
-                {
-                  label: "Verification",
-                  icon: "verified_user",
-                  href: "/buyer/verification",
                 },
               ].map((item) => {
                 const isActive = pathname === item.href;

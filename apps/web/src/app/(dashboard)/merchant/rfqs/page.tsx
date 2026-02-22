@@ -18,9 +18,8 @@ export default function MerchantRFQsPage() {
   useEffect(() => {
     async function fetchRFQs() {
       try {
-        const payload = (await getMerchantRFQs()) as any;
-        const data = Array.isArray(payload) ? payload : payload?.data || [];
-        setRfqs(data);
+        const response = await getMerchantRFQs();
+        setRfqs(response);
       } catch (err: any) {
         setError(err?.message || "Failed to load RFQs");
       } finally {

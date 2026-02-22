@@ -1,14 +1,16 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Skeleton } from '@/components/ui/skeleton';
-import { getMyProducts, deleteProduct } from '@/lib/api/product.api';
-import type { Product } from '@hardware-os/shared';
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Skeleton } from "@/components/ui/skeleton";
+import { getMyProducts, deleteProduct } from "@/lib/api/product.api";
+import { useToast } from "@/providers/toast-provider";
+import type { Product } from "@hardware-os/shared";
 
 export default function MerchantProductsPage() {
   const router = useRouter();
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -16,10 +18,10 @@ export default function MerchantProductsPage() {
   useEffect(() => {
     async function fetchProducts() {
       try {
-        const data = await getMyProducts();
-        setProducts(Array.isArray(data) ? data : []);
+        const response = await getMyProducts();
+        setProducts(response.filter((p) => !(p as any).isDeleted));
       } catch (err: any) {
-        setError(err?.message || 'Failed to load products');
+        setError(err?.message || "Failed to load products");
       } finally {
         setLoading(false);
       }
@@ -31,8 +33,9 @@ export default function MerchantProductsPage() {
     try {
       await deleteProduct(productId);
       setProducts((prev) => prev.filter((p) => p.id !== productId));
+      toast.success("Product delisted successfully");
     } catch (err: any) {
-      setError(err?.message || 'Failed to delist product');
+      toast.error(err?.error || err?.message || "Failed to delist product");
     }
   };
 
@@ -48,7 +51,7 @@ export default function MerchantProductsPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {[1, 2, 3].map(i => (
+          {[1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-96 w-full rounded-[2.5rem]" />
           ))}
         </div>
@@ -59,9 +62,16 @@ export default function MerchantProductsPage() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-32 text-center space-y-6">
-        <span className="material-symbols-outlined text-5xl text-red-400">error</span>
-        <p className="text-sm font-bold text-red-600 dark:text-red-400 uppercase tracking-wide">{error}</p>
-        <button onClick={() => window.location.reload()} className="px-6 py-3 bg-navy-dark text-white rounded-2xl text-[10px] font-black uppercase tracking-widest">
+        <span className="material-symbols-outlined text-5xl text-red-400">
+          error
+        </span>
+        <p className="text-sm font-bold text-red-600 dark:text-red-400 uppercase tracking-wide">
+          {error}
+        </p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-6 py-3 bg-navy-dark text-white rounded-2xl text-[10px] font-black uppercase tracking-widest"
+        >
           Retry
         </button>
       </div>
@@ -72,10 +82,17 @@ export default function MerchantProductsPage() {
     <div className="space-y-10 py-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
-          <h1 className="text-4xl font-black text-navy-dark dark:text-white tracking-tight uppercase leading-none font-display">Product Catalog</h1>
-          <p className="text-slate-500 font-bold text-sm tracking-wide mt-2">Manage your public listings and pricing for the marketplace</p>
+          <h1 className="text-4xl font-black text-navy-dark dark:text-white tracking-tight uppercase leading-none font-display">
+            Product Catalog
+          </h1>
+          <p className="text-slate-500 font-bold text-sm tracking-wide mt-2">
+            Manage your public listings and pricing for the marketplace
+          </p>
         </div>
-        <Link href="/merchant/products/new" className="flex items-center gap-2 px-8 py-3 bg-navy-dark text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-navy-dark/20 hover:scale-105 active:scale-95 transition-all">
+        <Link
+          href="/merchant/products/new"
+          className="flex items-center gap-2 px-8 py-3 bg-navy-dark text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-navy-dark/20 hover:scale-105 active:scale-95 transition-all"
+        >
           <span className="material-symbols-outlined text-lg">add_circle</span>
           List New Material
         </Link>
@@ -84,9 +101,14 @@ export default function MerchantProductsPage() {
       {products.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {products.map((product) => (
-            <div key={product.id} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden hover:shadow-2xl transition-all duration-500 group">
+            <div
+              key={product.id}
+              className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden hover:shadow-2xl transition-all duration-500 group"
+            >
               <div className="h-48 bg-slate-50 dark:bg-slate-800 relative flex items-center justify-center overflow-hidden">
-                <span className="material-symbols-outlined text-6xl text-slate-200 group-hover:scale-125 transition-transform duration-700">hardware</span>
+                <span className="material-symbols-outlined text-6xl text-slate-200 group-hover:scale-125 transition-transform duration-700">
+                  hardware
+                </span>
                 <div className="absolute top-6 left-6 px-3 py-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-full text-[8px] font-black uppercase tracking-widest text-navy-dark dark:text-white shadow-sm">
                   {product.categoryTag}
                 </div>
@@ -98,24 +120,38 @@ export default function MerchantProductsPage() {
               </div>
               <div className="p-8 space-y-6">
                 <div className="space-y-1">
-                  <h3 className="text-xl font-black text-navy-dark dark:text-white uppercase tracking-tight leading-tight group-hover:text-blue-600 transition-colors line-clamp-1">{product.name}</h3>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ID: {product.id.slice(0, 8)}</p>
+                  <h3 className="text-xl font-black text-navy-dark dark:text-white uppercase tracking-tight leading-tight group-hover:text-blue-600 transition-colors line-clamp-1">
+                    {product.name}
+                  </h3>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    ID: {product.id.slice(0, 8)}
+                  </p>
                 </div>
 
                 <div className="flex items-end justify-between">
                   <div className="space-y-1">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Unit</p>
-                    <p className="text-sm font-black text-navy-dark dark:text-white">{product.unit}</p>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">
+                      Unit
+                    </p>
+                    <p className="text-sm font-black text-navy-dark dark:text-white">
+                      {product.unit}
+                    </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Min Order</p>
-                    <p className="text-sm font-black text-navy-dark dark:text-white">{product.minOrderQuantity.toLocaleString()}</p>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">
+                      Min Order
+                    </p>
+                    <p className="text-sm font-black text-navy-dark dark:text-white">
+                      {product.minOrderQuantity.toLocaleString()}
+                    </p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <button
-                    onClick={() => router.push(`/merchant/products/${product.id}/edit`)}
+                    onClick={() =>
+                      router.push(`/merchant/products/${product.id}/edit`)
+                    }
                     className="py-3 bg-slate-50 dark:bg-slate-800 text-navy-dark dark:text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-colors"
                   >
                     Edit
@@ -134,13 +170,22 @@ export default function MerchantProductsPage() {
       ) : (
         <div className="flex flex-col items-center justify-center py-32 text-center space-y-8 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[3rem] shadow-sm">
           <div className="size-24 rounded-[2rem] bg-slate-50 dark:bg-slate-800 flex items-center justify-center border border-slate-100 dark:border-slate-700">
-            <span className="material-symbols-outlined text-4xl text-slate-200">shopping_bag</span>
+            <span className="material-symbols-outlined text-4xl text-slate-200">
+              shopping_bag
+            </span>
           </div>
           <div className="space-y-2">
-            <h3 className="text-xl font-black text-navy-dark dark:text-white uppercase tracking-tight">Catalog is Empty</h3>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">List your hardware products to start receiving quote requests.</p>
+            <h3 className="text-xl font-black text-navy-dark dark:text-white uppercase tracking-tight">
+              Catalog is Empty
+            </h3>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              List your hardware products to start receiving quote requests.
+            </p>
           </div>
-          <Link href="/merchant/products/new" className="px-8 py-4 bg-navy-dark text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-navy-dark/10 transition-all hover:scale-105 active:scale-95">
+          <Link
+            href="/merchant/products/new"
+            className="px-8 py-4 bg-navy-dark text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-navy-dark/10 transition-all hover:scale-105 active:scale-95"
+          >
             Add First Listing
           </Link>
         </div>

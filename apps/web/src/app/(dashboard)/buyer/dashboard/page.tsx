@@ -66,13 +66,6 @@ export default function BuyerDashboard() {
       color: "bg-white",
       textColor: "text-navy-dark",
     },
-    {
-      label: "Verified Suppliers",
-      sub: "Connect with local Lagos dealers",
-      icon: "verified",
-      color: "bg-white",
-      textColor: "text-navy-dark",
-    },
   ];
 
   if (isLoading) {
@@ -273,12 +266,7 @@ export default function BuyerDashboard() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-1 gap-5">
             {quickLinks.map((link, idx) => {
-              const href =
-                idx === 0
-                  ? "/buyer/rfqs/new"
-                  : idx === 1
-                    ? "/buyer/catalogue"
-                    : "/buyer/suppliers";
+              const href = idx === 0 ? "/buyer/rfqs/new" : "/buyer/catalogue";
               return (
                 <Link
                   key={idx}

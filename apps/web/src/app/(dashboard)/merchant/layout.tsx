@@ -31,9 +31,10 @@ export default function MerchantLayout({ children }: { children: ReactNode }) {
 
   const navItems = [
     { label: "Dashboard", icon: "dashboard", href: "/merchant/dashboard" },
+    { label: "Products", icon: "category", href: "/merchant/products" },
     { label: "RFQs", icon: "description", href: "/merchant/rfqs" },
     { label: "Quotes", icon: "request_quote", href: "/merchant/quotes" },
-    { label: "Orders", icon: "inventory_2", href: "/merchant/orders" },
+    { label: "Orders", icon: "local_shipping", href: "/merchant/orders" },
     { label: "Inventory", icon: "warehouse", href: "/merchant/inventory" },
     { label: "Analytics", icon: "analytics", href: "/merchant/analytics" },
     {
