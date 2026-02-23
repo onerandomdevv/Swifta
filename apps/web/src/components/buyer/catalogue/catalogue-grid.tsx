@@ -52,7 +52,7 @@ export function CatalogueGrid({
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-      {products.map((p) => (
+      {products?.map((p) => (
         <div
           key={p.id}
           className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 flex flex-col group"
@@ -88,6 +88,15 @@ export function CatalogueGrid({
               <span className="text-slate-200">•</span>
               <span>{p.unit}</span>
             </div>
+
+            {p.merchant && (
+              <Link
+                href={`/merchants/${p.merchant.id}`}
+                className="mt-1 mb-2 text-[10px] font-black text-accent-orange hover:underline decoration-2 underline-offset-4 uppercase tracking-widest block truncate"
+              >
+                By {p.merchant.businessName}
+              </Link>
+            )}
 
             <h3 className="font-black text-navy-dark dark:text-white text-lg leading-tight mb-4 line-clamp-2 min-h-[3.5rem] uppercase tracking-tight">
               {p.name}

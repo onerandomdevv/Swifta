@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useBuyerDashboard } from "@/hooks/use-buyer-data";
+import { useAuth } from "@/providers/auth-provider";
 import { DashboardSkeleton } from "@/components/buyer/dashboard/dashboard-skeleton";
 import { BuyerKpiGrid } from "@/components/buyer/dashboard/buyer-kpi-grid";
 import { BuyerQuickLinks } from "@/components/buyer/dashboard/buyer-quick-links";
@@ -10,6 +11,14 @@ import { Money } from "@/components/ui/money";
 
 export default function BuyerDashboard() {
   const { rfqs, orders, isLoading, isError, error } = useBuyerDashboard();
+  const { user } = useAuth();
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  };
 
   if (isLoading) return <DashboardSkeleton />;
 
@@ -127,8 +136,9 @@ export default function BuyerDashboard() {
     <div className="space-y-10 py-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
-          <h1 className="text-4xl font-black text-navy-dark dark:text-white tracking-tight uppercase leading-none font-display">
-            Buyer Dashboard Overview
+          <h1 className="text-4xl font-black text-navy-dark dark:text-white tracking-tight uppercase leading-none font-display flex items-baseline gap-3">
+            <span className="font-handwriting capitalize text-6xl font-medium tracking-normal text-primary lowercase">{getGreeting()},</span>
+            <span>Buyer <span className="font-handwriting capitalize text-6xl font-medium tracking-normal text-primary lowercase">{user?.fullName || user?.email?.split("@")[0] || ""}</span></span>
           </h1>
           <p className="text-slate-500 font-bold text-sm tracking-wide mt-2">
             Manage your hardware procurement and marketplace activity in Lagos.

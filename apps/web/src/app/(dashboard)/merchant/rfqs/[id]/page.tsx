@@ -132,18 +132,52 @@ export default function MerchantRFQDetailsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <RfqSummary rfq={rfq} />
 
-        <QuoteSubmissionForm
-          rfq={rfq}
-          unitPrice={unitPrice}
-          setUnitPrice={setUnitPrice}
-          deliveryFee={deliveryFee}
-          setDeliveryFee={setDeliveryFee}
-          notes={notes}
-          setNotes={setNotes}
-          error={error}
-          isSubmitting={isSubmitting}
-          onSubmit={handleQuote}
-        />
+        {rfq.status === "OPEN" ? (
+          <QuoteSubmissionForm
+            rfq={rfq}
+            unitPrice={unitPrice}
+            setUnitPrice={setUnitPrice}
+            deliveryFee={deliveryFee}
+            setDeliveryFee={setDeliveryFee}
+            notes={notes}
+            setNotes={setNotes}
+            error={error}
+            isSubmitting={isSubmitting}
+            onSubmit={handleQuote}
+          />
+        ) : (
+          <div className="lg:col-span-5 relative">
+            <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-[2px] z-10 rounded-[2.5rem] flex items-center justify-center">
+              <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-2xl shadow-navy-dark/10 border border-slate-100 dark:border-slate-700 text-center max-w-sm mx-4 transform -translate-y-4">
+                <span className="material-symbols-outlined text-4xl text-slate-400 mb-4">
+                  lock
+                </span>
+                <h3 className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-widest mb-2">
+                  Tender Closed
+                </h3>
+                <p className="text-xs font-bold text-slate-500 leading-relaxed">
+                  This RFQ is no longer accepting new quotes because its status is currently{" "}
+                  <span className="text-navy-dark dark:text-white font-black">{rfq.status}</span>.
+                </p>
+              </div>
+            </div>
+            
+            <div className="opacity-40 select-none pointer-events-none filter grayscale">
+              <QuoteSubmissionForm
+                rfq={rfq}
+                unitPrice={unitPrice}
+                setUnitPrice={setUnitPrice}
+                deliveryFee={deliveryFee}
+                setDeliveryFee={setDeliveryFee}
+                notes={notes}
+                setNotes={setNotes}
+                error={error}
+                isSubmitting={isSubmitting}
+                onSubmit={handleQuote}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

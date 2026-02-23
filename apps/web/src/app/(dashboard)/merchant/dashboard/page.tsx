@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { useMerchantDashboard } from "@/hooks/use-merchant-data";
+import { useAuth } from "@/providers/auth-provider";
 import { DashboardSkeleton } from "@/components/merchant/dashboard/dashboard-skeleton";
 import { MerchantKpiGrid } from "@/components/merchant/dashboard/merchant-kpi-grid";
 import { IncomingRfqs } from "@/components/merchant/dashboard/incoming-rfqs";
@@ -10,6 +11,14 @@ import { MerchantQuickActions } from "@/components/merchant/dashboard/quick-acti
 
 export default function MerchantDashboard() {
   const { rfqs, orders, isLoading, isError, error } = useMerchantDashboard();
+  const { user } = useAuth();
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  };
 
   if (isLoading) return <DashboardSkeleton />;
 
@@ -86,8 +95,9 @@ export default function MerchantDashboard() {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
-          <h1 className="text-4xl font-black text-navy-dark dark:text-white tracking-tight uppercase leading-none font-display">
-            Merchant Dashboard
+          <h1 className="text-4xl font-black text-navy-dark dark:text-white tracking-tight uppercase leading-none font-display flex items-baseline gap-3">
+            <span className="font-handwriting capitalize text-6xl font-medium tracking-normal text-primary lowercase">{getGreeting()},</span>
+            <span>Merchant <span className="font-handwriting capitalize text-6xl font-medium tracking-normal text-primary lowercase">{user?.fullName || user?.email?.split("@")[0] || ""}</span></span>
           </h1>
           <p className="text-slate-500 font-bold text-sm tracking-wide mt-2">
             Enterprise Trading Hub

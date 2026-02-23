@@ -2,6 +2,8 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
+  Delete,
   Body,
   Param,
   UseGuards,
@@ -11,6 +13,7 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import { RFQService } from './rfq.service';
 import { CreateRFQDto } from './dto/create-rfq.dto';
+import { UpdateRFQDto } from './dto/update-rfq.dto';
 import { PaginationQueryDto } from './dto/pagination-query.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -65,5 +68,24 @@ export class RFQController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.rfqService.cancel(user.sub, id);
+  }
+
+  @Patch(':id')
+  @Roles(UserRole.BUYER)
+  update(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateRFQDto,
+  ) {
+    return this.rfqService.update(user.sub, id, dto);
+  }
+
+  @Delete(':id')
+  @Roles(UserRole.BUYER)
+  remove(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.rfqService.delete(user.sub, id);
   }
 }

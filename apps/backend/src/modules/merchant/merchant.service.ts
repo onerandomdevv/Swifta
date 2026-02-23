@@ -38,6 +38,22 @@ export class MerchantService {
     return merchant;
   }
 
+  async getAllMerchants() {
+    return this.prisma.merchantProfile.findMany({
+      where: {
+        verification: 'VERIFIED'
+      },
+      select: {
+        id: true,
+        businessName: true,
+        verification: true
+      },
+      orderBy: {
+        businessName: 'asc'
+      }
+    });
+  }
+
   async updateProfile(merchantId: string, dto: UpdateMerchantDto) {
     const existing = await this.prisma.merchantProfile.findUnique({
       where: { id: merchantId },

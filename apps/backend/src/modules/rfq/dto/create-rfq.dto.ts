@@ -1,9 +1,34 @@
-import { IsUUID, IsInt, Min, IsString, IsOptional, IsNotEmpty } from 'class-validator';
+import { IsUUID, IsInt, Min, IsString, IsOptional, IsNotEmpty, IsObject, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class UnlistedItemDetailsDto {
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  unit: string;
+}
 
 export class CreateRFQDto {
   @IsUUID()
-  @IsNotEmpty()
-  productId: string;
+  @IsOptional()
+  productId?: string;
+
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => UnlistedItemDetailsDto)
+  unlistedItemDetails?: UnlistedItemDetailsDto;
+
+  @IsUUID()
+  @IsOptional()
+  targetMerchantId?: string;
 
   @IsInt()
   @Min(1)

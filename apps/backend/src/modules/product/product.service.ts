@@ -33,6 +33,17 @@ export class ProductService {
     return response;
   }
 
+  async listPublicByMerchant(merchantId: string, page: number, limit: number): Promise<PaginatedResponse<Product>> {
+    return paginate(this.prisma.product, { page, limit }, {
+      where: { 
+        merchantId,
+        isActive: true,
+        deletedAt: null,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async catalogue(search: string = '', page: number, limit: number): Promise<PaginatedResponse<Product>> {
     const where: any = {
       isActive: true,

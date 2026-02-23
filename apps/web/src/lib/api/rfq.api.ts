@@ -20,3 +20,11 @@ export async function getRFQ(id: string): Promise<RFQ> {
 export async function cancelRFQ(id: string): Promise<void> {
   return apiClient.post(`/rfqs/${id}/cancel`);
 }
+
+export async function updateRFQ(id: string, dto: Partial<CreateRFQDto>): Promise<RFQ> {
+  return apiClient.patch(`/rfqs/${id}`, dto);
+}
+
+export async function deleteRFQ(id: string): Promise<void> {
+  return apiClient.delete(`/rfqs/${id}`);
+}

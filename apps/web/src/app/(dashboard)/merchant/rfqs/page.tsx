@@ -86,7 +86,7 @@ export default function MerchantRFQsPage() {
 
       {filteredRfqs.length > 0 ? (
         <div className="space-y-6">
-          {filteredRfqs.map((rfq) => (
+          {filteredRfqs?.map((rfq) => (
             <div
               key={rfq.id}
               className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-8 hover:shadow-xl transition-all duration-300 group"

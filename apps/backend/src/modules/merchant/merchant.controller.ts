@@ -36,6 +36,11 @@ export class MerchantController {
     return this.merchantService.updateProfile(merchantId, dto);
   }
 
+  @Get()
+  async getAllMerchants() {
+    return this.merchantService.getAllMerchants();
+  }
+
   @Get(':id')
   async getPublicProfile(@Param('id', ParseUUIDPipe) id: string) {
     return this.merchantService.getPublicProfile(id);

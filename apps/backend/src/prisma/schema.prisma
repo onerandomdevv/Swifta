@@ -167,10 +167,11 @@ model Product {
 model RFQ {
   id              String    @id @default(uuid()) @db.Uuid
   buyerId         String    @map("buyer_id") @db.Uuid
-  productId       String    @map("product_id") @db.Uuid
+  productId       String?   @map("product_id") @db.Uuid
   merchantId      String    @map("merchant_id") @db.Uuid
   quantity        Int
   deliveryAddress String    @map("delivery_address")
+  unlistedItemDetails Json? @map("unlisted_item_details")
   notes           String?
   status          RFQStatus @default(OPEN)
   expiresAt       DateTime  @map("expires_at")
@@ -178,7 +179,7 @@ model RFQ {
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
   buyer    User            @relation(fields: [buyerId], references: [id], onDelete: Cascade)
-  product  Product         @relation(fields: [productId], references: [id])
+  product  Product?        @relation(fields: [productId], references: [id])
   merchant MerchantProfile @relation(fields: [merchantId], references: [id])
   quotes   Quote[]
 

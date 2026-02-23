@@ -45,6 +45,15 @@ export class ProductController {
     return this.productService.listByMerchant(merchantId, +page, +limit);
   }
 
+  @Get('merchant/:merchantId')
+  findAllByMerchant(
+    @Param('merchantId', ParseUUIDPipe) merchantId: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 20,
+  ) {
+    return this.productService.listPublicByMerchant(merchantId, +page, +limit);
+  }
+
   @Get('catalogue')
   findAllCatalogue(@Query() query: CatalogueQueryDto) {
     return this.productService.catalogue(query.search, query.page, query.limit);

@@ -32,6 +32,7 @@ module.exports = {
       },
       fontFamily: {
         display: ["Inter", "sans-serif"],
+        handwriting: ["Caveat", "cursive"],
       },
       boxShadow: {
         soft: "0 10px 40px -10px rgba(27, 42, 74, 0.08)",

@@ -20,8 +20,29 @@ export class RFQService {
   ) {}
 
   async create(buyerId: string, dto: CreateRFQDto) {
-    // Use unified validation from ProductService
-    const product = await this.productService.validateProductAvailability(dto.productId);
+    let merchantId = dto.targetMerchantId;
+
+    if (dto.productId) {
+      // Standard RFQ: Validate product and get merchantId
+      const product = await this.productService.validateProductAvailability(dto.productId);
+      merchantId = product.merchantId;
+    } else {
+      // Custom RFQ: Must have targetMerchantId and unlistedItemDetails
+      if (!merchantId) {
+        throw new BadRequestException('targetMerchantId is required for custom requests');
+      }
+      if (!dto.unlistedItemDetails) {
+        throw new BadRequestException('unlistedItemDetails is required for custom requests');
+      }
+
+      // Verify the target merchant actually exists
+      const merchant = await this.prisma.merchantProfile.findUnique({
+        where: { id: merchantId }
+      });
+      if (!merchant) {
+        throw new NotFoundException('Target merchant not found');
+      }
+    }
 
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + RFQ_EXPIRY_HOURS);
@@ -29,8 +50,9 @@ export class RFQService {
     const rfq = await this.prisma.rFQ.create({
       data: {
         buyerId,
-        merchantId: product.merchantId,
-        productId: dto.productId,
+        merchantId,
+        productId: dto.productId || null,
+        unlistedItemDetails: dto.unlistedItemDetails ? (dto.unlistedItemDetails as any) : null,
         quantity: dto.quantity,
         deliveryAddress: dto.deliveryAddress,
         notes: dto.notes,
@@ -38,7 +60,7 @@ export class RFQService {
       },
     });
 
-    await this.notifications.triggerNewRFQ(product.merchantId, rfq.id);
+    await this.notifications.triggerNewRFQ(merchantId, rfq.id);
 
     return rfq;
   }
@@ -112,6 +134,45 @@ export class RFQService {
     return this.prisma.rFQ.update({
       where: { id: rfqId },
       data: { status: RFQStatus.CANCELLED },
+    });
+  }
+
+  async update(buyerId: string, rfqId: string, dto: import('./dto/update-rfq.dto').UpdateRFQDto) {
+    const rfq = await this.prisma.rFQ.findUnique({ where: { id: rfqId } });
+
+    if (!rfq) throw new NotFoundException('RFQ not found');
+    if (rfq.buyerId !== buyerId) throw new ForbiddenException('Access denied');
+    
+    if (rfq.status !== RFQStatus.OPEN) {
+      throw new BadRequestException('Only OPEN RFQs can be edited');
+    }
+
+    return this.prisma.rFQ.update({
+      where: { id: rfqId },
+      data: {
+        quantity: dto.quantity,
+        deliveryAddress: dto.deliveryAddress,
+        notes: dto.notes,
+      },
+    });
+  }
+
+  async delete(buyerId: string, rfqId: string) {
+    const rfq = await this.prisma.rFQ.findUnique({ where: { id: rfqId } });
+
+    if (!rfq) throw new NotFoundException('RFQ not found');
+    if (rfq.buyerId !== buyerId) throw new ForbiddenException('Access denied');
+
+    if (rfq.status !== RFQStatus.OPEN && rfq.status !== RFQStatus.CANCELLED) {
+      throw new BadRequestException('Cannot delete an RFQ that is already in progress or completed');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      // Delete associated quotes first
+      await tx.quote.deleteMany({ where: { rfqId } });
+      // Delete the RFQ
+      await tx.rFQ.delete({ where: { id: rfqId } });
+      return { success: true, message: 'RFQ deleted completely' };
     });
   }
 

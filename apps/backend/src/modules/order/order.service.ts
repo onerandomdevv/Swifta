@@ -427,6 +427,48 @@ export class OrderService {
   }
 
   // ──────────────────────────────────────────────
+  //  ORDER RECEIPT AGGREGATION
+  // ──────────────────────────────────────────────
+
+  async getReceipt(orderId: string, userId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        merchant: {
+          select: {
+            businessName: true,
+            businessAddress: true,
+            user: { select: { phone: true, email: true } },
+          }
+        },
+        buyer: { select: { email: true, phone: true } },
+        quote: {
+          include: {
+            rfq: {
+              include: { product: true }
+            }
+          }
+        },
+        payments: {
+          where: { status: 'SUCCESS' },
+          orderBy: { createdAt: 'desc' },
+          take: 1
+        }
+      }
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.buyerId !== userId) {
+      throw new ForbiddenException('Only the buyer can access their receipt');
+    }
+
+    return order;
+  }
+
+  // ──────────────────────────────────────────────
   //  HELPERS
   // ──────────────────────────────────────────────
 
