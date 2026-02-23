@@ -311,6 +311,7 @@ export class AuthService {
         email: user.email,
         fullName: user.fullName,
         role: user.role,
+        emailVerified: user.emailVerified,
         merchantId: user.merchantProfile?.id,
       }
     };

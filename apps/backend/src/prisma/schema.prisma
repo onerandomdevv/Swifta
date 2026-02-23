@@ -10,6 +10,7 @@ datasource db {
 enum UserRole {
   BUYER
   MERCHANT
+  ADMIN
 }
 
 enum VerificationStatus {
@@ -85,12 +86,26 @@ model User {
   resetTokenExpiry DateTime? @map("reset_token_expiry")
 
   merchantProfile MerchantProfile?
+  adminProfile    AdminProfile?
   rfqs            RFQ[]
   buyerOrders     Order[]        @relation("BuyerOrders")
   notifications   Notification[]
   orderEvents     OrderEvent[]
 
   @@map("users")
+}
+
+model AdminProfile {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @unique @map("user_id") @db.Uuid
+  department  String?
+  accessLevel String   @default("STANDARD") @map("access_level")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("admin_profiles")
 }
 
 model MerchantProfile {

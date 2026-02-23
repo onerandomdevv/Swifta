@@ -15,6 +15,8 @@ module.exports = {
         "primary-navy": "#1B2A4A",
         "accent-orange": "#E87722",
         "navy-dark": "#1b2a4b",
+        brand: "#00f3ff",
+        "neon-cyan": "#00f3ff",
         "accent-blue": "#2E75B6",
         "light-bg": "#F9FAFB",
         "background-light": "#f6f8f7",

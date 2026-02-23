@@ -12,6 +12,7 @@ export interface AuthResponse extends TokenPair {
     email: string;
     fullName?: string;
     role: UserRole;
+    emailVerified: boolean;
     merchantId?: string;
   };
 }
