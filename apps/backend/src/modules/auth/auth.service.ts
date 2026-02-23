@@ -50,6 +50,7 @@ export class AuthService {
       data: {
         email: dto.email,
         phone: dto.phone,
+        fullName: dto.fullName,
         passwordHash,
         role: dto.role,
         ...(dto.role === 'MERCHANT' && dto.businessName

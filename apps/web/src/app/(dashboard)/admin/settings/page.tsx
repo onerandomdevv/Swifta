@@ -25,6 +25,7 @@ export default function AdminSettingsPage() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
+      setShowPasswords(false);
     },
     onError: (error: any) => {
       toast.error(
