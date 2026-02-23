@@ -31,8 +31,14 @@ export default function LoginPage() {
   // Redirect on successful login
   useEffect(() => {
     if (user) {
-      const dashboardPath =
-        user.role === "MERCHANT" ? "/merchant/dashboard" : "/buyer/dashboard";
+      let dashboardPath = "/";
+      if (user.role === "ADMIN") {
+        dashboardPath = "/admin";
+      } else if (user.role === "MERCHANT") {
+        dashboardPath = "/merchant/dashboard";
+      } else {
+        dashboardPath = "/buyer/dashboard";
+      }
       router.push(dashboardPath);
     }
   }, [user, router]);
