@@ -1,3 +1,5 @@
+"use client";
+
 import { useQuery } from "@tanstack/react-query";
 import { getMerchantRFQs } from "@/lib/api/rfq.api";
 import type { RFQ } from "@hardware-os/shared";

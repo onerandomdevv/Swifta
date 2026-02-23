@@ -58,13 +58,22 @@ export default function BuyerRFQsPage() {
             Manage your material requests and supplier quotes
           </p>
         </div>
-        <Link
-          href="/buyer/catalogue"
-          className="flex items-center gap-2 px-8 py-3 bg-navy-dark text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-navy-dark/20 hover:scale-105 active:scale-95 transition-all"
-        >
-          <span className="material-symbols-outlined text-lg">add_box</span>
-          New Material RFQ
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link
+            href="/buyer/rfqs/new-custom"
+            className="flex items-center gap-2 px-6 py-3 bg-purple-50 dark:bg-purple-900/10 text-purple-600 dark:text-purple-400 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-purple-200 dark:border-purple-900/30 hover:scale-105 active:scale-95 transition-all"
+          >
+            <span className="material-symbols-outlined text-lg">storefront</span>
+            Request Unlisted Item
+          </Link>
+          <Link
+            href="/buyer/catalogue"
+            className="flex items-center gap-2 px-8 py-3 bg-navy-dark text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-navy-dark/20 hover:scale-105 active:scale-95 transition-all"
+          >
+            <span className="material-symbols-outlined text-lg">add_box</span>
+            New Material RFQ
+          </Link>
+        </div>
       </div>
 
       {rfqs.length > 0 ? (

@@ -10,6 +10,7 @@ export interface Product {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+  merchant?: any;
 }
 
 export interface CreateProductDto {

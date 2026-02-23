@@ -48,15 +48,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     accessTokenRef.current = null;
     refreshTokenRef.current = null;
     setUser(null);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("hardware_os_access_token");
+      localStorage.removeItem("hardware_os_refresh_token");
+      localStorage.removeItem("hardware_os_user");
+    }
     if (refreshTimeoutRef.current) {
       clearTimeout(refreshTimeoutRef.current);
     }
   }, []);
 
-  const scheduleRefresh = useCallback((expiresInMinutes: number = 14) => {
+  const scheduleRefresh = useCallback((expiresInMinutes: number = 299) => {
     if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
 
-    // Refresh 1 minute before expiry (assuming 15m default expiry)
+    // Refresh 1 minute before expiry (assuming 5h default expiry)
     refreshTimeoutRef.current = setTimeout(
       () => {
         handleRefresh();
@@ -75,6 +80,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const tokens = await authApi.refresh(refreshTokenRef.current);
       accessTokenRef.current = tokens.accessToken;
       refreshTokenRef.current = tokens.refreshToken;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("hardware_os_access_token", tokens.accessToken);
+        localStorage.setItem("hardware_os_refresh_token", tokens.refreshToken);
+      }
       scheduleRefresh();
       return tokens.accessToken;
     } catch (error) {
@@ -101,6 +110,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     accessTokenRef.current = response.accessToken;
     refreshTokenRef.current = response.refreshToken;
     setUser(response.user);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("hardware_os_access_token", response.accessToken);
+      localStorage.setItem("hardware_os_refresh_token", response.refreshToken);
+      localStorage.setItem("hardware_os_user", JSON.stringify(response.user));
+    }
     scheduleRefresh();
   };
 
@@ -109,6 +123,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     accessTokenRef.current = response.accessToken;
     refreshTokenRef.current = response.refreshToken;
     setUser(response.user);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("hardware_os_access_token", response.accessToken);
+      localStorage.setItem("hardware_os_refresh_token", response.refreshToken);
+      localStorage.setItem("hardware_os_user", JSON.stringify(response.user));
+    }
     scheduleRefresh();
   };
 
@@ -121,10 +140,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [clearAuth, router]);
 
-  // Initial check could go here if we used cookies for persistence (but rules say memory only)
+  // Initial check: load session from localStorage on mount
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedAccessToken = localStorage.getItem("hardware_os_access_token");
+      const storedRefreshToken = localStorage.getItem("hardware_os_refresh_token");
+      const storedUser = localStorage.getItem("hardware_os_user");
+
+      if (storedAccessToken && storedRefreshToken && storedUser) {
+        try {
+          // Rehydrate state
+          accessTokenRef.current = storedAccessToken;
+          refreshTokenRef.current = storedRefreshToken;
+          setUser(JSON.parse(storedUser));
+          // Start the refresh timer so the session doesn't expire while using the app
+          scheduleRefresh();
+        } catch (e) {
+          clearAuth();
+        }
+      } else {
+        clearAuth();
+      }
+    }
     setIsLoading(false);
-  }, []);
+  }, [scheduleRefresh, clearAuth]);
 
   return (
     <AuthContext.Provider

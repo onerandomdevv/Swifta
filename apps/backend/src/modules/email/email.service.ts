@@ -1,6 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { Resend } from 'resend';
+import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { Resend } from "resend";
 
 @Injectable()
 export class EmailService {
@@ -9,15 +9,20 @@ export class EmailService {
   private fromEmail: string;
 
   constructor(private configService: ConfigService) {
-    const apiKey = this.configService.get<string>('RESEND_API_KEY');
+    const apiKey = this.configService.get<string>("RESEND_API_KEY");
     this.resend = new Resend(apiKey);
-    this.fromEmail = this.configService.get<string>('EMAIL_FROM') || 'onboarding@resend.dev';
+    this.fromEmail =
+      this.configService.get<string>("EMAIL_FROM") || "onboarding@resend.dev";
   }
 
-  async sendPasswordResetEmail(to: string, resetToken: string, frontendUrl: string): Promise<void> {
+  async sendPasswordResetEmail(
+    to: string,
+    resetToken: string,
+    frontendUrl: string,
+  ): Promise<void> {
     const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
-    const subject = 'Reset your Hardware OS Password';
-    
+    const subject = "Reset your Hardware OS Password";
+
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <h2 style="color: #0f172a; text-align: center;">Password Reset Request</h2>
@@ -45,6 +50,9 @@ export class EmailService {
     `;
 
     try {
+      this.logger.log(
+        `[DEV ONLY] Password reset link for ${to} is: ${resetUrl}`,
+      );
       const { data, error } = await this.resend.emails.send({
         from: `Hardware OS <${this.fromEmail}>`,
         to: [to],
@@ -53,19 +61,23 @@ export class EmailService {
       });
 
       if (error) {
-        this.logger.error(`Failed to send password reset email to ${to}: ${error.message}`);
-        throw new Error('Email delivery failed');
+        this.logger.error(
+          `Failed to send password reset email to ${to}: ${error.message}`,
+        );
+        throw new Error("Email delivery failed");
       }
 
-      this.logger.log(`Successfully sent password reset email to ${to} (ID: ${data?.id})`);
+      this.logger.log(
+        `Successfully sent password reset email to ${to} (ID: ${data?.id})`,
+      );
     } catch (err: any) {
       this.logger.error(`Error sending email via Resend: ${err.message}`);
     }
   }
 
   async sendVerificationEmail(to: string, otp: string): Promise<void> {
-    const subject = 'Verify your Hardware OS Account';
-    
+    const subject = "Verify your Hardware OS Account";
+
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; text-align: center;">
         <h2 style="color: #0f172a;">Verify Your Email</h2>
@@ -82,6 +94,7 @@ export class EmailService {
     `;
 
     try {
+      this.logger.log(`[DEV ONLY] OTP for ${to} is: ${otp}`);
       const { data, error } = await this.resend.emails.send({
         from: `Hardware OS <${this.fromEmail}>`,
         to: [to],
@@ -90,8 +103,10 @@ export class EmailService {
       });
 
       if (error) {
-        this.logger.error(`Failed to send verification OTP to ${to}: ${error.message}`);
-        throw new Error('Email delivery failed');
+        this.logger.error(
+          `Failed to send verification OTP to ${to}: ${error.message}`,
+        );
+        throw new Error("Email delivery failed");
       }
 
       this.logger.log(`Successfully sent OTP to ${to} (ID: ${data?.id})`);

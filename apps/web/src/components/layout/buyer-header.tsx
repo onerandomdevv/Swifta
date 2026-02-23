@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useNotifications } from "@/hooks/use-notifications";
+import { useAuth } from "@/providers/auth-provider";
 
 export function BuyerHeader({
   onOpenNotifications,
@@ -9,6 +10,7 @@ export function BuyerHeader({
   onOpenNotifications: () => void;
 }) {
   const { unreadCount } = useNotifications(true, true);
+  const { user } = useAuth();
 
   return (
     <header className="fixed top-0 left-0 right-0 h-16 bg-navy-dark text-white flex items-center justify-between px-6 z-50 border-b border-white/5 shadow-sm">
@@ -25,20 +27,7 @@ export function BuyerHeader({
         </Link>
       </div>
 
-      <div className="flex-1 max-w-2xl px-8 hidden md:block">
-        <div className="relative group">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <span className="material-symbols-outlined text-white/50 text-xl group-focus-within:text-white transition-colors">
-              search
-            </span>
-          </div>
-          <input
-            className="block w-full bg-white/10 border-transparent focus:bg-white focus:text-navy-dark focus:ring-0 rounded-lg py-2 pl-10 pr-3 text-sm placeholder-white/60 transition-all outline-none"
-            placeholder="Search for tools, materials, or brands..."
-            type="text"
-          />
-        </div>
-      </div>
+      <div className="flex-1"></div>
 
       <div className="flex items-center gap-2 md:gap-4">
         <button
@@ -52,11 +41,11 @@ export function BuyerHeader({
         </button>
         <div className="h-8 w-[1px] bg-white/20 mx-2 hidden sm:block"></div>
         <div className="flex items-center gap-3 cursor-pointer hover:bg-white/10 p-1 pr-3 rounded-full transition-colors group">
-          <div className="size-8 rounded-full bg-accent-orange flex items-center justify-center font-bold text-xs text-white">
-            SI
+          <div className="size-8 rounded-full bg-accent-orange flex items-center justify-center font-bold text-xs text-white uppercase">
+            {user?.fullName ? user.fullName[0] : user?.email ? user.email[0] : "B"}
           </div>
           <span className="text-sm font-medium hidden sm:block group-hover:text-white/90">
-            Lagos Branch
+            {user?.fullName || user?.email?.split("@")[0] || "Buyer"}
           </span>
         </div>
       </div>

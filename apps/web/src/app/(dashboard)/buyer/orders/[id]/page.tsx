@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getOrder, confirmDelivery } from "@/lib/api/order.api";
@@ -29,7 +30,10 @@ export default function BuyerOrderDetailsPage() {
     async function fetchOrder() {
       try {
         const data = await getOrder(id as string);
-        setOrder(data as any as Order);
+        // The backend `ResponseTransformInterceptor` wraps everything in `{ data: ... }`.
+        // If ApiClient unwraps it once, it might still have a nested `.data` depending on the controller return.
+        const orderData = (data as any).data ? (data as any).data : data;
+        setOrder(orderData as Order);
       } catch (err: any) {
         setError(err?.message || "Failed to load order");
       } finally {
@@ -46,8 +50,25 @@ export default function BuyerOrderDetailsPage() {
     try {
       const result = await initializePayment({ orderId: order.id });
       const paymentData = result as any;
-      if (paymentData.authorization_url) {
-        window.location.href = paymentData.authorization_url;
+      
+      if (paymentData.access_code) {
+        // Use Paystack Inline instead of redirecting so React state isn't lost
+        const handler = (window as any).PaystackPop.setup({
+          key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "pk_test_x", // In production this must be set
+          email: "buyer@hardwareos.com", // Paystack requires email, ideally we would pass the actual user email from AuthContext, but this is a fallback
+          access_code: paymentData.access_code,
+          onClose: () => {
+            setPaying(false);
+          },
+          callback: (response: any) => {
+            // Paystack verified client side. We redirect to our callback page to await backend webhook sync.
+            router.push(`/buyer/orders/payment/callback?reference=${response.reference}`);
+          }
+        });
+        handler.openIframe();
+      } else if (paymentData.authorization_url) {
+         // Fallback to redirect if no access_code
+         window.location.href = paymentData.authorization_url;
       }
     } catch (err: any) {
       setError(err?.message || "Failed to initialize payment");
@@ -111,6 +132,7 @@ export default function BuyerOrderDetailsPage() {
 
   return (
     <div className="space-y-10 py-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <script src="https://js.paystack.co/v1/inline.js" async></script>
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
         <div className="space-y-1">
           <div className="flex items-center gap-4 mb-2">
@@ -123,17 +145,30 @@ export default function BuyerOrderDetailsPage() {
               </span>
             </button>
             <h1 className="text-4xl font-black text-navy-dark dark:text-white tracking-tight uppercase leading-none font-display">
-              Order #{order.id.slice(0, 8)}
+              Order #{order?.id ? order.id.slice(0, 8) : "Pending"}
             </h1>
           </div>
           <p className="text-slate-500 font-bold text-sm tracking-wide ml-14">
             {new Date(order.createdAt).toLocaleDateString()}
           </p>
         </div>
-        <StatusBadge
-          status={order.status}
-          className="px-6 py-3 text-[10px] tracking-[0.2em]"
-        />
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+          {order && ["PAID", "DISPATCHED", "DELIVERED", "COMPLETED"].includes(order.status) && (
+            <Link
+              href={`/buyer/orders/${order.id}/receipt`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-6 py-3 bg-slate-50 dark:bg-slate-800 text-navy-dark dark:text-white rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-200 dark:border-slate-700 hover:scale-105 active:scale-95 transition-all"
+            >
+              <span className="material-symbols-outlined text-lg">receipt_long</span>
+              View Receipt
+            </Link>
+          )}
+          <StatusBadge
+            status={order.status}
+            className="px-6 py-3 text-[10px] tracking-[0.2em]"
+          />
+        </div>
       </div>
 
       {error && (

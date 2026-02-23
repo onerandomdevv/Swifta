@@ -12,6 +12,7 @@ export interface Quote {
   validUntil: Date;
   status: QuoteStatus;
   createdAt: Date;
+  merchant?: any;
 }
 
 export interface SubmitQuoteDto {

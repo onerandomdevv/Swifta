@@ -13,6 +13,7 @@ export interface Order {
   idempotencyKey: string;
   createdAt: Date;
   updatedAt: Date;
+  merchant?: any;
 }
 
 export interface OrderEvent {

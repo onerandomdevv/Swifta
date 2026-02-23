@@ -15,3 +15,7 @@ export async function getNigerianBanks(): Promise<{ name: string; code: string }
 export async function resolveBankAccount(accountNumber: string, bankCode: string): Promise<{ account_name: string; account_number: string; bank_id: number; }> {
   return apiClient.get(`/payments/resolve-account?accountNumber=${accountNumber}&bankCode=${bankCode}`);
 }
+
+export async function verifyPayment(reference: string): Promise<{ status: string; paymentId: string }> {
+  return apiClient.get(`/payments/verify/${reference}`);
+}

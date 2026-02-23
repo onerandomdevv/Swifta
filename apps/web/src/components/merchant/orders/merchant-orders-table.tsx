@@ -52,7 +52,7 @@ export function MerchantOrdersTable({ orders }: Props) {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-            {orders.map((order) => (
+            {orders?.map((order) => (
               <tr
                 key={order.id}
                 className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-all duration-300"

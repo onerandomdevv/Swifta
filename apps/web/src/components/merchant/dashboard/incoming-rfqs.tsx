@@ -31,7 +31,7 @@ export function IncomingRfqs({ recentRfqs }: { recentRfqs: any[] }) {
         </div>
       ) : (
         <div className="space-y-4">
-          {recentRfqs.map((rfq) => (
+          {recentRfqs?.map((rfq) => (
             <div
               key={rfq.id}
               className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] p-6 hover:shadow-xl transition-all duration-300 group"
