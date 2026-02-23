@@ -1,12 +1,17 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { VerificationStatus, OrderStatus, UserRole } from '@hardware-os/shared';
+import * as bcrypt from 'bcrypt';
+import { RedisService } from '../../redis/redis.service';
 
 @Injectable()
 export class AdminService {
   private readonly logger = new Logger(AdminService.name);
   
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private redis: RedisService,
+  ) {}
 
   async getPlatformStats() {
     // Parallelize these independent global queries for speed
@@ -390,20 +395,22 @@ export class AdminService {
     if (!user) throw new NotFoundException('Admin user not found.');
 
     // Verify current password
-    const bcrypt = await import('bcrypt');
     const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
     if (!isValid) {
-      throw new NotFoundException('Current password is incorrect.');
+      throw new BadRequestException('Current password is incorrect.');
     }
 
     // Hash new password and update
-    const SALT_ROUNDS = 12;
+    const SALT_ROUNDS = 10;
     const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
 
     await this.prisma.user.update({
       where: { id: adminUserId },
       data: { passwordHash }
     });
+
+    // Invalidate refresh tokens for this user globally
+    await this.redis.del(`refresh_token:${adminUserId}`);
 
     this.logger.log(`Admin ${user.email} changed their password.`);
     return { success: true, message: 'Password updated successfully.' };
