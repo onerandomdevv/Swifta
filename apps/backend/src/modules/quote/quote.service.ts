@@ -150,24 +150,27 @@ export class QuoteService {
         },
       });
 
-      // 5. Create InventoryEvent (ORDER_RESERVED)
-      await tx.inventoryEvent.create({
-        data: {
-          productId: quote.rfq.productId,
-          merchantId: quote.merchantId,
-          eventType: InventoryEventType.ORDER_RESERVED,
-          quantity: -quote.rfq.quantity,
-          referenceId: newOrder.id,
-          notes: 'Order reservation',
-        },
-      });
+      // 5 & 6. Only create Inventory Events if referencing an official catalogue product
+      if (quote.rfq.productId) {
+        // 5. Create InventoryEvent (ORDER_RESERVED)
+        await tx.inventoryEvent.create({
+          data: {
+            productId: quote.rfq.productId,
+            merchantId: quote.merchantId,
+            eventType: InventoryEventType.ORDER_RESERVED,
+            quantity: -quote.rfq.quantity,
+            referenceId: newOrder.id,
+            notes: 'Order reservation',
+          },
+        });
 
-      // 6. Update ProductStockCache
-      await tx.productStockCache.upsert({
-        where: { productId: quote.rfq.productId },
-        update: { stock: { decrement: quote.rfq.quantity } },
-        create: { productId: quote.rfq.productId, stock: -quote.rfq.quantity },
-      });
+        // 6. Update ProductStockCache
+        await tx.productStockCache.upsert({
+          where: { productId: quote.rfq.productId },
+          update: { stock: { decrement: quote.rfq.quantity } },
+          create: { productId: quote.rfq.productId, stock: -quote.rfq.quantity },
+        });
+      }
 
       // 7. Create OrderEvent (audit trail)
       await tx.orderEvent.create({

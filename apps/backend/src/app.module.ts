@@ -1,7 +1,9 @@
 import { Module, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { ScheduleModule } from '@nestjs/schedule';
+import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-ioredis-yet';
 import { join } from 'path';
 
 import configuration from './config/app.config';
@@ -28,6 +30,8 @@ import { EmailModule } from './modules/email/email.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { AdminModule } from './modules/admin/admin.module';
 
+import { LoggerModule } from './common/logger/logger.module';
+
 import { MerchantContextMiddleware } from './common/middleware/merchant-context.middleware';
 
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
@@ -39,7 +43,18 @@ import { APP_GUARD } from '@nestjs/core';
       isGlobal: true,
       load: [configuration, databaseConfig, redisConfig, jwtConfig, paystackConfig],
     }),
+    LoggerModule,
     ScheduleModule.forRoot(),
+    CacheModule.registerAsync({
+      isGlobal: true,
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => {
+        const url = configService.get<string>('redis.url');
+        const store = await redisStore({ url, ttl: 60 * 1000 }); // Default 60 seconds
+        return { store };
+      },
+    }),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', '..', 'uploads'),
       serveRoot: '/uploads',

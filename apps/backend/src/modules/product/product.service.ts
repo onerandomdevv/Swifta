@@ -1,4 +1,6 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -7,15 +9,20 @@ import { paginate } from '../../common/utils/pagination';
 
 @Injectable()
 export class ProductService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {}
 
   async create(merchantId: string, dto: CreateProductDto) {
-    return this.prisma.product.create({
+    const product = await this.prisma.product.create({
       data: {
         merchantId,
         ...dto,
       },
     });
+    await this.invalidateCatalogueCache();
+    return product;
   }
 
   async listByMerchant(merchantId: string, page: number, limit: number): Promise<PaginatedResponse<Product>> {
@@ -92,18 +99,22 @@ export class ProductService {
 
   async update(merchantId: string, productId: string, dto: UpdateProductDto) {
     await this.verifyProductOwnership(merchantId, productId);
-    return this.prisma.product.update({
+    const updated = await this.prisma.product.update({
       where: { id: productId },
       data: dto,
     });
+    await this.invalidateCatalogueCache();
+    return updated;
   }
 
   async softDelete(merchantId: string, productId: string) {
     await this.verifyProductOwnership(merchantId, productId);
-    return this.prisma.product.update({
+    const deleted = await this.prisma.product.update({
       where: { id: productId },
       data: { deletedAt: new Date() },
     });
+    await this.invalidateCatalogueCache();
+    return deleted;
   }
 
   async restore(merchantId: string, productId: string) {
@@ -114,10 +125,12 @@ export class ProductService {
     if (product.merchantId !== merchantId) {
       throw new ForbiddenException('Access denied');
     }
-    return this.prisma.product.update({
+    const restored = await this.prisma.product.update({
       where: { id: productId },
       data: { deletedAt: null },
     });
+    await this.invalidateCatalogueCache();
+    return restored;
   }
 
   async validateProductAvailability(productId: string) {
@@ -148,6 +161,19 @@ export class ProductService {
     }
     if (product.deletedAt) {
       throw new NotFoundException('Product has been deleted');
+    }
+  }
+
+  private async invalidateCatalogueCache() {
+    try {
+      // Clear out all keys starting with /products to purge all paginated endpoints
+      const keys: string[] = await (this.cacheManager as any).store.keys('/products*');
+      if (keys && keys.length > 0) {
+        await Promise.all(keys.map(k => this.cacheManager.del(k)));
+      }
+    } catch (e) {
+      // In case underlying store lacks `.keys()` or errors, safely fallback to full reset
+      await this.cacheManager.clear();
     }
   }
 }
