@@ -37,38 +37,52 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const SESSION_KEY = "__hwos_session";
 
-function persistSession(access: string, refresh: string, user: User) {
+function persistSession(access: string) {
   if (typeof window !== "undefined") {
     try {
-      const payload = btoa(encodeURIComponent(JSON.stringify({ a: access, r: refresh, u: user })));
-      localStorage.setItem(SESSION_KEY, payload);
+      localStorage.setItem(SESSION_KEY, access);
     } catch (e) {
       console.error("Failed to persist session");
     }
   }
 }
 
-function getPersistedSession(): { access: string; refresh: string; user: User } | null {
+function getPersistedSession(): { access: string } | null {
   if (typeof window !== "undefined") {
     const stored = localStorage.getItem(SESSION_KEY);
     if (stored) {
-      try {
-        const parsed = JSON.parse(decodeURIComponent(atob(stored)));
-        if (parsed.a && parsed.r && parsed.u) {
-          return { access: parsed.a, refresh: parsed.r, user: parsed.u };
-        }
-      } catch (e) {
-        return null;
-      }
+      return { access: stored };
     }
   }
   return null;
 }
 
-function updatePersistedTokens(access: string, refresh: string) {
+function updatePersistedTokens(access: string) {
   const current = getPersistedSession();
   if (current) {
-    persistSession(access, refresh, current.user);
+    persistSession(access);
+  }
+}
+
+function parseJwtToken(token: string): Partial<User> | null {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      window.atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    const parsed = JSON.parse(jsonPayload);
+    return {
+      id: parsed.sub,
+      email: parsed.email,
+      role: parsed.role,
+      merchantId: parsed.merchantId,
+    };
+  } catch (e) {
+    return null;
   }
 }
 
@@ -123,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const tokens = await authApi.refresh(refreshTokenRef.current);
       accessTokenRef.current = tokens.accessToken;
       refreshTokenRef.current = tokens.refreshToken;
-      updatePersistedTokens(tokens.accessToken, tokens.refreshToken);
+      updatePersistedTokens(tokens.accessToken);
       scheduleRefresh();
       return tokens.accessToken;
     } catch (error) {
@@ -150,7 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     accessTokenRef.current = response.accessToken;
     refreshTokenRef.current = response.refreshToken;
     setUser(response.user);
-    persistSession(response.accessToken, response.refreshToken, response.user);
+    persistSession(response.accessToken);
     scheduleRefresh();
   };
 
@@ -159,7 +173,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     accessTokenRef.current = response.accessToken;
     refreshTokenRef.current = response.refreshToken;
     setUser(response.user);
-    persistSession(response.accessToken, response.refreshToken, response.user);
+    persistSession(response.accessToken);
     scheduleRefresh();
   };
 
@@ -176,10 +190,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const session = getPersistedSession();
     if (session) {
-      setUser(session.user);
-      accessTokenRef.current = session.access;
-      refreshTokenRef.current = session.refresh;
-      scheduleRefresh();
+      const decodedUser = parseJwtToken(session.access);
+      if (decodedUser) {
+        setUser(decodedUser as User);
+        accessTokenRef.current = session.access;
+        // refresh token remains memory-only
+        scheduleRefresh();
+      } else {
+        clearAuth();
+      }
     } else {
       clearAuth(); // Only run if it's explicitly cleared or missing, though typically we just don't do anything
     }
