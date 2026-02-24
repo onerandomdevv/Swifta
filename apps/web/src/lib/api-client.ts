@@ -6,32 +6,29 @@ type RequestConfig = RequestInit & {
 
 class ApiClient {
   private baseUrl: string;
-  private getToken: (() => string | null) | null = null;
-  private refreshToken: (() => Promise<string | null>) | null = null;
+  private refreshToken: (() => Promise<boolean>) | null = null;
   private onUnauthorized: (() => void) | null = null;
   private isRefreshing = false;
-  private refreshSubscribers: ((token: string | null) => void)[] = [];
+  private refreshSubscribers: ((success: boolean) => void)[] = [];
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
   }
 
   configure(config: {
-    getToken: () => string | null;
-    refreshToken: () => Promise<string | null>;
+    refreshToken: () => Promise<boolean>;
     onUnauthorized: () => void;
   }) {
-    this.getToken = config.getToken;
     this.refreshToken = config.refreshToken;
     this.onUnauthorized = config.onUnauthorized;
   }
 
-  private subscribeTokenRefresh(cb: (token: string | null) => void) {
+  private subscribeTokenRefresh(cb: (success: boolean) => void) {
     this.refreshSubscribers.push(cb);
   }
 
-  private onTokenRefreshed(token: string | null) {
-    this.refreshSubscribers.forEach((cb) => cb(token));
+  private onTokenRefreshed(success: boolean) {
+    this.refreshSubscribers.forEach((cb) => cb(success));
     this.refreshSubscribers = [];
   }
 
@@ -49,13 +46,8 @@ class ApiClient {
       headers.set('Content-Type', 'application/json');
     }
 
-    const token = this.getToken ? this.getToken() : null;
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
-    }
-
     const performRequest = async (): Promise<Response> => {
-      return fetch(url, { ...options, headers });
+      return fetch(url, { ...options, headers, credentials: 'include' });
     };
 
     let response = await performRequest();
@@ -64,23 +56,21 @@ class ApiClient {
     if (response.status === 401 && this.refreshToken && !endpoint.includes('/auth/login')) {
       if (this.isRefreshing) {
         // Wait for current refresh to complete
-        const newToken = await new Promise<string | null>((resolve) => {
-          this.subscribeTokenRefresh((token) => resolve(token));
+        const success = await new Promise<boolean>((resolve) => {
+          this.subscribeTokenRefresh((s) => resolve(s));
         });
 
-        if (newToken) {
-          headers.set('Authorization', `Bearer ${newToken}`);
+        if (success) {
           response = await performRequest();
         }
       } else {
         this.isRefreshing = true;
         try {
-          const newToken = await this.refreshToken();
+          const success = await this.refreshToken();
           this.isRefreshing = false;
-          this.onTokenRefreshed(newToken);
+          this.onTokenRefreshed(success);
 
-          if (newToken) {
-            headers.set('Authorization', `Bearer ${newToken}`);
+          if (success) {
             response = await performRequest();
           } else {
             this.onUnauthorized?.();
@@ -88,7 +78,7 @@ class ApiClient {
           }
         } catch (error) {
           this.isRefreshing = false;
-          this.onTokenRefreshed(null);
+          this.onTokenRefreshed(false);
           this.onUnauthorized?.();
           throw error;
         }

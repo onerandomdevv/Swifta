@@ -334,8 +334,7 @@ export class AuthService {
   }
 
   /**
-   * Generates a cryptographically random 6-digit OTP, stores it in Redis,
-   * and logs it to the console.
+   * Generates a cryptographically random 6-digit OTP and stores it in Redis.
    */
   private async generateAndStoreOtp(email: string): Promise<void> {
     const otp = randomInt(100000, 999999).toString();

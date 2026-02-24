@@ -5,7 +5,6 @@ import React, {
   useContext,
   useState,
   useCallback,
-  useRef,
   useEffect,
   ReactNode,
 } from "react";
@@ -41,63 +40,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  const accessTokenRef = useRef<string | null>(null);
-  const refreshTokenRef = useRef<string | null>(null);
-  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
   const clearAuth = useCallback(() => {
-    accessTokenRef.current = null;
-    refreshTokenRef.current = null;
     setUser(null);
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("hardware_os_access_token");
-      localStorage.removeItem("hardware_os_refresh_token");
-      localStorage.removeItem("hardware_os_user");
-    }
-    if (refreshTimeoutRef.current) {
-      clearTimeout(refreshTimeoutRef.current);
-    }
   }, []);
 
-  const scheduleRefresh = useCallback((expiresInMinutes: number = 299) => {
-    if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
-
-    // Refresh 1 minute before expiry (assuming 5h default expiry)
-    refreshTimeoutRef.current = setTimeout(
-      () => {
-        handleRefresh();
-      },
-      expiresInMinutes * 60 * 1000,
-    );
-  }, []);
-
-  const handleRefresh = useCallback(async (): Promise<string | null> => {
-    if (!refreshTokenRef.current) {
-      clearAuth();
-      return null;
-    }
-
+  const handleRefresh = useCallback(async (): Promise<boolean> => {
     try {
-      const tokens = await authApi.refresh(refreshTokenRef.current);
-      accessTokenRef.current = tokens.accessToken;
-      refreshTokenRef.current = tokens.refreshToken;
-      if (typeof window !== "undefined") {
-        localStorage.setItem("hardware_os_access_token", tokens.accessToken);
-        localStorage.setItem("hardware_os_refresh_token", tokens.refreshToken);
-      }
-      scheduleRefresh();
-      return tokens.accessToken;
+      await authApi.refresh(''); // The cookie is sent automatically, so payload can be empty string
+      return true;
     } catch (error) {
       clearAuth();
       router.push("/login");
-      return null;
+      return false;
     }
-  }, [router, scheduleRefresh, clearAuth]);
+  }, [router, clearAuth]);
 
   // Configure apiClient
   useEffect(() => {
     apiClient.configure({
-      getToken: () => accessTokenRef.current,
       refreshToken: handleRefresh,
       onUnauthorized: () => {
         clearAuth();
@@ -108,36 +68,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const response = await authApi.login({ email, password });
-    accessTokenRef.current = response.accessToken;
-    refreshTokenRef.current = response.refreshToken;
     setUser(response.user);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("hardware_os_access_token", response.accessToken);
-      localStorage.setItem("hardware_os_refresh_token", response.refreshToken);
-      localStorage.setItem("hardware_os_user", JSON.stringify(response.user));
-    }
-    scheduleRefresh();
   };
 
   const internalLogin = async (email: string, password: string) => {
+    // Note for backend: verify internalLogin attaches HttpOnly cookies just like login
     const response = await authApi.internalLogin({ email, password });
-    accessTokenRef.current = response.accessToken;
-    refreshTokenRef.current = response.refreshToken;
     setUser(response.user);
-    scheduleRefresh();
   };
 
   const register = async (dto: RegisterDto) => {
     const response = await authApi.register(dto);
-    accessTokenRef.current = response.accessToken;
-    refreshTokenRef.current = response.refreshToken;
     setUser(response.user);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("hardware_os_access_token", response.accessToken);
-      localStorage.setItem("hardware_os_refresh_token", response.refreshToken);
-      localStorage.setItem("hardware_os_user", JSON.stringify(response.user));
-    }
-    scheduleRefresh();
   };
 
   const logoutFn = useCallback(async () => {
@@ -149,30 +91,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [clearAuth, router]);
 
-  // Initial check: load session from localStorage on mount
+  // Initial check for session via HttpOnly cookies
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const storedAccessToken = localStorage.getItem("hardware_os_access_token");
-      const storedRefreshToken = localStorage.getItem("hardware_os_refresh_token");
-      const storedUser = localStorage.getItem("hardware_os_user");
-
-      if (storedAccessToken && storedRefreshToken && storedUser) {
-        try {
-          // Rehydrate state
-          accessTokenRef.current = storedAccessToken;
-          refreshTokenRef.current = storedRefreshToken;
-          setUser(JSON.parse(storedUser));
-          // Start the refresh timer so the session doesn't expire while using the app
-          scheduleRefresh();
-        } catch (e) {
+    let mounted = true;
+    const fetchMe = async () => {
+      try {
+        const response = await authApi.me();
+        if (mounted) {
+          setUser(response.user);
+        }
+      } catch (e) {
+        if (mounted) {
           clearAuth();
         }
-      } else {
-        clearAuth();
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
-    }
-    setIsLoading(false);
-  }, [scheduleRefresh, clearAuth]);
+    };
+    
+    // Automatically fetch /me to hydrate session, no localStorage used!
+    fetchMe();
+    
+    return () => { mounted = false; };
+  }, [clearAuth]);
 
   return (
     <AuthContext.Provider
