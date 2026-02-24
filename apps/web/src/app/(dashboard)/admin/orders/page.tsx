@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { useToast } from "@/providers/toast-provider";
+import { useAuth } from "@/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 
 interface AdminOrder {
@@ -68,6 +69,7 @@ const ORDER_STATUS_MAP: Record<
 export default function AdminOrdersPage() {
   const queryClient = useQueryClient();
   const toast = useToast();
+  const { user } = useAuth();
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [overrideStatus, setOverrideStatus] = useState<string>("");
 
@@ -221,13 +223,15 @@ export default function AdminOrdersPage() {
                         </span>
                       </td>
                       <td className="p-4 md:p-6 text-right whitespace-nowrap">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 font-bold tracking-wider uppercase text-xs"
-                        >
-                          Override
-                        </Button>
+                        {user?.role !== "SUPPORT" && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 font-bold tracking-wider uppercase text-xs"
+                          >
+                            Override
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   );

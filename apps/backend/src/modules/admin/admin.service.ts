@@ -350,23 +350,49 @@ export class AdminService {
     });
   }
 
-  async promoteToAdmin(userId: string, requestingAdminId: string) {
+  async promoteToAdmin(userId: string, targetRole: UserRole, requestingAdminId: string) {
     if (userId === requestingAdminId) {
-      throw new NotFoundException('You cannot modify your own role.');
+      throw new BadRequestException('You cannot modify your own role.');
     }
 
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (![UserRole.SUPER_ADMIN, UserRole.OPERATOR, UserRole.SUPPORT].includes(targetRole)) {
+      throw new BadRequestException('Invalid target role. Must be SUPER_ADMIN, OPERATOR, or SUPPORT.');
+    }
+
+    const user = await this.prisma.user.findUnique({ 
+      where: { id: userId },
+      include: { adminProfile: true }
+    });
     if (!user) throw new NotFoundException('User not found.');
 
-    // Update the role
-    const updatedUser = await this.prisma.user.update({
-      where: { id: userId },
-      data: { role: UserRole.ADMIN },
-      select: { id: true, email: true, fullName: true, role: true }
-    });
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Update the User role
+      const updatedUser = await tx.user.update({
+        where: { id: userId },
+        data: { role: targetRole },
+        select: { id: true, email: true, fullName: true, role: true }
+      });
 
-    this.logger.log(`User ${updatedUser.email} promoted to ADMIN by admin ${requestingAdminId}`);
-    return updatedUser;
+      // 2. Map logical role to integer access level
+      const accessLevelText = targetRole === UserRole.SUPER_ADMIN ? 'HIGH' : targetRole === UserRole.OPERATOR ? 'MEDIUM' : 'LOW';
+
+      // 3. Upsert the AdminProfile to attach the new staff schema
+      await tx.adminProfile.upsert({
+        where: { userId: userId },
+        update: { 
+          accessLevel: accessLevelText, 
+          department: 'Internal Operations' 
+        },
+        create: { 
+          userId: userId, 
+          accessLevel: accessLevelText, 
+          department: 'Internal Operations' 
+        }
+      });
+
+      this.logger.log(`User ${updatedUser.email} granted role ${targetRole} by admin ${requestingAdminId}`);
+      return updatedUser;
+    });
   }
 
   async deleteUser(userId: string, requestingAdminId: string) {
@@ -376,7 +402,7 @@ export class AdminService {
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found.');
-    if (user.role === UserRole.ADMIN) {
+    if (user.role === UserRole.SUPER_ADMIN) {
       throw new NotFoundException('Cannot delete another admin. Demote them first.');
     }
 
@@ -414,5 +440,132 @@ export class AdminService {
 
     this.logger.log(`Admin ${user.email} changed their password.`);
     return { success: true, message: 'Password updated successfully.' };
+  }
+
+  // ─── Staff Access Token Management ───
+
+  async getAccessTokens() {
+    const tokens = await this.prisma.staffAccessToken.findMany({
+      select: {
+        id: true,
+        role: true,
+        label: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        creator: { select: { fullName: true, email: true } }
+      },
+      orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }]
+    });
+    return tokens;
+  }
+
+  async createAccessToken(role: UserRole, plainToken: string, adminUserId: string) {
+    if (![UserRole.OPERATOR, UserRole.SUPPORT].includes(role)) {
+      throw new BadRequestException('Access tokens can only be created for OPERATOR or SUPPORT roles.');
+    }
+
+    const admin = await this.prisma.user.findUnique({ where: { id: adminUserId } });
+    if (!admin) throw new NotFoundException('Admin user not found.');
+
+    const SALT_ROUNDS = 10;
+    const tokenHash = await bcrypt.hash(plainToken, SALT_ROUNDS);
+
+    // Deactivate any existing active tokens for this role
+    await this.prisma.staffAccessToken.updateMany({
+      where: { role, isActive: true },
+      data: { isActive: false }
+    });
+
+    // Create the new active token
+    const token = await this.prisma.staffAccessToken.create({
+      data: {
+        role,
+        tokenHash,
+        label: `${role} Token`,
+        createdBy: adminUserId,
+      },
+      select: {
+        id: true,
+        role: true,
+        label: true,
+        createdAt: true,
+      }
+    });
+
+    this.logger.log(`New access token created for role ${role} by admin ${adminUserId}`);
+    return token;
+  }
+
+  async revokeAccessToken(tokenId: string, adminUserId: string) {
+    const token = await this.prisma.staffAccessToken.findUnique({ where: { id: tokenId } });
+    if (!token) throw new NotFoundException('Access token not found.');
+
+    await this.prisma.staffAccessToken.update({
+      where: { id: tokenId },
+      data: { isActive: false }
+    });
+
+    this.logger.warn(`Access token ${tokenId} (${token.role}) revoked by admin ${adminUserId}`);
+    return { success: true, message: `${token.role} access token has been revoked.` };
+  }
+
+  async verifyStaffToken(userId: string, userRole: UserRole, plainToken: string) {
+    const activeToken = await this.prisma.staffAccessToken.findFirst({
+      where: { role: userRole, isActive: true }
+    });
+
+    if (!activeToken) {
+      throw new BadRequestException('No active access token exists for your role. Contact your Super Admin.');
+    }
+
+    const isValid = await bcrypt.compare(plainToken, activeToken.tokenHash);
+    if (!isValid) {
+      throw new BadRequestException('Invalid access token. Please try again or contact your Super Admin.');
+    }
+
+    return { verified: true };
+  }
+
+  async getPendingStaff() {
+    return this.prisma.user.findMany({
+      where: {
+        adminProfile: { approvalStatus: 'PENDING' },
+      },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        adminProfile: {
+          select: { approvalStatus: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  async approveStaff(staffId: string, adminId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: staffId },
+      include: { adminProfile: true }
+    });
+
+    if (!user || !user.adminProfile) {
+      throw new NotFoundException('Staff profile not found.');
+    }
+
+    if (user.adminProfile.approvalStatus !== 'PENDING') {
+      throw new BadRequestException(`Staff status is ${user.adminProfile.approvalStatus}, only PENDING can be approved.`);
+    }
+
+    await this.prisma.adminProfile.update({
+      where: { userId: staffId },
+      data: { approvalStatus: 'APPROVED' }
+    });
+
+    this.logger.log(`Staff ${staffId} approved by admin ${adminId}`);
+    return { success: true, message: 'Staff member approved successfully.' };
   }
 }

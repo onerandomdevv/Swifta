@@ -1,19 +1,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { loginSchema, type LoginFormData } from "../../../lib/validations/auth";
-import { useAuth } from "../../../providers/auth-provider";
-import { useToast } from "../../../providers/toast-provider";
-import { Button } from "../../../components/ui/button";
-import { Input } from "../../../components/ui/input";
+import {
+  loginSchema,
+  type LoginFormData,
+} from "../../../../lib/validations/auth";
+import { useAuth } from "../../../../providers/auth-provider";
+import { useToast } from "../../../../providers/toast-provider";
+import { Button } from "../../../../components/ui/button";
+import { Input } from "../../../../components/ui/input";
+import Link from "next/link";
 
-export default function LoginPage() {
+export default function InternalLoginPage() {
   const router = useRouter();
-  const { login, user } = useAuth();
+  const { internalLogin, user } = useAuth();
   const toast = useToast();
 
   const [showPassword, setShowPassword] = useState(false);
@@ -30,36 +33,26 @@ export default function LoginPage() {
 
   // Redirect on successful login
   useEffect(() => {
-    if (user) {
-      let dashboardPath = "/";
-      if (user.role === "SUPER_ADMIN") {
-        dashboardPath = "/admin";
-      } else if (user.role === "OPERATOR") {
-        dashboardPath = "/operator";
-      } else if (user.role === "SUPPORT") {
-        dashboardPath = "/support";
-      } else if (user.role === "MERCHANT") {
-        dashboardPath = "/merchant/dashboard";
-      } else {
-        dashboardPath = "/buyer/dashboard";
-      }
-      router.push(dashboardPath);
+    if (user && user.role === "SUPER_ADMIN") {
+      router.push("/admin");
+    } else if (user && ["OPERATOR", "SUPPORT"].includes(user.role)) {
+      router.push("/admin/verify-token");
+    } else if (user) {
+      router.push("/");
     }
   }, [user, router]);
 
   const onSubmit = async (data: LoginFormData) => {
     setFormError(null);
     try {
-      await login(data.email, data.password);
-      toast.success("Welcome back!");
+      await internalLogin(data.email, data.password);
+      toast.success("Internal portal access granted.");
     } catch (err: any) {
-      console.error("Login error:", err);
+      console.error("Internal login error:", err);
       const errorMessage =
         typeof err === "string"
           ? err
-          : err.error ||
-            err.message ||
-            "Invalid credentials. Please try again.";
+          : err.error || err.message || "Access denied to internal portal.";
       setFormError(errorMessage);
       toast.error(errorMessage);
     }
@@ -68,19 +61,22 @@ export default function LoginPage() {
   return (
     <div className="w-full max-w-md">
       {/* Login Card */}
-      <div className="bg-white dark:bg-slate-900 shadow-xl border border-slate-200 dark:border-slate-800 rounded-xl p-8 md:p-10">
+      <div className="bg-slate-900 shadow-xl border border-slate-700/50 rounded-xl p-8 md:p-10 relative overflow-hidden">
+        {/* Subtle decorative accent */}
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500"></div>
+
         {/* Card Header */}
         <div className="flex flex-col items-center mb-8 text-center">
-          <div className="mb-4 text-primary dark:text-slate-200 flex items-center justify-center size-14 rounded-full bg-primary/10 ring-4 ring-primary/5">
+          <div className="mb-4 text-slate-200 flex items-center justify-center size-14 rounded-full bg-slate-800 ring-4 ring-slate-800/50">
             <span className="material-symbols-outlined text-3xl font-bold">
-              login
+              admin_panel_settings
             </span>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-            Welcome back
+          <h1 className="text-2xl font-bold text-white tracking-tight">
+            Internal Operations
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm font-medium">
-            Please enter your details to sign in
+          <p className="text-slate-400 mt-2 text-sm font-medium leading-relaxed max-w-[280px]">
+            Restricted access. Authorized HARDWARE OS personnel only.
           </p>
         </div>
 
@@ -88,7 +84,7 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Inline Error Display */}
           {formError && (
-            <div className="p-3 text-sm font-medium text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 border border-red-100 dark:border-red-900/50 rounded-lg flex items-start gap-2 animate-slide-in">
+            <div className="p-3 text-sm font-medium text-red-400 bg-red-900/20 border border-red-900/50 rounded-lg flex items-start gap-2 animate-slide-in">
               <span className="material-symbols-outlined text-lg">error</span>
               <span>{formError}</span>
             </div>
@@ -97,20 +93,20 @@ export default function LoginPage() {
           {/* Email Field */}
           <div className="space-y-2">
             <label
-              className="text-sm font-bold text-slate-700 dark:text-slate-300 block"
+              className="text-sm font-bold text-slate-300 block"
               htmlFor="email"
             >
-              Email Address
+              Staff Email
             </label>
             <div className="relative">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg z-10">
-                mail
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg z-10">
+                badge
               </span>
               <Input
-                className={`pl-10 bg-slate-50 dark:bg-slate-800 h-12 ${errors.email ? "border-red-500 ring-1 ring-red-500 focus-visible:ring-red-500" : "border-slate-200 dark:border-slate-700"}`}
+                className={`pl-10 bg-slate-800 text-white h-12 ${errors.email ? "border-red-500 ring-1 ring-red-500 focus-visible:ring-red-500" : "border-slate-700 focus-visible:ring-slate-600"}`}
                 id="email"
                 type="email"
-                placeholder="e.g. name@company.com"
+                placeholder="ops@hardwareos.com"
                 {...register("email", { onChange: () => setFormError(null) })}
               />
             </div>
@@ -125,24 +121,18 @@ export default function LoginPage() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label
-                className="text-sm font-bold text-slate-700 dark:text-slate-300 block"
+                className="text-sm font-bold text-slate-300 block"
                 htmlFor="password"
               >
                 Password
               </label>
-              <Link
-                className="text-xs font-bold text-primary hover:underline"
-                href="/forgot-password"
-              >
-                Forgot?
-              </Link>
             </div>
             <div className="relative">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg z-10">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg z-10">
                 lock
               </span>
               <Input
-                className={`pl-10 pr-10 bg-slate-50 dark:bg-slate-800 h-12 ${errors.password ? "border-red-500 ring-1 ring-red-500 focus-visible:ring-red-500" : "border-slate-200 dark:border-slate-700"}`}
+                className={`pl-10 pr-10 bg-slate-800 text-white h-12 ${errors.password ? "border-red-500 ring-1 ring-red-500 focus-visible:ring-red-500" : "border-slate-700 focus-visible:ring-slate-600"}`}
                 id="password"
                 type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
@@ -153,7 +143,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 outline-none z-10"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 outline-none z-10"
               >
                 <span className="material-symbols-outlined text-lg">
                   {showPassword ? "visibility_off" : "visibility"}
@@ -170,28 +160,21 @@ export default function LoginPage() {
           {/* Submit Button */}
           <Button
             disabled={isSubmitting}
-            className="w-full h-12 text-md font-bold shadow-md gap-2"
+            className="w-full h-12 text-md font-bold shadow-md gap-2 bg-slate-100 text-slate-900 hover:bg-white"
             type="submit"
           >
-            {isSubmitting ? "Signing in..." : "Sign In"}
+            {isSubmitting ? "Signing In..." : "Sign In"}
             {!isSubmitting && (
               <span className="material-symbols-outlined text-sm font-bold">
-                arrow_forward
+                shield_lock
               </span>
             )}
           </Button>
         </form>
 
-        {/* Toggle Link */}
-        <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 text-center">
-          <p className="text-sm text-slate-500 font-medium">
-            Don't have an account?
-            <Link
-              className="font-bold text-primary hover:underline ml-1"
-              href="/register"
-            >
-              Sign up
-            </Link>
+        <div className="mt-8 pt-6 border-t border-slate-800 text-center">
+          <p className="text-xs text-slate-500 font-medium tracking-wide">
+            HARDWARE OS INTERNAL PORTAL
           </p>
         </div>
       </div>

@@ -29,6 +29,7 @@ interface AuthContextType {
   isLoggedIn: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  internalLogin: (email: string, password: string) => Promise<void>;
   register: (dto: RegisterDto) => Promise<void>;
   logout: () => void;
 }
@@ -118,6 +119,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     scheduleRefresh();
   };
 
+  const internalLogin = async (email: string, password: string) => {
+    const response = await authApi.internalLogin({ email, password });
+    accessTokenRef.current = response.accessToken;
+    refreshTokenRef.current = response.refreshToken;
+    setUser(response.user);
+    scheduleRefresh();
+  };
+
   const register = async (dto: RegisterDto) => {
     const response = await authApi.register(dto);
     accessTokenRef.current = response.accessToken;
@@ -172,6 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoggedIn: !!user,
         isLoading,
         login,
+        internalLogin,
         register,
         logout: logoutFn,
       }}
