@@ -2,14 +2,16 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createRFQ } from "@/lib/api/rfq.api";
 import { getMerchants } from "@/lib/api/merchant.api";
+import type { RFQ } from "@hardware-os/shared";
 
 export default function CreateCustomRFQPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const [loading, setLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [merchants, setMerchants] = useState<any[]>([]);
   
@@ -40,36 +42,67 @@ export default function CreateCustomRFQPage() {
     fetchMerchants();
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const createMutation = useMutation({
+    mutationFn: createRFQ,
+    onMutate: async (newRfqData) => {
+      // Optimistic update
+      await queryClient.cancelQueries({ queryKey: ['buyer', 'rfqs'] });
+      const previousRfqs = queryClient.getQueryData<RFQ[]>(['buyer', 'rfqs', 'all']);
+      
+      const optimisticRfq: Partial<RFQ> = {
+        id: `optimistic-${Date.now()}`,
+        productId: "custom",
+        quantity: newRfqData.quantity,
+        deliveryAddress: newRfqData.deliveryAddress,
+        notes: newRfqData.notes,
+        status: "OPEN" as any,
+        createdAt: new Date(),
+        merchantId: newRfqData.targetMerchantId || "unknown",
+        buyerId: "me",
+      };
+
+      if (previousRfqs) {
+        queryClient.setQueryData<RFQ[]>(['buyer', 'rfqs', 'all'], [optimisticRfq as RFQ, ...previousRfqs]);
+      }
+      return { previousRfqs };
+    },
+    onError: (err: any, _, context) => {
+      setError(err?.message || "Failed to create custom RFQ");
+      if (context?.previousRfqs) {
+        queryClient.setQueryData(['buyer', 'rfqs', 'all'], context.previousRfqs);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['buyer', 'rfqs'] });
+    },
+    onSuccess: () => {
+      router.push("/buyer/rfqs");
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setIsSubmitting(true);
 
     if (!formData.targetMerchantId) {
       setError("Please select a target merchant to send this request to.");
-      setIsSubmitting(false);
       return;
     }
 
-    try {
-      await createRFQ({
-        targetMerchantId: formData.targetMerchantId,
-        unlistedItemDetails: {
-          name: formData.itemName,
-          description: formData.itemDescription || undefined,
-          unit: formData.unit,
-        },
-        quantity: formData.quantity,
-        deliveryAddress: formData.deliveryAddress,
-        notes: formData.notes || undefined,
-      });
-      router.push("/buyer/rfqs");
-    } catch (err: any) {
-      setError(err?.message || "Failed to create custom RFQ");
-    } finally {
-      setIsSubmitting(false);
-    }
+    createMutation.mutate({
+      targetMerchantId: formData.targetMerchantId,
+      unlistedItemDetails: {
+        name: formData.itemName,
+        description: formData.itemDescription || undefined,
+        unit: formData.unit,
+      },
+      quantity: formData.quantity,
+      deliveryAddress: formData.deliveryAddress,
+      notes: formData.notes || undefined,
+    });
   };
+
+  const isSubmitting = createMutation.isPending;
 
   const commonUnits = ["pcs", "bags", "tons", "lengths", "kg", "liters", "boxes"];
 

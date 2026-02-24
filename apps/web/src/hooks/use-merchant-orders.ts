@@ -10,7 +10,8 @@ export function useMerchantOrders() {
     queryFn: async () => {
       const response = await getOrders();
       return response as Order[];
-    }
+    },
+    refetchInterval: 30000,
   });
 
   return { 

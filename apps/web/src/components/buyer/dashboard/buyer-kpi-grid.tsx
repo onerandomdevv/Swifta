@@ -16,15 +16,19 @@ export function BuyerKpiGrid({
     badge?: string;
     icon: string;
     subtext: string;
+    href?: string;
   }[];
   pendingPaymentCount: number;
 }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-      {kpis.map((kpi, idx) => (
-        <div
+      {kpis.map((kpi, idx) => {
+        const CardWrapper = kpi.href ? Link : "div";
+        return (
+        <CardWrapper
+          href={kpi.href || "#"}
           key={idx}
-          className="bg-white dark:bg-slate-900 rounded-[2rem] p-8 border border-slate-100 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:shadow-2xl transition-all duration-500"
+          className="block bg-white dark:bg-slate-900 rounded-[2rem] p-8 border border-slate-100 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:shadow-xl hover:-translate-y-1 transition-all duration-500 cursor-pointer"
         >
           <div className="flex justify-between items-start mb-8">
             <div className="size-12 rounded-2xl bg-blue-50 dark:bg-blue-900/10 flex items-center justify-center text-blue-600 dark:text-blue-400">
@@ -78,8 +82,8 @@ export function BuyerKpiGrid({
           {idx === 1 && pendingPaymentCount > 0 && (
             <div className="absolute bottom-0 left-0 h-1 bg-amber-500 w-[65%]"></div>
           )}
-        </div>
-      ))}
+        </CardWrapper>
+      )})}
     </div>
   );
 }

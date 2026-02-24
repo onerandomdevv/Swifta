@@ -10,7 +10,8 @@ export function useBuyerRFQs() {
     queryFn: async () => {
       const response = await getMyRFQs();
       return response as RFQ[];
-    }
+    },
+    refetchInterval: 30000,
   });
 
   return { 

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ReactNode } from "react";
 import { Money } from "@/components/ui/money";
 
@@ -13,14 +14,18 @@ export function MerchantKpiGrid({
     badge?: string;
     icon: string;
     sub: string;
+    href?: string;
   }[];
 }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-      {stats.map((stat, idx) => (
-        <div
+      {stats.map((stat, idx) => {
+        const CardWrapper = stat.href ? Link : "div";
+        return (
+        <CardWrapper
+          href={stat.href || "#"}
           key={idx}
-          className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:shadow-2xl transition-all duration-500"
+          className="block bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 cursor-pointer"
         >
           <div className="flex justify-between items-start mb-8 relative z-10">
             <div className="size-12 rounded-2xl bg-blue-50 dark:bg-blue-900/10 flex items-center justify-center text-blue-600 dark:text-blue-400">
@@ -57,8 +62,8 @@ export function MerchantKpiGrid({
           </p>
 
           <div className="absolute -right-6 -bottom-6 size-24 bg-slate-50 dark:bg-white/5 rounded-full blur-xl group-hover:scale-150 transition-transform duration-700"></div>
-        </div>
-      ))}
+        </CardWrapper>
+      )})}
     </div>
   );
 }

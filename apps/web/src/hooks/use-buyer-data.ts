@@ -12,6 +12,7 @@ export function useBuyerDashboard() {
       const data = await getMyRFQs(1, 100);
       return Array.isArray(data) ? data : [];
     },
+    refetchInterval: 30000,
   });
 
   const orderQuery = useQuery({
@@ -20,6 +21,7 @@ export function useBuyerDashboard() {
       const data = await getOrders(1, 100);
       return Array.isArray(data) ? data : [];
     },
+    refetchInterval: 30000,
   });
 
   const isLoading = rfqQuery.isLoading || orderQuery.isLoading;
