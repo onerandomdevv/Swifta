@@ -3,10 +3,23 @@
 import React, { useState } from "react";
 import { NotificationCenter } from "./notification-center";
 import { useNotifications } from "@/hooks/use-notifications";
+import { useAuth } from "@/providers/auth-provider";
 
 export function AdminHeader() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const { unreadCount } = useNotifications(true, true);
+  const { user } = useAuth();
+
+  const initials = user?.fullName
+    ? user.fullName
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : user?.email?.slice(0, 2).toUpperCase() || "??";
+
+  const roleLabel = user?.role?.replace("_", " ") || "Staff";
 
   return (
     <header className="bg-white dark:bg-slate-950 border-b-2 border-slate-50 dark:border-slate-800 p-4 sticky top-0 z-30 flex items-center justify-end md:justify-between h-16 shadow-sm">
@@ -38,10 +51,10 @@ export function AdminHeader() {
         />
         <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-full pr-4 border border-slate-200 dark:border-slate-700">
           <div className="h-8 w-8 rounded-full bg-brand text-navy-dark flex items-center justify-center font-bold text-xs">
-            OP
+            {initials}
           </div>
           <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
-            Operator
+            {roleLabel}
           </span>
         </div>
       </div>

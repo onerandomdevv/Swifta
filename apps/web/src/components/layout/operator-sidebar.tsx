@@ -3,23 +3,15 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAuth } from "../../providers/auth-provider";
 
-export function AdminSidebar() {
+export function OperatorSidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
-  const { user } = useAuth();
-
   const navLinks = [
-    { name: "Overview", href: "/admin", icon: "dashboard" },
-    { name: "Analytics", href: "/admin/analytics", icon: "monitoring" },
-    { name: "Merchants", href: "/admin/merchants", icon: "storefront" },
-    { name: "Users", href: "/admin/users", icon: "group" },
-    { name: "Orders", href: "/admin/orders", icon: "local_shipping" },
-    { name: "Catalogue", href: "/admin/inventory", icon: "inventory_2" },
-    { name: "Access Tokens", href: "/admin/access-tokens", icon: "key" },
-    { name: "Settings", href: "/admin/settings", icon: "settings" },
+    { name: "Overview", href: "/operator", icon: "dashboard" },
+    { name: "Merchants", href: "/operator/merchants", icon: "storefront" },
+    { name: "Orders", href: "/operator/orders", icon: "local_shipping" },
   ];
 
   return (
@@ -39,21 +31,21 @@ export function AdminSidebar() {
       )}
 
       <aside
-        className={`fixed md:static inset-y-0 left-0 z-40 w-64 bg-navy-dark text-white flex flex-col transform transition-transform duration-300 ease-in-out ${
+        className={`fixed md:static inset-y-0 left-0 z-40 w-64 bg-slate-800 text-white flex flex-col transform transition-transform duration-300 ease-in-out ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         } md:translate-x-0 h-full overflow-y-auto shrink-0 shadow-xl`}
       >
         <div className="p-6">
           <div className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-md bg-brand text-navy-dark flex items-center justify-center font-black text-xl">
-              H
+            <div className="h-8 w-8 rounded-md bg-orange-500 text-white flex items-center justify-center font-black text-xl">
+              O
             </div>
             <span className="text-xl font-black tracking-tighter">
-              HARDWARE<span className="text-brand">OS</span>
+              HARDWARE<span className="text-orange-400">OS</span>
             </span>
           </div>
-          <span className="mt-2 block text-xs font-black uppercase text-neon-cyan tracking-widest">
-            SUPER ADMIN
+          <span className="mt-2 block text-xs font-black uppercase text-orange-400 tracking-widest">
+            OPERATOR PORTAL
           </span>
         </div>
 
@@ -67,7 +59,7 @@ export function AdminSidebar() {
                 onClick={() => setIsOpen(false)}
                 className={`flex items-center space-x-3 px-4 py-3 rounded-lg font-bold transition-all duration-200 ${
                   isActive
-                    ? "bg-brand text-navy-dark shadow-lg shadow-brand/20 scale-[1.02]"
+                    ? "bg-orange-500 text-white shadow-lg shadow-orange-500/20 scale-[1.02]"
                     : "text-slate-300 hover:bg-white/10 hover:text-white"
                 }`}
               >

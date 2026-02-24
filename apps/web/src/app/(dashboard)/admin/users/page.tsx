@@ -11,14 +11,21 @@ interface PlatformUser {
   email: string;
   phone: string;
   fullName: string | null;
-  role: "BUYER" | "MERCHANT" | "ADMIN";
+  role: "BUYER" | "MERCHANT" | "SUPER_ADMIN" | "OPERATOR" | "SUPPORT";
   emailVerified: boolean;
   createdAt: string;
+  adminProfile?: {
+    approvalStatus: string;
+  };
 }
 
 const ROLE_STYLES: Record<string, string> = {
-  ADMIN:
+  SUPER_ADMIN:
     "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/50",
+  OPERATOR:
+    "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-900/50",
+  SUPPORT:
+    "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900/50",
   MERCHANT: "bg-brand/10 text-brand border-brand/20",
   BUYER:
     "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700",
@@ -31,17 +38,44 @@ export default function AdminUsersPage() {
     type: "promote" | "delete";
     user: PlatformUser;
   } | null>(null);
+  const [selectedRole, setSelectedRole] = useState<
+    "SUPER_ADMIN" | "OPERATOR" | "SUPPORT"
+  >("OPERATOR");
 
   const { data: users, isLoading } = useQuery<PlatformUser[]>({
     queryKey: ["admin", "users"],
     queryFn: () => apiClient.get("/admin/users"),
   });
 
-  const promoteMutation = useMutation({
+  const { data: pendingStaff, isLoading: isPendingLoading } = useQuery<
+    PlatformUser[]
+  >({
+    queryKey: ["admin", "users", "pending"],
+    queryFn: () => apiClient.get("/admin/users/pending"),
+  });
+
+  const approveMutation = useMutation({
     mutationFn: (userId: string) =>
-      apiClient.patch(`/admin/users/${userId}/promote`, {}),
+      apiClient.patch(`/admin/staff/${userId}/approve`),
     onSuccess: () => {
-      toast.success("User has been promoted to ADMIN.");
+      toast.success("Staff profile approved. User can now log in.");
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      queryClient.invalidateQueries({
+        queryKey: ["admin", "users", "pending"],
+      });
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || "Failed to approve staff.");
+    },
+  });
+
+  const promoteMutation = useMutation({
+    mutationFn: (data: { userId: string; role: string }) =>
+      apiClient.patch(`/admin/users/${data.userId}/promote`, {
+        role: data.role,
+      }),
+    onSuccess: (_, variables) => {
+      toast.success(`User has been granted the ${variables.role} role.`);
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "stats"] });
       setConfirmAction(null);
@@ -74,7 +108,7 @@ export default function AdminUsersPage() {
     );
   }
 
-  const adminCount = users?.filter((u) => u.role === "ADMIN").length || 0;
+  const adminCount = users?.filter((u) => u.role === "SUPER_ADMIN").length || 0;
   const merchantCount = users?.filter((u) => u.role === "MERCHANT").length || 0;
   const buyerCount = users?.filter((u) => u.role === "BUYER").length || 0;
 
@@ -101,6 +135,59 @@ export default function AdminUsersPage() {
           </span>
         </div>
       </header>
+
+      {/* Pending Staff Approvals */}
+      {pendingStaff && pendingStaff.length > 0 && (
+        <section className="bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-200 dark:border-amber-900/50 rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="material-symbols-outlined text-amber-500 text-2xl animate-pulse">
+              admin_panel_settings
+            </span>
+            <div>
+              <h2 className="text-lg font-black text-amber-900 dark:text-amber-500 uppercase tracking-widest">
+                Pending Staff Approvals
+              </h2>
+              <p className="text-xs font-bold text-amber-700/70 dark:text-amber-400/70 uppercase tracking-wider mt-0.5">
+                {pendingStaff.length} user{pendingStaff.length !== 1 ? "s" : ""}{" "}
+                awaiting access
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {pendingStaff.map((staff) => (
+              <div
+                key={staff.id}
+                className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-amber-100 dark:border-amber-800/50"
+              >
+                <div>
+                  <p className="font-bold text-navy-dark dark:text-white flex items-center gap-2">
+                    {staff.fullName}
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${ROLE_STYLES[staff.role]}`}
+                    >
+                      {staff.role}
+                    </span>
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">{staff.email}</p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 font-black tracking-widest uppercase text-xs"
+                  onClick={() => approveMutation.mutate(staff.id)}
+                  disabled={approveMutation.isPending}
+                >
+                  <span className="material-symbols-outlined text-[16px] mr-1.5">
+                    check_circle
+                  </span>
+                  Approve Staff
+                </Button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Users Table */}
       <section className="bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-sm overflow-hidden">
@@ -171,22 +258,23 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="p-4 md:p-6 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-2">
-                        {user.role !== "ADMIN" && (
+                        {user.role !== "SUPER_ADMIN" && (
                           <Button
                             size="sm"
                             variant="ghost"
                             className="text-brand hover:bg-brand/10 font-bold tracking-wider uppercase text-xs"
-                            onClick={() =>
-                              setConfirmAction({ type: "promote", user })
-                            }
+                            onClick={() => {
+                              setSelectedRole("OPERATOR");
+                              setConfirmAction({ type: "promote", user });
+                            }}
                           >
                             <span className="material-symbols-outlined text-[16px] mr-1">
                               shield_person
                             </span>
-                            Promote
+                            Assign Role
                           </Button>
                         )}
-                        {user.role !== "ADMIN" && (
+                        {user.role !== "SUPER_ADMIN" && (
                           <Button
                             size="sm"
                             variant="ghost"
@@ -201,7 +289,7 @@ export default function AdminUsersPage() {
                             Remove
                           </Button>
                         )}
-                        {user.role === "ADMIN" && (
+                        {user.role === "SUPER_ADMIN" && (
                           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                             Protected
                           </span>
@@ -247,7 +335,7 @@ export default function AdminUsersPage() {
                 <div>
                   <h2 className="text-lg font-black text-navy-dark dark:text-white uppercase tracking-widest">
                     {confirmAction.type === "promote"
-                      ? "Promote to Admin"
+                      ? "Assign Staff Role"
                       : "Remove User"}
                   </h2>
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-0.5">
@@ -281,12 +369,49 @@ export default function AdminUsersPage() {
             </div>
 
             {confirmAction.type === "promote" ? (
-              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-6">
-                This user will gain <strong>full admin privileges</strong>{" "}
-                including access to merchant verification, order auditing,
-                analytics, and user management. This action cannot be easily
-                undone.
-              </p>
+              <div className="mb-6 animate-in fade-in slide-in-from-bottom-2">
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-4">
+                  Select the internal role to assign to this user. This grants
+                  them access to the internal operations dashboard based on the
+                  selected role's privileges.
+                </p>
+                <div className="space-y-3">
+                  {(["SUPER_ADMIN", "OPERATOR", "SUPPORT"] as const).map(
+                    (role) => (
+                      <label
+                        key={role}
+                        className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-colors ${
+                          selectedRole === role
+                            ? "border-brand bg-brand/5 dark:bg-brand/10"
+                            : "border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="role"
+                          value={role}
+                          checked={selectedRole === role}
+                          onChange={() => setSelectedRole(role)}
+                          className="mt-1 text-brand focus:ring-brand w-4 h-4"
+                        />
+                        <div>
+                          <p className="font-bold text-navy-dark dark:text-white uppercase tracking-wider text-sm">
+                            {role.replace("_", " ")}
+                          </p>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            {role === "SUPER_ADMIN" &&
+                              "Full administrative access. Analytics, User Management, Settings, etc."}
+                            {role === "OPERATOR" &&
+                              "Logistics and resolution. Can override orders and verify merchants."}
+                            {role === "SUPPORT" &&
+                              "View-only access to orders, users, and merchants for customer support."}
+                          </p>
+                        </div>
+                      </label>
+                    ),
+                  )}
+                </div>
+              </div>
             ) : (
               <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-6">
                 This will <strong>permanently remove</strong> this user from the
@@ -312,7 +437,10 @@ export default function AdminUsersPage() {
                 }`}
                 onClick={() => {
                   if (confirmAction.type === "promote") {
-                    promoteMutation.mutate(confirmAction.user.id);
+                    promoteMutation.mutate({
+                      userId: confirmAction.user.id,
+                      role: selectedRole,
+                    });
                   } else {
                     deleteMutation.mutate(confirmAction.user.id);
                   }
@@ -322,7 +450,7 @@ export default function AdminUsersPage() {
                 {promoteMutation.isPending || deleteMutation.isPending
                   ? "Processing..."
                   : confirmAction.type === "promote"
-                    ? "Confirm Promotion"
+                    ? "Assign Role"
                     : "Delete User"}
               </Button>
             </div>
