@@ -31,10 +31,15 @@ export class WebhookSignatureGuard implements CanActivate {
       .update(body)
       .digest('hex');
 
-    const isValid = crypto.timingSafeEqual(
-      Buffer.from(hash),
-      Buffer.from(signature),
-    );
+    const hashBuffer = Buffer.from(hash);
+    const signatureBuffer = Buffer.from(signature);
+
+    if (hashBuffer.length !== signatureBuffer.length) {
+      this.logger.warn('Invalid webhook signature (length mismatch)');
+      return false;
+    }
+
+    const isValid = crypto.timingSafeEqual(hashBuffer, signatureBuffer);
 
     if (!isValid) {
       this.logger.warn('Invalid webhook signature');

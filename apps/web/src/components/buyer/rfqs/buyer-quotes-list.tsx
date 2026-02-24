@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import { formatKobo } from "@hardware-os/shared";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { Quote } from "@hardware-os/shared";
@@ -22,8 +23,8 @@ export function BuyerQuotesList({ quotes, acceptingId, onAcceptQuote }: Props) {
       </div>
 
       {quotes.length > 0 ? (
-        <div className="space-y-6">
-          {quotes.map((quote) => (
+        <div className="space-y-4">
+          {quotes?.map((quote) => (
             <div
               key={quote.id}
               className="p-6 rounded-3xl border border-slate-100 dark:border-slate-800 hover:border-navy-dark dark:hover:border-white transition-all group"
@@ -33,9 +34,18 @@ export function BuyerQuotesList({ quotes, acceptingId, onAcceptQuote }: Props) {
                   <p className="text-xs font-black text-navy-dark dark:text-white uppercase tracking-tight">
                     Quote {quote.id.slice(0, 8)}
                   </p>
+                  {quote.merchant && (
+                    <Link
+                      href={`/merchants/${quote.merchantId || quote.merchant.id}`}
+                      className="mt-1 flex items-center gap-1 text-[10px] font-black text-accent-orange hover:underline decoration-2 underline-offset-4 uppercase tracking-widest"
+                    >
+                      <span className="material-symbols-outlined text-[10px]">storefront</span>
+                      {quote.merchant.businessName}
+                    </Link>
+                  )}
                   <StatusBadge
                     status={quote.status}
-                    className="mt-1 text-[8px]"
+                    className="mt-2 text-[8px]"
                   />
                 </div>
                 <p className="text-lg font-black text-navy-dark dark:text-white tabular-nums">

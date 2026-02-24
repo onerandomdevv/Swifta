@@ -15,13 +15,14 @@ export default function AdminDashboardLayout({
   const { user, isLoading } = useAuth();
 
   useEffect(() => {
-    // Wait until loading completes, then eject unauthorized personnel
-    if (!isLoading && (!user || user.role !== "ADMIN")) {
-      router.push("/login");
+    if (!isLoading) {
+      if (!user || user.role !== "SUPER_ADMIN") {
+        router.push("/admin/login");
+      }
     }
   }, [user, isLoading, router]);
 
-  if (isLoading || !user || user.role !== "ADMIN") return null; // Avoid rendering flash before redirect
+  if (isLoading || !user || user.role !== "SUPER_ADMIN") return null;
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden font-jakarta text-navy-dark dark:bg-slate-950 dark:text-white">

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { OnboardingFormData } from "./types";
 
 interface Props {
@@ -7,6 +7,16 @@ interface Props {
 }
 
 export function BusinessProfileStep({ formData, updateForm }: Props) {
+  const predefinedCategories = [
+    "Heavy Machinery",
+    "Building Materials",
+    "Power Tools",
+    "Safety Gear",
+  ];
+  
+  const initialCustomState = formData.category && !predefinedCategories.includes(formData.category);
+  const [showCustomInput, setShowCustomInput] = useState(!!initialCustomState);
+
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="space-y-2">
@@ -70,16 +80,42 @@ export function BusinessProfileStep({ formData, updateForm }: Props) {
               "Building Materials",
               "Power Tools",
               "Safety Gear",
-            ].map((cat) => (
-              <button
-                key={cat}
-                onClick={() => updateForm({ category: cat })}
-                className={`px-6 py-3 border-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${formData.category === cat ? "border-navy-dark bg-navy-dark text-white" : "border-slate-100 dark:border-slate-800 text-slate-400 hover:border-navy-dark hover:text-navy-dark"}`}
-              >
-                {cat}
-              </button>
-            ))}
+              "Others"
+            ].map((cat) => {
+              const isSelected = cat === "Others" 
+                ? showCustomInput 
+                : formData.category === cat && !showCustomInput;
+
+              return (
+                <button
+                  key={cat}
+                  onClick={() => {
+                    if (cat === "Others") {
+                      setShowCustomInput(true);
+                      updateForm({ category: "" });
+                    } else {
+                      setShowCustomInput(false);
+                      updateForm({ category: cat });
+                    }
+                  }}
+                  className={`px-6 py-3 border-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${isSelected ? "border-navy-dark bg-navy-dark text-white" : "border-slate-100 dark:border-slate-800 text-slate-400 hover:border-navy-dark hover:text-navy-dark"}`}
+                >
+                  {cat}
+                </button>
+              );
+            })}
           </div>
+          {showCustomInput && (
+            <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+              <input
+                value={formData.category}
+                onChange={(e) => updateForm({ category: e.target.value })}
+                className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white"
+                placeholder="E.g. Electrical Components, Plumbing Supplies"
+                autoFocus
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

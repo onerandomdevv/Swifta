@@ -5,6 +5,7 @@ import {
   UseGuards,
   Get,
   Query,
+  Param,
 } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { InitializePaymentDto } from './dto/initialize-payment.dto';
@@ -44,5 +45,11 @@ export class PaymentController {
     @Query('bankCode') bankCode: string,
   ) {
     return this.paymentService.resolveAccount(accountNumber, bankCode);
+  }
+
+  @Get('verify/:reference')
+  @UseGuards(JwtAuthGuard)
+  verifyPayment(@Param('reference') reference: string) {
+    return this.paymentService.verifyPayment(reference);
   }
 }

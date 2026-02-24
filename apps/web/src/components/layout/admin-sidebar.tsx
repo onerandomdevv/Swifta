@@ -3,10 +3,13 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "../../providers/auth-provider";
 
 export function AdminSidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+
+  const { user } = useAuth();
 
   const navLinks = [
     { name: "Overview", href: "/admin", icon: "dashboard" },
@@ -15,6 +18,7 @@ export function AdminSidebar() {
     { name: "Users", href: "/admin/users", icon: "group" },
     { name: "Orders", href: "/admin/orders", icon: "local_shipping" },
     { name: "Catalogue", href: "/admin/inventory", icon: "inventory_2" },
+    { name: "Access Tokens", href: "/admin/access-tokens", icon: "key" },
     { name: "Settings", href: "/admin/settings", icon: "settings" },
   ];
 
@@ -49,7 +53,7 @@ export function AdminSidebar() {
             </span>
           </div>
           <span className="mt-2 block text-xs font-black uppercase text-neon-cyan tracking-widest">
-            OPERATOR PLATFORM
+            SUPER ADMIN
           </span>
         </div>
 

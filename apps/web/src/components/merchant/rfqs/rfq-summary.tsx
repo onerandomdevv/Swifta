@@ -18,13 +18,28 @@ export function RfqSummary({ rfq }: Props) {
         </div>
 
         <div className="space-y-8">
+          {/* Display Item Details */}
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+              Material Requested
+            </p>
+            <p className="text-xl font-black text-navy-dark dark:text-white">
+              {rfq.product?.name || rfq.unlistedItemDetails?.name || "Unlisted Item"}
+            </p>
+            {rfq.unlistedItemDetails?.description && (
+              <p className="text-[11px] font-bold text-slate-500 mt-2">
+                {rfq.unlistedItemDetails.description}
+              </p>
+            )}
+          </div>
+
           <div className="flex justify-between items-center">
             <div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
                 Quantity Requested
               </p>
               <p className="text-2xl font-black text-navy-dark dark:text-white">
-                {rfq.quantity.toLocaleString()}
+                {rfq.quantity.toLocaleString()} {rfq.product?.unit || rfq.unlistedItemDetails?.unit || ""}
               </p>
             </div>
             <div className="text-right">

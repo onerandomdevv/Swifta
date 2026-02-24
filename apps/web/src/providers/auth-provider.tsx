@@ -28,6 +28,7 @@ interface AuthContextType {
   isLoggedIn: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  internalLogin: (email: string, password: string) => Promise<void>;
   register: (dto: RegisterDto) => Promise<void>;
   logout: () => void;
 }
@@ -67,6 +68,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const response = await authApi.login({ email, password });
+    setUser(response.user);
+  };
+
+  const internalLogin = async (email: string, password: string) => {
+    // Note for backend: verify internalLogin attaches HttpOnly cookies just like login
+    const response = await authApi.internalLogin({ email, password });
     setUser(response.user);
   };
 
@@ -117,6 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoggedIn: !!user,
         isLoading,
         login,
+        internalLogin,
         register,
         logout: logoutFn,
       }}

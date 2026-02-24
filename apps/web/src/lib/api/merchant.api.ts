@@ -18,3 +18,7 @@ export async function uploadDocument(file: File): Promise<{ url: string; message
   formData.append('file', file);
   return apiClient.post('/upload/document', formData);
 }
+
+export async function getMerchants(): Promise<any[]> {
+  return apiClient.get('/merchants');
+}

@@ -1,13 +1,15 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
+import { InternalAuthController } from './internal-auth.controller';
 import { AuthService } from './auth.service';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { RedisModule } from '../../redis/redis.module';
+import { AdminModule } from '../admin/admin.module';
 
 @Module({
   imports: [
@@ -22,8 +24,9 @@ import { RedisModule } from '../../redis/redis.module';
     }),
     PrismaModule,
     RedisModule,
+    forwardRef(() => AdminModule),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, InternalAuthController],
   providers: [AuthService, JwtAccessStrategy, JwtRefreshStrategy],
   exports: [AuthService],
 })

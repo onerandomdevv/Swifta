@@ -46,10 +46,27 @@ export function WarehouseStep({ formData, updateForm }: Props) {
               }
               className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all text-slate-400 appearance-none bg-transparent"
             >
+              <option value="" disabled hidden>Select an LGA in Lagos</option>
+              <option>Agege</option>
+              <option>Ajeromi-Ifelodun</option>
+              <option>Alimosho</option>
+              <option>Amuwo-Odofin</option>
+              <option>Apapa</option>
+              <option>Badagry</option>
+              <option>Epe</option>
+              <option>Eti-Osa</option>
+              <option>Ibeju-Lekki</option>
+              <option>Ifako-Ijaiye</option>
+              <option>Ikeja</option>
+              <option>Ikorodu</option>
+              <option>Kosofe</option>
               <option>Lagos Island</option>
-              <option>Ikeja Industrial</option>
-              <option>Lekki Free Zone</option>
-              <option>Apapa Wharf</option>
+              <option>Lagos Mainland</option>
+              <option>Mushin</option>
+              <option>Ojo</option>
+              <option>Oshodi-Isolo</option>
+              <option>Shomolu</option>
+              <option>Surulere</option>
             </select>
           </div>
           <div className="space-y-3">

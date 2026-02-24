@@ -32,8 +32,12 @@ export default function LoginPage() {
   useEffect(() => {
     if (user) {
       let dashboardPath = "/";
-      if (user.role === "ADMIN") {
+      if (user.role === "SUPER_ADMIN") {
         dashboardPath = "/admin";
+      } else if (user.role === "OPERATOR") {
+        dashboardPath = "/operator";
+      } else if (user.role === "SUPPORT") {
+        dashboardPath = "/support";
       } else if (user.role === "MERCHANT") {
         dashboardPath = "/merchant/dashboard";
       } else {

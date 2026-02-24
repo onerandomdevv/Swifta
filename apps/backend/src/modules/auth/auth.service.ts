@@ -12,6 +12,7 @@ import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { AdminRegisterDto } from './dto/admin-register.dto';
 import { TokenPair, JwtPayload } from '@hardware-os/shared';
 
 const SALT_ROUNDS = 10;
@@ -148,6 +149,97 @@ export class AuthService {
     }
 
     return this.generateAndStoreTokens(user);
+  }
+
+  async internalLogin(dto: LoginDto): Promise<TokenPair & { user: any }> {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+      include: { adminProfile: true }, // Internal users have admin profiles instead of merchant profiles
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Account not found.');
+    }
+
+    // Reject standard users
+    if (user.role === 'BUYER' || user.role === 'MERCHANT') {
+      throw new UnauthorizedException('This portal is restricted to internal operations staff only. Please use the main login portal.');
+    }
+
+    if (user.adminProfile?.approvalStatus === 'PENDING') {
+      throw new UnauthorizedException('Your account is awaiting Super Admin approval.');
+    }
+    
+    if (user.adminProfile?.approvalStatus === 'SUSPENDED') {
+      throw new UnauthorizedException('Your account has been suspended.');
+    }
+
+    if (!(await bcrypt.compare(dto.password, user.passwordHash))) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    return this.generateAndStoreTokens(user);
+  }
+
+  async adminRegister(dto: AdminRegisterDto): Promise<{ message: string }> {
+    // 1. Check if email already exists
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: dto.email.toLowerCase() },
+    });
+    if (existingUser) {
+      throw new ConflictException('User with this email already exists.');
+    }
+
+    // 2. Find and validate the access token
+    // We have to iterate over active tokens to check bcrypt hashes (like passwords)
+    const activeTokens = await this.prisma.staffAccessToken.findMany({
+      where: { isActive: true },
+    });
+
+    let matchedToken = null;
+    for (const token of activeTokens) {
+      if (await bcrypt.compare(dto.accessToken, token.tokenHash)) {
+        matchedToken = token;
+        break;
+      }
+    }
+
+    if (!matchedToken) {
+      throw new UnauthorizedException('Invalid, expired, or revoked access token.');
+    }
+
+    // 3. Mark the token as inactive so it can't be reused
+    await this.prisma.staffAccessToken.update({
+      where: { id: matchedToken.id },
+      data: { isActive: false },
+    });
+
+    // 4. Create the new staff account
+    const passwordHash = await bcrypt.hash(dto.password, SALT_ROUNDS);
+
+    await this.prisma.$transaction(async (prisma) => {
+      // Dummy phone number, the internal users don't need phone verification for this phase
+      const phonePlaceholder = `+2340000000${randomInt(100, 999)}`;
+      
+      const user = await prisma.user.create({
+        data: {
+          fullName: dto.fullName,
+          email: dto.email.toLowerCase(),
+          phone: phonePlaceholder,
+          passwordHash,
+          role: matchedToken.role, // Derive role directly from the token
+          emailVerified: true, // Internal accounts are implicitly verified
+          adminProfile: {
+            create: {
+              accessLevel: 'STANDARD',
+              approvalStatus: 'PENDING', // Security measure
+            }
+          }
+        },
+      });
+    });
+
+    return { message: 'Registration successful. Your account is pending Super Admin approval.' };
   }
 
   async refreshTokens(userId: string, refreshToken: string): Promise<TokenPair & { user: any }> {

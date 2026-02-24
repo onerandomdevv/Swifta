@@ -23,6 +23,10 @@ export default function CreateRFQPage() {
     notes: "",
   });
 
+  const selectedProduct = products.find((p) => p.id === formData.productId);
+  const minQuantity = selectedProduct?.minOrderQuantity || 1;
+  const isBelowMin = formData.productId !== "" && formData.quantity < minQuantity;
+
   useEffect(() => {
     async function fetchProducts() {
       try {
@@ -117,9 +121,16 @@ export default function CreateRFQPage() {
               <select
                 required
                 value={formData.productId}
-                onChange={(e) =>
-                  setFormData({ ...formData, productId: e.target.value })
-                }
+                onChange={(e) => {
+                  const newProductId = e.target.value;
+                  const prod = products.find((p) => p.id === newProductId);
+                  const minQ = prod?.minOrderQuantity || 1;
+                  setFormData({ 
+                    ...formData, 
+                    productId: newProductId,
+                    quantity: Math.max(formData.quantity, minQ)
+                  });
+                }}
                 className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl py-5 px-6 text-sm font-black text-navy-dark dark:text-white outline-none focus:border-navy-dark dark:focus:border-white transition-all appearance-none"
               >
                 <option value="">Choose a product...</option>
@@ -139,7 +150,7 @@ export default function CreateRFQPage() {
                 </label>
                 <input
                   type="number"
-                  min={1}
+                  min={minQuantity}
                   required
                   value={formData.quantity}
                   onChange={(e) =>
@@ -148,9 +159,18 @@ export default function CreateRFQPage() {
                       quantity: parseInt(e.target.value) || 1,
                     })
                   }
-                  className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl py-5 px-6 text-sm font-black text-navy-dark dark:text-white outline-none focus:border-navy-dark dark:focus:border-white transition-all"
-                  placeholder="e.g. 500"
+                  className={`w-full bg-slate-50 dark:bg-slate-800 border-2 rounded-2xl py-5 px-6 text-sm font-black text-navy-dark dark:text-white outline-none transition-all ${
+                    isBelowMin
+                      ? "border-red-400 focus:border-red-500 bg-red-50/50 dark:bg-red-900/10"
+                      : "border-slate-100 dark:border-slate-700 focus:border-navy-dark dark:focus:border-white"
+                  }`}
+                  placeholder={`Min: ${minQuantity}`}
                 />
+                {isBelowMin && (
+                  <p className="text-xs font-bold text-red-500 mt-1 ml-2">
+                    Minimum order requirement is {minQuantity}.
+                  </p>
+                )}
               </div>
               <div className="space-y-3">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
@@ -190,7 +210,7 @@ export default function CreateRFQPage() {
           <div className="pt-8 border-t border-slate-50 dark:border-slate-800 flex justify-end">
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isBelowMin}
               className="px-12 py-5 bg-navy-dark text-white rounded-2xl text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-navy-dark/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-80 flex items-center gap-3"
             >
               {isSubmitting ? "Processing..." : "Submit RFQ"}

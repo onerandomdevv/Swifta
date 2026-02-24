@@ -64,4 +64,10 @@ export class OrderController {
   dispute(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return this.orderService.dispute(user.sub, id);
   }
+
+  @Get(':id/receipt')
+  @Roles(UserRole.BUYER)
+  getReceipt(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.orderService.getReceipt(id, user.sub);
+  }
 }

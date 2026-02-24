@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import type { Order } from "@hardware-os/shared";
 
 interface Props {
@@ -24,6 +25,21 @@ export function OrderInfoSidebar({ order }: Props) {
           {order.quoteId}
         </p>
       </div>
+
+      {order.merchant && (
+        <div className="space-y-2 pt-6 border-t border-slate-200 dark:border-slate-700">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            Supplier
+          </p>
+          <Link
+            href={`/merchants/${order.merchantId || order.merchant.id}`}
+            className="flex items-center gap-2 text-xs font-black text-accent-orange uppercase tracking-widest hover:underline decoration-2 underline-offset-4"
+          >
+            <span className="material-symbols-outlined text-sm">storefront</span>
+            {order.merchant.businessName}
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

@@ -19,6 +19,12 @@ export default function NewProductPage() {
     imageUrl: "",
   });
 
+  const getWordCount = (text: string) => {
+    return text.trim() ? text.trim().split(/\s+/).length : 0;
+  };
+  const wordCount = getWordCount(formData.description);
+  const isOverWordLimit = wordCount > 100;
+
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -154,17 +160,33 @@ export default function NewProductPage() {
         </div>
 
         <div className="space-y-3">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-            Description
-          </label>
+          <div className="flex justify-between items-center ml-1">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              Description
+            </label>
+            <span
+              className={`text-[10px] font-bold uppercase tracking-widest ${isOverWordLimit ? "text-red-500" : "text-slate-400"}`}
+            >
+              {wordCount} / 100 Words
+            </span>
+          </div>
           <textarea
             value={formData.description}
             onChange={(e) =>
               setFormData({ ...formData, description: e.target.value })
             }
-            className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white h-32 resize-none"
+            className={`w-full px-8 py-5 text-sm font-bold border-2 rounded-[1.5rem] focus:outline-none transition-all placeholder:text-slate-300 dark:text-white h-32 resize-none ${
+              isOverWordLimit
+                ? "border-red-400 focus:border-red-500 bg-red-50 dark:bg-red-900/10"
+                : "border-slate-50 dark:border-slate-800 dark:bg-slate-950 focus:border-navy-dark"
+            }`}
             placeholder="Describe the product specifications, quality, origin..."
           />
+          {isOverWordLimit && (
+            <p className="text-xs font-bold text-red-500 mt-1 ml-2">
+              Description must be up to 100 words maximum.
+            </p>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -235,7 +257,7 @@ export default function NewProductPage() {
         <div className="pt-6 border-t border-slate-50 dark:border-slate-800 flex justify-end">
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || isOverWordLimit}
             className="px-10 py-5 bg-navy-dark text-white text-[10px] font-black uppercase tracking-[0.3em] rounded-2xl shadow-2xl shadow-navy-dark/30 hover:-translate-y-1 transition-all active:scale-95 disabled:opacity-50 disabled:translate-y-0"
           >
             {loading ? "Creating..." : "Create Listing"}

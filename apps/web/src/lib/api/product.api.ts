@@ -36,3 +36,7 @@ export async function uploadProductImage(file: File): Promise<{ url: string; mes
   formData.append('file', file);
   return apiClient.post('/upload/product-image', formData);
 }
+
+export async function getPublicProductsByMerchant(merchantId: string, page = 1, limit = 20): Promise<Product[]> {
+  return apiClient.get(`/products/merchant/${merchantId}?page=${page}&limit=${limit}`);
+}

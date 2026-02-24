@@ -133,7 +133,9 @@ class ApiClient {
     return this.request<T>(endpoint, {
       ...config,
       method: 'POST',
-      body: body instanceof FormData ? body : JSON.stringify(body),
+      body: body instanceof FormData ? body : JSON.stringify(body, (key, value) =>
+        typeof value === 'bigint' ? Number(value) : value
+      ),
     });
   }
 
@@ -141,7 +143,9 @@ class ApiClient {
     return this.request<T>(endpoint, {
       ...config,
       method: 'PATCH',
-      body: body instanceof FormData ? body : JSON.stringify(body),
+      body: body instanceof FormData ? body : JSON.stringify(body, (key, value) =>
+        typeof value === 'bigint' ? Number(value) : value
+      ),
     });
   }
 

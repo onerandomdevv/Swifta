@@ -56,30 +56,7 @@ export class PaymentService {
       throw new BadRequestException('Order is not in pending payment state');
     }
 
-    // Idempotency: if payment already exists for this order, return existing
-    const existingPayment = await this.prisma.payment.findFirst({
-      where: {
-        orderId: dto.orderId,
-        direction: PaymentDirection.INFLOW,
-        status: PaymentStatus.INITIALIZED,
-      },
-    });
-
-    if (existingPayment) {
-      this.logger.log(
-        `Returning existing payment ${existingPayment.id} for order ${dto.orderId}`,
-      );
-      return {
-        authorization_url: null,
-        access_code: null,
-        reference: existingPayment.paystackReference,
-        paymentId: existingPayment.id,
-        message: 'Payment already initialized — use existing reference',
-      };
-    }
-
     // Generate reference and get buyer email
-    const paymentReference = `tx-${crypto.randomUUID()}`;
     const buyer = await this.prisma.user.findUnique({
       where: { id: buyerId },
     });
@@ -93,6 +70,47 @@ export class PaymentService {
     const callbackUrl = `${frontendUrl}/buyer/orders/payment/callback`;
 
     const totalKobo = order.totalAmountKobo + order.deliveryFeeKobo;
+
+    // Idempotency: if payment already exists for this order, return existing
+    const existingPayment = await this.prisma.payment.findFirst({
+      where: {
+        orderId: dto.orderId,
+        direction: PaymentDirection.INFLOW,
+        status: PaymentStatus.INITIALIZED,
+      },
+    });
+
+    if (existingPayment) {
+      this.logger.log(
+        `Updating existing payment ${existingPayment.id} for order ${dto.orderId} with new reference`,
+      );
+      
+      const newReference = `tx-${crypto.randomUUID()}`;
+
+      // We must fetch a fresh access_code from Paystack using a NEW reference
+      // because access_codes expire and Paystack rejects duplicate references.
+      const freshPaystackResponse = await this.paystack.initializeTransaction(
+        buyer.email,
+        totalKobo,
+        newReference,
+        callbackUrl,
+      );
+
+      // Update the database to reflect the new reference for the retry
+      await this.prisma.payment.update({
+        where: { id: existingPayment.id },
+        data: { paystackReference: newReference },
+      });
+
+      return {
+        ...freshPaystackResponse,
+        reference: newReference,
+        paymentId: existingPayment.id,
+        message: 'Payment already initialized — returning fresh access code with new reference',
+      };
+    }
+
+    const paymentReference = `tx-${crypto.randomUUID()}`;
 
     // Initialize with Paystack
     const paystackResponse = await this.paystack.initializeTransaction(
@@ -182,8 +200,31 @@ export class PaymentService {
       );
     }
 
-    // Always return 200 to Paystack
+  // Always return 200 to Paystack
     return { status: 'received' };
+  }
+
+  // ──────────────────────────────────────────────
+  //  MANUAL VERIFICATION (Fallback for no webhook)
+  // ──────────────────────────────────────────────
+
+  async verifyPayment(reference: string) {
+    const payment = await this.prisma.payment.findUnique({
+      where: { paystackReference: reference },
+    });
+    if (!payment) throw new NotFoundException('Payment not found');
+
+    if (payment.status === PaymentStatus.SUCCESS) {
+      return { status: 'already_verified', paymentId: payment.id };
+    }
+
+    try {
+      await this.processSuccessfulPayment(payment.id, reference);
+      return { status: 'verified', paymentId: payment.id };
+    } catch (err) {
+      this.logger.error(`Manual verification failed for ${reference}`, err);
+      throw new BadRequestException('Verification failed');
+    }
   }
 
   // ──────────────────────────────────────────────
