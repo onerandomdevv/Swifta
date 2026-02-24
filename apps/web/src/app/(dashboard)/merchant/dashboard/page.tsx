@@ -58,6 +58,7 @@ export default function MerchantDashboard() {
         activeOrders.length > 0 ? ("up" as const) : ("neutral" as const),
       icon: "account_balance_wallet",
       sub: `Calculated from ${activeOrders.length} active orders`,
+      href: "/merchant/orders"
     },
     {
       label: "Active RFQs",
@@ -67,6 +68,7 @@ export default function MerchantDashboard() {
       trendType: activeRfqCount > 0 ? ("up" as const) : ("neutral" as const),
       icon: "description",
       sub: "Requires immediate response",
+      href: "/merchant/rfqs"
     },
     {
       label: "Incomplete Orders",
@@ -75,6 +77,7 @@ export default function MerchantDashboard() {
       badge: incompleteOrders > 5 ? `${incompleteOrders} PENDING` : undefined,
       icon: "inventory_2",
       sub: "Awaiting dispatch or payment",
+      href: "/merchant/orders"
     },
     {
       label: "Total Orders",
@@ -84,6 +87,7 @@ export default function MerchantDashboard() {
       trendType: orders.length > 0 ? ("up" as const) : ("neutral" as const),
       icon: "speed",
       sub: "Completed + in-progress",
+      href: "/merchant/orders"
     },
   ];
 

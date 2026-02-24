@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { nairaToKobo } from "@hardware-os/shared";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getRFQ } from "@/lib/api/rfq.api";
@@ -14,8 +15,8 @@ import { RfqSummary, QuoteSubmissionForm } from "@/components/merchant/rfqs";
 export default function MerchantRFQDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rfq, setRfq] = useState<RFQ | null>(null);
   const [unitPrice, setUnitPrice] = useState<string>("");
@@ -36,37 +37,67 @@ export default function MerchantRFQDetailsPage() {
     fetchRFQ();
   }, [id]);
 
-  const handleQuote = async () => {
+  const quoteMutation = useMutation({
+    mutationFn: submitQuote,
+    onMutate: async (newQuote) => {
+      // Optimistic update
+      await queryClient.cancelQueries({ queryKey: ['merchant', 'rfqs'] });
+      const previousRfqs = queryClient.getQueryData<RFQ[]>(['merchant', 'rfqs', 'recent']);
+      
+      if (previousRfqs && rfq) {
+        // Find and update the specific RFQ in the cached list to "QUOTED" status
+        const updatedRfqs = previousRfqs.map(prevRfq => {
+          if (prevRfq.id === rfq.id) {
+            return {
+              ...prevRfq,
+              status: "QUOTED" as any
+            };
+          }
+          return prevRfq;
+        });
+        queryClient.setQueryData<RFQ[]>(['merchant', 'rfqs', 'recent'], updatedRfqs);
+      }
+      return { previousRfqs };
+    },
+    onError: (err: any, _, context) => {
+      setError(err?.message || "Failed to submit quote");
+      if (context?.previousRfqs) {
+        queryClient.setQueryData(['merchant', 'rfqs', 'recent'], context.previousRfqs);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['merchant', 'rfqs'] });
+    },
+    onSuccess: () => {
+      router.push("/merchant/rfqs");
+    }
+  });
+
+  const handleQuote = () => {
     if (!unitPrice || !rfq) return;
     setError(null);
-    setIsSubmitting(true);
 
-    try {
-      const unitPriceKobo = nairaToKobo(parseFloat(unitPrice));
-      const deliveryFeeKobo = deliveryFee
-        ? nairaToKobo(parseFloat(deliveryFee))
-        : 0n;
-      const totalPriceKobo =
-        unitPriceKobo * BigInt(rfq.quantity) + deliveryFeeKobo;
+    const unitPriceKobo = nairaToKobo(parseFloat(unitPrice));
+    const deliveryFeeKobo = deliveryFee
+      ? nairaToKobo(parseFloat(deliveryFee))
+      : 0n;
+    const totalPriceKobo =
+      unitPriceKobo * BigInt(rfq.quantity) + deliveryFeeKobo;
 
-      const validUntil = new Date();
-      validUntil.setHours(validUntil.getHours() + 48);
+    const validUntil = new Date();
+    validUntil.setHours(validUntil.getHours() + 48);
 
-      await submitQuote({
-        rfqId: rfq.id,
-        unitPriceKobo,
-        totalPriceKobo,
-        deliveryFeeKobo,
-        validUntil,
-        notes: notes || undefined,
-      });
-      router.push("/merchant/rfqs");
-    } catch (err: any) {
-      setError(err?.message || "Failed to submit quote");
-    } finally {
-      setIsSubmitting(false);
-    }
+    quoteMutation.mutate({
+      rfqId: rfq.id,
+      unitPriceKobo,
+      totalPriceKobo,
+      deliveryFeeKobo,
+      validUntil,
+      notes: notes || undefined,
+    });
   };
+
+  const isSubmitting = quoteMutation.isPending;
 
   if (loading) {
     return (

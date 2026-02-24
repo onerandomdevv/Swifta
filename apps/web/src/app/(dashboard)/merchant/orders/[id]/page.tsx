@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getOrder, dispatchOrder } from "@/lib/api/order.api";
@@ -17,10 +18,10 @@ import {
 export default function MerchantOrderDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<Order | null>(null);
-  const [dispatching, setDispatching] = useState(false);
 
   useEffect(() => {
     async function fetchOrder() {
@@ -36,19 +37,41 @@ export default function MerchantOrderDetailsPage() {
     fetchOrder();
   }, [id]);
 
-  const handleDispatch = async () => {
-    if (!order) return;
-    setDispatching(true);
-    setError(null);
-    try {
-      const updated = await dispatchOrder(order.id);
-      setOrder(updated as any as Order);
-    } catch (err: any) {
+  const dispatchMutation = useMutation({
+    mutationFn: () => dispatchOrder(order?.id as string),
+    onMutate: async () => {
+      // Optimistic update
+      await queryClient.cancelQueries({ queryKey: ['merchant', 'orders'] });
+      
+      const previousOrder = { ...order };
+      
+      if (order) {
+        setOrder({ ...order, status: "DISPATCHED" as any });
+      }
+
+      return { previousOrder };
+    },
+    onError: (err: any, _, context) => {
       setError(err?.message || "Failed to dispatch order");
-    } finally {
-      setDispatching(false);
+      if (context?.previousOrder) {
+        setOrder(context.previousOrder as Order);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['merchant', 'orders'] });
+    },
+    onSuccess: (updated) => {
+      setOrder(updated as any as Order);
     }
+  });
+
+  const handleDispatch = () => {
+    if (!order) return;
+    setError(null);
+    dispatchMutation.mutate();
   };
+
+  const dispatching = dispatchMutation.isPending;
 
   if (loading) {
     return (

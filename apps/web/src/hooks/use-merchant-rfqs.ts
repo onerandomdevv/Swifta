@@ -10,7 +10,8 @@ export function useMerchantRFQs() {
     queryFn: async () => {
       const response = await getMerchantRFQs();
       return response as RFQ[];
-    }
+    },
+    refetchInterval: 30000,
   });
 
   return { 

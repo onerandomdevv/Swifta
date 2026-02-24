@@ -2,18 +2,19 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createRFQ } from "@/lib/api/rfq.api";
 import { getCatalogue } from "@/lib/api/product.api";
-import type { Product } from "@hardware-os/shared";
+import type { Product, RFQ, RFQStatus } from "@hardware-os/shared";
 
 export default function CreateRFQPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const preselectedProductId = searchParams.get("productId") || "";
 
   const [loading, setLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [formData, setFormData] = useState({
@@ -41,25 +42,56 @@ export default function CreateRFQPage() {
     fetchProducts();
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const createMutation = useMutation({
+    mutationFn: createRFQ,
+    onMutate: async (newRfqData) => {
+      // Optimistic update
+      await queryClient.cancelQueries({ queryKey: ['buyer', 'rfqs'] });
+      const previousRfqs = queryClient.getQueryData<RFQ[]>(['buyer', 'rfqs', 'all']);
+      
+      const optimisticRfq: Partial<RFQ> = {
+        id: `optimistic-${Date.now()}`,
+        productId: newRfqData.productId,
+        quantity: newRfqData.quantity,
+        deliveryAddress: newRfqData.deliveryAddress,
+        notes: newRfqData.notes,
+        status: "OPEN" as any,
+        createdAt: new Date(),
+        merchantId: selectedProduct?.merchantId || "unknown",
+        buyerId: "me",
+      };
+
+      if (previousRfqs) {
+        queryClient.setQueryData<RFQ[]>(['buyer', 'rfqs', 'all'], [optimisticRfq as RFQ, ...previousRfqs]);
+      }
+      return { previousRfqs };
+    },
+    onError: (err: any, _, context) => {
+      setError(err?.message || "Failed to create RFQ");
+      if (context?.previousRfqs) {
+        queryClient.setQueryData(['buyer', 'rfqs', 'all'], context.previousRfqs);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['buyer', 'rfqs'] });
+    },
+    onSuccess: () => {
+      router.push("/buyer/rfqs");
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setIsSubmitting(true);
-
-    try {
-      await createRFQ({
-        productId: formData.productId,
-        quantity: formData.quantity,
-        deliveryAddress: formData.deliveryAddress,
-        notes: formData.notes || undefined,
-      });
-      router.push("/buyer/rfqs");
-    } catch (err: any) {
-      setError(err?.message || "Failed to create RFQ");
-    } finally {
-      setIsSubmitting(false);
-    }
+    createMutation.mutate({
+      productId: formData.productId,
+      quantity: formData.quantity,
+      deliveryAddress: formData.deliveryAddress,
+      notes: formData.notes || undefined,
+    });
   };
+
+  const isSubmitting = createMutation.isPending;
 
   if (loading) {
     return (

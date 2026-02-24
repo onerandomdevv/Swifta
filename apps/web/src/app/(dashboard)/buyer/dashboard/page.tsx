@@ -47,6 +47,7 @@ export default function BuyerDashboard() {
   const inTransit = orders.filter((o) => o.status === "DISPATCHED").length;
 
   const kpis = [
+
     {
       label: "Active RFQs",
       value: String(activeRfqCount),
@@ -54,6 +55,7 @@ export default function BuyerDashboard() {
       trendType: "up" as const,
       icon: "description",
       subtext: `${rfqs.filter((r) => r.status === "OPEN").length} awaiting responses`,
+      href: "/buyer/rfqs"
     },
     {
       label: "Pending Payments",
@@ -64,6 +66,7 @@ export default function BuyerDashboard() {
           : undefined,
       icon: "account_balance_wallet",
       subtext: pendingPaymentCount > 0 ? "Action required" : "All clear",
+      href: "/buyer/orders"
     },
     {
       label: "Total Orders",
@@ -72,6 +75,7 @@ export default function BuyerDashboard() {
       trendType: "up" as const,
       icon: "local_shipping",
       subtext: `${inTransit} currently in transit`,
+      href: "/buyer/orders"
     },
   ];
 
