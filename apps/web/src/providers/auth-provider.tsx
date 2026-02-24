@@ -35,6 +35,53 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const SESSION_KEY = "__hwos_session";
+
+function persistSession(access: string, refresh: string, user: User) {
+  if (typeof window !== "undefined") {
+    try {
+      const payload = btoa(encodeURIComponent(JSON.stringify({ a: access, r: refresh, u: user })));
+      localStorage.setItem(SESSION_KEY, payload);
+    } catch (e) {
+      console.error("Failed to persist session");
+    }
+  }
+}
+
+function getPersistedSession(): { access: string; refresh: string; user: User } | null {
+  if (typeof window !== "undefined") {
+    const stored = localStorage.getItem(SESSION_KEY);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(atob(stored)));
+        if (parsed.a && parsed.r && parsed.u) {
+          return { access: parsed.a, refresh: parsed.r, user: parsed.u };
+        }
+      } catch (e) {
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
+function updatePersistedTokens(access: string, refresh: string) {
+  const current = getPersistedSession();
+  if (current) {
+    persistSession(access, refresh, current.user);
+  }
+}
+
+function clearPersistedSession() {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(SESSION_KEY);
+    // Cleanup old keys just in case
+    localStorage.removeItem("auth_access");
+    localStorage.removeItem("auth_refresh");
+    localStorage.removeItem("auth_user");
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     accessTokenRef.current = null;
     refreshTokenRef.current = null;
     setUser(null);
+    clearPersistedSession();
     if (refreshTimeoutRef.current) {
       clearTimeout(refreshTimeoutRef.current);
     }
@@ -75,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const tokens = await authApi.refresh(refreshTokenRef.current);
       accessTokenRef.current = tokens.accessToken;
       refreshTokenRef.current = tokens.refreshToken;
+      updatePersistedTokens(tokens.accessToken, tokens.refreshToken);
       scheduleRefresh();
       return tokens.accessToken;
     } catch (error) {
@@ -101,6 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     accessTokenRef.current = response.accessToken;
     refreshTokenRef.current = response.refreshToken;
     setUser(response.user);
+    persistSession(response.accessToken, response.refreshToken, response.user);
     scheduleRefresh();
   };
 
@@ -109,6 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     accessTokenRef.current = response.accessToken;
     refreshTokenRef.current = response.refreshToken;
     setUser(response.user);
+    persistSession(response.accessToken, response.refreshToken, response.user);
     scheduleRefresh();
   };
 
@@ -121,10 +172,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [clearAuth, router]);
 
-  // Initial check could go here if we used cookies for persistence (but rules say memory only)
+  // Initial check for persistence
   useEffect(() => {
+    const session = getPersistedSession();
+    if (session) {
+      setUser(session.user);
+      accessTokenRef.current = session.access;
+      refreshTokenRef.current = session.refresh;
+      scheduleRefresh();
+    } else {
+      clearAuth(); // Only run if it's explicitly cleared or missing, though typically we just don't do anything
+    }
     setIsLoading(false);
-  }, []);
+  }, [scheduleRefresh, clearAuth]);
 
   return (
     <AuthContext.Provider
