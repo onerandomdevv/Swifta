@@ -74,7 +74,8 @@ export class AuthController {
   @UseGuards(JwtRefreshGuard)
   @HttpCode(HttpStatus.OK)
   async refresh(@CurrentUser() user: any, @Body() dto: RefreshTokenDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const refreshToken = dto.refreshToken || req.cookies?.['hwos_refresh_token'];
+    // Prefer HttpOnly cookie first, fallback to DTO body
+    const refreshToken = req.cookies?.['hwos_refresh_token'] || dto.refreshToken;
     const result = await this.authService.refreshTokens(user.sub, refreshToken);
     this.setCookies(res, result);
     return { success: true };
@@ -84,8 +85,9 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async logout(@CurrentUser() user: JwtPayload, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.logout(user.sub);
     this.clearCookies(res);
-    return this.authService.logout(user.sub);
+    return result;
   }
 
   @Get('me')

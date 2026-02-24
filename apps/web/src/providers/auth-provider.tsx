@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const handleRefresh = useCallback(async (): Promise<boolean> => {
     try {
-      await authApi.refresh(''); // The cookie is sent automatically, so payload can be empty string
+      await authApi.refresh(); // The HttpOnly cookie is securely attached automatically
       return true;
     } catch (error) {
       clearAuth();
@@ -110,11 +110,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
     };
-    
+
     // Automatically fetch /me to hydrate session, no localStorage used!
     fetchMe();
-    
-    return () => { mounted = false; };
+
+    return () => {
+      mounted = false;
+    };
   }, [clearAuth]);
 
   return (

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { AdminHeader } from "../../../components/layout/admin-header";
 import { AdminSidebar } from "../../../components/layout/admin-sidebar";
 import { useAuth } from "../../../providers/auth-provider";
+import { useIdleTimeout } from "../../../hooks/use-idle-timeout";
+import { toast } from "sonner";
 
 export default function AdminDashboardLayout({
   children,
@@ -12,7 +14,14 @@ export default function AdminDashboardLayout({
   children: ReactNode;
 }) {
   const router = useRouter();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, logout } = useAuth();
+
+  // Enforce 30-minute idle timeout for all staff
+  useIdleTimeout(30, async () => {
+    toast.error("Session expired due to inactivity.");
+    await logout();
+    router.push("/admin/login");
+  });
 
   useEffect(() => {
     if (!isLoading) {

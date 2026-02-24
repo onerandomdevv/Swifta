@@ -1,87 +1,59 @@
 import { PrismaClient } from '@prisma/client';
-import { UserRole, VerificationStatus } from '@hardware-os/shared';
 import * as bcrypt from 'bcrypt';
+import { UserRole } from '@hardware-os/shared';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const passwordHash = await bcrypt.hash('password123', 10);
+  console.log('🌱 Starting Database Seeding Process...');
 
-  // create merchant
-  const merchantUser = await prisma.user.upsert({
-    where: { email: 'merchant@test.com' },
-    update: {},
-    create: {
-      email: 'merchant@test.com',
-      phone: '08012345678',
-      passwordHash,
-      role: UserRole.MERCHANT,
-      emailVerified: true,
-      merchantProfile: {
-        create: {
-          businessName: 'Test Merchant Business',
-          verification: VerificationStatus.VERIFIED,
-        }
-      }
-    },
+  // 1. Check if ANY Super Admin exists
+  const adminCount = await prisma.user.count({
+    where: { role: UserRole.SUPER_ADMIN },
   });
 
-  // create buyer
-  const buyerUser = await prisma.user.upsert({
-    where: { email: 'buyer@test.com' },
-    update: {},
-    create: {
-      email: 'buyer@test.com',
-      phone: '09087654321',
-      passwordHash,
-      role: UserRole.BUYER,
-      emailVerified: true,
-    },
-  });
-
-  // create products
-  if (merchantUser) {
-      const merchantProfile = await prisma.merchantProfile.findUnique({ where: { userId: merchantUser.id }});
-      if(merchantProfile) {
-        await prisma.product.createMany({
-            data: [
-                {
-                    merchantId: merchantProfile.id,
-                    name: 'Cement (Dangote) 50kg',
-                    description: 'High quality cement',
-                    unit: 'Bag',
-                    categoryTag: 'Construction',
-                    minOrderQuantity: 100
-                },
-                {
-                    merchantId: merchantProfile.id,
-                    name: 'Iron Rod 16mm',
-                    description: 'TMT Iron Rod',
-                    unit: 'Ton',
-                    categoryTag: 'Construction',
-                    minOrderQuantity: 1
-                },
-                {
-                    merchantId: merchantProfile.id,
-                    name: 'Sharp Sand',
-                    description: 'Clean sharp sand',
-                    unit: 'Trip',
-                    categoryTag: 'Construction',
-                    minOrderQuantity: 1
-                }
-            ]
-        });
-      }
+  if (adminCount > 0) {
+    console.log('✅ Super Admin already exists in the database. Skipping creation.');
+    return;
   }
 
-  console.log('Seeding finished.');
+  // 2. We have a fresh database. Generate the master admin account securely.
+  console.log('⚠️ No Super Admin found! Generating default administrator account...');
+
+  const DEFAULT_ADMIN_EMAIL = 'admin@hardware-os.com';
+  const DEFAULT_ADMIN_PASSWORD = 'Admin@123';
+  const SALT_ROUNDS = 10;
+
+  console.log(`🔒 Hashing master password...`);
+  const passwordHash = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, SALT_ROUNDS);
+
+  const newAdmin = await prisma.user.create({
+    data: {
+      email: DEFAULT_ADMIN_EMAIL,
+      phone: '+234000000000', // Placeholder
+      fullName: 'HARDWARE OS Admin',
+      passwordHash: passwordHash,
+      role: UserRole.SUPER_ADMIN,
+      adminProfile: {
+        create: {
+          approvalStatus: 'APPROVED',
+        },
+      },
+    },
+  });
+
+  console.log(`✅ Super Admin created successfully!`);
+  console.log(`📧 Email: ${DEFAULT_ADMIN_EMAIL}`);
+  console.log(`🔑 Password: ${DEFAULT_ADMIN_PASSWORD}`);
+  console.log(`Important: Remember to change your password immediately upon logging in.`);
 }
 
 main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
+  .then(async () => {
     await prisma.$disconnect();
+  })
+  .catch(async (e) => {
+    console.error('❌ SEEDING FAILED:', e);
+    await prisma.$disconnect();
+    process.exit(1);
   });

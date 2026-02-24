@@ -28,7 +28,9 @@ class ApiClient {
   }
 
   private onTokenRefreshed(success: boolean) {
-    this.refreshSubscribers.forEach((cb) => cb(success));
+    this.refreshSubscribers.forEach((cb) => {
+      cb(success);
+    });
     this.refreshSubscribers = [];
   }
 
@@ -53,7 +55,7 @@ class ApiClient {
     let response = await performRequest();
 
     // Handle 401 Unauthorized - Attempt Token Refresh
-    if (response.status === 401 && this.refreshToken && !endpoint.includes('/auth/login')) {
+    if (response.status === 401 && this.refreshToken && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/refresh')) {
       if (this.isRefreshing) {
         // Wait for current refresh to complete
         const success = await new Promise<boolean>((resolve) => {

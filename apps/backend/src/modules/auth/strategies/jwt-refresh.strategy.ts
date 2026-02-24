@@ -10,10 +10,15 @@ const cookieExtractor = (req: Request): string | null => {
   if (req && req.cookies && req.cookies['hwos_refresh_token']) {
     token = req.cookies['hwos_refresh_token'];
   }
-  // Fallback to body field (for legacy/testing)
-  if (!token && req.body && req.body.refreshToken) {
-    token = req.body.refreshToken;
+
+  // Non-production fallback to support easy Postman/Swagger testing without
+  // cookie manipulation. Production strictly enforces purely HttpOnly cookies.
+  if (process.env.NODE_ENV !== 'production') {
+    if (!token && req.body && req.body.refreshToken) {
+      token = req.body.refreshToken;
+    }
   }
+
   return token;
 };
 
