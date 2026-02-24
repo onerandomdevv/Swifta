@@ -6,6 +6,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
+import * as cookieParser from 'cookie-parser';
 import { AppValidationPipe } from './common/pipes/validation.pipe';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor';
@@ -21,10 +22,10 @@ async function bootstrap() {
   // Global exception filter (formats all errors including Prisma)
   app.useGlobalFilters(new GlobalExceptionFilter());
 
-  // Global response transform (wraps all responses in { success: true, data })
   app.useGlobalInterceptors(new ResponseTransformInterceptor());
 
   app.use(helmet());
+  app.use(cookieParser());
 
   app.enableCors({
     origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : '*',

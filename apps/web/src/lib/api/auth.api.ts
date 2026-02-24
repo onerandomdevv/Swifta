@@ -6,7 +6,7 @@ import type {
 } from '@hardware-os/shared';
 import { apiClient } from '../api-client';
 
-export interface AuthResponse extends TokenPair {
+export interface AuthResponse {
   user: {
     id: string;
     email: string;
@@ -38,6 +38,9 @@ export const authApi = {
 
   forgotPassword: (email: string) =>
     apiClient.post<{ message: string }>('/auth/forgot-password', { email }),
+
+  me: () =>
+    apiClient.get<{ user: AuthResponse['user'] }>('/auth/me'),
 
   resetPassword: (dto: { token: string; newPassword: string }) =>
     apiClient.post<{ message: string }>('/auth/reset-password', dto),

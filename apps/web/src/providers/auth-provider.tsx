@@ -5,7 +5,6 @@ import React, {
   useContext,
   useState,
   useCallback,
-  useRef,
   useEffect,
   ReactNode,
 } from "react";
@@ -35,122 +34,29 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const SESSION_KEY = "__hwos_session";
-
-function persistSession(access: string) {
-  if (typeof window !== "undefined") {
-    try {
-      localStorage.setItem(SESSION_KEY, access);
-    } catch (e) {
-      console.error("Failed to persist session");
-    }
-  }
-}
-
-function getPersistedSession(): { access: string } | null {
-  if (typeof window !== "undefined") {
-    const stored = localStorage.getItem(SESSION_KEY);
-    if (stored) {
-      return { access: stored };
-    }
-  }
-  return null;
-}
-
-function updatePersistedTokens(access: string) {
-  const current = getPersistedSession();
-  if (current) {
-    persistSession(access);
-  }
-}
-
-function parseJwtToken(token: string): Partial<User> | null {
-  try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      window.atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
-    const parsed = JSON.parse(jsonPayload);
-    return {
-      id: parsed.sub,
-      email: parsed.email,
-      role: parsed.role,
-      merchantId: parsed.merchantId,
-    };
-  } catch (e) {
-    return null;
-  }
-}
-
-function clearPersistedSession() {
-  if (typeof window !== "undefined") {
-    localStorage.removeItem(SESSION_KEY);
-    // Cleanup old keys just in case
-    localStorage.removeItem("auth_access");
-    localStorage.removeItem("auth_refresh");
-    localStorage.removeItem("auth_user");
-  }
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  const accessTokenRef = useRef<string | null>(null);
-  const refreshTokenRef = useRef<string | null>(null);
-  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
   const clearAuth = useCallback(() => {
-    accessTokenRef.current = null;
-    refreshTokenRef.current = null;
     setUser(null);
-    clearPersistedSession();
-    if (refreshTimeoutRef.current) {
-      clearTimeout(refreshTimeoutRef.current);
-    }
   }, []);
 
-  const scheduleRefresh = useCallback((expiresInMinutes: number = 14) => {
-    if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
-
-    // Refresh 1 minute before expiry (assuming 15m default expiry)
-    refreshTimeoutRef.current = setTimeout(
-      () => {
-        handleRefresh();
-      },
-      expiresInMinutes * 60 * 1000,
-    );
-  }, []);
-
-  const handleRefresh = useCallback(async (): Promise<string | null> => {
-    if (!refreshTokenRef.current) {
-      clearAuth();
-      return null;
-    }
-
+  const handleRefresh = useCallback(async (): Promise<boolean> => {
     try {
-      const tokens = await authApi.refresh(refreshTokenRef.current);
-      accessTokenRef.current = tokens.accessToken;
-      refreshTokenRef.current = tokens.refreshToken;
-      updatePersistedTokens(tokens.accessToken);
-      scheduleRefresh();
-      return tokens.accessToken;
+      await authApi.refresh(''); // The cookie is sent automatically, so payload can be empty string
+      return true;
     } catch (error) {
       clearAuth();
       router.push("/login");
-      return null;
+      return false;
     }
-  }, [router, scheduleRefresh, clearAuth]);
+  }, [router, clearAuth]);
 
   // Configure apiClient
   useEffect(() => {
     apiClient.configure({
-      getToken: () => accessTokenRef.current,
       refreshToken: handleRefresh,
       onUnauthorized: () => {
         clearAuth();
@@ -161,20 +67,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const response = await authApi.login({ email, password });
-    accessTokenRef.current = response.accessToken;
-    refreshTokenRef.current = response.refreshToken;
     setUser(response.user);
-    persistSession(response.accessToken);
-    scheduleRefresh();
   };
 
   const register = async (dto: RegisterDto) => {
     const response = await authApi.register(dto);
-    accessTokenRef.current = response.accessToken;
-    refreshTokenRef.current = response.refreshToken;
     setUser(response.user);
-    persistSession(response.accessToken);
-    scheduleRefresh();
   };
 
   const logoutFn = useCallback(async () => {
@@ -186,24 +84,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [clearAuth, router]);
 
-  // Initial check for persistence
+  // Initial check for session via HttpOnly cookies
   useEffect(() => {
-    const session = getPersistedSession();
-    if (session) {
-      const decodedUser = parseJwtToken(session.access);
-      if (decodedUser) {
-        setUser(decodedUser as User);
-        accessTokenRef.current = session.access;
-        // refresh token remains memory-only
-        scheduleRefresh();
-      } else {
-        clearAuth();
+    let mounted = true;
+    const fetchMe = async () => {
+      try {
+        const response = await authApi.me();
+        if (mounted) {
+          setUser(response.user);
+        }
+      } catch (e) {
+        if (mounted) {
+          clearAuth();
+        }
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
-    } else {
-      clearAuth(); // Only run if it's explicitly cleared or missing, though typically we just don't do anything
-    }
-    setIsLoading(false);
-  }, [scheduleRefresh, clearAuth]);
+    };
+    
+    // Automatically fetch /me to hydrate session, no localStorage used!
+    fetchMe();
+    
+    return () => { mounted = false; };
+  }, [clearAuth]);
 
   return (
     <AuthContext.Provider
