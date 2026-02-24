@@ -11,6 +11,7 @@ interface OtpVerificationStepProps {
   resendCooldown: number;
   onResend: () => void;
   onBack: () => void;
+  error?: string | null;
 }
 
 export function OtpVerificationStep({
@@ -24,6 +25,7 @@ export function OtpVerificationStep({
   resendCooldown,
   onResend,
   onBack,
+  error,
 }: OtpVerificationStepProps) {
   return (
     <div className="flex flex-col items-center py-12 md:py-20 w-full px-4">
@@ -64,6 +66,11 @@ export function OtpVerificationStep({
               />
             ))}
           </div>
+          {error && (
+            <div className="text-red-500 text-sm font-medium text-center bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-100 dark:border-red-900/30">
+              {error}
+            </div>
+          )}
           <Button
             disabled={isLoading || otp.some((d) => !d)}
             className="w-full h-12 text-md font-bold shadow-md flex items-center justify-center gap-2"

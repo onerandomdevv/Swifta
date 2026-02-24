@@ -46,6 +46,7 @@ export default function RegisterPage() {
   const toast = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [otpError, setOtpError] = useState<string | null>(null);
 
   // Resend cooldown countdown
   useEffect(() => {
@@ -118,6 +119,7 @@ export default function RegisterPage() {
     e.preventDefault();
     if (isLoading) return;
     setIsLoading(true);
+    setOtpError(null);
     try {
       await authApi.verifyEmail({
         email: methods.getValues("email"),
@@ -134,7 +136,9 @@ export default function RegisterPage() {
         router.push(dashboardPath);
       }, 2000);
     } catch (err: any) {
-      toast.error(err.error || "Invalid verification code. Please try again.");
+      const msg = err.error || err.message || "Invalid verification code. Please try again.";
+      setOtpError(msg);
+      toast.error(msg);
     } finally {
       setIsLoading(false);
     }
@@ -142,6 +146,7 @@ export default function RegisterPage() {
 
   const handleResendCode = async () => {
     if (resendCooldown > 0 || isLoading) return;
+    setOtpError(null);
     try {
       await authApi.resendVerification({ email: methods.getValues("email") });
       toast.success("A new verification code has been sent.");
@@ -186,6 +191,7 @@ export default function RegisterPage() {
             resendCooldown={resendCooldown}
             onResend={handleResendCode}
             onBack={() => setStep(2)}
+            error={otpError}
           />
         )}
 
