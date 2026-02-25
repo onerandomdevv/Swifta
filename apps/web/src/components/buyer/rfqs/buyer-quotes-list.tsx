@@ -23,52 +23,95 @@ export function BuyerQuotesList({ quotes, acceptingId, onAcceptQuote }: Props) {
       </div>
 
       {quotes.length > 0 ? (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {quotes?.map((quote) => (
             <div
               key={quote.id}
-              className="p-6 rounded-3xl border border-slate-100 dark:border-slate-800 hover:border-navy-dark dark:hover:border-white transition-all group"
+              className="flex gap-4 max-w-[95%] ml-auto flex-row-reverse group"
             >
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <p className="text-xs font-black text-navy-dark dark:text-white uppercase tracking-tight">
-                    Quote {quote.id.slice(0, 8)}
-                  </p>
+              {/* Avatar Icon */}
+              <div className="h-10 w-10 shrink-0 bg-primary/10 flex items-center justify-center rounded-lg border border-primary/20 shadow-sm mt-1">
+                <span className="material-symbols-outlined text-sm text-primary">
+                  storefront
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-2 items-end w-full">
+                <div className="flex items-center gap-2">
+                  {quote.status !== "PENDING" && (
+                    <StatusBadge status={quote.status} className="text-[9px]" />
+                  )}
                   {quote.merchant && (
                     <Link
                       href={`/merchants/${quote.merchantId || quote.merchant.id}`}
-                      className="mt-1 flex items-center gap-1 text-[10px] font-black text-accent-orange hover:underline decoration-2 underline-offset-4 uppercase tracking-widest"
+                      className="text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-primary transition-colors"
                     >
-                      <span className="material-symbols-outlined text-[10px]">storefront</span>
                       {quote.merchant.businessName}
                     </Link>
                   )}
-                  <StatusBadge
-                    status={quote.status}
-                    className="mt-2 text-[8px]"
-                  />
                 </div>
-                <p className="text-lg font-black text-navy-dark dark:text-white tabular-nums">
-                  {formatKobo(BigInt(quote.totalPriceKobo))}
-                </p>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                    Unit: {formatKobo(BigInt(quote.unitPriceKobo))}
-                  </p>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                    Delivery Fee: {formatKobo(BigInt(quote.deliveryFeeKobo))}
-                  </p>
+
+                {/* Structured Quote Card */}
+                <div className="bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-slate-100 w-full shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] transition-transform group-hover:-translate-y-1 duration-300">
+                  <div className="bg-slate-900 dark:bg-slate-100 p-2 flex justify-between items-center">
+                    <h3 className="text-[10px] items-center font-bold text-white dark:text-slate-900 uppercase tracking-widest pl-1">
+                      Official Quote #{quote.id.slice(0, 8)}
+                    </h3>
+                    <span className="text-[10px] text-slate-400 font-medium px-2">
+                      24h
+                    </span>
+                  </div>
+
+                  <div className="p-5 space-y-4">
+                    <div className="flex justify-between items-end border-b border-slate-100 dark:border-slate-700 pb-3">
+                      <span className="text-xs font-semibold text-slate-500">
+                        Unit Price
+                      </span>
+                      <span className="text-sm font-bold text-slate-900 dark:text-white">
+                        {formatKobo(BigInt(quote.unitPriceKobo))}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-end border-b border-slate-100 dark:border-slate-700 pb-3">
+                      <span className="text-xs font-semibold text-slate-500">
+                        Delivery Fee
+                      </span>
+                      <span className="text-sm font-bold text-slate-900 dark:text-white">
+                        {formatKobo(BigInt(quote.deliveryFeeKobo))}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-end pt-1">
+                      <span className="text-sm font-black text-slate-900 dark:text-white">
+                        Total Amount
+                      </span>
+                      <span className="text-lg font-black text-slate-900 dark:text-white tabular-nums tracking-tight">
+                        {formatKobo(BigInt(quote.totalPriceKobo))}
+                      </span>
+                    </div>
+
+                    <div className="bg-primary/10 border border-primary/20 p-2 mt-4 text-center rounded">
+                      <p className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-tighter">
+                        Expiry: Valid for 48 Hours
+                      </p>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Action Buttons */}
                 {quote.status === "PENDING" && (
-                  <button
-                    onClick={() => onAcceptQuote(quote.id)}
-                    disabled={acceptingId === quote.id}
-                    className="px-4 py-2 bg-navy-dark text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
-                  >
-                    {acceptingId === quote.id ? "Accepting..." : "Accept Quote"}
-                  </button>
+                  <div className="flex gap-3 w-full mt-2">
+                    <button
+                      onClick={() => onAcceptQuote(quote.id)}
+                      disabled={acceptingId === quote.id}
+                      className="flex-1 bg-primary text-slate-900 text-[11px] font-bold py-3.5 uppercase tracking-wider shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px] transition-all border border-slate-900 active:bg-primary/90 disabled:opacity-50"
+                    >
+                      {acceptingId === quote.id
+                        ? "Processing..."
+                        : "Accept & Pay"}
+                    </button>
+                    <button className="px-6 border border-slate-300 dark:border-slate-600 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 text-[11px] font-bold py-3.5 uppercase tracking-wider transition-colors disabled:opacity-50">
+                      Decline
+                    </button>
+                  </div>
                 )}
               </div>
             </div>

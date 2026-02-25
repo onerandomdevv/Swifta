@@ -11,6 +11,7 @@ import databaseConfig from './config/database.config';
 import redisConfig from './config/redis.config';
 import jwtConfig from './config/jwt.config';
 import paystackConfig from './config/paystack.config';
+import africastalkingConfig from './config/africastalking.config';
 
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
@@ -41,7 +42,14 @@ import { APP_GUARD } from '@nestjs/core';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [configuration, databaseConfig, redisConfig, jwtConfig, paystackConfig],
+      load: [
+        configuration,
+        databaseConfig,
+        redisConfig,
+        jwtConfig,
+        paystackConfig,
+        africastalkingConfig,
+      ],
     }),
     LoggerModule,
     ScheduleModule.forRoot(),

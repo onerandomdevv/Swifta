@@ -1,11 +1,17 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Inject } from '@nestjs/common';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
-import { PrismaService } from '../../prisma/prisma.service';
-import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
-import { PaginatedResponse, Product } from '@hardware-os/shared';
-import { paginate } from '../../common/utils/pagination';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+  Inject,
+} from "@nestjs/common";
+import { CACHE_MANAGER } from "@nestjs/cache-manager";
+import { Cache } from "cache-manager";
+import { PrismaService } from "../../prisma/prisma.service";
+import { CreateProductDto } from "./dto/create-product.dto";
+import { UpdateProductDto } from "./dto/update-product.dto";
+import { PaginatedResponse, Product } from "@hardware-os/shared";
+import { paginate } from "../../common/utils/pagination";
 
 @Injectable()
 export class ProductService {
@@ -25,11 +31,20 @@ export class ProductService {
     return product;
   }
 
-  async listByMerchant(merchantId: string, page: number, limit: number): Promise<PaginatedResponse<Product>> {
-    const response = await paginate(this.prisma.product, { page, limit }, {
-      where: { merchantId },
-      orderBy: { createdAt: 'desc' },
-    });
+  async listByMerchant(
+    merchantId: string,
+    page: number,
+    limit: number,
+  ): Promise<PaginatedResponse<Product>> {
+    const response = await paginate(
+      this.prisma.product,
+      { page, limit },
+      {
+        where: { merchantId },
+        orderBy: { createdAt: "desc" },
+        include: { stockCache: true },
+      },
+    );
 
     // Mark soft-deleted products with a flag (for frontend convenience if needed)
     response.data = response.data.map((product: any) => ({
@@ -40,18 +55,30 @@ export class ProductService {
     return response;
   }
 
-  async listPublicByMerchant(merchantId: string, page: number, limit: number): Promise<PaginatedResponse<Product>> {
-    return paginate(this.prisma.product, { page, limit }, {
-      where: { 
-        merchantId,
-        isActive: true,
-        deletedAt: null,
+  async listPublicByMerchant(
+    merchantId: string,
+    page: number,
+    limit: number,
+  ): Promise<PaginatedResponse<Product>> {
+    return paginate(
+      this.prisma.product,
+      { page, limit },
+      {
+        where: {
+          merchantId,
+          isActive: true,
+          deletedAt: null,
+        },
+        orderBy: { createdAt: "desc" },
       },
-      orderBy: { createdAt: 'desc' },
-    });
+    );
   }
 
-  async catalogue(search: string = '', page: number, limit: number): Promise<PaginatedResponse<Product>> {
+  async catalogue(
+    search: string = "",
+    page: number,
+    limit: number,
+  ): Promise<PaginatedResponse<Product>> {
     const where: any = {
       isActive: true,
       deletedAt: null,
@@ -59,23 +86,27 @@ export class ProductService {
 
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { categoryTag: { contains: search, mode: 'insensitive' } },
+        { name: { contains: search, mode: "insensitive" } },
+        { categoryTag: { contains: search, mode: "insensitive" } },
       ];
     }
 
-    return paginate(this.prisma.product, { page, limit }, {
-      where,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        merchant: {
-          select: {
-            id: true,
-            businessName: true,
+    return paginate(
+      this.prisma.product,
+      { page, limit },
+      {
+        where,
+        orderBy: { createdAt: "desc" },
+        include: {
+          merchant: {
+            select: {
+              id: true,
+              businessName: true,
+            },
           },
         },
       },
-    });
+    );
   }
 
   async getById(id: string) {
@@ -92,7 +123,7 @@ export class ProductService {
       },
     });
     if (!product || product.deletedAt) {
-      throw new NotFoundException('Product not found');
+      throw new NotFoundException("Product not found");
     }
     return product;
   }
@@ -121,9 +152,9 @@ export class ProductService {
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
     });
-    if (!product) throw new NotFoundException('Product not found');
+    if (!product) throw new NotFoundException("Product not found");
     if (product.merchantId !== merchantId) {
-      throw new ForbiddenException('Access denied');
+      throw new ForbiddenException("Access denied");
     }
     const restored = await this.prisma.product.update({
       where: { id: productId },
@@ -139,37 +170,36 @@ export class ProductService {
     });
 
     if (!product || product.deletedAt) {
-      throw new NotFoundException('Product not found');
+      throw new NotFoundException("Product not found");
     }
 
     if (!product.isActive) {
-      throw new BadRequestException('Product is not currently active');
+      throw new BadRequestException("Product is not currently active");
     }
 
     return product;
   }
 
-  private async verifyProductOwnership(
-    merchantId: string,
-    productId: string,
-  ) {
+  private async verifyProductOwnership(merchantId: string, productId: string) {
     const product = await this.prisma.product.findFirst({
       where: { id: productId, merchantId },
     });
     if (!product) {
-      throw new NotFoundException('Product not found');
+      throw new NotFoundException("Product not found");
     }
     if (product.deletedAt) {
-      throw new NotFoundException('Product has been deleted');
+      throw new NotFoundException("Product has been deleted");
     }
   }
 
   private async invalidateCatalogueCache() {
     try {
       // Clear out all keys starting with /products to purge all paginated endpoints
-      const keys: string[] = await (this.cacheManager as any).store.keys('/products*');
+      const keys: string[] = await (this.cacheManager as any).store.keys(
+        "/products*",
+      );
       if (keys && keys.length > 0) {
-        await Promise.all(keys.map(k => this.cacheManager.del(k)));
+        await Promise.all(keys.map((k) => this.cacheManager.del(k)));
       }
     } catch (e) {
       // In case underlying store lacks `.keys()` or errors, safely fallback to full reset

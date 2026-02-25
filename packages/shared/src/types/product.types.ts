@@ -11,6 +11,7 @@ export interface Product {
   createdAt: Date;
   updatedAt: Date;
   merchant?: any;
+  stockCache?: { stock: number };
 }
 
 export interface CreateProductDto {
