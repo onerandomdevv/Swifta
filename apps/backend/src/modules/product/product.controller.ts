@@ -9,7 +9,9 @@ import {
   UseGuards,
   Query,
   ParseUUIDPipe,
+  UseInterceptors,
 } from '@nestjs/common';
+import { CacheInterceptor } from '@nestjs/cache-manager';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -46,6 +48,7 @@ export class ProductController {
   }
 
   @Get('merchant/:merchantId')
+  @UseInterceptors(CacheInterceptor)
   findAllByMerchant(
     @Param('merchantId', ParseUUIDPipe) merchantId: string,
     @Query('page') page: number = 1,
@@ -55,6 +58,7 @@ export class ProductController {
   }
 
   @Get('catalogue')
+  @UseInterceptors(CacheInterceptor)
   findAllCatalogue(@Query() query: CatalogueQueryDto) {
     return this.productService.catalogue(query.search, query.page, query.limit);
   }

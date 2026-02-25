@@ -1,3 +1,5 @@
+import { withSentryConfig } from "@sentry/nextjs";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -7,4 +9,22 @@ const nextConfig = {
   transpilePackages: ["@hardware-os/shared"],
 };
 
-export default nextConfig;
+export default withSentryConfig(
+  nextConfig,
+  {
+    // For all available options, see:
+    // https://github.com/getsentry/sentry-webpack-plugin#options
+    silent: true, // Suppresses all logs
+    org: process.env.SENTRY_ORG || "hardware-os",
+    project: process.env.SENTRY_PROJECT || "hardware-os-frontend",
+  },
+  {
+    // For all available options, see:
+    // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
+    widenClientFileUpload: true,
+    transpileClientSDK: true,
+    tunnelRoute: "/monitoring",
+    hideSourceMaps: true,
+    disableLogger: true,
+  },
+);
