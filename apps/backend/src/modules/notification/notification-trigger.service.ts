@@ -8,13 +8,20 @@ import { NotificationType, NotificationChannel } from '@hardware-os/shared';
 export class NotificationTriggerService {
   constructor(@InjectQueue(NOTIFICATION_QUEUE) private queue: Queue) {}
 
-  private async addJob(userId: string, type: string, title: string, body: string, metadata?: any) {
+  private async addJob(
+    userId: string,
+    type: string,
+    title: string,
+    body: string,
+    metadata?: any,
+    channels: NotificationChannel[] = [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+  ) {
     await this.queue.add('send-notification', {
         userId,
         type,
         title,
         body,
-        channels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+        channels,
         metadata
     }, {
         attempts: 3,
@@ -31,7 +38,14 @@ export class NotificationTriggerService {
   }
 
   async triggerQuoteReceived(buyerId: string, quoteId: string) {
-      await this.addJob(buyerId, 'QUOTE_RECEIVED', 'Quote Received', 'You have received a new quote.', { quoteId });
+      await this.addJob(
+        buyerId, 
+        'QUOTE_RECEIVED', 
+        'Quote Received', 
+        'You have received a new quote.', 
+        { quoteId },
+        [NotificationChannel.IN_APP, NotificationChannel.EMAIL, NotificationChannel.SMS]
+      );
   }
 
   async triggerQuoteAccepted(merchantId: string, quoteId: string) {
@@ -47,11 +61,25 @@ export class NotificationTriggerService {
   }
 
   async triggerOrderDispatched(buyerId: string, orderId: string) {
-      await this.addJob(buyerId, 'ORDER_DISPATCHED', 'Order Dispatched', 'Your order has been dispatched.', { orderId });
+      await this.addJob(
+        buyerId, 
+        'ORDER_DISPATCHED', 
+        'Order Dispatched', 
+        `Your order #${orderId.slice(-6)} has been dispatched. Track your delivery OTP in the app.`, 
+        { orderId },
+        [NotificationChannel.IN_APP, NotificationChannel.EMAIL, NotificationChannel.SMS]
+      );
   }
 
   async triggerDeliveryConfirmed(merchantId: string, orderId: string) {
-      await this.addJob(merchantId, 'DELIVERY_CONFIRMED', 'Delivery Confirmed', 'Order delivery has been confirmed.', { orderId, isMerchantId: true });
+      await this.addJob(
+        merchantId, 
+        'DELIVERY_CONFIRMED', 
+        'Delivery Confirmed', 
+        `Order #${orderId.slice(-6)} delivery has been confirmed. Payout will be initiated shortly.`, 
+        { orderId, isMerchantId: true },
+        [NotificationChannel.IN_APP, NotificationChannel.EMAIL, NotificationChannel.SMS]
+      );
   }
 
   async triggerPayoutInitiated(merchantId: string, orderId: string) {

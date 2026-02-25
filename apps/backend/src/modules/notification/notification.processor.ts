@@ -4,6 +4,7 @@ import { Logger } from '@nestjs/common';
 import { NOTIFICATION_QUEUE } from '../../queue/queue.constants';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from './email.service';
+import { SmsService } from './sms.service';
 import { NotificationChannel } from '@hardware-os/shared';
 
 @Processor(NOTIFICATION_QUEUE, {
@@ -16,6 +17,7 @@ export class NotificationProcessor extends WorkerHost {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
+    private smsService: SmsService,
   ) {
     super();
   }
@@ -64,6 +66,12 @@ export class NotificationProcessor extends WorkerHost {
         } else if (channel === NotificationChannel.EMAIL) {
           await this.emailService.sendEmail(user.email, title, body);
           this.logger.log(`Email notification sent to ${user.email}`);
+        } else if (channel === NotificationChannel.SMS && user.phone) {
+          try {
+            await this.smsService.sendSms(user.phone, body);
+          } catch (smsError) {
+             this.logger.warn(`Failed to dispatch SMS, moving to next channel. Warning: ${smsError}`);
+          }
         }
       } catch (error: unknown) {
         const errMsg = error instanceof Error ? error.message : String(error);
