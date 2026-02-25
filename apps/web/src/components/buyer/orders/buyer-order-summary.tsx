@@ -8,49 +8,49 @@ interface Props {
 
 export function BuyerOrderSummary({ order }: Props) {
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden shadow-sm">
-      <div className="p-8 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between">
-        <h3 className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-widest">
+    <div className="bg-white dark:bg-slate-900 border-2 border-slate-900 dark:border-slate-100 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] w-full">
+      <div className="bg-slate-900 dark:bg-slate-100 p-3 flex items-center justify-between">
+        <h3 className="text-xs font-bold text-white dark:text-slate-900 uppercase tracking-widest pl-1">
           Order Summary
         </h3>
+        <span className="material-symbols-outlined text-white dark:text-slate-900 text-sm">receipt_long</span>
       </div>
 
-      <div className="p-10 space-y-8">
-        <div className="flex justify-between items-center">
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-              Total Amount
-            </p>
-            <p className="text-3xl font-black text-navy-dark dark:text-white tabular-nums">
-              {formatKobo(BigInt(order.totalAmountKobo))}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-              Delivery Fee
-            </p>
-            <p className="text-lg font-black text-navy-dark dark:text-white tabular-nums">
-              {formatKobo(BigInt(order.deliveryFeeKobo))}
-            </p>
-          </div>
+      <div className="p-6 space-y-5">
+        <div className="flex justify-between items-end border-b border-slate-100 dark:border-slate-800 pb-3">
+          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            Total Amount
+          </span>
+          <span className="text-xl font-black text-slate-900 dark:text-white tabular-nums tracking-tight">
+            {formatKobo(BigInt(order.totalAmountKobo))}
+          </span>
         </div>
-        <div className="flex justify-between items-center">
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-              Currency
-            </p>
-            <p className="text-sm font-black text-navy-dark dark:text-white">
-              {order.currency}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-              Created
-            </p>
-            <p className="text-sm font-black text-navy-dark dark:text-white">
-              {new Date(order.createdAt).toLocaleString()}
-            </p>
-          </div>
+
+        <div className="flex justify-between items-end border-b border-slate-100 dark:border-slate-800 pb-3">
+          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            Delivery Fee
+          </span>
+          <span className="text-sm font-bold text-slate-900 dark:text-white tabular-nums">
+            {formatKobo(BigInt(order.deliveryFeeKobo))}
+          </span>
+        </div>
+
+        <div className="flex justify-between items-end border-b border-slate-100 dark:border-slate-800 pb-3">
+          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            Currency
+          </span>
+          <span className="text-sm font-bold text-slate-900 dark:text-white">
+            {order.currency}
+          </span>
+        </div>
+
+        <div className="flex justify-between items-end">
+          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            Created
+          </span>
+          <span className="text-xs font-bold text-slate-900 dark:text-white">
+            {new Date(order.createdAt).toLocaleString()}
+          </span>
         </div>
       </div>
     </div>

@@ -86,40 +86,65 @@ export default function MerchantOrdersPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">
-              Total Orders
-            </p>
-            <h3 className="text-3xl font-black text-navy-dark dark:text-white tracking-tight leading-none uppercase">
+          <div className="bg-white dark:bg-slate-900 border-2 border-slate-900 dark:border-slate-100 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] p-5">
+            <div className="flex justify-between items-start mb-4">
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+                Total Orders
+              </p>
+              <span className="material-symbols-outlined text-slate-900 dark:text-white text-sm">
+                inventory_2
+              </span>
+            </div>
+            <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight leading-none tabular-nums">
               {orders.length}
             </h3>
           </div>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">
-              Pending Payment
-            </p>
-            <h3 className="text-3xl font-black text-navy-dark dark:text-white tracking-tight leading-none uppercase">
-              {pendingCount}
-            </h3>
-            {pendingCount > 0 && (
-              <span className="mt-4 inline-flex px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-amber-100 text-amber-700">
-                High Alert
+
+          <div className="bg-white dark:bg-slate-900 border-2 border-slate-900 dark:border-slate-100 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] p-5 relative overflow-hidden">
+            <div className="flex justify-between items-start mb-4">
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+                Pending Payment
+              </p>
+              <span className="material-symbols-outlined text-slate-900 dark:text-white text-sm">
+                pending_actions
               </span>
-            )}
+            </div>
+            <div className="flex items-end gap-3">
+              <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight leading-none tabular-nums">
+                {pendingCount}
+              </h3>
+              {pendingCount > 0 && (
+                <span className="px-2 py-0.5 bg-accent-orange/10 border border-accent-orange/20 text-accent-orange rounded text-[9px] font-black uppercase tracking-widest leading-none mb-1">
+                  Alert
+                </span>
+              )}
+            </div>
           </div>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">
-              Ready for Dispatch
-            </p>
-            <h3 className="text-3xl font-black text-navy-dark dark:text-white tracking-tight leading-none uppercase">
+
+          <div className="bg-white dark:bg-slate-900 border-2 border-slate-900 dark:border-slate-100 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] p-5">
+            <div className="flex justify-between items-start mb-4">
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+                Ready to Dispatch
+              </p>
+              <span className="material-symbols-outlined text-slate-900 dark:text-white text-sm">
+                local_shipping
+              </span>
+            </div>
+            <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight leading-none tabular-nums">
               {paidCount}
             </h3>
           </div>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">
-              Total Revenue
-            </p>
-            <h3 className="text-3xl font-black text-navy-dark dark:text-white tracking-tight leading-none uppercase">
+
+          <div className="bg-white dark:bg-slate-900 border-2 border-slate-900 dark:border-slate-100 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] p-5">
+            <div className="flex justify-between items-start mb-4">
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+                Total Revenue
+              </p>
+              <span className="material-symbols-outlined text-slate-900 dark:text-white text-sm">
+                account_balance_wallet
+              </span>
+            </div>
+            <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none truncate tabular-nums">
               <Money amount={totalRevenue} />
             </h3>
           </div>

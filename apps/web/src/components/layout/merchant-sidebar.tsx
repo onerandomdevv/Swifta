@@ -6,65 +6,86 @@ import { useAuth } from "@/providers/auth-provider";
 
 export function MerchantSidebar() {
   const pathname = usePathname();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
 
   const navItems = [
     { label: "Dashboard", icon: "dashboard", href: "/merchant/dashboard" },
-    { label: "Products", icon: "category", href: "/merchant/products" },
-    { label: "RFQs", icon: "description", href: "/merchant/rfqs" },
-    { label: "Quotes", icon: "request_quote", href: "/merchant/quotes" },
-    { label: "Orders", icon: "local_shipping", href: "/merchant/orders" },
-    { label: "Inventory", icon: "warehouse", href: "/merchant/inventory" },
-    { label: "Analytics", icon: "analytics", href: "/merchant/analytics" },
-    {
-      label: "Verification",
-      icon: "verified_user",
-      href: "/merchant/verification",
-    },
+    { label: "Catalogue", icon: "list_alt", href: "/merchant/catalogue" },
+    { label: "Inventory", icon: "inventory_2", href: "/merchant/inventory" },
+    { label: "Payouts", icon: "payments", href: "/merchant/payouts" },
   ];
 
   return (
-    <aside className="w-64 bg-primary-navy flex-shrink-0 flex flex-col text-white z-50">
-      <div className="p-6 flex items-center gap-3">
-        <div className="h-10 w-10 bg-white/10 rounded-lg flex items-center justify-center">
-          <span className="material-symbols-outlined text-white">
+    <aside className="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col shrink-0 z-50">
+      <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center gap-3">
+        <div className="bg-primary size-8 flex items-center justify-center rounded-lg">
+          <span className="material-symbols-outlined text-white text-xl">
             construction
           </span>
         </div>
         <div>
-          <h1 className="text-lg font-bold leading-tight">Hardware OS</h1>
-          <p className="text-xs text-white/60">Lagos Trading Hub</p>
+          <h1 className="text-sm font-bold tracking-tight uppercase text-slate-900 dark:text-white">
+            Hardware OS
+          </h1>
+          <p className="text-[10px] text-slate-500 uppercase font-medium tracking-wider">
+            Command Center
+          </p>
         </div>
       </div>
 
-      <nav className="flex-1 px-4 py-4 space-y-1">
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors font-medium ${
+              className={`flex items-center gap-3 px-3 py-2 rounded transition-colors ${
                 isActive
-                  ? "bg-white/10 text-white"
-                  : "text-white/70 hover:bg-white/5 hover:text-white"
+                  ? "bg-primary/10 text-primary font-semibold"
+                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
               }`}
             >
               <span className="material-symbols-outlined">{item.icon}</span>
-              {item.label}
+              <span className="text-sm">{item.label}</span>
             </Link>
           );
         })}
       </nav>
 
-      <div className="p-4 mt-auto border-t border-white/10">
-        <button
-          onClick={() => logout()}
-          className="flex w-full items-center justify-start gap-3 px-4 py-3 rounded-lg text-white/70 hover:bg-white/5 hover:text-white transition-colors"
-        >
-          <span className="material-symbols-outlined">logout</span>
-          Logout
-        </button>
+      <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-3 px-2 py-2">
+            <div className="size-8 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center border border-slate-300 dark:border-slate-600 shrink-0">
+              <span className="material-symbols-outlined text-slate-500 text-lg">
+                person
+              </span>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <p className="text-xs font-bold truncate text-slate-900 dark:text-white">
+                {/* Provide fallback for user name since it might be loading or undefined at initial render */}
+                {user?.fullName ||
+                  user?.email?.split("@")[0] ||
+                  "Merchant User"}
+              </p>
+              <p className="text-[10px] text-slate-500 xl:truncate">
+                Hardware Admin
+              </p>
+            </div>
+            <span className="material-symbols-outlined text-slate-400 text-sm cursor-pointer hover:text-primary transition-colors">
+              settings
+            </span>
+          </div>
+          <button
+            onClick={() => logout()}
+            className="flex items-center gap-3 px-4 py-2 mt-1 rounded text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors w-full"
+          >
+            <span className="material-symbols-outlined text-sm">logout</span>
+            <span className="text-xs font-bold uppercase tracking-widest">
+              Logout
+            </span>
+          </button>
+        </div>
       </div>
     </aside>
   );

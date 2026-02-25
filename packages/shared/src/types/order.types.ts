@@ -1,4 +1,4 @@
-import { OrderStatus } from '../enums/order-status.enum';
+import { OrderStatus } from "../enums/order-status.enum";
 
 export interface Order {
   id: string;
@@ -14,6 +14,8 @@ export interface Order {
   createdAt: Date;
   updatedAt: Date;
   merchant?: any;
+  quote?: any;
+  rfq?: any;
 }
 
 export interface OrderEvent {
