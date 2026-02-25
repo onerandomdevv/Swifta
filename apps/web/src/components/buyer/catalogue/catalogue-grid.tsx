@@ -8,14 +8,6 @@ interface Props {
   setActiveCategory: (val: string) => void;
 }
 
-const categoryIcons: Record<string, string> = {
-  "Building Materials": "construction",
-  Electrical: "electrical_services",
-  Plumbing: "plumbing",
-  Tools: "hardware",
-  Safety: "health_and_safety",
-};
-
 export function CatalogueGrid({
   products,
   setSearchQuery,
@@ -30,7 +22,7 @@ export function CatalogueGrid({
           </span>
         </div>
         <div>
-          <h4 className="text-2xl font-black text-navy-dark dark:text-white uppercase tracking-tight">
+          <h4 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
             No materials found
           </h4>
           <p className="text-slate-500 font-bold text-sm tracking-wide mt-2">
@@ -42,7 +34,7 @@ export function CatalogueGrid({
             setSearchQuery("");
             setActiveCategory("All");
           }}
-          className="text-accent-orange font-black text-xs uppercase tracking-[0.2em] hover:underline decoration-2 underline-offset-8"
+          className="text-primary font-black text-xs uppercase tracking-[0.2em] hover:underline decoration-2 underline-offset-8"
         >
           Clear All Search Filters
         </button>
@@ -51,68 +43,78 @@ export function CatalogueGrid({
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      {products?.map((p) => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {products.map((p) => (
         <div
           key={p.id}
-          className="flex flex-col bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
+          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col group hover:shadow-md transition-shadow"
         >
-          {/* Image Container */}
-          <div className="w-full aspect-square bg-slate-100 dark:bg-slate-800 flex items-center justify-center relative overflow-hidden">
+          {/* Product Image */}
+          <div className="relative aspect-square overflow-hidden bg-slate-100 dark:bg-slate-800">
             {p.imageUrl ? (
-              <img
-                src={p.imageUrl}
-                alt={p.name}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+              <div
+                className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
+                style={{ backgroundImage: `url("${p.imageUrl}")` }}
               />
             ) : (
-              <span className="material-symbols-outlined text-slate-300 dark:text-slate-600 text-[80px] group-hover:scale-105 transition-transform duration-700 leading-none">
-                {categoryIcons[p.categoryTag] || "inventory_2"}
-              </span>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="material-symbols-outlined text-slate-300 dark:text-slate-600 text-[80px] group-hover:scale-105 transition-transform duration-500">
+                  inventory_2
+                </span>
+              </div>
             )}
-
-            {/* Quick Action Overlay (Optional/Utilitarian) */}
-            <div className="absolute top-2 right-2 bg-white/90 dark:bg-slate-900/90 rounded-full p-1.5 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <span className="material-symbols-outlined text-slate-400 text-sm">
-                favorite
-              </span>
-            </div>
+            {/* Category Badge */}
+            <span className="absolute top-3 right-3 bg-slate-900 text-white text-[10px] font-black uppercase px-2 py-1 tracking-wider">
+              {p.categoryTag}
+            </span>
           </div>
 
-          {/* Data Container */}
+          {/* Product Details */}
           <div className="p-4 flex flex-col flex-1">
-            <div className="mb-2 min-h-[4rem]">
-              <h3
-                className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-snug line-clamp-2"
-                title={p.name}
-              >
-                {p.name}
-              </h3>
-              <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 dark:text-slate-500 mt-1">
-                {p.unit}
-              </p>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase">
+              {p.name}
+            </h3>
+            <p className="text-xs font-medium text-primary mt-1">
+              {p.description || p.categoryTag}
+            </p>
+
+            {/* Merchant Info */}
+            {p.merchant && (
+              <div className="flex items-center gap-1.5 mt-3">
+                <span className="material-symbols-outlined text-green-500 text-sm">
+                  verified
+                </span>
+                <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
+                  {p.merchant.businessName || "Verified Supplier"}
+                </span>
+              </div>
+            )}
+
+            {/* Specs Table */}
+            <div className="mt-4 mb-6 border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+              <div className="grid grid-cols-2 text-[10px] p-2 border-b border-slate-100 dark:border-slate-800">
+                <span className="text-slate-500 uppercase font-bold tracking-tighter">
+                  Min. Order
+                </span>
+                <span className="text-right font-black text-slate-900 dark:text-white">
+                  {p.minOrderQuantity} {p.unit.toUpperCase()}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 text-[10px] p-2">
+                <span className="text-slate-500 uppercase font-bold tracking-tighter">
+                  Unit
+                </span>
+                <span className="text-right font-black text-slate-900 dark:text-white">
+                  {p.unit.toUpperCase()}
+                </span>
+              </div>
             </div>
 
-            <div className="flex items-center gap-1.5 mb-4">
-              <span className="material-symbols-outlined text-accent-orange text-xs">
-                store
-              </span>
-              <Link
-                href={p.merchant ? `/merchants/${p.merchant.id}` : "#"}
-                className="text-[11px] font-medium text-slate-600 dark:text-slate-400 truncate hover:text-accent-orange transition-colors"
-              >
-                {p.merchant ? p.merchant.businessName : "Unknown Supplier"}
-              </Link>
-            </div>
-
-            {/* Strict V1 CTA: Request Quote (No Cart/Buy Now) */}
+            {/* CTA */}
             <Link
               href={`/buyer/rfqs/new?productId=${p.id}`}
-              className="mt-auto w-full bg-accent-orange text-white py-2.5 rounded-lg text-xs font-bold hover:bg-orange-600 active:scale-95 transition-all text-center flex items-center justify-center gap-2"
+              className="mt-auto w-full bg-primary text-white text-xs font-bold py-3 uppercase tracking-widest hover:bg-orange-600 transition-colors text-center block"
             >
-              <span className="material-symbols-outlined text-[16px]">
-                request_quote
-              </span>
               Request Quote
             </Link>
           </div>
