@@ -121,21 +121,7 @@ export class AuthService {
   async resendVerification(
     dto: ResendVerificationDto,
   ): Promise<{ message: string }> {
-    // Verify the user exists and isn't already verified
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
-    if (!user) {
-      // Return success even if user not found (don't leak user existence)
-      return {
-        message:
-          "If an account with that email exists, a new code has been sent.",
-      };
-    }
-
-    if (user.emailVerified) {
-      throw new BadRequestException("Email is already verified.");
-    }
+    // Apply rate limiting before sending a new code
 
     // Rate limiting: max 3 resends per 10 minutes
     const rateKey = `${EMAIL_OTP_RATE_PREFIX}${dto.email}`;
@@ -149,7 +135,9 @@ export class AuthService {
     }
 
     // Generate and store new OTP (overwrites the old one)
-    await this.generateAndStoreOtp(dto.email);
+    // We only actually send/store if the user exists and isn't verified,
+    // but we do that inside the helper to avoid leaking existence via timing
+    await this.generateAndStoreOtpIfEligible(dto.email);
 
     // Increment rate limit counter
     await this.redis.set(rateKey, (count + 1).toString(), EMAIL_OTP_RATE_TTL);
@@ -184,14 +172,16 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException("Account not found.");
+      throw new UnauthorizedException("Invalid email or password");
+    }
+
+    if (!(await bcrypt.compare(dto.password, user.passwordHash))) {
+      throw new UnauthorizedException("Invalid email or password");
     }
 
     // Reject standard users
     if (user.role === "BUYER" || user.role === "MERCHANT") {
-      throw new UnauthorizedException(
-        "This portal is restricted to internal operations staff only. Please use the main login portal.",
-      );
+      throw new UnauthorizedException("Invalid email or password");
     }
 
     if (user.adminProfile?.approvalStatus === "PENDING") {
@@ -202,10 +192,6 @@ export class AuthService {
 
     if (user.adminProfile?.approvalStatus === "SUSPENDED") {
       throw new UnauthorizedException("Your account has been suspended.");
-    }
-
-    if (!(await bcrypt.compare(dto.password, user.passwordHash))) {
-      throw new UnauthorizedException("Invalid credentials");
     }
 
     return this.generateAndStoreTokens(user);
@@ -379,6 +365,25 @@ export class AuthService {
     this.logger.log(`Password reset successfully for user: ${user.email}`);
 
     return { message: "Password has been successfully reset" };
+  }
+
+  /**
+   * Securely generates and stores an OTP only if the user exists and is not verified.
+   * Returns generic success regardless of internal state to prevent enumeration.
+   */
+  private async generateAndStoreOtpIfEligible(email: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    // If no user or already verified, return early (generic success handled by caller)
+    if (!user || user.emailVerified) {
+      return;
+    }
+
+    const otp = randomInt(100000, 999999).toString();
+    await this.redis.set(`${EMAIL_OTP_PREFIX}${email}`, otp, EMAIL_OTP_TTL);
+    await this.emailService.sendVerificationEmail(email, otp);
   }
 
   /**

@@ -7,6 +7,7 @@ import {
   UseGuards,
   Query,
   ForbiddenException,
+  ParseIntPipe,
 } from "@nestjs/common";
 import { OrderService } from "./order.service";
 import { ConfirmDeliveryDto } from "./dto/confirm-delivery.dto";
@@ -25,8 +26,8 @@ export class OrderController {
   @Get()
   findAll(
     @CurrentUser() user: JwtPayload,
-    @Query("page") page: number = 1,
-    @Query("limit") limit: number = 20,
+    @Query("page", new ParseIntPipe({ optional: true })) page: number = 1,
+    @Query("limit", new ParseIntPipe({ optional: true })) limit: number = 20,
   ) {
     if (user.role === UserRole.MERCHANT && user.merchantId) {
       return this.orderService.listByMerchant(user.merchantId, page, limit);
