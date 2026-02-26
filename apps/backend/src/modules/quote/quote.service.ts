@@ -3,18 +3,18 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
-} from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { NotificationTriggerService } from '../notification/notification-trigger.service';
-import { SubmitQuoteDto } from './dto/submit-quote.dto';
+} from "@nestjs/common";
+import { PrismaService } from "../../prisma/prisma.service";
+import { NotificationTriggerService } from "../notification/notification-trigger.service";
+import { SubmitQuoteDto } from "./dto/submit-quote.dto";
 import {
   RFQStatus,
   QuoteStatus,
   OrderStatus,
   InventoryEventType,
   DEFAULT_CURRENCY,
-} from '@hardware-os/shared';
-import * as crypto from 'crypto';
+} from "@hardware-os/shared";
+import * as crypto from "crypto";
 
 @Injectable()
 export class QuoteService {
@@ -24,26 +24,26 @@ export class QuoteService {
   ) {}
 
   async submit(merchantId: string, dto: SubmitQuoteDto) {
-    const rfq = await this.prisma.rFQ.findUnique({
+    const rfq = await this.prisma.rfq.findUnique({
       where: { id: dto.rfqId },
     });
 
     if (!rfq) {
-      throw new NotFoundException('RFQ not found');
+      throw new NotFoundException("RFQ not found");
     }
 
     // Only OPEN RFQs can receive quotes (spec says merchant submits quote for OPEN RFQ)
     if (rfq.status !== RFQStatus.OPEN) {
-      throw new BadRequestException('RFQ is not open for quotes');
+      throw new BadRequestException("RFQ is not open for quotes");
     }
 
     if (rfq.merchantId !== merchantId) {
-      throw new ForbiddenException('You can only quote for your own RFQs');
+      throw new ForbiddenException("You can only quote for your own RFQs");
     }
 
     // Check if RFQ has expired
     if (rfq.expiresAt && new Date(rfq.expiresAt) < new Date()) {
-      throw new BadRequestException('RFQ has expired');
+      throw new BadRequestException("RFQ has expired");
     }
 
     const quote = await this.prisma.quote.create({
@@ -61,7 +61,7 @@ export class QuoteService {
     });
 
     // Update RFQ status to QUOTED
-    await this.prisma.rFQ.update({
+    await this.prisma.rfq.update({
       where: { id: dto.rfqId },
       data: { status: RFQStatus.QUOTED },
     });
@@ -91,20 +91,20 @@ export class QuoteService {
     });
 
     if (!quote) {
-      throw new NotFoundException('Quote not found');
+      throw new NotFoundException("Quote not found");
     }
 
     if (quote.rfq.buyerId !== buyerId) {
-      throw new ForbiddenException('Access denied');
+      throw new ForbiddenException("Access denied");
     }
 
     if (quote.status !== QuoteStatus.PENDING) {
-      throw new BadRequestException('Quote is not pending');
+      throw new BadRequestException("Quote is not pending");
     }
 
     // Check quote expiry
     if (new Date(quote.validUntil) < new Date()) {
-      throw new BadRequestException('Quote has expired');
+      throw new BadRequestException("Quote has expired");
     }
 
     // Execute everything atomically
@@ -116,11 +116,11 @@ export class QuoteService {
       });
 
       if (updated.count === 0) {
-        throw new BadRequestException('Quote was already accepted or declined');
+        throw new BadRequestException("Quote was already accepted or declined");
       }
 
       // 2. Update RFQ status → ACCEPTED
-      await tx.rFQ.update({
+      await tx.rfq.update({
         where: { id: quote.rfqId },
         data: { status: RFQStatus.ACCEPTED },
       });
@@ -134,7 +134,8 @@ export class QuoteService {
       // 4. Create Order (PENDING_PAYMENT)
       const orderId = crypto.randomUUID();
       const idempotencyKey = `order-create-${quoteId}`;
-      const totalAmount = quote.totalPriceKobo + (quote.deliveryFeeKobo ?? BigInt(0));
+      const totalAmount =
+        quote.totalPriceKobo + (quote.deliveryFeeKobo ?? BigInt(0));
 
       const newOrder = await tx.order.create({
         data: {
@@ -160,7 +161,7 @@ export class QuoteService {
             eventType: InventoryEventType.ORDER_RESERVED,
             quantity: -quote.rfq.quantity,
             referenceId: newOrder.id,
-            notes: 'Order reservation',
+            notes: "Order reservation",
           },
         });
 
@@ -168,7 +169,10 @@ export class QuoteService {
         await tx.productStockCache.upsert({
           where: { productId: quote.rfq.productId },
           update: { stock: { decrement: quote.rfq.quantity } },
-          create: { productId: quote.rfq.productId, stock: -quote.rfq.quantity },
+          create: {
+            productId: quote.rfq.productId,
+            stock: -quote.rfq.quantity,
+          },
         });
       }
 
@@ -179,7 +183,7 @@ export class QuoteService {
           fromStatus: null as any,
           toStatus: OrderStatus.PENDING_PAYMENT,
           triggeredBy: buyerId,
-          metadata: { action: 'quote_accepted', quoteId },
+          metadata: { action: "quote_accepted", quoteId },
         },
       });
 
@@ -199,16 +203,16 @@ export class QuoteService {
     });
 
     if (!quote) {
-      throw new NotFoundException('Quote not found');
+      throw new NotFoundException("Quote not found");
     }
 
     if (quote.rfq.buyerId !== buyerId) {
-      throw new ForbiddenException('Access denied');
+      throw new ForbiddenException("Access denied");
     }
 
     // Only PENDING quotes can be declined
     if (quote.status !== QuoteStatus.PENDING) {
-      throw new BadRequestException('Quote is not pending');
+      throw new BadRequestException("Quote is not pending");
     }
 
     await this.prisma.quote.update({
@@ -218,14 +222,43 @@ export class QuoteService {
 
     await this.notifications.triggerQuoteDeclined(quote.merchantId, quoteId);
 
-    return { message: 'Quote declined' };
+    return { message: "Quote declined" };
+  }
+
+  async update(merchantId: string, quoteId: string, dto: any) {
+    const quote = await this.prisma.quote.findUnique({
+      where: { id: quoteId },
+    });
+
+    if (!quote) {
+      throw new NotFoundException("Quote not found");
+    }
+
+    if (quote.merchantId !== merchantId) {
+      throw new ForbiddenException("Access denied");
+    }
+
+    if (quote.status !== QuoteStatus.PENDING) {
+      throw new BadRequestException("Only pending quotes can be updated");
+    }
+
+    return this.prisma.quote.update({
+      where: { id: quoteId },
+      data: {
+        unitPriceKobo: dto.unitPriceKobo,
+        totalPriceKobo: dto.totalPriceKobo,
+        deliveryFeeKobo: dto.deliveryFeeKobo,
+        validUntil: dto.validUntil ? new Date(dto.validUntil) : undefined,
+        notes: dto.notes,
+      },
+    });
   }
 
   async getByRFQ(rfqId: string) {
     return this.prisma.quote.findMany({
       where: { rfqId },
-      orderBy: { createdAt: 'desc' },
-      include: { merchant: { select: { businessName: true } } },
+      orderBy: { createdAt: "desc" },
+      include: { merchantProfile: { select: { businessName: true } } },
     });
   }
 }

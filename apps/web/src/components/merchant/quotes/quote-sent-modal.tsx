@@ -11,10 +11,7 @@ interface QuoteSentModalProps {
   onClose: () => void;
 }
 
-function formatNaira(kobo: number | bigint): string {
-  const naira = Number(kobo) / 100;
-  return `₦${naira.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+import { formatKobo } from "@/lib/utils";
 
 export function QuoteSentModal({
   quote,
@@ -63,7 +60,7 @@ export function QuoteSentModal({
                   Total Amount
                 </p>
                 <p className="text-lg font-black font-mono text-slate-900 dark:text-white tracking-tight">
-                  {formatNaira(totalKobo)}
+                  {formatKobo(totalKobo)}
                 </p>
               </div>
               <div className="p-4">

@@ -101,7 +101,7 @@ export default function MerchantSettingsPage() {
     setChangingPassword(true);
     setFeedback(null);
     try {
-      await authApi.resetPassword({ token: currentPassword, newPassword });
+      await authApi.changePassword({ currentPassword, newPassword });
       setFeedback({ type: "success", msg: "Password updated successfully." });
       setCurrentPassword("");
       setNewPassword("");

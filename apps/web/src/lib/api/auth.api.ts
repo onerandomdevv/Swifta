@@ -6,12 +6,15 @@ export interface AuthResponse {
   user: {
     id: string;
     email: string;
+    phone: string;
     firstName: string;
     middleName?: string;
     lastName: string;
     role: UserRole;
     emailVerified: boolean;
     merchantId?: string;
+    createdAt: string;
+    updatedAt: string;
   };
 }
 
@@ -49,4 +52,10 @@ export const authApi = {
     apiClient.post<{ verified: boolean }>("/auth/internal/verify-token", {
       token,
     }),
+
+  updateProfile: (dto: any) =>
+    apiClient.post<AuthResponse>("/auth/profile", dto),
+
+  changePassword: (dto: any) =>
+    apiClient.post<{ message: string }>("/auth/change-password", dto),
 };

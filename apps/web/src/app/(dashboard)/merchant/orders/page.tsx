@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useMerchantOrders } from "@/hooks/use-merchant-orders";
 import { OrderStatus } from "@hardware-os/shared";
 import type { Order } from "@hardware-os/shared";
+import { formatKobo } from "@/lib/utils";
 import { OrderDrawer } from "@/components/merchant/orders/order-drawer";
 import { DispatchModal } from "@/components/merchant/orders/dispatch-modal";
 
@@ -14,14 +15,6 @@ type TabFilter =
   | "DISPATCHED"
   | "DELIVERED"
   | "DISPUTE";
-
-function formatNaira(kobo: number | bigint): string {
-  const naira = Number(kobo) / 100;
-  return naira.toLocaleString("en-NG", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
 
 function formatDate(date: Date | string): string {
   return new Date(date).toLocaleDateString("en-NG", {
@@ -272,7 +265,7 @@ export default function MerchantOrdersPage() {
                       ORD-{order.id.slice(0, 6).toUpperCase()}
                     </td>
                     <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white">
-                      {formatNaira(
+                      {formatKobo(
                         Number(order.totalAmountKobo) +
                           Number(order.deliveryFeeKobo),
                       )}

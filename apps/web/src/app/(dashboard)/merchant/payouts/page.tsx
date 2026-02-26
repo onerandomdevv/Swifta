@@ -2,14 +2,10 @@
 
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getOrders } from "@/lib/api/order.api";
-import type { Order } from "@hardware-os/shared";
+import { formatKobo } from "@/lib/utils";
+import { getOrders, getOrderSummary } from "@/lib/api/order.api";
 import { OrderStatus } from "@hardware-os/shared";
-
-function formatNaira(kobo: number | bigint): string {
-  const naira = Number(kobo) / 100;
-  return `₦${naira.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+import type { Order } from "@hardware-os/shared";
 
 function formatDate(date: Date | string): string {
   return new Date(date).toLocaleDateString("en-NG", {
@@ -66,32 +62,10 @@ export default function MerchantPayoutsPage() {
     queryFn: () => getOrders(1, 100),
   });
 
-  // ═══════════ Compute Stats from Order Statuses ═══════════
-  const escrowOrders = orders.filter(
-    (o) => o.status === OrderStatus.PAID || o.status === OrderStatus.DISPATCHED,
-  );
-  const completedOrders = orders.filter(
-    (o) =>
-      o.status === OrderStatus.DELIVERED || o.status === OrderStatus.COMPLETED,
-  );
-  const pendingOrders = orders.filter(
-    (o) => o.status === OrderStatus.PENDING_PAYMENT,
-  );
-  const failedOrders = orders.filter(
-    (o) =>
-      o.status === OrderStatus.CANCELLED || o.status === OrderStatus.DISPUTE,
-  );
-
-  const sumKobo = (arr: Order[]) =>
-    arr.reduce(
-      (sum, o) => sum + Number(o.totalAmountKobo) + Number(o.deliveryFeeKobo),
-      0,
-    );
-
-  const escrowTotal = sumKobo(escrowOrders);
-  const paidOutTotal = sumKobo(completedOrders);
-  const pendingTotal = sumKobo(pendingOrders);
-  const failedTotal = sumKobo(failedOrders);
+  const { data: summary } = useQuery({
+    queryKey: ["merchant-order-summary"],
+    queryFn: getOrderSummary,
+  });
 
   // All orders sorted by date (most recent first) for the ledger
   const ledgerOrders = [...orders].sort(
@@ -136,12 +110,10 @@ export default function MerchantPayoutsPage() {
               </span>
             </div>
             <p className="text-3xl font-extrabold tracking-tighter text-slate-900 dark:text-white">
-              {formatNaira(escrowTotal)}
+              {formatKobo(summary?.escrow ?? 0)}
             </p>
             <div className="mt-2 flex items-center gap-1 text-slate-500">
-              <span className="text-xs font-bold">
-                {escrowOrders.length} active orders
-              </span>
+              <span className="text-xs font-bold">Balance in transition</span>
             </div>
           </div>
 
@@ -156,7 +128,7 @@ export default function MerchantPayoutsPage() {
               </span>
             </div>
             <p className="text-3xl font-extrabold tracking-tighter text-slate-900 dark:text-white">
-              {formatNaira(paidOutTotal)}
+              {formatKobo(summary?.paidOut ?? 0)}
             </p>
             <div className="mt-2 flex items-center gap-1 text-emerald-600">
               <span className="material-symbols-outlined text-sm">
@@ -177,11 +149,11 @@ export default function MerchantPayoutsPage() {
               </span>
             </div>
             <p className="text-3xl font-extrabold tracking-tighter text-slate-900 dark:text-white">
-              {formatNaira(pendingTotal)}
+              {formatKobo(summary?.pending ?? 0)}
             </p>
             <div className="mt-2 flex items-center gap-1 text-slate-500">
               <span className="text-xs font-bold">
-                {pendingOrders.length} pending transactions
+                Orders awaiting approval
               </span>
             </div>
           </div>
@@ -197,9 +169,9 @@ export default function MerchantPayoutsPage() {
               </span>
             </div>
             <p className="text-3xl font-extrabold tracking-tighter text-slate-900 dark:text-white">
-              {formatNaira(failedTotal)}
+              {formatKobo(summary?.failed ?? 0)}
             </p>
-            {failedOrders.length > 0 && (
+            {summary?.failed && summary.failed > 0 && (
               <div className="mt-2 flex items-center gap-1 text-red-600">
                 <span className="text-xs font-bold">Requires attention</span>
               </div>
@@ -254,7 +226,7 @@ export default function MerchantPayoutsPage() {
                           {order.id.slice(0, 8).toUpperCase()}
                         </td>
                         <td className="px-4 py-4 text-sm font-bold text-slate-900 dark:text-white">
-                          {formatNaira(
+                          {formatKobo(
                             Number(order.totalAmountKobo) +
                               Number(order.deliveryFeeKobo),
                           )}

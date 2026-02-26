@@ -15,8 +15,8 @@ export default function MerchantStorefrontPreview() {
   const merchantInfo = products[0]?.merchant;
   const businessName = merchantInfo?.businessName || "Your Business";
   const activeProducts = products.filter((p) => p.isActive).length;
-  const memberSince = user?.merchantId
-    ? new Date().toLocaleDateString("en-US", {
+  const memberSince = user?.createdAt
+    ? new Date(user.createdAt).toLocaleDateString("en-US", {
         month: "short",
         year: "numeric",
       })

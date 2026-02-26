@@ -12,10 +12,7 @@ interface OrderDrawerProps {
   onDispatchSuccess: (order: Order) => void;
 }
 
-function formatNaira(kobo: number | bigint): string {
-  const naira = Number(kobo) / 100;
-  return `₦${naira.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+import { formatKobo } from "@/lib/utils";
 
 const STATUS_FLOW: OrderStatus[] = [
   OrderStatus.PENDING_PAYMENT,
@@ -230,7 +227,7 @@ export function OrderDrawer({
                       </td>
                       <td className="px-4 py-4 text-right align-top">
                         <p className="text-sm font-mono font-bold text-slate-900 dark:text-white">
-                          {formatNaira(order.totalAmountKobo)}
+                          {formatKobo(order.totalAmountKobo)}
                         </p>
                       </td>
                     </tr>
@@ -239,7 +236,7 @@ export function OrderDrawer({
                         Delivery Fee
                       </td>
                       <td className="px-4 py-3 text-right text-xs font-mono text-slate-900 dark:text-white font-bold">
-                        {formatNaira(order.deliveryFeeKobo)}
+                        {formatKobo(order.deliveryFeeKobo)}
                       </td>
                     </tr>
                   </tbody>
@@ -249,7 +246,7 @@ export function OrderDrawer({
                         Total Order Value
                       </td>
                       <td className="px-4 py-4 text-right text-lg font-mono font-bold text-primary">
-                        {formatNaira(
+                        {formatKobo(
                           Number(order.totalAmountKobo) +
                             Number(order.deliveryFeeKobo),
                         )}

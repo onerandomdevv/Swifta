@@ -6,19 +6,19 @@ import {
   ForbiddenException,
   Inject,
   forwardRef,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../../prisma/prisma.service';
-import { PaystackClient } from './paystack.client';
-import { OrderService } from '../order/order.service';
-import { NotificationTriggerService } from '../notification/notification-trigger.service';
-import { InitializePaymentDto } from './dto/initialize-payment.dto';
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { PrismaService } from "../../prisma/prisma.service";
+import { PaystackClient } from "./paystack.client";
+import { OrderService } from "../order/order.service";
+import { NotificationTriggerService } from "../notification/notification-trigger.service";
+import { InitializePaymentDto } from "./dto/initialize-payment.dto";
 import {
   PaymentStatus,
   PaymentDirection,
   OrderStatus,
-} from '@hardware-os/shared';
-import * as crypto from 'crypto';
+} from "@hardware-os/shared";
+import * as crypto from "crypto";
 
 @Injectable()
 export class PaymentService {
@@ -45,27 +45,27 @@ export class PaymentService {
     const order = await this.prisma.order.findUnique({
       where: { id: dto.orderId },
     });
-    if (!order) throw new NotFoundException('Order not found');
+    if (!order) throw new NotFoundException("Order not found");
 
     // Ownership check: only the buyer can pay
     if (order.buyerId !== buyerId) {
-      throw new ForbiddenException('Access denied');
+      throw new ForbiddenException("Access denied");
     }
 
     if (order.status !== OrderStatus.PENDING_PAYMENT) {
-      throw new BadRequestException('Order is not in pending payment state');
+      throw new BadRequestException("Order is not in pending payment state");
     }
 
     // Generate reference and get buyer email
     const buyer = await this.prisma.user.findUnique({
       where: { id: buyerId },
     });
-    if (!buyer) throw new NotFoundException('Buyer not found');
+    if (!buyer) throw new NotFoundException("Buyer not found");
 
     // Callback URL from config (not hardcoded)
     const frontendUrl = this.config.get<string>(
-      'app.frontendUrl',
-      'http://localhost:3000',
+      "app.frontendUrl",
+      "http://localhost:3000",
     );
     const callbackUrl = `${frontendUrl}/buyer/orders/payment/callback`;
 
@@ -84,7 +84,7 @@ export class PaymentService {
       this.logger.log(
         `Updating existing payment ${existingPayment.id} for order ${dto.orderId} with new reference`,
       );
-      
+
       const newReference = `tx-${crypto.randomUUID()}`;
 
       // We must fetch a fresh access_code from Paystack using a NEW reference
@@ -106,7 +106,8 @@ export class PaymentService {
         ...freshPaystackResponse,
         reference: newReference,
         paymentId: existingPayment.id,
-        message: 'Payment already initialized — returning fresh access code with new reference',
+        message:
+          "Payment already initialized — returning fresh access code with new reference",
       };
     }
 
@@ -137,7 +138,7 @@ export class PaymentService {
       await tx.paymentEvent.create({
         data: {
           paymentId: newPayment.id,
-          eventType: 'INITIALIZED',
+          eventType: "INITIALIZED",
           payload: {
             reference: paymentReference,
             amountKobo: Number(totalKobo),
@@ -163,15 +164,15 @@ export class PaymentService {
   // ──────────────────────────────────────────────
 
   async handleWebhook(payload: any) {
-    if (payload.event !== 'charge.success') {
+    if (payload.event !== "charge.success") {
       this.logger.log(`Ignoring webhook event: ${payload.event}`);
-      return { status: 'ignored' };
+      return { status: "ignored" };
     }
 
     const reference = payload.data?.reference;
     if (!reference) {
-      this.logger.warn('Webhook missing reference');
-      return { status: 'missing_reference' };
+      this.logger.warn("Webhook missing reference");
+      return { status: "missing_reference" };
     }
 
     // Find payment record
@@ -181,27 +182,27 @@ export class PaymentService {
 
     if (!payment) {
       this.logger.warn(`No payment found for reference: ${reference}`);
-      return { status: 'unknown_reference' };
+      return { status: "unknown_reference" };
     }
 
     // Idempotency: skip if already processed
     if (payment.status === PaymentStatus.SUCCESS) {
       this.logger.log(`Payment ${payment.id} already processed, skipping`);
-      return { status: 'already_processed' };
+      return { status: "already_processed" };
     }
 
     // Double-verify with Paystack API
     try {
       await this.processSuccessfulPayment(payment.id, reference);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
+      const message = err instanceof Error ? err.message : "Unknown error";
       this.logger.error(
         `Webhook processing failed for ${reference}: ${message}`,
       );
     }
 
-  // Always return 200 to Paystack
-    return { status: 'received' };
+    // Always return 200 to Paystack
+    return { status: "received" };
   }
 
   // ──────────────────────────────────────────────
@@ -212,18 +213,18 @@ export class PaymentService {
     const payment = await this.prisma.payment.findUnique({
       where: { paystackReference: reference },
     });
-    if (!payment) throw new NotFoundException('Payment not found');
+    if (!payment) throw new NotFoundException("Payment not found");
 
     if (payment.status === PaymentStatus.SUCCESS) {
-      return { status: 'already_verified', paymentId: payment.id };
+      return { status: "already_verified", paymentId: payment.id };
     }
 
     try {
       await this.processSuccessfulPayment(payment.id, reference);
-      return { status: 'verified', paymentId: payment.id };
+      return { status: "verified", paymentId: payment.id };
     } catch (err) {
       this.logger.error(`Manual verification failed for ${reference}`, err);
-      throw new BadRequestException('Verification failed');
+      throw new BadRequestException("Verification failed");
     }
   }
 
@@ -231,10 +232,7 @@ export class PaymentService {
   //  PROCESS SUCCESSFUL PAYMENT (verify + transition)
   // ──────────────────────────────────────────────
 
-  private async processSuccessfulPayment(
-    paymentId: string,
-    reference: string,
-  ) {
+  private async processSuccessfulPayment(paymentId: string, reference: string) {
     // Verify with Paystack API
     const verification = await this.paystack.verifyTransaction(reference);
 
@@ -243,9 +241,9 @@ export class PaymentService {
       include: { order: true },
     });
 
-    if (!payment) throw new NotFoundException('Payment not found');
+    if (!payment) throw new NotFoundException("Payment not found");
 
-    if (verification.status === 'success') {
+    if (verification.status === "success") {
       // Amount verification: Paystack returns amount in kobo
       const paystackAmountKobo = BigInt(verification.amount);
       if (paystackAmountKobo !== payment.amountKobo) {
@@ -256,7 +254,7 @@ export class PaymentService {
         await this.prisma.paymentEvent.create({
           data: {
             paymentId: payment.id,
-            eventType: 'AMOUNT_MISMATCH',
+            eventType: "AMOUNT_MISMATCH",
             payload: {
               paystackAmount: Number(paystackAmountKobo),
               expectedAmount: Number(payment.amountKobo),
@@ -265,7 +263,7 @@ export class PaymentService {
           },
         });
 
-        throw new BadRequestException('Payment amount mismatch');
+        throw new BadRequestException("Payment amount mismatch");
       }
 
       // Update payment status + log event
@@ -281,7 +279,7 @@ export class PaymentService {
         await tx.paymentEvent.create({
           data: {
             paymentId: payment.id,
-            eventType: 'SUCCESS',
+            eventType: "SUCCESS",
             payload: {
               reference,
               amountKobo: Number(paystackAmountKobo),
@@ -323,7 +321,7 @@ export class PaymentService {
         await tx.paymentEvent.create({
           data: {
             paymentId: payment.id,
-            eventType: 'FAILED',
+            eventType: "FAILED",
             payload: {
               reference,
               verificationStatus: verification.status,
@@ -346,14 +344,12 @@ export class PaymentService {
   async initiatePayout(orderId: string) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
-      include: { merchant: true },
+      include: { merchantProfile: true },
     });
-    if (!order) throw new NotFoundException('Order not found');
+    if (!order) throw new NotFoundException("Order not found");
 
     if (order.status !== OrderStatus.COMPLETED) {
-      throw new BadRequestException(
-        'Payout only allowed for COMPLETED orders',
-      );
+      throw new BadRequestException("Payout only allowed for COMPLETED orders");
     }
 
     // Check if payout already exists (idempotency)
@@ -369,10 +365,14 @@ export class PaymentService {
     }
 
     // Merchant must have bank details
-    const merchant = order.merchant;
-    if (!merchant.bankCode || !merchant.bankAccountNo || !merchant.bankAccountName) {
+    const merchant = order.merchantProfile;
+    if (
+      !merchant.bankCode ||
+      !merchant.bankAccountNo ||
+      !merchant.bankAccountName
+    ) {
       throw new BadRequestException(
-        'Merchant bank details incomplete — cannot process payout',
+        "Merchant bank details incomplete — cannot process payout",
       );
     }
 
@@ -412,7 +412,7 @@ export class PaymentService {
       await tx.paymentEvent.create({
         data: {
           paymentId: newPayout.id,
-          eventType: 'PAYOUT_INITIATED',
+          eventType: "PAYOUT_INITIATED",
           payload: {
             transferCode: transfer.transfer_code,
             recipientCode: recipient.recipient_code,
@@ -443,7 +443,7 @@ export class PaymentService {
       if (err instanceof Error) {
         throw new BadRequestException(err.message);
       }
-      throw new BadRequestException('Could not resolve account');
+      throw new BadRequestException("Could not resolve account");
     }
   }
 }

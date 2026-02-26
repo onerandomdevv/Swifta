@@ -19,8 +19,10 @@ export function BuyerQuotesList({ quotes, acceptingId, onAcceptQuote }: Props) {
     setDecliningId(quoteId);
     try {
       await declineQuote(quoteId);
-    } catch {
-      // silently fail — refresh will show updated state
+      // Optional: Add success toast/notification here if available
+    } catch (error) {
+      console.error("Failed to decline quote:", error);
+      alert("Failed to decline quote. Please try again.");
     } finally {
       setDecliningId(null);
     }
@@ -170,7 +172,12 @@ export function BuyerQuotesList({ quotes, acceptingId, onAcceptQuote }: Props) {
                               </span>
                               {quote.merchant?.phone ? (
                                 <a
-                                  href={`https://wa.me/${quote.merchant.phone.replace(/\D/g, "")}`}
+                                  href={`https://wa.me/${quote.merchant.phone
+                                    .replace(/\D/g, "")
+                                    .replace(/^0/, "234")
+                                    .replace(/^(\d)/, (match: string) =>
+                                      match === "2" ? match : "234" + match,
+                                    )}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-[11px] font-mono font-bold text-slate-900 dark:text-white hover:underline"

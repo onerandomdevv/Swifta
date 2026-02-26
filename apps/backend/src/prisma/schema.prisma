@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "./generated-client"
 }
 
 datasource db {
@@ -7,63 +8,279 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserRole {
-  BUYER
-  MERCHANT
-  SUPER_ADMIN
-  OPERATOR
-  SUPPORT
+model AdminProfile {
+  id             String         @id @default(uuid()) @db.Uuid
+  userId         String         @unique @map("user_id") @db.Uuid
+  department     String?
+  accessLevel    String         @default("STANDARD") @map("access_level")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @default(now()) @updatedAt @map("updated_at")
+  approvalStatus ApprovalStatus @default(PENDING) @map("approval_status")
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("admin_profiles")
 }
 
-enum VerificationStatus {
-  UNVERIFIED
-  PENDING
-  VERIFIED
+model InventoryEvent {
+  id              String            @id @default(uuid()) @db.Uuid
+  productId       String            @map("product_id") @db.Uuid
+  merchantId      String            @map("merchant_id") @db.Uuid
+  eventType       InventoryEventType @map("event_type")
+  quantity        Int
+  referenceId     String?           @map("reference_id") @db.Uuid
+  notes           String?
+  createdAt       DateTime          @default(now()) @map("created_at")
+  merchantProfile MerchantProfile   @relation(fields: [merchantId], references: [id])
+  product         Product           @relation(fields: [productId], references: [id])
+
+  @@index([merchantId])
+  @@index([productId])
+  @@map("inventory_events")
+}
+
+model MerchantProfile {
+  id                 String             @id @default(uuid()) @db.Uuid
+  userId             String             @unique @map("user_id") @db.Uuid
+  businessName       String             @map("business_name")
+  businessAddress    String?            @map("business_address")
+  cacNumber          String?            @map("cac_number")
+  bankCode           String?            @map("bank_code")
+  bankAccountNo      String?            @map("bank_account_no")
+  bankAccountName    String?            @map("bank_account_name")
+  verification       VerificationStatus @default(UNVERIFIED)
+  onboardingStep     Int                @default(1) @map("onboarding_step")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @default(now()) @updatedAt @map("updated_at")
+  businessType       String?            @map("business_type")
+  estYear            String?            @map("est_year")
+  category           String?
+  taxId              String?            @map("tax_id")
+  warehouseLocation  String?            @map("warehouse_location")
+  distributionCenter String?            @map("distribution_center")
+  warehouseCapacity  String?            @map("warehouse_capacity")
+  cacDocumentUrl     String?            @map("cac_document_url")
+  inventoryEvents    InventoryEvent[]
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders             Order[]
+  products           Product[]
+  quotes             Quote[]
+  rfqs               Rfq[]
+
+  @@map("merchant_profiles")
+}
+
+model Notification {
+  id        String              @id @default(uuid()) @db.Uuid
+  userId    String              @map("user_id") @db.Uuid
+  type      String
+  title     String
+  body      String
+  channel   NotificationChannel
+  isRead    Boolean             @default(false) @map("is_read")
+  metadata  Json?
+  createdAt DateTime            @default(now()) @map("created_at")
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+model OrderEvent {
+  id          String       @id @default(uuid()) @db.Uuid
+  orderId     String       @map("order_id") @db.Uuid
+  fromStatus  OrderStatus? @map("from_status")
+  toStatus    OrderStatus  @map("to_status")
+  triggeredBy String       @map("triggered_by") @db.Uuid
+  metadata    Json?
+  createdAt   DateTime     @default(now()) @map("created_at")
+  order       Order        @relation(fields: [orderId], references: [id])
+  user        User         @relation(fields: [triggeredBy], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("order_events")
+}
+
+model Order {
+  id              String            @id @default(uuid()) @db.Uuid
+  quoteId         String            @unique @map("quote_id") @db.Uuid
+  buyerId         String            @map("buyer_id") @db.Uuid
+  merchantId      String            @map("merchant_id") @db.Uuid
+  totalAmountKobo BigInt            @map("total_amount_kobo")
+  deliveryFeeKobo BigInt            @map("delivery_fee_kobo")
+  currency        String            @default("NGN")
+  status          OrderStatus       @default(PENDING_PAYMENT)
+  deliveryOtp     String?           @map("delivery_otp")
+  idempotencyKey  String            @unique @map("idempotency_key")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @default(now()) @updatedAt @map("updated_at")
+  orderEvents     OrderEvent[]
+  user            User              @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  merchantProfile MerchantProfile   @relation(fields: [merchantId], references: [id])
+  quote           Quote             @relation(fields: [quoteId], references: [id])
+  payments        Payment[]
+
+  @@index([buyerId])
+  @@index([merchantId])
+  @@index([status])
+  @@map("orders")
+}
+
+model PaymentEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  paymentId String   @map("payment_id") @db.Uuid
+  eventType String   @map("event_type")
+  payload   Json
+  createdAt DateTime @default(now()) @map("created_at")
+  payment   Payment  @relation(fields: [paymentId], references: [id])
+
+  @@index([paymentId])
+  @@map("payment_events")
+}
+
+model Payment {
+  id                  String           @id @default(uuid()) @db.Uuid
+  orderId             String           @map("order_id") @db.Uuid
+  paystackReference   String           @unique @map("paystack_reference")
+  paystackTransferRef String?          @map("paystack_transfer_ref")
+  amountKobo          BigInt           @map("amount_kobo")
+  currency            String           @default("NGN")
+  status              PaymentStatus    @default(INITIALIZED)
+  direction           PaymentDirection
+  idempotencyKey      String           @unique @map("idempotency_key")
+  verifiedAt          DateTime?        @map("verified_at")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @default(now()) @updatedAt @map("updated_at")
+  paymentEvents       PaymentEvent[]
+  order               Order            @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  @@map("payments")
+}
+
+model ProductStockCache {
+  id        String   @id @default(uuid()) @db.Uuid
+  productId String   @unique @map("product_id") @db.Uuid
+  stock     Int      @default(0)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  product   Product  @relation(fields: [productId], references: [id])
+
+  @@map("product_stock_cache")
+}
+
+model Product {
+  id                String             @id @default(uuid()) @db.Uuid
+  merchantId        String             @map("merchant_id") @db.Uuid
+  name              String
+  description       String?
+  unit              String
+  categoryTag       String             @map("category_tag")
+  minOrderQuantity  Int                @default(1) @map("min_order_quantity")
+  isActive          Boolean            @default(true) @map("is_active")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @default(now()) @updatedAt @map("updated_at")
+  deletedAt         DateTime?          @map("deleted_at")
+  imageUrl          String?            @map("image_url")
+  inventoryEvents   InventoryEvent[]
+  productStockCache ProductStockCache?
+  merchantProfile   MerchantProfile    @relation(fields: [merchantId], references: [id])
+  rfqs              Rfq[]
+
+  @@index([categoryTag])
+  @@index([merchantId])
+  @@map("products")
+}
+
+model Quote {
+  id               String          @id @default(uuid()) @db.Uuid
+  rfqId            String          @map("rfq_id") @db.Uuid
+  merchantId       String          @map("merchant_id") @db.Uuid
+  unitPriceKobo    BigInt          @map("unit_price_kobo")
+  totalPriceKobo   BigInt          @map("total_price_kobo")
+  deliveryFeeKobo  BigInt          @default(0) @map("delivery_fee_kobo")
+  currency         String          @default("NGN")
+  notes            String?
+  validUntil       DateTime        @map("valid_until")
+  status           QuoteStatus     @default(PENDING)
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @default(now()) @updatedAt @map("updated_at")
+  order            Order?
+  merchantProfile  MerchantProfile @relation(fields: [merchantId], references: [id])
+  rfq              Rfq             @relation(fields: [rfqId], references: [id])
+
+  @@index([merchantId])
+  @@index([rfqId])
+  @@map("quotes")
+}
+
+model Rfq {
+  id                  String          @id @default(uuid()) @db.Uuid
+  buyerId             String          @map("buyer_id") @db.Uuid
+  productId           String?         @map("product_id") @db.Uuid
+  merchantId          String          @map("merchant_id") @db.Uuid
+  quantity            Int
+  deliveryAddress     String          @map("delivery_address")
+  notes               String?
+  status              RFQStatus       @default(OPEN)
+  expiresAt           DateTime        @map("expires_at")
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @default(now()) @updatedAt @map("updated_at")
+  unlistedItemDetails Json?           @map("unlisted_item_details")
+  quotes              Quote[]
+  user                User            @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  merchantProfile     MerchantProfile @relation(fields: [merchantId], references: [id])
+  product             Product?        @relation(fields: [productId], references: [id])
+
+  @@index([buyerId])
+  @@index([merchantId])
+  @@index([status])
+  @@map("rfqs")
+}
+
+model StaffAccessToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  role      UserRole
+  tokenHash String   @map("token_hash")
+  label     String?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdBy String   @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  user      User     @relation(fields: [createdBy], references: [id])
+
+  @@map("staff_access_tokens")
+}
+
+model User {
+  id                String             @id @default(uuid()) @db.Uuid
+  email             String             @unique
+  phone             String             @unique
+  passwordHash      String             @map("password_hash")
+  role              UserRole
+  emailVerified     Boolean            @default(false) @map("email_verified")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @default(now()) @updatedAt @map("updated_at")
+  deletedAt         DateTime?          @map("deleted_at")
+  resetToken        String?            @map("reset_token")
+  resetTokenExpiry  DateTime?          @map("reset_token_expiry")
+  firstName         String             @map("first_name")
+  middleName        String?            @map("middle_name")
+  lastName          String             @map("last_name")
+  adminProfile      AdminProfile?
+  merchantProfile   MerchantProfile?
+  notifications     Notification[]
+  orderEvents       OrderEvent[]
+  orders            Order[]
+  rfqs              Rfq[]
+  staffAccessTokens StaffAccessToken[]
+
+  @@map("users")
 }
 
 enum ApprovalStatus {
   PENDING
   APPROVED
   SUSPENDED
-}
-
-enum RFQStatus {
-  OPEN
-  QUOTED
-  ACCEPTED
-  DECLINED
-  EXPIRED
-  CANCELLED
-}
-
-enum QuoteStatus {
-  PENDING
-  ACCEPTED
-  DECLINED
-  EXPIRED
-  WITHDRAWN
-}
-
-enum OrderStatus {
-  PENDING_PAYMENT
-  PAID
-  DISPATCHED
-  DELIVERED
-  COMPLETED
-  CANCELLED
-  DISPUTE
-}
-
-enum PaymentStatus {
-  INITIALIZED
-  SUCCESS
-  FAILED
-  REFUNDED
-}
-
-enum PaymentDirection {
-  INFLOW
-  PAYOUT
 }
 
 enum InventoryEventType {
@@ -79,285 +296,56 @@ enum NotificationChannel {
   EMAIL
 }
 
-model User {
-  id             String    @id @default(uuid()) @db.Uuid
-  email          String    @unique
-  phone          String    @unique
-  firstName      String    @map("first_name")
-  middleName     String?   @map("middle_name")
-  lastName       String    @map("last_name")
-  passwordHash   String    @map("password_hash")
-  role           UserRole
-  emailVerified  Boolean   @default(false) @map("email_verified")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-  deletedAt      DateTime? @map("deleted_at")
-  resetToken     String?   @map("reset_token")
-  resetTokenExpiry DateTime? @map("reset_token_expiry")
-
-  merchantProfile MerchantProfile?
-  adminProfile    AdminProfile?
-  rfqs            RFQ[]
-  buyerOrders     Order[]        @relation("BuyerOrders")
-  notifications   Notification[]
-  orderEvents     OrderEvent[]
-  createdAccessTokens StaffAccessToken[]
-
-  @@map("users")
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  DISPATCHED
+  DELIVERED
+  COMPLETED
+  CANCELLED
+  DISPUTE
 }
 
-model AdminProfile {
-  id             String         @id @default(uuid()) @db.Uuid
-  userId         String         @unique @map("user_id") @db.Uuid
-  department     String?
-  accessLevel    String         @default("STANDARD") @map("access_level")
-  approvalStatus ApprovalStatus @default(PENDING) @map("approval_status")
-  createdAt      DateTime       @default(now()) @map("created_at")
-  updatedAt      DateTime       @updatedAt @map("updated_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("admin_profiles")
+enum PaymentDirection {
+  INFLOW
+  PAYOUT
 }
 
-model StaffAccessToken {
-  id        String   @id @default(uuid()) @db.Uuid
-  role      UserRole
-  tokenHash String   @map("token_hash")
-  label     String?
-  isActive  Boolean  @default(true) @map("is_active")
-  createdBy String   @map("created_by") @db.Uuid
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  creator User @relation(fields: [createdBy], references: [id])
-
-  @@map("staff_access_tokens")
+enum PaymentStatus {
+  INITIALIZED
+  SUCCESS
+  FAILED
+  REFUNDED
 }
 
-model MerchantProfile {
-  id                 String             @id @default(uuid()) @db.Uuid
-  userId             String             @unique @map("user_id") @db.Uuid
-  businessName       String             @map("business_name")
-  businessType       String?            @map("business_type")
-  estYear            String?            @map("est_year")
-  category           String?
-  businessAddress    String?            @map("business_address")
-  cacNumber          String?            @map("cac_number")
-  taxId              String?            @map("tax_id")
-  cacDocumentUrl     String?            @map("cac_document_url")
-  warehouseLocation  String?            @map("warehouse_location")
-  distributionCenter String?            @map("distribution_center")
-  warehouseCapacity  String?            @map("warehouse_capacity")
-  bankCode           String?            @map("bank_code")
-  bankAccountNo      String?            @map("bank_account_no")
-  bankAccountName    String?            @map("bank_account_name")
-  verification       VerificationStatus @default(UNVERIFIED)
-  onboardingStep  Int                @default(1) @map("onboarding_step")
-  createdAt       DateTime           @default(now()) @map("created_at")
-  updatedAt       DateTime           @updatedAt @map("updated_at")
-
-  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  products        Product[]
-  rfqs            RFQ[]
-  quotes          Quote[]
-  merchantOrders  Order[]           @relation("MerchantOrders")
-  inventoryEvents InventoryEvent[]
-
-  @@map("merchant_profiles")
+enum QuoteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  WITHDRAWN
 }
 
-model Product {
-  id               String    @id @default(uuid()) @db.Uuid
-  merchantId       String    @map("merchant_id") @db.Uuid
-  name             String
-  description      String?
-  unit             String
-  categoryTag      String    @map("category_tag")
-  imageUrl         String?   @map("image_url")
-  minOrderQuantity Int       @default(1) @map("min_order_quantity")
-  isActive         Boolean   @default(true) @map("is_active")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
-  deletedAt        DateTime? @map("deleted_at")
-
-  merchant        MerchantProfile  @relation(fields: [merchantId], references: [id])
-  rfqs            RFQ[]
-  inventoryEvents InventoryEvent[]
-  stockCache      ProductStockCache?
-
-  @@index([merchantId])
-  @@index([categoryTag])
-  @@map("products")
+enum RFQStatus {
+  OPEN
+  QUOTED
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  CANCELLED
 }
 
-model RFQ {
-  id              String    @id @default(uuid()) @db.Uuid
-  buyerId         String    @map("buyer_id") @db.Uuid
-  productId       String?   @map("product_id") @db.Uuid
-  merchantId      String    @map("merchant_id") @db.Uuid
-  quantity        Int
-  deliveryAddress String    @map("delivery_address")
-  unlistedItemDetails Json? @map("unlisted_item_details")
-  notes           String?
-  status          RFQStatus @default(OPEN)
-  expiresAt       DateTime  @map("expires_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-
-  buyer    User            @relation(fields: [buyerId], references: [id], onDelete: Cascade)
-  product  Product?        @relation(fields: [productId], references: [id])
-  merchant MerchantProfile @relation(fields: [merchantId], references: [id])
-  quotes   Quote[]
-
-  @@index([buyerId])
-  @@index([merchantId])
-  @@index([status])
-  @@map("rfqs")
+enum UserRole {
+  BUYER
+  MERCHANT
+  SUPER_ADMIN
+  OPERATOR
+  SUPPORT
 }
 
-model Quote {
-  id              String      @id @default(uuid()) @db.Uuid
-  rfqId           String      @map("rfq_id") @db.Uuid
-  merchantId      String      @map("merchant_id") @db.Uuid
-  unitPriceKobo   BigInt      @map("unit_price_kobo")
-  totalPriceKobo  BigInt      @map("total_price_kobo")
-  deliveryFeeKobo BigInt      @default(0) @map("delivery_fee_kobo")
-  currency        String      @default("NGN")
-  notes           String?
-  validUntil      DateTime    @map("valid_until")
-  status          QuoteStatus @default(PENDING)
-  createdAt       DateTime    @default(now()) @map("created_at")
-  updatedAt       DateTime    @updatedAt @map("updated_at")
-
-  rfq      RFQ             @relation(fields: [rfqId], references: [id])
-  merchant MerchantProfile @relation(fields: [merchantId], references: [id])
-  order    Order?
-
-  @@index([rfqId])
-  @@index([merchantId])
-  @@map("quotes")
-}
-
-model Order {
-  id               String      @id @default(uuid()) @db.Uuid
-  quoteId          String      @unique @map("quote_id") @db.Uuid
-  buyerId          String      @map("buyer_id") @db.Uuid
-  merchantId       String      @map("merchant_id") @db.Uuid
-  totalAmountKobo  BigInt      @map("total_amount_kobo")
-  deliveryFeeKobo  BigInt      @map("delivery_fee_kobo")
-  currency         String      @default("NGN")
-  status           OrderStatus @default(PENDING_PAYMENT)
-  deliveryOtp      String?     @map("delivery_otp")
-  idempotencyKey   String      @unique @map("idempotency_key")
-  createdAt        DateTime    @default(now()) @map("created_at")
-  updatedAt        DateTime    @updatedAt @map("updated_at")
-
-  quote    Quote           @relation(fields: [quoteId], references: [id])
-  buyer    User            @relation("BuyerOrders", fields: [buyerId], references: [id], onDelete: Cascade)
-  merchant MerchantProfile @relation("MerchantOrders", fields: [merchantId], references: [id])
-  events   OrderEvent[]
-  payments Payment[]
-
-  @@index([buyerId])
-  @@index([merchantId])
-  @@index([status])
-  @@map("orders")
-}
-
-model OrderEvent {
-  id          String   @id @default(uuid()) @db.Uuid
-  orderId     String   @map("order_id") @db.Uuid
-  fromStatus  String?  @map("from_status")
-  toStatus    String   @map("to_status")
-  triggeredBy String   @map("triggered_by") @db.Uuid
-  metadata    Json?
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  order   Order @relation(fields: [orderId], references: [id])
-  trigger User  @relation(fields: [triggeredBy], references: [id], onDelete: Cascade)
-
-  @@index([orderId])
-  @@map("order_events")
-}
-
-model Payment {
-  id                   String           @id @default(uuid()) @db.Uuid
-  orderId              String           @map("order_id") @db.Uuid
-  paystackReference    String           @unique @map("paystack_reference")
-  paystackTransferRef  String?          @map("paystack_transfer_ref")
-  amountKobo           BigInt           @map("amount_kobo")
-  currency             String           @default("NGN")
-  status               PaymentStatus    @default(INITIALIZED)
-  direction            PaymentDirection
-  idempotencyKey       String           @unique @map("idempotency_key")
-  verifiedAt           DateTime?        @map("verified_at")
-  createdAt            DateTime         @default(now()) @map("created_at")
-  updatedAt            DateTime         @updatedAt @map("updated_at")
-
-  order  Order          @relation(fields: [orderId], references: [id])
-  events PaymentEvent[]
-
-  @@index([orderId])
-  @@map("payments")
-}
-
-model PaymentEvent {
-  id        String   @id @default(uuid()) @db.Uuid
-  paymentId String   @map("payment_id") @db.Uuid
-  eventType String   @map("event_type")
-  payload   Json
-  createdAt DateTime @default(now()) @map("created_at")
-
-  payment Payment @relation(fields: [paymentId], references: [id])
-
-  @@index([paymentId])
-  @@map("payment_events")
-}
-
-model InventoryEvent {
-  id          String             @id @default(uuid()) @db.Uuid
-  productId   String             @map("product_id") @db.Uuid
-  merchantId  String             @map("merchant_id") @db.Uuid
-  eventType   InventoryEventType @map("event_type")
-  quantity    Int
-  referenceId String?            @map("reference_id") @db.Uuid
-  notes       String?
-  createdAt   DateTime           @default(now()) @map("created_at")
-
-  product  Product         @relation(fields: [productId], references: [id])
-  merchant MerchantProfile @relation(fields: [merchantId], references: [id])
-
-  @@index([productId])
-  @@index([merchantId])
-  @@map("inventory_events")
-}
-
-model ProductStockCache {
-  id        String   @id @default(uuid()) @db.Uuid
-  productId String   @unique @map("product_id") @db.Uuid
-  stock     Int      @default(0)
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  product Product @relation(fields: [productId], references: [id])
-
-  @@map("product_stock_cache")
-}
-
-model Notification {
-  id        String              @id @default(uuid()) @db.Uuid
-  userId    String              @map("user_id") @db.Uuid
-  type      String
-  title     String
-  body      String
-  channel   NotificationChannel
-  isRead    Boolean             @default(false) @map("is_read")
-  metadata  Json?
-  createdAt DateTime            @default(now()) @map("created_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([userId, isRead])
-  @@map("notifications")
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
 }

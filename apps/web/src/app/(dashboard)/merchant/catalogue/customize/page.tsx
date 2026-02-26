@@ -96,10 +96,14 @@ export default function StorefrontCustomizePage() {
 
             <div className="space-y-6">
               <div>
-                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2">
+                <label
+                  htmlFor="business-name"
+                  className="block text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2"
+                >
                   Business Name
                 </label>
                 <input
+                  id="business-name"
                   type="text"
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
@@ -109,10 +113,14 @@ export default function StorefrontCustomizePage() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2">
+                <label
+                  htmlFor="biography"
+                  className="block text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2"
+                >
                   Business Biography
                 </label>
                 <textarea
+                  id="biography"
                   value={biography}
                   onChange={(e) => setBiography(e.target.value)}
                   rows={4}
@@ -123,10 +131,14 @@ export default function StorefrontCustomizePage() {
 
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2">
+                  <label
+                    htmlFor="address"
+                    className="block text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2"
+                  >
                     Physical Address
                   </label>
                   <input
+                    id="address"
                     type="text"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
@@ -135,10 +147,14 @@ export default function StorefrontCustomizePage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2">
+                  <label
+                    htmlFor="district"
+                    className="block text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2"
+                  >
                     Lagos District
                   </label>
                   <select
+                    id="district"
                     value={district}
                     onChange={(e) => setDistrict(e.target.value)}
                     className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 dark:text-white appearance-none"
@@ -184,7 +200,11 @@ export default function StorefrontCustomizePage() {
                   </div>
                 </div>
                 <button
+                  id="whatsapp-toggle"
+                  type="button"
                   onClick={() => setWhatsappEnabled(!whatsappEnabled)}
+                  aria-pressed={whatsappEnabled}
+                  aria-label="Enable WhatsApp Business Link"
                   className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors ${
                     whatsappEnabled
                       ? "bg-primary"
@@ -202,7 +222,10 @@ export default function StorefrontCustomizePage() {
               {/* Phone & Verification */}
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2">
+                  <label
+                    htmlFor="phone"
+                    className="block text-[11px] font-black text-slate-500 uppercase tracking-wider mb-2"
+                  >
                     Public Contact Phone
                   </label>
                   <div className="relative">
@@ -210,6 +233,7 @@ export default function StorefrontCustomizePage() {
                       +234
                     </span>
                     <input
+                      id="phone"
                       type="text"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}

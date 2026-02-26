@@ -104,10 +104,10 @@ export class AdminService {
   async getAllOrders() {
     return this.prisma.order.findMany({
       include: {
-        merchant: {
+        merchantProfile: {
           select: { businessName: true },
         },
-        buyer: {
+        user: {
           select: { firstName: true, lastName: true, email: true },
         },
         quote: {
@@ -125,7 +125,11 @@ export class AdminService {
     });
   }
 
-  async forceResolveOrder(orderId: string, status: any, adminUserId: string) {
+  async forceResolveOrder(
+    orderId: string,
+    status: OrderStatus,
+    adminUserId: string,
+  ) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
     });
@@ -177,7 +181,7 @@ export class AdminService {
   async getAllProducts() {
     return this.prisma.product.findMany({
       include: {
-        merchant: {
+        merchantProfile: {
           select: { businessName: true },
         },
       },
@@ -187,7 +191,7 @@ export class AdminService {
 
   async getGlobalAnalytics() {
     const [totalRfqs, totalQuotes, totalOrders] = await Promise.all([
-      this.prisma.rFQ.count(),
+      this.prisma.rfq.count(),
       this.prisma.quote.count(),
       this.prisma.order.count(),
     ]);
@@ -208,7 +212,7 @@ export class AdminService {
     });
 
     // Market Intelligence: Top Requested Categories via RFQs
-    const topCategoriesRaw = await this.prisma.rFQ.findMany({
+    const topCategoriesRaw = await this.prisma.rfq.findMany({
       select: {
         product: {
           select: { categoryTag: true },
@@ -300,8 +304,8 @@ export class AdminService {
     const orders = await this.prisma.order.findMany({
       where: whereClause,
       include: {
-        merchant: { select: { businessName: true } },
-        buyer: { select: { firstName: true, lastName: true } },
+        merchantProfile: { select: { businessName: true } },
+        user: { select: { firstName: true, lastName: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -319,8 +323,8 @@ export class AdminService {
     const rows = orders.map((o) => [
       o.id,
       o.createdAt.toISOString(),
-      `"${o.merchant.businessName}"`,
-      `"${[o.buyer.firstName, o.buyer.lastName].filter(Boolean).join(" ")}"`,
+      `"${o.merchantProfile?.businessName}"`,
+      `"${[o.user?.firstName, o.user?.lastName].filter(Boolean).join(" ")}"`,
       o.totalAmountKobo.toString(),
       o.deliveryFeeKobo.toString(),
       o.status,
@@ -510,7 +514,7 @@ export class AdminService {
         isActive: true,
         createdAt: true,
         updatedAt: true,
-        creator: { select: { firstName: true, lastName: true, email: true } },
+        user: { select: { firstName: true, lastName: true, email: true } },
       },
       orderBy: [{ isActive: "desc" }, { createdAt: "desc" }],
     });

@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "./generated-client";
 import * as bcrypt from "bcrypt";
 import { UserRole } from "@hardware-os/shared";
 
@@ -34,7 +34,7 @@ async function main() {
   const newAdmin = await prisma.user.create({
     data: {
       email: DEFAULT_ADMIN_EMAIL,
-      phone: "+234000000000", // Placeholder
+      phone: "+234000000000",
       firstName: "HARDWARE",
       lastName: "Admin",
       passwordHash: passwordHash,

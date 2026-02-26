@@ -3,15 +3,11 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import type { Order } from "@hardware-os/shared";
+import { formatKobo } from "@/lib/utils";
 
 interface DispatchModalProps {
   order: Order;
   onClose: () => void;
-}
-
-function formatNaira(kobo: number | bigint): string {
-  const naira = Number(kobo) / 100;
-  return `₦${naira.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function DispatchModal({ order, onClose }: DispatchModalProps) {
@@ -85,7 +81,7 @@ export function DispatchModal({ order, onClose }: DispatchModalProps) {
                 Escrow Value
               </span>
               <span className="text-sm font-mono font-bold text-slate-900 dark:text-white">
-                {formatNaira(
+                {formatKobo(
                   Number(order.totalAmountKobo) + Number(order.deliveryFeeKobo),
                 )}
               </span>

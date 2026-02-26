@@ -16,6 +16,9 @@ export class RegisterDto {
   phone: string;
 
   @IsString()
+  @Matches(/^[\p{L}\s'-]+$/u, {
+    message: "First name contains invalid characters",
+  })
   firstName: string;
 
   @IsOptional()
@@ -23,6 +26,9 @@ export class RegisterDto {
   middleName?: string;
 
   @IsString()
+  @Matches(/^[\p{L}\s'-]+$/u, {
+    message: "Last name contains invalid characters",
+  })
   lastName: string;
 
   @IsString()

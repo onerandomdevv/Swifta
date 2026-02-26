@@ -20,9 +20,12 @@ interface User {
   firstName: string;
   middleName?: string;
   lastName: string;
+  phone: string;
   role: UserRole;
   emailVerified: boolean;
   merchantId?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface AuthContextType {

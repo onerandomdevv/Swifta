@@ -98,7 +98,7 @@ export class ProductService {
         where,
         orderBy: { createdAt: "desc" },
         include: {
-          merchant: {
+          merchantProfile: {
             select: {
               id: true,
               businessName: true,
@@ -113,7 +113,7 @@ export class ProductService {
     const product = await this.prisma.product.findUnique({
       where: { id },
       include: {
-        merchant: {
+        merchantProfile: {
           select: {
             id: true,
             businessName: true,
