@@ -5,6 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { useToast } from "@/providers/toast-provider";
 import { useAuth } from "@/providers/auth-provider";
+import { getDisplayName } from "@hardware-os/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -78,7 +79,7 @@ export default function AdminSettingsPage() {
               Full Name
             </span>
             <span className="font-bold text-navy-dark dark:text-white">
-              {user?.fullName || "Admin User"}
+              {getDisplayName(user) || "Admin User"}
             </span>
           </div>
           <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700">

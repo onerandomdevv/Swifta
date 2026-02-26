@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 
 interface UserInfo {
   email: string;
-  fullName: string | null;
+  firstName: string;
+  lastName: string;
   phone: string;
 }
 
@@ -168,7 +169,9 @@ export default function AdminMerchantsQueuePage() {
                     </td>
                     <td className="p-4 md:p-6">
                       <p className="font-bold text-sm text-slate-700 dark:text-slate-300">
-                        {merchant.user.fullName || "N/A"}
+                        {merchant.user.firstName || merchant.user.lastName
+                          ? `${merchant.user.firstName} ${merchant.user.lastName}`
+                          : "N/A"}
                       </p>
                       <p className="text-xs text-slate-500 font-medium">
                         {merchant.user.email} <br /> {merchant.user.phone}
@@ -373,7 +376,9 @@ export default function AdminMerchantsQueuePage() {
           <div className="bg-white dark:bg-slate-900 rounded-[2rem] w-full max-w-lg shadow-2xl border border-slate-200 dark:border-slate-800 p-6 md:p-8 animate-in slide-in-from-bottom-8">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-black text-navy-dark dark:text-white uppercase tracking-widest flex items-center gap-2">
-                <span className="material-symbols-outlined text-brand">campaign</span>
+                <span className="material-symbols-outlined text-brand">
+                  campaign
+                </span>
                 Broadcast Message
               </h2>
               <button
@@ -381,14 +386,18 @@ export default function AdminMerchantsQueuePage() {
                 className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
                 disabled={broadcastMutation.isPending}
               >
-                <span className="material-symbols-outlined text-slate-400">close</span>
+                <span className="material-symbols-outlined text-slate-400">
+                  close
+                </span>
               </button>
             </div>
-            
+
             <p className="text-sm font-bold text-slate-500 mb-6">
-              This message will be instantly submitted to all <span className="text-green-500">VERIFIED</span> merchants via email/in-app notifications.
+              This message will be instantly submitted to all{" "}
+              <span className="text-green-500">VERIFIED</span> merchants via
+              email/in-app notifications.
             </p>
-            
+
             <textarea
               className="w-full h-32 p-4 rounded-xl border-2 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-sm font-medium focus:outline-none focus:border-brand transition-colors resize-none mb-6 text-navy-dark dark:text-white"
               placeholder="Type your platform-wide announcement here..."
@@ -396,7 +405,7 @@ export default function AdminMerchantsQueuePage() {
               onChange={(e) => setBroadcastMsg(e.target.value)}
               disabled={broadcastMutation.isPending}
             />
-            
+
             <div className="flex justify-end gap-4">
               <Button
                 variant="ghost"
@@ -411,7 +420,9 @@ export default function AdminMerchantsQueuePage() {
                 onClick={() => broadcastMutation.mutate(broadcastMsg)}
                 disabled={!broadcastMsg.trim() || broadcastMutation.isPending}
               >
-                {broadcastMutation.isPending ? "Transmitting..." : "Send to All"}
+                {broadcastMutation.isPending
+                  ? "Transmitting..."
+                  : "Send to All"}
               </Button>
             </div>
           </div>

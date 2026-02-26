@@ -1,9 +1,11 @@
-import { UserRole } from '../enums/user-role.enum';
+import { UserRole } from "../enums/user-role.enum";
 
 export interface RegisterDto {
   email: string;
   phone: string;
-  fullName?: string;
+  firstName: string;
+  middleName?: string;
+  lastName: string;
   password: string;
   businessName?: string;
   role: UserRole;
@@ -29,7 +31,9 @@ export interface JwtPayload {
 export interface AuthenticatedUser {
   id: string;
   email: string;
-  fullName?: string;
+  firstName: string;
+  middleName?: string;
+  lastName: string;
   role: UserRole;
   merchantId?: string;
 }

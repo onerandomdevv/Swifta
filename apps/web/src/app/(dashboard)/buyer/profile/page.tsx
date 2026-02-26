@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useAuth } from "@/providers/auth-provider";
+import { getDisplayName } from "@hardware-os/shared";
 
 type Tab = "General" | "Documents" | "Billing";
 
@@ -82,27 +83,61 @@ export default function BuyerProfilePage() {
               {/* Business Information Section */}
               <section className="bg-white border border-slate-200 p-8 shadow-sm">
                 <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-4">
-                  <span className="material-symbols-outlined text-primary">factory</span>
+                  <span className="material-symbols-outlined text-primary">
+                    factory
+                  </span>
                   <h2 className="text-sm font-bold uppercase tracking-widest text-slate-900">
                     Business Information
                   </h2>
                 </div>
 
                 <div className="space-y-6">
-                  <div>
-                    <label
-                      htmlFor="userFullName"
-                      className="block text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider"
-                    >
-                      Full Name
-                    </label>
-                    <input
-                      id="userFullName"
-                      type="text"
-                      defaultValue={user?.fullName || ""}
-                      placeholder="Enter your full name"
-                      className="w-full h-12 px-4 text-sm rounded-none border border-slate-300 focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-slate-300"
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label
+                        htmlFor="firstName"
+                        className="block text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider"
+                      >
+                        First Name
+                      </label>
+                      <input
+                        id="firstName"
+                        type="text"
+                        defaultValue={user?.firstName || ""}
+                        placeholder="John"
+                        className="w-full h-12 px-4 text-sm rounded-none border border-slate-300 focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-slate-300"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="middleName"
+                        className="block text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider"
+                      >
+                        Middle Name
+                      </label>
+                      <input
+                        id="middleName"
+                        type="text"
+                        defaultValue={user?.middleName || ""}
+                        placeholder="Quincy"
+                        className="w-full h-12 px-4 text-sm rounded-none border border-slate-300 focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-slate-300"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="lastName"
+                        className="block text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider"
+                      >
+                        Last Name
+                      </label>
+                      <input
+                        id="lastName"
+                        type="text"
+                        defaultValue={user?.lastName || ""}
+                        placeholder="Doe"
+                        className="w-full h-12 px-4 text-sm rounded-none border border-slate-300 focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-slate-300"
+                      />
+                    </div>
                   </div>
 
                   <div>
@@ -134,7 +169,9 @@ export default function BuyerProfilePage() {
                         className="w-full h-12 px-4 text-sm bg-white rounded-none border border-slate-300 focus:border-primary focus:ring-1 focus:ring-primary"
                       >
                         <option value="construction">Construction</option>
-                        <option value="real_estate">Real Estate Developer</option>
+                        <option value="real_estate">
+                          Real Estate Developer
+                        </option>
                         <option value="wholesale">Wholesale</option>
                         <option value="retail">Retail Hardware</option>
                         <option value="manufacturing">Manufacturing</option>
@@ -161,7 +198,9 @@ export default function BuyerProfilePage() {
               {/* Contact & Delivery Section */}
               <section className="bg-white border border-slate-200 p-8 shadow-sm">
                 <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-4">
-                  <span className="material-symbols-outlined text-primary">local_shipping</span>
+                  <span className="material-symbols-outlined text-primary">
+                    local_shipping
+                  </span>
                   <h2 className="text-sm font-bold uppercase tracking-widest text-slate-900">
                     Contact &amp; Delivery
                   </h2>
@@ -225,7 +264,9 @@ export default function BuyerProfilePage() {
             {/* Security Settings Section */}
             <section className="bg-white border border-slate-200 p-8 shadow-sm">
               <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-4">
-                <span className="material-symbols-outlined text-primary">security</span>
+                <span className="material-symbols-outlined text-primary">
+                  security
+                </span>
                 <h2 className="text-sm font-bold uppercase tracking-widest text-slate-900">
                   Security Settings
                 </h2>
@@ -282,14 +323,20 @@ export default function BuyerProfilePage() {
         {activeTab === "Documents" && (
           <section className="bg-white border border-slate-200 p-8 shadow-sm">
             <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-4">
-              <span className="material-symbols-outlined text-primary">folder_open</span>
+              <span className="material-symbols-outlined text-primary">
+                folder_open
+              </span>
               <h2 className="text-sm font-bold uppercase tracking-widest text-slate-900">
                 Documents
               </h2>
             </div>
             <div className="flex flex-col items-center justify-center py-16 gap-4 text-slate-400">
-              <span className="material-symbols-outlined text-5xl">upload_file</span>
-              <p className="text-sm font-bold uppercase tracking-widest">No documents uploaded yet</p>
+              <span className="material-symbols-outlined text-5xl">
+                upload_file
+              </span>
+              <p className="text-sm font-bold uppercase tracking-widest">
+                No documents uploaded yet
+              </p>
               <button
                 onClick={handleDocumentUpload}
                 className="mt-2 bg-primary text-white text-xs font-bold px-8 py-3 uppercase tracking-widest hover:bg-orange-800 transition-colors"
@@ -303,14 +350,20 @@ export default function BuyerProfilePage() {
         {activeTab === "Billing" && (
           <section className="bg-white border border-slate-200 p-8 shadow-sm">
             <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-4">
-              <span className="material-symbols-outlined text-primary">credit_card</span>
+              <span className="material-symbols-outlined text-primary">
+                credit_card
+              </span>
               <h2 className="text-sm font-bold uppercase tracking-widest text-slate-900">
                 Billing
               </h2>
             </div>
             <div className="flex flex-col items-center justify-center py-16 gap-4 text-slate-400">
-              <span className="material-symbols-outlined text-5xl">receipt_long</span>
-              <p className="text-sm font-bold uppercase tracking-widest">No billing information</p>
+              <span className="material-symbols-outlined text-5xl">
+                receipt_long
+              </span>
+              <p className="text-sm font-bold uppercase tracking-widest">
+                No billing information
+              </p>
             </div>
           </section>
         )}
