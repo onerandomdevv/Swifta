@@ -9,6 +9,8 @@ export interface RFQ {
   deliveryAddress: string;
   unlistedItemDetails?: any;
   product?: any;
+  merchant?: { businessName: string };
+  quotes?: any[];
   notes?: string;
   status: RFQStatus;
   expiresAt: Date;

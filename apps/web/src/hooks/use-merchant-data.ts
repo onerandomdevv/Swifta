@@ -26,16 +26,25 @@ export function useMerchantDashboard() {
   });
 
   const isLoading = rfqQuery.isLoading || orderQuery.isLoading;
-  const isError = rfqQuery.isError || orderQuery.isError;
-  const error = rfqQuery.error || orderQuery.error;
 
   return {
     rfqs: rfqQuery.data || ([] as RFQ[]),
     orders: orderQuery.data || ([] as Order[]),
     isLoading,
-    isError,
-    error:
-      error instanceof Error ? error.message : "Failed to load dashboard data",
+    isError: rfqQuery.isError || orderQuery.isError,
+    error: (() => {
+      const error = rfqQuery.error || orderQuery.error;
+      if (!error) return null;
+      const anyErr = error as any;
+      if (typeof anyErr.error === 'string') return anyErr.error;
+      if (typeof (error as Error).message === 'string') return (error as Error).message;
+      try {
+        if (anyErr.error) return JSON.stringify(anyErr.error);
+      } catch (e) {
+        // Fallback
+      }
+      return 'Failed to load dashboard data';
+    })(),
     refetch: () => {
       rfqQuery.refetch();
       orderQuery.refetch();
@@ -57,10 +66,20 @@ export function useMerchantInventory() {
     products: productQuery.data || ([] as Product[]),
     isLoading: productQuery.isLoading,
     isError: productQuery.isError,
-    error:
-      productQuery.error instanceof Error
-        ? productQuery.error.message
-        : "Failed to load inventory",
+    error: (() => {
+      const error = productQuery.error;
+      if (!error) return null;
+      const anyErr = error as any;
+      if (typeof anyErr.error === 'string') return anyErr.error;
+      if (typeof (error as Error).message === 'string') return (error as Error).message;
+      try {
+        if (anyErr.error) return JSON.stringify(anyErr.error);
+      } catch (e) {
+        // Fallback
+      }
+      return 'Failed to load inventory';
+    })() as string | null,
     refetch: productQuery.refetch,
   };
 }
+

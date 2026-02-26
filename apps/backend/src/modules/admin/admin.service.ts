@@ -323,7 +323,7 @@ export class AdminService {
 
     const phoneNumbers = verifiedMerchants.map(m => m.user?.phone).filter(Boolean);
 
-    // MOCK: Integration with Africa's Talking / WhatsApp API
+    // MOCK: Integration with Email / In-App Notification API
     this.logger.log(`[BROADCAST QUEUE] Transmitting message to ${phoneNumbers.length} merchants.`);
     this.logger.log(`[PAYLOAD]: ${message}`);
 
