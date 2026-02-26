@@ -23,11 +23,11 @@ import { RegistrationSuccessStep } from "@/components/auth/register-flow/registr
 type Step = 1 | 2 | 3 | 4;
 
 const slides = [
-  '/images/hero/slide-2.jpg',
-  '/images/hero/slide-3.jpg',
-  '/images/hero/slide-4.jpg',
-  '/images/hero/slide-5.jpg',
-  '/images/hero/slide-1.jpg',
+  "/images/hero/slide-2.jpg",
+  "/images/hero/slide-3.jpg",
+  "/images/hero/slide-4.jpg",
+  "/images/hero/slide-5.jpg",
+  "/images/hero/slide-1.jpg",
 ];
 
 export default function RegisterPage() {
@@ -45,7 +45,9 @@ export default function RegisterPage() {
   const methods = useForm<RegistrationFormData>({
     resolver: zodResolver(baseRegistrationSchema),
     defaultValues: {
-      fullName: "",
+      firstName: "",
+      middleName: "",
+      lastName: "",
       businessName: "",
       email: "",
       phone: "",
@@ -87,20 +89,13 @@ export default function RegisterPage() {
     setIsLoading(true);
     setFormError(null);
 
-    // Collect first + middle + last name from DOM inputs and build fullName
-    const firstEl = document.getElementById("firstName") as HTMLInputElement | null;
-    const middleEl = document.getElementById("middleName") as HTMLInputElement | null;
-    const lastEl = document.getElementById("lastName") as HTMLInputElement | null;
-    const firstName = firstEl?.value?.trim() || "";
-    const middleName = middleEl?.value?.trim() || "";
-    const lastName = lastEl?.value?.trim() || "";
-    const composedFullName = [firstName, middleName, lastName].filter(Boolean).join(" ");
-
     try {
       await authRegister({
         email: data.email,
         phone: data.phone,
-        fullName: composedFullName || data.fullName,
+        firstName: data.firstName,
+        middleName: data.middleName || undefined,
+        lastName: data.lastName,
         password: data.password,
         businessName: data.businessName,
         role: data.role,
@@ -113,7 +108,9 @@ export default function RegisterPage() {
       const errorMessage =
         typeof err === "string"
           ? err
-          : err.error || err.message || "Registration failed. Please try again.";
+          : err.error ||
+            err.message ||
+            "Registration failed. Please try again.";
       setFormError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -151,10 +148,17 @@ export default function RegisterPage() {
       toast.success("Email verified successfully!");
 
       const dashboardPath =
-        role === UserRole.MERCHANT ? "/merchant/onboarding" : "/buyer/dashboard";
-      setTimeout(() => { router.push(dashboardPath); }, 2000);
+        role === UserRole.MERCHANT
+          ? "/merchant/onboarding"
+          : "/buyer/dashboard";
+      setTimeout(() => {
+        router.push(dashboardPath);
+      }, 2000);
     } catch (err: any) {
-      const msg = err.error || err.message || "Invalid verification code. Please try again.";
+      const msg =
+        err.error ||
+        err.message ||
+        "Invalid verification code. Please try again.";
       setOtpError(msg);
       toast.error(msg);
     } finally {
@@ -171,48 +175,66 @@ export default function RegisterPage() {
       setResendCooldown(60);
       setOtp(["", "", "", "", "", ""]);
     } catch (err: any) {
-      toast.error(err.error || "Could not resend code. Please try again later.");
+      toast.error(
+        err.error || "Could not resend code. Please try again later.",
+      );
     }
   };
 
   return (
     <div className="flex min-h-screen w-full font-display">
-
       {/* ─── LEFT: Image Slideshow Panel ─── */}
       <div className="hidden lg:block lg:w-[50%] relative sticky top-0 h-screen overflow-hidden">
         {slides.map((src, index) => (
           <div
             key={index}
-            className={`absolute inset-0 transition-opacity duration-[1500ms] ease-in-out ${index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+            className={`absolute inset-0 transition-opacity duration-[1500ms] ease-in-out ${index === currentSlide ? "opacity-100 z-10" : "opacity-0 z-0"}`}
           >
-            <img src={src} alt="Hardware materials" className="w-full h-full object-cover" />
+            <img
+              src={src}
+              alt="Hardware materials"
+              className="w-full h-full object-cover"
+            />
           </div>
         ))}
         <div className="absolute inset-0 z-20 bg-gradient-to-t from-[#101622] via-[#101622]/50 to-transparent" />
 
         <div className="absolute bottom-10 left-10 right-10 z-30 text-white">
           <Link href="/" className="flex items-center gap-2 mb-6">
-            <span className="material-symbols-outlined text-primary text-3xl">settings_input_component</span>
-            <span className="text-2xl font-black tracking-tight uppercase">Hardware OS</span>
+            <span className="material-symbols-outlined text-primary text-3xl">
+              settings_input_component
+            </span>
+            <span className="text-2xl font-black tracking-tight uppercase">
+              Hardware OS
+            </span>
           </Link>
           <p className="text-white/70 text-base font-medium max-w-xs leading-relaxed mb-6">
-            Join Nigeria&apos;s trusted B2B hardware trade network. Verified merchants, private pricing, escrow protection.
+            Join Nigeria&apos;s trusted B2B hardware trade network. Verified
+            merchants, private pricing, escrow protection.
           </p>
           <div className="flex flex-col gap-3">
             {[
-              { icon: 'lock', label: 'Escrow Protection' },
-              { icon: 'verified', label: 'Verified Merchants' },
-              { icon: 'visibility_off', label: 'Private Pricing' },
+              { icon: "lock", label: "Escrow Protection" },
+              { icon: "verified", label: "Verified Merchants" },
+              { icon: "visibility_off", label: "Private Pricing" },
             ].map((item) => (
-              <div key={item.label} className="flex items-center gap-2 text-sm font-semibold text-white/80">
-                <span className="material-symbols-outlined text-primary text-base">{item.icon}</span>
+              <div
+                key={item.label}
+                className="flex items-center gap-2 text-sm font-semibold text-white/80"
+              >
+                <span className="material-symbols-outlined text-primary text-base">
+                  {item.icon}
+                </span>
                 {item.label}
               </div>
             ))}
           </div>
           <div className="flex gap-2 mt-8">
             {slides.map((_, i) => (
-              <div key={i} className={`h-1 rounded-full transition-all duration-500 bg-white ${i === currentSlide ? 'w-6 opacity-100' : 'w-2 opacity-30'}`} />
+              <div
+                key={i}
+                className={`h-1 rounded-full transition-all duration-500 bg-white ${i === currentSlide ? "w-6 opacity-100" : "w-2 opacity-30"}`}
+              />
             ))}
           </div>
         </div>
@@ -223,8 +245,12 @@ export default function RegisterPage() {
         {/* Mobile header */}
         <div className="lg:hidden flex items-center justify-between p-6 border-b border-slate-100">
           <Link href="/" className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-2xl">settings_input_component</span>
-            <span className="text-lg font-black tracking-tight text-slate-900 uppercase">Hardware OS</span>
+            <span className="material-symbols-outlined text-primary text-2xl">
+              settings_input_component
+            </span>
+            <span className="text-lg font-black tracking-tight text-slate-900 uppercase">
+              Hardware OS
+            </span>
           </Link>
         </div>
 
@@ -268,7 +294,9 @@ export default function RegisterPage() {
         </div>
 
         <footer className="px-8 py-6 border-t border-slate-100">
-          <p className="text-center text-xs text-slate-400">© 2025 Hardware OS. Lagos, Nigeria.</p>
+          <p className="text-center text-xs text-slate-400">
+            © 2025 Hardware OS. Lagos, Nigeria.
+          </p>
         </footer>
       </div>
     </div>

@@ -10,7 +10,8 @@ interface PlatformUser {
   id: string;
   email: string;
   phone: string;
-  fullName: string | null;
+  firstName: string;
+  lastName: string;
   role: "BUYER" | "MERCHANT" | "SUPER_ADMIN" | "OPERATOR" | "SUPPORT";
   emailVerified: boolean;
   createdAt: string;
@@ -162,7 +163,7 @@ export default function AdminUsersPage() {
               >
                 <div>
                   <p className="font-bold text-navy-dark dark:text-white flex items-center gap-2">
-                    {staff.fullName}
+                    {staff.firstName} {staff.lastName}
                     <span
                       className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${ROLE_STYLES[staff.role]}`}
                     >
@@ -221,7 +222,9 @@ export default function AdminUsersPage() {
                   >
                     <td className="p-4 md:p-6">
                       <p className="font-bold text-navy-dark dark:text-white">
-                        {user.fullName || "Unnamed User"}
+                        {user.firstName || user.lastName
+                          ? `${user.firstName} ${user.lastName}`
+                          : "Unnamed User"}
                       </p>
                       <p className="text-xs font-bold text-slate-400 mt-0.5 flex items-center gap-1">
                         {user.emailVerified ? (
@@ -356,7 +359,9 @@ export default function AdminUsersPage() {
 
             <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700 mb-6">
               <p className="font-bold text-navy-dark dark:text-white">
-                {confirmAction.user.fullName || "Unnamed User"}
+                {confirmAction.user.firstName || confirmAction.user.lastName
+                  ? `${confirmAction.user.firstName} ${confirmAction.user.lastName}`
+                  : "Unnamed User"}
               </p>
               <p className="text-sm font-medium text-slate-500 mt-0.5">
                 {confirmAction.user.email}

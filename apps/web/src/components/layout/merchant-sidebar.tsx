@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
+import { getDisplayName } from "@hardware-os/shared";
 
 export function MerchantSidebar() {
   const pathname = usePathname();
@@ -10,9 +11,21 @@ export function MerchantSidebar() {
 
   const navItems = [
     { label: "Dashboard", icon: "dashboard", href: "/merchant/dashboard" },
-    { label: "Catalogue", icon: "list_alt", href: "/merchant/catalogue" },
+    { label: "Orders", icon: "list_alt", href: "/merchant/orders" },
+    { label: "Quotes", icon: "request_quote", href: "/merchant/quotes" },
+    {
+      label: "Storefront Preview",
+      icon: "storefront",
+      href: "/merchant/catalogue",
+    },
     { label: "Inventory", icon: "inventory_2", href: "/merchant/inventory" },
     { label: "Payouts", icon: "payments", href: "/merchant/payouts" },
+    {
+      label: "Verification",
+      icon: "verified_user",
+      href: "/merchant/verification",
+    },
+    { label: "Settings", icon: "settings", href: "/merchant/settings" },
   ];
 
   return (
@@ -64,7 +77,7 @@ export function MerchantSidebar() {
             <div className="flex-1 overflow-hidden">
               <p className="text-xs font-bold truncate text-slate-900 dark:text-white">
                 {/* Provide fallback for user name since it might be loading or undefined at initial render */}
-                {user?.fullName ||
+                {getDisplayName(user) ||
                   user?.email?.split("@")[0] ||
                   "Merchant User"}
               </p>

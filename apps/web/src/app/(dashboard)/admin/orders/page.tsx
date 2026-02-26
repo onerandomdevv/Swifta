@@ -16,7 +16,8 @@ interface AdminOrder {
     businessName: string;
   };
   buyer: {
-    fullName: string | null;
+    firstName: string;
+    lastName: string;
     email: string;
   };
   quote: {
@@ -191,8 +192,9 @@ export default function AdminOrdersPage() {
                           </span>
                         </p>
                         <p className="font-bold text-sm text-brand mt-1 line-clamp-1">
-                          {order.buyer.fullName ||
-                            order.buyer.email.split("@")[0]}{" "}
+                          {order.buyer.firstName || order.buyer.lastName
+                            ? `${order.buyer.firstName} ${order.buyer.lastName}`
+                            : order.buyer.email.split("@")[0]}{" "}
                           <span className="text-slate-400 font-normal lowercase">
                             (Buyer)
                           </span>

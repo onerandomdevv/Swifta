@@ -1,42 +1,40 @@
-import { PrismaClient } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
-import { UserRole } from '@hardware-os/shared';
+import { PrismaClient } from "./generated-client";
+import * as bcrypt from "bcrypt";
+import { UserRole } from "@hardware-os/shared";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting Database Seeding Process...');
+  console.log("🌱 Starting Database Seeding Process...");
 
-  // 1. Check if ANY Super Admin exists
-  const adminCount = await prisma.user.count({
-    where: { role: UserRole.SUPER_ADMIN },
-  });
+  const DEFAULT_ADMIN_EMAIL = "admin@hardwareos.com";
+  const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_BOOTSTRAP_PASSWORD;
 
-  if (adminCount > 0) {
-    console.log('✅ Super Admin already exists in the database. Skipping creation.');
-    return;
+  if (!DEFAULT_ADMIN_PASSWORD) {
+    throw new Error(
+      "ADMIN_BOOTSTRAP_PASSWORD environment variable is NOT SET.",
+    );
   }
 
-  // 2. We have a fresh database. Generate the master admin account securely.
-  console.log('⚠️ No Super Admin found! Generating default administrator account...');
-
-  const DEFAULT_ADMIN_EMAIL = 'admin@hardware-os.com';
-  const DEFAULT_ADMIN_PASSWORD = 'Admin@123';
   const SALT_ROUNDS = 10;
 
   console.log(`🔒 Hashing master password...`);
   const passwordHash = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, SALT_ROUNDS);
 
-  const newAdmin = await prisma.user.create({
-    data: {
+  console.log(`📦 Creating/Updating Super Admin account...`);
+  await prisma.user.upsert({
+    where: { email: DEFAULT_ADMIN_EMAIL },
+    update: {}, // If it exists, leave it as is (atomic existence check)
+    create: {
       email: DEFAULT_ADMIN_EMAIL,
-      phone: '+234000000000', // Placeholder
-      fullName: 'HARDWARE OS Admin',
+      phone: "+234000000000",
+      firstName: "HARDWARE",
+      lastName: "Admin",
       passwordHash: passwordHash,
       role: UserRole.SUPER_ADMIN,
       adminProfile: {
         create: {
-          approvalStatus: 'APPROVED',
+          approvalStatus: "APPROVED",
         },
       },
     },
@@ -44,8 +42,12 @@ async function main() {
 
   console.log(`✅ Super Admin created successfully!`);
   console.log(`📧 Email: ${DEFAULT_ADMIN_EMAIL}`);
-  console.log(`🔑 Password: ${DEFAULT_ADMIN_PASSWORD}`);
-  console.log(`Important: Remember to change your password immediately upon logging in.`);
+  console.log(
+    `🔑 Password: [HIDDEN] (Use ADMIN_BOOTSTRAP_PASSWORD environment variable)`,
+  );
+  console.log(
+    `Important: Remember to change your password immediately upon logging in.`,
+  );
 }
 
 main()
@@ -53,7 +55,7 @@ main()
     await prisma.$disconnect();
   })
   .catch(async (e) => {
-    console.error('❌ SEEDING FAILED:', e);
+    console.error("❌ SEEDING FAILED:", e);
     await prisma.$disconnect();
     process.exit(1);
   });

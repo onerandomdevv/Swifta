@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { authApi } from "../../../../lib/api/auth.api";
+import { getDisplayName } from "@hardware-os/shared";
 import { useToast } from "../../../../providers/toast-provider";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
@@ -12,7 +13,9 @@ import Link from "next/link";
 
 // Schema for registration
 const joinSchema = z.object({
-  fullName: z.string().min(2, "Name must be at least 2 characters"),
+  firstName: z.string().min(1, "First name is required"),
+  middleName: z.string().optional(),
+  lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   accessToken: z.string().min(10, "Please enter a valid access token"),
@@ -33,7 +36,14 @@ export default function StaffJoinPage() {
     formState: { errors, isSubmitting },
   } = useForm<JoinFormData>({
     resolver: zodResolver(joinSchema),
-    defaultValues: { fullName: "", email: "", password: "", accessToken: "" },
+    defaultValues: {
+      firstName: "",
+      middleName: "",
+      lastName: "",
+      email: "",
+      password: "",
+      accessToken: "",
+    },
   });
 
   const onSubmit = async (data: JoinFormData) => {
@@ -153,13 +163,13 @@ export default function StaffJoinPage() {
             )}
           </div>
 
-          {/* Full Name */}
+          {/* First Name */}
           <div className="space-y-2">
             <label
               className="text-sm font-bold text-slate-300 block"
-              htmlFor="fullName"
+              htmlFor="firstName"
             >
-              Full Name
+              First Name
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -168,19 +178,75 @@ export default function StaffJoinPage() {
                 </span>
               </div>
               <Input
-                id="fullName"
+                id="firstName"
                 type="text"
                 className="pl-10 bg-slate-800/50 border-slate-700 text-white placeholder-slate-500 focus:bg-slate-800"
-                placeholder="John Doe"
-                {...register("fullName")}
+                placeholder="John"
+                {...register("firstName")}
               />
             </div>
-            {errors.fullName && (
+            {errors.firstName && (
               <p className="text-xs font-semibold text-red-400 flex items-center mt-1">
                 <span className="material-symbols-outlined text-[14px] mr-1">
                   warning
                 </span>
-                {errors.fullName.message}
+                {errors.firstName.message}
+              </p>
+            )}
+          </div>
+
+          {/* Middle Name */}
+          <div className="space-y-2">
+            <label
+              className="text-sm font-bold text-slate-300 block"
+              htmlFor="middleName"
+            >
+              Middle Name (Optional)
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <span className="material-symbols-outlined text-slate-500 text-[20px]">
+                  person
+                </span>
+              </div>
+              <Input
+                id="middleName"
+                type="text"
+                className="pl-10 bg-slate-800/50 border-slate-700 text-white placeholder-slate-500 focus:bg-slate-800"
+                placeholder="Quincy"
+                {...register("middleName")}
+              />
+            </div>
+          </div>
+
+          {/* Last Name */}
+          <div className="space-y-2">
+            <label
+              className="text-sm font-bold text-slate-300 block"
+              htmlFor="lastName"
+            >
+              Last Name
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <span className="material-symbols-outlined text-slate-500 text-[20px]">
+                  person
+                </span>
+              </div>
+              <Input
+                id="lastName"
+                type="text"
+                className="pl-10 bg-slate-800/50 border-slate-700 text-white placeholder-slate-500 focus:bg-slate-800"
+                placeholder="Doe"
+                {...register("lastName")}
+              />
+            </div>
+            {errors.lastName && (
+              <p className="text-xs font-semibold text-red-400 flex items-center mt-1">
+                <span className="material-symbols-outlined text-[14px] mr-1">
+                  warning
+                </span>
+                {errors.lastName.message}
               </p>
             )}
           </div>

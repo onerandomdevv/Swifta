@@ -17,10 +17,15 @@ import { apiClient } from "../lib/api-client";
 interface User {
   id: string;
   email: string;
-  fullName?: string;
+  firstName: string;
+  middleName?: string;
+  lastName: string;
+  phone: string;
   role: UserRole;
   emailVerified: boolean;
   merchantId?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface AuthContextType {

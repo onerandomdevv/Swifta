@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../../../../providers/auth-provider";
 import { useToast } from "../../../../providers/toast-provider";
 import { authApi } from "../../../../lib/api/auth.api";
+import { getDisplayName } from "@hardware-os/shared";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 
@@ -90,7 +91,7 @@ export default function VerifyTokenPage() {
           </div>
           <div>
             <p className="text-sm font-bold text-white">
-              {user.fullName || user.email}
+              {getDisplayName(user) || user.email}
             </p>
             <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">
               {user.role}
