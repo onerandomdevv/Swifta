@@ -65,6 +65,7 @@ export function DeliveryCard({ order }: Props) {
       </div>
 
       <div className="flex items-center gap-3">
+        {/* Track Truck — only when dispatched */}
         {order.status === "DISPATCHED" && (
           <Link
             href={`/buyer/orders/${order.id}`}
@@ -73,25 +74,33 @@ export function DeliveryCard({ order }: Props) {
             Track Truck
           </Link>
         )}
-        
-        {order.status === "PENDING_PAYMENT" ? (
+
+        {/* Fund Escrow — only when payment pending */}
+        {order.status === "PENDING_PAYMENT" && (
           <Link
             href={`/buyer/orders/${order.id}`}
             className="flex-1 lg:flex-none bg-primary text-white text-center font-bold py-2 px-6 rounded text-sm uppercase hover:bg-primary/90 transition-colors"
           >
             Fund Escrow
           </Link>
-        ) : (
+        )}
+
+        {/* Enter Delivery OTP — active link only when dispatched, non-navigable span otherwise */}
+        {order.status === "DISPATCHED" ? (
           <Link
             href={`/buyer/orders/${order.id}`}
-            className={`flex-1 lg:flex-none font-bold py-2 px-6 rounded text-sm uppercase transition-colors text-center ${
-              order.status === "DISPATCHED"
-                ? "bg-primary text-white hover:bg-primary/90"
-                : "bg-slate-100 text-slate-400 cursor-not-allowed"
-            }`}
+            className="flex-1 lg:flex-none bg-primary text-white font-bold py-2 px-6 rounded text-sm uppercase hover:bg-primary/90 transition-colors text-center"
           >
             Enter Delivery OTP
           </Link>
+        ) : (
+          <span
+            aria-disabled="true"
+            role="button"
+            className="flex-1 lg:flex-none font-bold py-2 px-6 rounded text-sm uppercase text-center bg-slate-100 text-slate-400 cursor-not-allowed select-none"
+          >
+            Enter Delivery OTP
+          </span>
         )}
       </div>
     </div>

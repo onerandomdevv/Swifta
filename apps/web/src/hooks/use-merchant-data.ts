@@ -66,10 +66,19 @@ export function useMerchantInventory() {
     products: productQuery.data || ([] as Product[]),
     isLoading: productQuery.isLoading,
     isError: productQuery.isError,
-    error:
-      productQuery.error instanceof Error
-        ? productQuery.error.message
-        : "Failed to load inventory",
+    error: (() => {
+      const error = productQuery.error;
+      if (!error) return null;
+      const anyErr = error as any;
+      if (typeof anyErr.error === 'string') return anyErr.error;
+      if (typeof (error as Error).message === 'string') return (error as Error).message;
+      try {
+        if (anyErr.error) return JSON.stringify(anyErr.error);
+      } catch (e) {
+        // Fallback
+      }
+      return 'Failed to load inventory';
+    })() as string | null,
     refetch: productQuery.refetch,
   };
 }
