@@ -1,9 +1,6 @@
-import Link from "next/link";
 import { useFormContext } from "react-hook-form";
+import Link from "next/link";
 import type { RegistrationFormData } from "@/lib/validations/auth";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { PasswordInput } from "@/components/ui/password-input";
 
 interface AccountDetailsStepProps {
   onSubmit: (e: React.FormEvent) => void;
@@ -22,213 +19,157 @@ export function AccountDetailsStep({
     register,
     formState: { errors },
   } = useFormContext<RegistrationFormData>();
+
   return (
-    <div className="flex flex-col items-center py-12 md:py-20 w-full px-4">
-      {/* Progress Stepper Container */}
-      <div className="w-full max-w-[480px] mb-8">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-primary">
-            Step 2: Account Details
-          </span>
-          <span className="text-xs font-medium text-slate-500">
-            66% Complete
-          </span>
+    <div className="max-w-md w-full mx-auto animate-in fade-in slide-in-from-right-4 duration-700">
+      {/* Progress */}
+      <div className="mb-8">
+        <div className="flex justify-between items-end mb-2">
+          <span className="text-[10px] font-bold text-primary uppercase tracking-[0.1em]">Step 2 of 3</span>
+          <span className="text-[10px] font-medium text-slate-400">Account Details</span>
         </div>
-        <div className="h-2 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-          <div className="h-full bg-primary w-2/3 rounded-full"></div>
-        </div>
-        <div className="flex justify-between mt-4 px-2">
-          <div className="flex flex-col items-center">
-            <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center mb-1 ring-4 ring-primary/10">
-              <span className="material-symbols-outlined text-sm font-bold">
-                check
-              </span>
-            </div>
-            <span className="text-[10px] font-medium text-slate-500 uppercase">
-              Role
-            </span>
-          </div>
-          <div className="flex-1 border-t-2 border-primary mt-4 mx-2"></div>
-          <div className="flex flex-col items-center">
-            <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center mb-1 ring-4 ring-primary/10">
-              <span className="text-xs font-bold">2</span>
-            </div>
-            <span className="text-[10px] font-bold text-primary uppercase">
-              Details
-            </span>
-          </div>
-          <div className="flex-1 border-t-2 border-slate-200 dark:border-slate-800 mt-4 mx-2"></div>
-          <div className="flex flex-col items-center">
-            <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-400 flex items-center justify-center mb-1">
-              <span className="text-xs font-bold">3</span>
-            </div>
-            <span className="text-[10px] font-medium text-slate-500 uppercase">
-              Verify
-            </span>
-          </div>
+        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+          <div className="h-full bg-primary w-2/3 rounded-full transition-all duration-1000 ease-out" />
         </div>
       </div>
 
-      {/* Registration Card */}
-      <div className="w-full max-w-[480px] bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 p-8 md:p-10">
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 leading-tight">
-            Account Details
-          </h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-2">
-            Please enter your business account information for the Lagos B2B
-            marketplace.
-          </p>
-        </div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">Join the Network</h1>
+        <p className="text-slate-500 font-medium">Register to start trading on Lagos&apos;s premier hardware marketplace.</p>
+      </div>
 
-        {formError && (
-          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-            <span className="material-symbols-outlined text-red-500 mt-0.5">
-              error
-            </span>
-            <p className="text-sm font-medium text-red-700 dark:text-red-400 leading-snug">
-              {formError}
-            </p>
+      {formError && (
+        <div className="mb-5 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+          <span className="material-symbols-outlined text-red-500 mt-0.5 text-xl">error</span>
+          <p className="text-sm font-medium text-red-700 leading-snug">{formError}</p>
+        </div>
+      )}
+
+      <form onSubmit={onSubmit} className="space-y-4">
+        {/* Name row: First + Middle + Last */}
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">First Name</label>
+            <input
+              className={`w-full px-3 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.fullName ? "border-red-400" : "border-slate-200"}`}
+              placeholder="John"
+              type="text"
+              id="firstName"
+              name="firstName"
+            />
           </div>
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">Middle Name</label>
+            <input
+              className="w-full px-3 py-3 bg-[#f6f6f8] border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm"
+              placeholder="Emeka (opt.)"
+              type="text"
+              id="middleName"
+              name="middleName"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">Last Name</label>
+            <div className="relative">
+              <input
+                className={`w-full px-3 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.fullName ? "border-red-400" : "border-slate-200"}`}
+                placeholder="Adeyemi"
+                type="text"
+                id="lastName"
+                name="lastName"
+              />
+            </div>
+          </div>
+        </div>
+        {/* Hidden fullName field built from first+middle+last via onSubmit */}
+        <input type="hidden" {...register("fullName")} />
+        {errors.fullName && (
+          <p className="text-xs font-semibold text-red-500 -mt-2">{errors.fullName.message}</p>
         )}
 
-        <form onSubmit={onSubmit} className="space-y-6">
-          {/* Full Name */}
-          <div className="space-y-1.5">
-            <label
-              className="block text-sm font-bold text-slate-700 dark:text-slate-300"
-              htmlFor="full_name"
-            >
-              Full Name
-            </label>
-            <Input
-              className={`h-12 bg-slate-50 dark:bg-slate-800 ${errors.fullName ? "border-red-500 ring-1 ring-red-500" : "border-slate-200 dark:border-slate-700"}`}
-              id="full_name"
-              placeholder="e.g. John Doe"
-              type="text"
-              {...register("fullName")}
-            />
-            {errors.fullName && (
-              <p className="text-sm font-semibold text-red-500 mt-1 animate-slide-in">
-                {errors.fullName.message}
-              </p>
-            )}
-          </div>
-          {/* Business Name */}
-          <div className="space-y-1.5">
-            <label
-              className="block text-sm font-bold text-slate-700 dark:text-slate-300"
-              htmlFor="business_name"
-            >
-              Business Name
-            </label>
-            <Input
-              className={`h-12 bg-slate-50 dark:bg-slate-800 ${errors.businessName ? "border-red-500 ring-1 ring-red-500" : "border-slate-200 dark:border-slate-700"}`}
-              id="business_name"
-              placeholder="e.g. Lagos Hardware Ltd"
+        {/* Business Name */}
+        <div>
+          <label className="block text-sm font-bold text-slate-700 mb-1.5">Business Name</label>
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">corporate_fare</span>
+            <input
+              className={`w-full pl-10 pr-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.businessName ? "border-red-400" : "border-slate-200"}`}
+              placeholder="Lagos Build Ltd"
               type="text"
               {...register("businessName")}
             />
-            {errors.businessName && (
-              <p className="text-sm font-semibold text-red-500 mt-1 animate-slide-in">
-                {errors.businessName.message}
-              </p>
-            )}
           </div>
-          {/* Email Address */}
-          <div className="space-y-1.5">
-            <label
-              className="block text-sm font-bold text-slate-700 dark:text-slate-300"
-              htmlFor="email"
-            >
-              Email Address
-            </label>
-            <Input
-              className={`h-12 bg-slate-50 dark:bg-slate-800 ${errors.email ? "border-red-500 ring-1 ring-red-500" : "border-slate-200 dark:border-slate-700"}`}
-              id="email"
-              placeholder="name@company.com"
-              type="email"
-              {...register("email")}
-            />
-            {errors.email && (
-              <p className="text-sm font-semibold text-red-500 mt-1 animate-slide-in">
-                {errors.email.message}
-              </p>
-            )}
-          </div>
-          {/* Phone Number */}
-          <div className="space-y-1.5">
-            <label
-              className="block text-sm font-bold text-slate-700 dark:text-slate-300"
-              htmlFor="phone"
-            >
-              Phone Number
-            </label>
-            <Input
-              className={`h-12 bg-slate-50 dark:bg-slate-800 ${errors.phone ? "border-red-500 ring-1 ring-red-500" : "border-slate-200 dark:border-slate-700"}`}
-              id="phone"
-              placeholder="e.g. 08012345678"
+          {errors.businessName && <p className="text-xs font-semibold text-red-500 mt-1">{errors.businessName.message}</p>}
+        </div>
+
+        {/* Phone */}
+        <div>
+          <label className="block text-sm font-bold text-slate-700 mb-1.5">Phone Number</label>
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">call</span>
+            <input
+              className={`w-full pl-10 pr-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.phone ? "border-red-400" : "border-slate-200"}`}
+              placeholder="+234 800 000 0000"
               type="tel"
               {...register("phone")}
             />
-            {errors.phone && (
-              <p className="text-sm font-semibold text-red-500 mt-1 animate-slide-in">
-                {errors.phone.message}
-              </p>
-            )}
           </div>
-          {/* Password */}
-          <div className="space-y-1.5">
-            <label
-              className="block text-sm font-bold text-slate-700 dark:text-slate-300"
-              htmlFor="password"
-            >
-              Password
-            </label>
-            <PasswordInput
-              className={`h-12 bg-slate-50 dark:bg-slate-800 ${errors.password ? "border-red-500 ring-1 ring-red-500" : "border-slate-200 dark:border-slate-700"}`}
-              id="password"
+          {errors.phone && <p className="text-xs font-semibold text-red-500 mt-1">{errors.phone.message}</p>}
+        </div>
+
+        {/* Email */}
+        <div>
+          <label className="block text-sm font-bold text-slate-700 mb-1.5">Email Address</label>
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">mail</span>
+            <input
+              className={`w-full pl-10 pr-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.email ? "border-red-400" : "border-slate-200"}`}
+              placeholder="john@example.com"
+              type="email"
+              {...register("email")}
+            />
+          </div>
+          {errors.email && <p className="text-xs font-semibold text-red-500 mt-1">{errors.email.message}</p>}
+        </div>
+
+        {/* Password */}
+        <div>
+          <label className="block text-sm font-bold text-slate-700 mb-1.5">Password</label>
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">lock</span>
+            <input
+              className={`w-full pl-10 pr-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.password ? "border-red-400" : "border-slate-200"}`}
               placeholder="••••••••"
+              type="password"
               {...register("password")}
             />
-            {errors.password && (
-              <p className="text-sm font-semibold text-red-500 mt-1 animate-slide-in">
-                {errors.password.message}
-              </p>
-            )}
           </div>
-          {/* Actions */}
-          <div className="pt-2">
-            <Button
-              disabled={isLoading}
-              className="w-full h-12 text-md font-bold shadow-md"
-              type="submit"
-            >
-              {isLoading ? "Creating Account..." : "Create Account"}
-            </Button>
-          </div>
-        </form>
-        <div className="mt-8 flex flex-col items-center gap-4">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-2 text-slate-500 hover:text-primary text-sm font-semibold transition-colors"
-            type="button"
-          >
-            <span className="material-symbols-outlined text-[18px] font-bold">
-              arrow_back
-            </span>
-            Back to Role Selection
-          </button>
-          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-            Already have an account?
-            <Link
-              className="text-primary font-bold hover:underline ml-1"
-              href="/login"
-            >
-              Log in
-            </Link>
-          </p>
+          {errors.password && <p className="text-xs font-semibold text-red-500 mt-1">{errors.password.message}</p>}
         </div>
+
+        <button
+          disabled={isLoading}
+          className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50 text-white font-bold py-3.5 rounded-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 mt-2"
+          type="submit"
+        >
+          <span>{isLoading ? "Creating Account..." : "Create Account"}</span>
+          {!isLoading && <span className="material-symbols-outlined text-lg">arrow_forward</span>}
+        </button>
+      </form>
+
+      <div className="mt-6 flex flex-col items-center gap-3">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1.5 text-slate-500 hover:text-primary text-sm font-semibold transition-colors"
+          type="button"
+        >
+          <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+          Back to Role Selection
+        </button>
+        <p className="text-center text-sm text-slate-600 font-medium">
+          Already have an account?{" "}
+          <Link className="text-primary font-bold hover:underline" href="/login">Sign In</Link>
+        </p>
       </div>
     </div>
   );
