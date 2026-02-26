@@ -7,7 +7,9 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🌱 Starting Database Seeding Process...");
 
-  const DEFAULT_ADMIN_EMAIL = "admin@hardwareos.com";
+  const LEGACY_ADMIN_EMAIL = "admin@hardware-os.com";
+  const BOOTSTRAP_ADMIN_EMAIL =
+    process.env.ADMIN_BOOTSTRAP_EMAIL || LEGACY_ADMIN_EMAIL;
   const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_BOOTSTRAP_PASSWORD;
 
   if (!DEFAULT_ADMIN_PASSWORD) {
@@ -16,17 +18,34 @@ async function main() {
     );
   }
 
+  // 1. Check for ANY existing super-admin to prevent duplicates in existing DBs
+  const existingAdmin = await prisma.user.findFirst({
+    where: {
+      role: UserRole.SUPER_ADMIN,
+      OR: [
+        { email: LEGACY_ADMIN_EMAIL },
+        { email: BOOTSTRAP_ADMIN_EMAIL },
+        { email: "admin@hardwareos.com" }, // Support the previous interim default
+      ],
+    },
+  });
+
+  if (existingAdmin) {
+    console.log(`✅ Super Admin already exists: ${existingAdmin.email}`);
+    return;
+  }
+
   const SALT_ROUNDS = 10;
 
   console.log(`🔒 Hashing master password...`);
   const passwordHash = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, SALT_ROUNDS);
 
-  console.log(`📦 Creating/Updating Super Admin account...`);
+  console.log(`🚀 Creating new Super Admin account...`);
   await prisma.user.upsert({
-    where: { email: DEFAULT_ADMIN_EMAIL },
-    update: {}, // If it exists, leave it as is (atomic existence check)
+    where: { email: BOOTSTRAP_ADMIN_EMAIL },
+    update: {},
     create: {
-      email: DEFAULT_ADMIN_EMAIL,
+      email: BOOTSTRAP_ADMIN_EMAIL,
       phone: "+234000000000",
       firstName: "HARDWARE",
       lastName: "Admin",
@@ -40,8 +59,8 @@ async function main() {
     },
   });
 
-  console.log(`✅ Super Admin created successfully!`);
-  console.log(`📧 Email: ${DEFAULT_ADMIN_EMAIL}`);
+  console.log(`✨ Super Admin created successfully!`);
+  console.log(`📧 Email: ${BOOTSTRAP_ADMIN_EMAIL}`);
   console.log(
     `🔑 Password: [HIDDEN] (Use ADMIN_BOOTSTRAP_PASSWORD environment variable)`,
   );
