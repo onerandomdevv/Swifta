@@ -10,12 +10,8 @@ export function useMerchantDashboard() {
   const rfqQuery = useQuery({
     queryKey: ["merchant", "rfqs", "recent"],
     queryFn: async () => {
-      try {
-        const data = await getMerchantRFQs(1, 5);
-        return Array.isArray(data) ? data : [];
-      } catch {
-        return [] as RFQ[];
-      }
+      const data = await getMerchantRFQs(1, 5);
+      return Array.isArray(data) ? data : [];
     },
     refetchInterval: 30000,
   });
@@ -23,12 +19,8 @@ export function useMerchantDashboard() {
   const orderQuery = useQuery({
     queryKey: ["merchant", "orders", "all"],
     queryFn: async () => {
-      try {
-        const data = await getOrders(1, 100);
-        return Array.isArray(data) ? data : [];
-      } catch {
-        return [] as Order[];
-      }
+      const data = await getOrders(1, 100);
+      return Array.isArray(data) ? data : [];
     },
     refetchInterval: 30000,
   });
@@ -39,8 +31,20 @@ export function useMerchantDashboard() {
     rfqs: rfqQuery.data || ([] as RFQ[]),
     orders: orderQuery.data || ([] as Order[]),
     isLoading,
-    isError: false,
-    error: null,
+    isError: rfqQuery.isError || orderQuery.isError,
+    error: (() => {
+      const error = rfqQuery.error || orderQuery.error;
+      if (!error) return null;
+      const anyErr = error as any;
+      if (typeof anyErr.error === 'string') return anyErr.error;
+      if (typeof (error as Error).message === 'string') return (error as Error).message;
+      try {
+        if (anyErr.error) return JSON.stringify(anyErr.error);
+      } catch (e) {
+        // Fallback
+      }
+      return 'Failed to load dashboard data';
+    })(),
     refetch: () => {
       rfqQuery.refetch();
       orderQuery.refetch();

@@ -33,7 +33,18 @@ export function useBuyerDashboard() {
     orders: orderQuery.data || [] as Order[],
     isLoading,
     isError,
-    error: error ? (error as any).error || (error as Error).message || 'Failed to load dashboard data' : null,
+    error: (() => {
+      if (!error) return null;
+      const anyErr = error as any;
+      if (typeof anyErr.error === 'string') return anyErr.error;
+      if (typeof (error as Error).message === 'string') return (error as Error).message;
+      try {
+        if (anyErr.error) return JSON.stringify(anyErr.error);
+      } catch (e) {
+        // Fallback
+      }
+      return 'Failed to load dashboard data';
+    })(),
     refetch: () => {
       rfqQuery.refetch();
       orderQuery.refetch();
