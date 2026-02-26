@@ -167,13 +167,11 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException(
-        "Account not found. Please sign up to create an account.",
-      );
+      throw new UnauthorizedException("Invalid email or password");
     }
 
     if (!(await bcrypt.compare(dto.password, user.passwordHash))) {
-      throw new UnauthorizedException("Invalid credentials");
+      throw new UnauthorizedException("Invalid email or password");
     }
 
     return this.generateAndStoreTokens(user);
@@ -509,6 +507,9 @@ export class AuthService {
       where: { id: userId },
       data: { passwordHash },
     });
+
+    // Revoke all active sessions for this user globally for security
+    await this.redis.del(`${REFRESH_TOKEN_PREFIX}${userId}`);
 
     return { message: "Password updated successfully" };
   }

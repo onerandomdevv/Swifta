@@ -24,15 +24,13 @@ async function main() {
     "⚠️ No Super Admin found! Generating default administrator account...",
   );
 
-  const DEFAULT_ADMIN_EMAIL = "admin@hardware-os.com";
+  const DEFAULT_ADMIN_EMAIL = "admin@hardwareos.com";
   const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_BOOTSTRAP_PASSWORD;
 
   if (!DEFAULT_ADMIN_PASSWORD) {
-    console.error(
-      "❌ ERROR: ADMIN_BOOTSTRAP_PASSWORD environment variable is NOT SET.",
+    throw new Error(
+      "ADMIN_BOOTSTRAP_PASSWORD environment variable is NOT SET.",
     );
-    console.error("Please set it before running the seed script.");
-    process.exit(1);
   }
 
   const SALT_ROUNDS = 10;
@@ -58,7 +56,9 @@ async function main() {
 
   console.log(`✅ Super Admin created successfully!`);
   console.log(`📧 Email: ${DEFAULT_ADMIN_EMAIL}`);
-  console.log(`🔑 Password: ${DEFAULT_ADMIN_PASSWORD}`);
+  console.log(
+    `🔑 Password: [HIDDEN] (Use ADMIN_BOOTSTRAP_PASSWORD environment variable)`,
+  );
   console.log(
     `Important: Remember to change your password immediately upon logging in.`,
   );

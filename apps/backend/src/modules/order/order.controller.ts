@@ -6,6 +6,7 @@ import {
   Param,
   UseGuards,
   Query,
+  ForbiddenException,
 } from "@nestjs/common";
 import { OrderService } from "./order.service";
 import { ConfirmDeliveryDto } from "./dto/confirm-delivery.dto";
@@ -35,7 +36,10 @@ export class OrderController {
 
   @Get("summary")
   @Roles(UserRole.MERCHANT)
-  getSummary(@CurrentMerchant() merchantId: string) {
+  getSummary(@CurrentMerchant() merchantId: string | undefined) {
+    if (!merchantId) {
+      throw new ForbiddenException("Merchant identity required");
+    }
     return this.orderService.getMerchantSummary(merchantId);
   }
 
@@ -46,7 +50,13 @@ export class OrderController {
 
   @Post(":id/dispatch")
   @Roles(UserRole.MERCHANT)
-  dispatch(@CurrentMerchant() merchantId: string, @Param("id") id: string) {
+  dispatch(
+    @CurrentMerchant() merchantId: string | undefined,
+    @Param("id") id: string,
+  ) {
+    if (!merchantId) {
+      throw new ForbiddenException("Merchant identity required");
+    }
     return this.orderService.dispatch(merchantId, id);
   }
 
