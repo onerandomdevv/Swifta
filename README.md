@@ -145,7 +145,7 @@ NEXT_PUBLIC_PAYSTACK_KEY=pk_test_xxxxx
 
 ### Not Included (Future Phases)
 
-- ❌ WhatsApp / SMS / USSD
+- ❌ SMS / USSD
 - ❌ Product images
 - ❌ BNPL / trade credit
 - ❌ AI forecasting

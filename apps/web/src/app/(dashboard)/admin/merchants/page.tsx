@@ -386,7 +386,7 @@ export default function AdminMerchantsQueuePage() {
             </div>
             
             <p className="text-sm font-bold text-slate-500 mb-6">
-              This message will be instantly submitted to all <span className="text-green-500">VERIFIED</span> merchants via WhatsApp/SMS integration.
+              This message will be instantly submitted to all <span className="text-green-500">VERIFIED</span> merchants via email/in-app notifications.
             </p>
             
             <textarea
