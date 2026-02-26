@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { UserRole } from "@hardware-os/shared";
-import { Button } from "@/components/ui/button";
 
 interface RoleSelectionStepProps {
   role: UserRole | null;
@@ -14,159 +13,103 @@ export function RoleSelectionStep({
   onContinue,
 }: RoleSelectionStepProps) {
   return (
-    <div className="w-full max-w-4xl space-y-12">
-      {/* Progress Stepper */}
-      <div className="max-w-md mx-auto space-y-4">
-        <div className="flex justify-between items-center text-sm">
-          <span className="font-semibold text-primary uppercase tracking-wider">
-            Registration Step 1 of 4
-          </span>
-          <span className="text-slate-500 font-medium">25% Complete</span>
+    <div className="max-w-md w-full mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="space-y-4">
+        {/* Progress Indicator */}
+        <div className="flex justify-between items-end mb-2">
+          <span className="text-[10px] font-bold text-primary uppercase tracking-[0.1em]">Step 1 of 3</span>
+          <span className="text-[10px] font-medium text-slate-400">Role Selection</span>
         </div>
-        <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-          <div className="h-full bg-primary w-1/4 rounded-full"></div>
+        <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+          <div className="h-full bg-primary w-1/3 rounded-full transition-all duration-1000 ease-out"></div>
         </div>
       </div>
 
-      {/* Title Section */}
-      <div className="text-center space-y-3">
-        <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
-          Join Hardware OS
-        </h1>
-        <p className="text-slate-600 dark:text-slate-400 text-lg max-w-xl mx-auto">
-          Choose the role that best fits your business needs. You can always
-          change this later in your account settings.
-        </p>
+      <div className="space-y-2">
+        <h2 className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Select Your Role</h2>
+        <p className="text-slate-500 dark:text-slate-400">Choose how you want to interact with the Hardware OS marketplace.</p>
       </div>
 
-      {/* Role Selection Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-4">
-        {/* Buyer Card */}
-        <button
-          onClick={() => onRoleSelect(UserRole.BUYER)}
-          className={`group relative flex flex-col items-start p-8 bg-white dark:bg-slate-900 border-2 rounded-xl transition-all text-left focus:outline-none focus:ring-4 focus:ring-primary/20 
-            ${role === UserRole.BUYER ? "border-primary shadow-xl ring-2 ring-primary/10" : "border-slate-200 dark:border-slate-800 hover:border-primary/50 dark:hover:border-primary/30 hover:shadow-xl"}`}
-        >
-          <div className="w-16 h-16 bg-primary/10 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-            <span
-              className="material-symbols-outlined text-primary text-4xl"
-              aria-hidden="true"
-            >
-              shopping_cart
-            </span>
+      <div className="space-y-4">
+        {/* Role Card: Merchant */}
+        <label className="relative block cursor-pointer group">
+          <input
+            type="radio"
+            name="role"
+            value={UserRole.MERCHANT}
+            checked={role === UserRole.MERCHANT}
+            onChange={() => onRoleSelect(UserRole.MERCHANT)}
+            className="peer sr-only"
+          />
+          <div className="p-6 border-2 border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/50 transition-all hover:border-primary/50 peer-checked:border-primary peer-checked:ring-1 peer-checked:ring-primary shadow-sm hover:shadow-md">
+            <div className="flex items-start gap-4">
+              <div className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center transition-colors ${role === UserRole.MERCHANT ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
+                <span className="material-symbols-outlined text-2xl">storefront</span>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-lg font-bold text-slate-900 dark:text-slate-100">I am a Merchant</p>
+                  {role === UserRole.MERCHANT && (
+                    <div className="text-primary animate-in zoom-in duration-300">
+                      <span className="material-symbols-outlined text-xl">check_circle</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Sell hardware products and manage your inventory at scale with our merchant tools.
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="space-y-2">
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              Register as a Buyer
-            </h3>
-            <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
-              Source hardware items across Lagos, request instant quotes, and
-              secure payment via our escrow system.
-            </p>
-            <ul className="space-y-2">
-              <li className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 font-medium">
-                <span className="material-symbols-outlined text-primary text-sm font-bold">
-                  check_circle
-                </span>
-                Request Unlimited Quotes
-              </li>
-              <li className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 font-medium">
-                <span className="material-symbols-outlined text-primary text-sm font-bold">
-                  check_circle
-                </span>
-                Escrow Protection
-              </li>
-              <li className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 font-medium">
-                <span className="material-symbols-outlined text-primary text-sm font-bold">
-                  check_circle
-                </span>
-                Verified Supplier Network
-              </li>
-            </ul>
-          </div>
-          <div className="mt-8 flex items-center text-primary font-bold gap-1 group-hover:translate-x-1 transition-transform">
-            Select Buyer{" "}
-            <span className="material-symbols-outlined">chevron_right</span>
-          </div>
-        </button>
+        </label>
 
-        {/* Merchant Card */}
-        <button
-          onClick={() => onRoleSelect(UserRole.MERCHANT)}
-          className={`group relative flex flex-col items-start p-8 bg-white dark:bg-slate-900 border-2 rounded-xl transition-all text-left focus:outline-none focus:ring-4 focus:ring-primary/20
-            ${role === UserRole.MERCHANT ? "border-primary shadow-xl ring-2 ring-primary/10" : "border-slate-200 dark:border-slate-800 hover:border-primary/50 dark:hover:border-primary/30 hover:shadow-xl"}`}
-        >
-          <div className="w-16 h-16 bg-primary/10 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-            <span
-              className="material-symbols-outlined text-primary text-4xl"
-              aria-hidden="true"
-            >
-              storefront
-            </span>
+        {/* Role Card: Buyer */}
+        <label className="relative block cursor-pointer group">
+          <input
+            type="radio"
+            name="role"
+            value={UserRole.BUYER}
+            checked={role === UserRole.BUYER}
+            onChange={() => onRoleSelect(UserRole.BUYER)}
+            className="peer sr-only"
+          />
+          <div className="p-6 border-2 border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/50 transition-all hover:border-primary/50 peer-checked:border-primary peer-checked:ring-1 peer-checked:ring-primary shadow-sm hover:shadow-md">
+            <div className="flex items-start gap-4">
+              <div className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center transition-colors ${role === UserRole.BUYER ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 group-hover:text-primary'}`}>
+                <span className="material-symbols-outlined text-2xl">shopping_cart</span>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-lg font-bold text-slate-900 dark:text-slate-100">I am a Buyer</p>
+                  {role === UserRole.BUYER && (
+                    <div className="text-primary animate-in zoom-in duration-300">
+                      <span className="material-symbols-outlined text-xl">check_circle</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Source quality building materials and tools for your projects from verified suppliers.
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="space-y-2">
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              Register as a Merchant
-            </h3>
-            <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
-              List your inventory, reach thousands of construction firms, and
-              automate your quotation process.
-            </p>
-            <ul className="space-y-2">
-              <li className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 font-medium">
-                <span className="material-symbols-outlined text-primary text-sm font-bold">
-                  check_circle
-                </span>
-                Inventory Management
-              </li>
-              <li className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 font-medium">
-                <span className="material-symbols-outlined text-primary text-sm font-bold">
-                  check_circle
-                </span>
-                Direct Quotation Tools
-              </li>
-              <li className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 font-medium">
-                <span className="material-symbols-outlined text-primary text-sm font-bold">
-                  check_circle
-                </span>
-                Sales Analytics Dashboard
-              </li>
-            </ul>
-          </div>
-          <div className="mt-8 flex items-center text-primary font-bold gap-1 group-hover:translate-x-1 transition-transform">
-            Select Merchant{" "}
-            <span className="material-symbols-outlined">chevron_right</span>
-          </div>
-        </button>
+        </label>
       </div>
 
-      {/* Footer Action */}
-      <div className="pt-8 flex flex-col items-center gap-4">
-        <Button
+      <div className="pt-6 space-y-4">
+        <button
           onClick={onContinue}
           disabled={!role}
-          className="w-full max-w-xs h-12 text-md font-bold shadow-lg"
+          className="w-full py-4 px-6 bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 group"
         >
-          Continue to Onboarding
-        </Button>
-        <div className="flex items-center gap-6 text-sm text-slate-500 font-medium">
-          <p>
-            Already have an account?{" "}
-            <Link
-              className="text-primary font-bold hover:underline"
-              href="/login"
-            >
-              Log in
-            </Link>
+          <span>Continue</span>
+          <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+        </button>
+        <div className="text-center">
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+            Already have an account?
+            <Link className="text-primary font-bold hover:underline ml-1" href="/login">Login here</Link>
           </p>
-          <span className="w-1.5 h-1.5 bg-slate-300 rounded-full"></span>
-          <a
-            className="text-primary font-bold hover:underline flex items-center gap-1"
-            href="#"
-          >
-            <span className="material-symbols-outlined text-base">help</span>
-            Need Help?
-          </a>
         </div>
       </div>
     </div>
