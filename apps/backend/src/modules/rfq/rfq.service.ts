@@ -87,7 +87,7 @@ export class RFQService {
       this.prisma.rfq,
       { page, limit },
       {
-        where: { userId: buyerId },
+        where: { buyerId: buyerId },
         orderBy: { createdAt: "desc" },
         include: {
           product: { select: { name: true, unit: true } },
@@ -128,13 +128,11 @@ export class RFQService {
     }
 
     // Access control: buyer can see own RFQs, merchant can see RFQs addressed to them
-    if (userId && merchantId) {
-      // Merchant — check merchantId
+    if (merchantId) {
       if (rfq.merchantId !== merchantId) {
         throw new ForbiddenException("Access denied");
       }
     } else if (userId) {
-      // Buyer — check buyerId
       if (rfq.buyerId !== userId) {
         throw new ForbiddenException("Access denied");
       }

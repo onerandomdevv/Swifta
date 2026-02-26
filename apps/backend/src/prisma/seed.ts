@@ -25,7 +25,16 @@ async function main() {
   );
 
   const DEFAULT_ADMIN_EMAIL = "admin@hardware-os.com";
-  const DEFAULT_ADMIN_PASSWORD = "Admin@123";
+  const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_BOOTSTRAP_PASSWORD;
+
+  if (!DEFAULT_ADMIN_PASSWORD) {
+    console.error(
+      "❌ ERROR: ADMIN_BOOTSTRAP_PASSWORD environment variable is NOT SET.",
+    );
+    console.error("Please set it before running the seed script.");
+    process.exit(1);
+  }
+
   const SALT_ROUNDS = 10;
 
   console.log(`🔒 Hashing master password...`);

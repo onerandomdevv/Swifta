@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { submitQuote } from "@/lib/api/quote.api";
+import { submitQuote, updateQuote } from "@/lib/api/quote.api";
 import { formatKobo, nairaToKobo } from "@hardware-os/shared";
 import type { RFQ, Quote } from "@hardware-os/shared";
 
@@ -61,14 +61,19 @@ export function QuoteModal({
       const totalPriceKobo =
         unitPriceKobo * BigInt(rfq.quantity) + deliveryFeeKobo;
 
-      const result = await submitQuote({
+      const quoteData = {
         rfqId: rfq.id,
         unitPriceKobo,
         totalPriceKobo,
         deliveryFeeKobo,
         validUntil: new Date(validUntil),
         notes: terms || undefined,
-      });
+      };
+
+      const result =
+        mode === "update" && existingQuote
+          ? await updateQuote(existingQuote.id, quoteData)
+          : await submitQuote(quoteData);
       onSuccess(result);
     } catch (err: any) {
       setError(err?.message || "Failed to submit quote");

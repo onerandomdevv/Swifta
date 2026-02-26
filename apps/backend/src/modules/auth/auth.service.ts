@@ -478,6 +478,18 @@ export class AuthService {
         lastName: dto.lastName,
         phone: dto.phone,
       },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        middleName: true,
+        lastName: true,
+        phone: true,
+        role: true,
+        emailVerified: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
   }
 

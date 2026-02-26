@@ -33,6 +33,12 @@ export class OrderController {
     return this.orderService.listByBuyer(user.sub, page, limit);
   }
 
+  @Get("summary")
+  @Roles(UserRole.MERCHANT)
+  getSummary(@CurrentMerchant() merchantId: string) {
+    return this.orderService.getMerchantSummary(merchantId);
+  }
+
   @Get(":id")
   findOne(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.orderService.getById(id, user.sub, user.merchantId);
@@ -63,12 +69,6 @@ export class OrderController {
   @Roles(UserRole.BUYER)
   dispute(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.orderService.dispute(user.sub, id);
-  }
-
-  @Get("summary")
-  @Roles(UserRole.MERCHANT)
-  getSummary(@CurrentMerchant() merchantId: string) {
-    return this.orderService.getMerchantSummary(merchantId);
   }
 
   @Get(":id/receipt")
