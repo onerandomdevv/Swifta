@@ -223,14 +223,7 @@ export default function NewProductPage() {
               }
               className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all text-slate-400 appearance-none bg-transparent"
             >
-              <option value="BUILDING_MATERIALS">Building Materials</option>
-              <option value="METAL_STEEL">Metal &amp; Steel</option>
-              <option value="POWER_TOOLS">Power Tools</option>
-              <option value="HEAVY_MACHINERY">Heavy Machinery</option>
-              <option value="SAFETY_GEAR">Safety Gear</option>
-              <option value="PLUMBING">Plumbing</option>
-              <option value="ELECTRICAL">Electrical</option>
-              <option value="PAINTING">Painting</option>
+    categoryTag: "BUILDING_MATERIALS",
             </select>
           </div>
         </div>
