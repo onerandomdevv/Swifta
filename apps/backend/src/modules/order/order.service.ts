@@ -277,7 +277,11 @@ export class OrderService {
     );
 
     // Notification (async, best-effort)
-    await this.notifications.triggerOrderDispatched(order.buyerId, orderId);
+    await this.notifications.triggerOrderDispatched(order.buyerId, {
+      orderId,
+      reference: orderId.slice(0, 8).toUpperCase(),
+      otp: deliveryOtp,
+    });
 
     this.logger.log(`Order ${orderId} dispatched, OTP generated`);
     return updatedOrder;
@@ -315,11 +319,22 @@ export class OrderService {
       { action: "delivery_confirmed" },
     );
 
-    // Notify merchant
-    await this.notifications.triggerDeliveryConfirmed(
-      order.merchantId,
-      orderId,
-    );
+    // Notify both merchant and buyer (best-effort, must not block state transition)
+    try {
+      await this.notifications.triggerDeliveryConfirmed(
+        order.merchantId,
+        order.buyerId,
+        {
+          orderId,
+          reference: orderId.slice(0, 8).toUpperCase(),
+          amountKobo: order.totalAmountKobo,
+        },
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to send delivery confirmed notification (orderId=${orderId}, merchantId=${order.merchantId}): ${error instanceof Error ? error.message : error}`,
+      );
+    }
 
     // Auto-transition: DELIVERED → COMPLETED
     await this.transition(
@@ -344,7 +359,13 @@ export class OrderService {
       // Swallow error so we don't rollback the delivery confirmation
     }
 
-    await this.notifications.triggerPayoutInitiated(order.merchantId, orderId);
+    try {
+      await this.notifications.triggerPayoutInitiated(order.merchantId, orderId);
+    } catch (error) {
+      this.logger.error(
+        `Failed to send payout initiated notification (orderId=${orderId}, merchantId=${order.merchantId}): ${error instanceof Error ? error.message : error}`,
+      );
+    }
 
     return { message: "Delivery confirmed" };
   }

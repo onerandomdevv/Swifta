@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
-import { NOTIFICATION_QUEUE } from '../../queue/queue.constants';
-import { NotificationType, NotificationChannel } from '@hardware-os/shared';
+import { Injectable } from "@nestjs/common";
+import { InjectQueue } from "@nestjs/bullmq";
+import { Queue } from "bullmq";
+import { NOTIFICATION_QUEUE } from "../../queue/queue.constants";
+import { NotificationType, NotificationChannel } from "@hardware-os/shared";
 
 @Injectable()
 export class NotificationTriggerService {
@@ -14,86 +14,246 @@ export class NotificationTriggerService {
     title: string,
     body: string,
     metadata?: any,
-    channels: NotificationChannel[] = [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+    channels: NotificationChannel[] = [
+      NotificationChannel.IN_APP,
+      NotificationChannel.EMAIL,
+    ],
+    options?: { removeOnFail?: boolean },
   ) {
-    await this.queue.add('send-notification', {
+    await this.queue.add(
+      "send-notification",
+      {
         userId,
         type,
         title,
         body,
         channels,
-        metadata
-    }, {
+        metadata,
+      },
+      {
         attempts: 3,
-        backoff: { type: 'exponential', delay: 2000 },
+        backoff: { type: "exponential", delay: 2000 },
         removeOnComplete: true,
-        removeOnFail: false,
-    });
+        removeOnFail: options?.removeOnFail ?? false,
+      },
+    );
   }
 
-  async triggerNewRFQ(merchantId: string, rfqId: string) {
-      // Need to get userId from merchantId usually, but let's assume processor handles lookup or we pass merchantId
-      // For simplicity, we are passing IDs and the processor will resolve user email etc.
-      await this.addJob(merchantId, 'NEW_RFQ', 'New RFQ Received', 'You have a new request for quote.', { rfqId, isMerchantId: true });
+  async triggerWelcome(userId: string) {
+    await this.addJob(
+      userId,
+      "WELCOME",
+      "Welcome to Hardware OS",
+      "Welcome to Africa's hardware trade network.",
+    );
   }
 
-  async triggerQuoteReceived(buyerId: string, quoteId: string) {
-      await this.addJob(
-        buyerId, 
-        'QUOTE_RECEIVED', 
-        'Quote Received', 
-        'You have received a new quote.', 
-        { quoteId },
-        [NotificationChannel.IN_APP, NotificationChannel.EMAIL, NotificationChannel.SMS]
-      );
+  async triggerEmailVerification(userId: string, otp: string) {
+    await this.addJob(
+      userId,
+      "EMAIL_VERIFICATION",
+      "Verify your account",
+      `Your code is ${otp}`,
+      { otp },
+      [NotificationChannel.EMAIL],
+      { removeOnFail: true },
+    );
   }
 
-  async triggerQuoteAccepted(merchantId: string, quoteId: string) {
-      await this.addJob(merchantId, 'QUOTE_ACCEPTED', 'Quote Accepted', 'Your quote has been accepted.', { quoteId, isMerchantId: true });
+  async triggerNewRFQ(
+    merchantId: string,
+    metadata: {
+      rfqId: string;
+      buyerName: string;
+      productName: string;
+      quantity: number;
+    },
+  ) {
+    await this.addJob(
+      merchantId,
+      "NEW_RFQ",
+      "New RFQ Received",
+      "You have a new request for quote.",
+      { ...metadata, isMerchantId: true },
+    );
   }
 
-   async triggerQuoteDeclined(merchantId: string, quoteId: string) {
-      await this.addJob(merchantId, 'QUOTE_DECLINED', 'Quote Declined', 'Your quote has been declined.', { quoteId, isMerchantId: true });
+  async triggerQuoteReceived(
+    buyerId: string,
+    metadata: {
+      quoteId: string;
+      merchantName: string;
+      productName: string;
+      totalPriceKobo: bigint;
+    },
+  ) {
+    await this.addJob(
+      buyerId,
+      "QUOTE_RECEIVED",
+      "Quote Received",
+      "You have received a new quote.",
+      { ...metadata, totalPriceKobo: metadata.totalPriceKobo.toString() }, // Pass as string for BullMQ JSON
+      [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+    );
+  }
+
+  async triggerQuoteAccepted(
+    merchantId: string,
+    metadata: {
+      quoteId: string;
+      orderId: string;
+      buyerName: string;
+      amountKobo: bigint;
+    },
+  ) {
+    await this.addJob(
+      merchantId,
+      "QUOTE_ACCEPTED",
+      "Quote Accepted",
+      "Your quote has been accepted.",
+      {
+        ...metadata,
+        amountKobo: metadata.amountKobo.toString(),
+        isMerchantId: true,
+      },
+    );
+  }
+
+  async triggerQuoteDeclined(merchantId: string, quoteId: string) {
+    await this.addJob(
+      merchantId,
+      "QUOTE_DECLINED",
+      "Quote Declined",
+      "Your quote has been declined.",
+      { quoteId, isMerchantId: true },
+    );
   }
 
   async triggerRFQExpired(buyerId: string, rfqId: string) {
-      await this.addJob(buyerId, 'RFQ_EXPIRED', 'RFQ Expired', 'Your request for quote has expired without receiving a response.', { rfqId });
+    await this.addJob(
+      buyerId,
+      "RFQ_EXPIRED",
+      "RFQ Expired",
+      "Your request for quote has expired without receiving a response.",
+      { rfqId },
+    );
   }
 
-  async triggerOrderDispatched(buyerId: string, orderId: string) {
-      await this.addJob(
-        buyerId, 
-        'ORDER_DISPATCHED', 
-        'Order Dispatched', 
-        `Your order #${orderId.slice(-6)} has been dispatched. Track your delivery OTP in the app.`, 
-        { orderId },
-        [NotificationChannel.IN_APP, NotificationChannel.EMAIL, NotificationChannel.SMS]
-      );
+  async triggerOrderDispatched(
+    buyerId: string,
+    metadata: { orderId: string; reference: string; otp: string },
+  ) {
+    await this.addJob(
+      buyerId,
+      "ORDER_DISPATCHED",
+      "Order Dispatched",
+      `Your order #${metadata.reference.slice(0, 8)} has been dispatched.`,
+      { ...metadata },
+      [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+    );
   }
 
-  async triggerDeliveryConfirmed(merchantId: string, orderId: string) {
-      await this.addJob(
-        merchantId, 
-        'DELIVERY_CONFIRMED', 
-        'Delivery Confirmed', 
-        `Order #${orderId.slice(-6)} delivery has been confirmed. Payout will be initiated shortly.`, 
-        { orderId, isMerchantId: true },
-        [NotificationChannel.IN_APP, NotificationChannel.EMAIL, NotificationChannel.SMS]
-      );
+  async triggerDeliveryConfirmed(
+    merchantId: string,
+    buyerId: string,
+    metadata: { orderId: string; reference: string; amountKobo: bigint },
+  ) {
+    // Notify merchant
+    await this.addJob(
+      merchantId,
+      "DELIVERY_CONFIRMED",
+      "Delivery Confirmed",
+      `Order #${metadata.reference.slice(0, 8)} delivery has been confirmed.`,
+      {
+        ...metadata,
+        amountKobo: metadata.amountKobo.toString(),
+        isMerchantId: true,
+      },
+      [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+    );
+    // Notify buyer
+    await this.addJob(
+      buyerId,
+      "DELIVERY_CONFIRMED",
+      "Delivery Confirmed",
+      `Order #${metadata.reference.slice(0, 8)} delivery has been confirmed.`,
+      { ...metadata, amountKobo: metadata.amountKobo.toString() },
+      [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+    );
   }
 
   async triggerPayoutInitiated(merchantId: string, orderId: string) {
-      await this.addJob(merchantId, 'PAYOUT_INITIATED', 'Payout Initiated', 'Payout for your order has been initiated.', { orderId, isMerchantId: true });
+    await this.addJob(
+      merchantId,
+      "PAYOUT_INITIATED",
+      "Payout Initiated",
+      "Payout for your order has been initiated.",
+      { orderId, isMerchantId: true },
+    );
   }
 
-   async triggerOrderCancelled(buyerId: string, merchantId: string, orderId: string) {
-       // Notify both?
-      await this.addJob(buyerId, 'ORDER_CANCELLED', 'Order Cancelled', 'Order has been cancelled.', { orderId });
-      await this.addJob(merchantId, 'ORDER_CANCELLED', 'Order Cancelled', 'Order has been cancelled.', { orderId, isMerchantId: true });
+  async triggerOrderCancelled(
+    buyerId: string,
+    merchantId: string,
+    orderId: string,
+  ) {
+    await this.addJob(
+      buyerId,
+      "ORDER_CANCELLED",
+      "Order Cancelled",
+      "Order has been cancelled.",
+      { orderId },
+    );
+    await this.addJob(
+      merchantId,
+      "ORDER_CANCELLED",
+      "Order Cancelled",
+      "Order has been cancelled.",
+      { orderId, isMerchantId: true },
+    );
   }
 
-  async triggerPaymentConfirmed(buyerId: string, merchantId: string, orderId: string) {
-      await this.addJob(buyerId, 'PAYMENT_CONFIRMED', 'Payment Successful', 'Your payment was successful.', { orderId });
-      await this.addJob(merchantId, 'PAYMENT_CONFIRMED', 'Payment Received', 'Payment received for an order.', { orderId, isMerchantId: true });
+  async triggerPasswordReset(
+    userId: string,
+    email: string,
+    resetToken: string,
+    frontendUrl: string,
+  ) {
+    await this.addJob(
+      userId,
+      "PASSWORD_RESET",
+      "Reset your password",
+      "Forgot your password?",
+      { email, resetToken, frontendUrl },
+      [NotificationChannel.EMAIL],
+      { removeOnFail: true },
+    );
+  }
+
+  async triggerPaymentConfirmed(
+    buyerId: string,
+    merchantId: string,
+    metadata: { orderId: string; reference: string; amountKobo: bigint },
+  ) {
+    // Notify buyer
+    await this.addJob(
+      buyerId,
+      "PAYMENT_CONFIRMED",
+      "Payment Successful",
+      "Your payment was successful.",
+      { ...metadata, amountKobo: metadata.amountKobo.toString() },
+    );
+    // Notify merchant
+    await this.addJob(
+      merchantId,
+      "PAYMENT_CONFIRMED",
+      "Payment Received",
+      "Payment received for an order.",
+      {
+        ...metadata,
+        amountKobo: metadata.amountKobo.toString(),
+        isMerchantId: true,
+      },
+    );
   }
 }

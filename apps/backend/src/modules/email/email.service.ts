@@ -15,103 +15,261 @@ export class EmailService {
       this.configService.get<string>("EMAIL_FROM") || "onboarding@resend.dev";
   }
 
+  /**
+   * Core send method wrapped in try/catch to ensure email failures never break the flow
+   */
+  async sendEmail(to: string, subject: string, html: string): Promise<void> {
+    try {
+      this.logger.log(`Sending email to ${to}: ${subject}`);
+
+      const { data, error } = await this.resend.emails.send({
+        from: `Hardware OS <${this.fromEmail}>`,
+        to: [to],
+        subject: `Hardware OS | ${subject}`,
+        html,
+      });
+
+      if (error) {
+        this.logger.error(
+          `Resend API Error: ${error.message} (to: ${to}, subject: ${subject})`,
+        );
+        throw new Error(`Resend API Error: ${error.message}`);
+      }
+
+      this.logger.log(`Email sent successfully: ${data?.id}`);
+    } catch (err: any) {
+      this.logger.error(
+        `Critical error in EmailService.sendEmail: ${err.message}`,
+      );
+      throw err;
+    }
+  }
+
+  private escapeHtml(value: string): string {
+    return value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  private formatNaira(kobo: number | bigint): string {
+    const naira = Number(kobo) / 100;
+    return new Intl.NumberFormat("en-NG", {
+      style: "currency",
+      currency: "NGN",
+      minimumFractionDigits: 2,
+    })
+      .format(naira)
+      .replace("NGN", "₦");
+  }
+
+  private getLayout(content: string): string {
+    return `
+      <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; color: #0f172a; line-height: 1.6;">
+        <div style="padding: 40px 20px; text-align: center; background-color: #0f172a; border-radius: 12px 12px 0 0;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 2px;">Hardware OS</h1>
+        </div>
+        <div style="padding: 40px 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
+          ${content}
+          <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 14px; text-align: center;">
+            <p>&copy; ${new Date().getFullYear()} Hardware OS. Built for Lagos trade.</p>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  async sendWelcomeEmail(
+    to: string,
+    name: string,
+    role: string,
+  ): Promise<void> {
+    const safeName = this.escapeHtml(name);
+    const safeRole = this.escapeHtml(role);
+    const content = `
+      <h2 style="font-size: 20px; margin-bottom: 20px;">Welcome to Hardware OS, ${safeName}!</h2>
+      <p>We're excited to have you on board as a <strong>${safeRole}</strong>.</p>
+      <p>Hardware OS is digitizing Africa's hardware trade network, and you're now part of the movement.</p>
+      ${
+        role === "MERCHANT"
+          ? `<p>Next step: Complete your business profile and start listing your products to receive quote requests from buyers.</p>`
+          : `<p>Next step: Browse our merchant catalogues and start requesting quotes for your construction projects.</p>`
+      }
+      <div style="margin-top: 30px; text-align: center;">
+        <a href="${this.configService.get("FRONTEND_URL")}/dashboard" style="background-color: #0f172a; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Go to Dashboard</a>
+      </div>
+    `;
+    await this.sendEmail(to, "Welcome to Hardware OS", this.getLayout(content));
+  }
+
+  async sendVerificationOTP(to: string, otp: string): Promise<void> {
+    const safeOtp = this.escapeHtml(otp);
+    const content = `
+      <h2 style="font-size: 20px; margin-bottom: 20px; text-align: center;">Your Verification Code</h2>
+      <p style="text-align: center;">Please use the following code to verify your account. It expires in 10 minutes.</p>
+      <div style="background-color: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 12px; padding: 20px; margin: 30px auto; max-width: 200px; text-align: center;">
+        <h1 style="font-size: 32px; letter-spacing: 8px; margin: 0; color: #0f172a;">${safeOtp}</h1>
+      </div>
+    `;
+    await this.sendEmail(to, "Your Verification Code", this.getLayout(content));
+  }
+
+  async sendNewRFQNotification(
+    to: string,
+    buyerName: string,
+    productName: string,
+    quantity: number,
+  ): Promise<void> {
+    const safeBuyerName = this.escapeHtml(buyerName);
+    const safeProductName = this.escapeHtml(productName);
+    const content = `
+      <h2 style="font-size: 20px; margin-bottom: 20px;">New Quote Request!</h2>
+      <p><strong>${safeBuyerName}</strong> has requested a quote for <strong>${quantity} units of ${safeProductName}</strong>.</p>
+      <p>Log in to your dashboard to provide your best price and win this trade.</p>
+      <div style="margin-top: 30px; text-align: center;">
+        <a href="${this.configService.get("FRONTEND_URL")}/merchant/rfqs" style="background-color: #0f172a; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">View RFQ</a>
+      </div>
+    `;
+    await this.sendEmail(
+      to,
+      `New quote request from ${safeBuyerName}`,
+      this.getLayout(content),
+    );
+  }
+
+  async sendQuoteSubmittedNotification(
+    to: string,
+    merchantName: string,
+    productName: string,
+    totalPriceKobo: bigint,
+  ): Promise<void> {
+    const safeMerchantName = this.escapeHtml(merchantName);
+    const safeProductName = this.escapeHtml(productName);
+    const content = `
+      <h2 style="font-size: 20px; margin-bottom: 20px;">You Received a Quote!</h2>
+      <p><strong>${safeMerchantName}</strong> has sent a quote for <strong>${safeProductName}</strong>.</p>
+      <p>Total Amount: <span style="font-size: 18px; font-weight: bold; color: #0f172a;">${this.formatNaira(totalPriceKobo)}</span></p>
+      <p>Review the quote details and accept it to proceed with your order.</p>
+      <div style="margin-top: 30px; text-align: center;">
+        <a href="${this.configService.get("FRONTEND_URL")}/buyer/quotes" style="background-color: #0f172a; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">View Quote</a>
+      </div>
+    `;
+    await this.sendEmail(
+      to,
+      `You received a quote from ${safeMerchantName}`,
+      this.getLayout(content),
+    );
+  }
+
+  async sendQuoteAcceptedNotification(
+    to: string,
+    buyerName: string,
+    orderId: string,
+    amountKobo: bigint,
+  ): Promise<void> {
+    const safeBuyerName = this.escapeHtml(buyerName);
+    const safeOrderId = encodeURIComponent(orderId);
+    const content = `
+      <h2 style="font-size: 20px; margin-bottom: 20px;">Your Quote Was Accepted!</h2>
+      <p><strong>${safeBuyerName}</strong> has accepted your quote. An order has been created.</p>
+      <p>Order Amount: <span style="font-size: 18px; font-weight: bold; color: #0f172a;">${this.formatNaira(amountKobo)}</span></p>
+      <p>You will be notified once the buyer makes payment.</p>
+      <div style="margin-top: 30px; text-align: center;">
+        <a href="${this.configService.get("FRONTEND_URL")}/merchant/orders/${safeOrderId}" style="background-color: #0f172a; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">View Order</a>
+      </div>
+    `;
+    await this.sendEmail(
+      to,
+      `${safeBuyerName} accepted your quote`,
+      this.getLayout(content),
+    );
+  }
+
+  async sendPaymentConfirmedNotification(
+    to: string,
+    reference: string,
+    amountKobo: bigint,
+    isMerchant: boolean,
+  ): Promise<void> {
+    const safeReference = this.escapeHtml(reference.slice(0, 8));
+    const content = `
+      <h2 style="font-size: 20px; margin-bottom: 20px;">Payment Confirmed</h2>
+      <p>Payment of <strong>${this.formatNaira(amountKobo)}</strong> has been confirmed for Order <strong>#${safeReference}</strong>.</p>
+      ${
+        isMerchant
+          ? `<p>Please prepare the goods for dispatch. Your payout will be released once delivery is confirmed.</p>`
+          : `<p>Your payment is held securely in escrow. The merchant has been notified to dispatch your goods.</p>`
+      }
+    `;
+    await this.sendEmail(
+      to,
+      `Payment confirmed for Order #${safeReference}`,
+      this.getLayout(content),
+    );
+  }
+
+  async sendOrderDispatchedNotification(
+    to: string,
+    reference: string,
+    otp: string,
+  ): Promise<void> {
+    const safeReference = this.escapeHtml(reference.slice(0, 8));
+    const safeOtp = this.escapeHtml(otp);
+    const content = `
+      <h2 style="font-size: 20px; margin-bottom: 20px;">Your Order Has Been Dispatched!</h2>
+      <p>Order <strong>#${safeReference}</strong> is on its way to your delivery address.</p>
+      <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin: 30px 0;">
+        <p style="margin-top: 0; color: #166534; font-weight: bold;">Delivery Verification Code:</p>
+        <h1 style="font-size: 32px; letter-spacing: 4px; margin: 10px 0; color: #166534;">${safeOtp}</h1>
+        <p style="margin-bottom: 0; font-size: 13px; color: #166534;">IMPORTANT: Only share this code with the driver AFTER you have inspected and received your goods.</p>
+      </div>
+    `;
+    await this.sendEmail(
+      to,
+      "Your order has been dispatched",
+      this.getLayout(content),
+    );
+  }
+
+  async sendDeliveryConfirmedNotification(
+    to: string,
+    reference: string,
+    amountKobo: bigint,
+  ): Promise<void> {
+    const safeReference = this.escapeHtml(reference.slice(0, 8));
+    const content = `
+      <h2 style="font-size: 20px; margin-bottom: 20px;">Delivery Confirmed Success!</h2>
+      <p>Delivery of Order <strong>#${safeReference}</strong> has been confirmed.</p>
+      <p>The transaction of <strong>${this.formatNaira(amountKobo)}</strong> is now complete.</p>
+      <p>Thank you for trading with Hardware OS!</p>
+    `;
+    await this.sendEmail(
+      to,
+      `Order #${safeReference} delivered successfully`,
+      this.getLayout(content),
+    );
+  }
+
   async sendPasswordResetEmail(
     to: string,
     resetToken: string,
     frontendUrl: string,
   ): Promise<void> {
-    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
-    const subject = "Reset your Hardware OS Password";
-
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #0f172a; text-align: center;">Password Reset Request</h2>
-        <p style="color: #334155; font-size: 16px; line-height: 1.5;">
-          Hello,
-        </p>
-        <p style="color: #334155; font-size: 16px; line-height: 1.5;">
-          We received a request to reset your password for your Hardware OS account. If you didn't make this request, you can safely ignore this email.
-        </p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${resetUrl}" style="background-color: #0f172a; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; display: inline-block;">
-            Reset Your Password
-          </a>
-        </div>
-        <p style="color: #64748b; font-size: 14px; margin-top: 40px; text-align: center;">
-          This link will expire in 15 minutes.
-        </p>
-        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-        <p style="color: #94a3b8; font-size: 12px; text-align: center;">
-          If you're having trouble clicking the button, copy and paste the URL below into your web browser:
-          <br />
-          <a href="${resetUrl}" style="color: #3b82f6;">${resetUrl}</a>
-        </p>
+    const resetUrl = `${frontendUrl}/reset-password?token=${encodeURIComponent(resetToken)}`;
+    const content = `
+      <h2 style="font-size: 20px; margin-bottom: 20px;">Password Reset Request</h2>
+      <p>We received a request to reset your password. If you didn't make this request, you can safely ignore this email.</p>
+      <div style="margin-top: 30px; text-align: center;">
+        <a href="${resetUrl}" style="background-color: #0f172a; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Reset Password</a>
       </div>
+      <p style="margin-top: 30px; font-size: 12px; color: #94a3b8;">This link will expire in 15 minutes.</p>
     `;
-
-    try {
-      this.logger.log(
-        `[DEV ONLY] Password reset link for ${to} is: ${resetUrl}`,
-      );
-      const { data, error } = await this.resend.emails.send({
-        from: `Hardware OS <${this.fromEmail}>`,
-        to: [to],
-        subject,
-        html,
-      });
-
-      if (error) {
-        this.logger.error(
-          `Failed to send password reset email to ${to}: ${error.message}`,
-        );
-        throw new Error("Email delivery failed");
-      }
-
-      this.logger.log(
-        `Successfully sent password reset email to ${to} (ID: ${data?.id})`,
-      );
-    } catch (err: any) {
-      this.logger.error(`Error sending email via Resend: ${err.message}`);
-    }
-  }
-
-  async sendVerificationEmail(to: string, otp: string): Promise<void> {
-    const subject = "Verify your Hardware OS Account";
-
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; text-align: center;">
-        <h2 style="color: #0f172a;">Verify Your Email</h2>
-        <p style="color: #334155; font-size: 16px; line-height: 1.5;">
-          Please use the following 6-digit verification code to complete your registration:
-        </p>
-        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 30px auto; max-width: 200px;">
-          <h1 style="color: #0f172a; letter-spacing: 4px; margin: 0;">${otp}</h1>
-        </div>
-        <p style="color: #64748b; font-size: 14px;">
-          This code will expire in 10 minutes.
-        </p>
-      </div>
-    `;
-
-    try {
-      this.logger.log(`[DEV ONLY] OTP for ${to} is: ${otp}`);
-      const { data, error } = await this.resend.emails.send({
-        from: `Hardware OS <${this.fromEmail}>`,
-        to: [to],
-        subject,
-        html,
-      });
-
-      if (error) {
-        this.logger.error(
-          `Failed to send verification OTP to ${to}: ${error.message}`,
-        );
-        throw new Error("Email delivery failed");
-      }
-
-      this.logger.log(`Successfully sent OTP to ${to} (ID: ${data?.id})`);
-    } catch (err: any) {
-      this.logger.error(`Error sending OTP via Resend: ${err.message}`);
-    }
+    await this.sendEmail(
+      to,
+      "Reset your Hardware OS Password",
+      this.getLayout(content),
+    );
   }
 }

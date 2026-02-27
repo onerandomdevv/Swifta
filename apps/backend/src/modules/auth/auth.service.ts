@@ -12,6 +12,7 @@ import * as bcrypt from "bcrypt";
 import { PrismaService } from "../../prisma/prisma.service";
 import { RedisService } from "../../redis/redis.service";
 import { EmailService } from "../email/email.service";
+import { NotificationTriggerService } from "../notification/notification-trigger.service";
 import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
 import { VerifyEmailDto } from "./dto/verify-email.dto";
@@ -41,6 +42,7 @@ export class AuthService {
     private configService: ConfigService,
     private redis: RedisService,
     private emailService: EmailService,
+    private notificationTriggerService: NotificationTriggerService,
   ) {}
 
   async register(dto: RegisterDto): Promise<TokenPair & { user: any }> {
@@ -78,7 +80,10 @@ export class AuthService {
     });
 
     // Generate and store OTP for email verification
-    await this.generateAndStoreOtp(dto.email);
+    await this.generateAndStoreOtp(user.id, dto.email);
+
+    // Trigger Welcome Email
+    await this.notificationTriggerService.triggerWelcome(user.id);
 
     return this.generateAndStoreTokens(user);
   }
@@ -322,7 +327,8 @@ export class AuthService {
 
     const frontendUrl =
       this.configService.get<string>("FRONTEND_URL") || "http://localhost:3000";
-    await this.emailService.sendPasswordResetEmail(
+    await this.notificationTriggerService.triggerPasswordReset(
+      user.id,
       dto.email,
       resetToken,
       frontendUrl,
@@ -383,18 +389,24 @@ export class AuthService {
 
     const otp = randomInt(100000, 999999).toString();
     await this.redis.set(`${EMAIL_OTP_PREFIX}${email}`, otp, EMAIL_OTP_TTL);
-    await this.emailService.sendVerificationEmail(email, otp);
+    await this.notificationTriggerService.triggerEmailVerification(
+      user.id,
+      otp,
+    );
   }
 
   /**
    * Generates a cryptographically random 6-digit OTP and stores it in Redis.
    */
-  private async generateAndStoreOtp(email: string): Promise<void> {
+  private async generateAndStoreOtp(
+    userId: string,
+    email: string,
+  ): Promise<void> {
     const otp = randomInt(100000, 999999).toString();
 
     await this.redis.set(`${EMAIL_OTP_PREFIX}${email}`, otp, EMAIL_OTP_TTL);
 
-    await this.emailService.sendVerificationEmail(email, otp);
+    await this.notificationTriggerService.triggerEmailVerification(userId, otp);
   }
 
   /**

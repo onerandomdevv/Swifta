@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   BadRequestException,
   ForbiddenException,
@@ -18,6 +19,8 @@ import * as crypto from "crypto";
 
 @Injectable()
 export class QuoteService {
+  private readonly logger = new Logger(QuoteService.name);
+
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationTriggerService,
@@ -66,7 +69,29 @@ export class QuoteService {
       data: { status: RFQStatus.QUOTED },
     });
 
-    await this.notifications.triggerQuoteReceived(rfq.buyerId, quote.id);
+    // Fetch details for notification
+    const merchant = await this.prisma.merchantProfile.findUnique({
+      where: { id: merchantId },
+      select: { businessName: true },
+    });
+
+    const productName = rfq.productId
+      ? (await this.prisma.product.findUnique({ where: { id: rfq.productId } }))
+          ?.name || "Hardware Product"
+      : (rfq.unlistedItemDetails as any)?.name || "Custom Hardware Item";
+
+    try {
+      await this.notifications.triggerQuoteReceived(rfq.buyerId, {
+        quoteId: quote.id,
+        merchantName: merchant?.businessName || "A Merchant",
+        productName,
+        totalPriceKobo: quote.totalPriceKobo,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to send quote received notification (quoteId=${quote.id}, buyerId=${rfq.buyerId}): ${error instanceof Error ? error.message : error}`,
+      );
+    }
 
     return quote;
   }
@@ -191,7 +216,24 @@ export class QuoteService {
     });
 
     // Notifications outside transaction (best-effort)
-    await this.notifications.triggerQuoteAccepted(quote.merchantId, quoteId);
+    // Fetch buyer name for merchant notification
+    const buyer = await this.prisma.user.findUnique({
+      where: { id: buyerId },
+      select: { firstName: true, lastName: true },
+    });
+
+    try {
+      await this.notifications.triggerQuoteAccepted(quote.merchantId, {
+        quoteId,
+        orderId: order.id,
+        buyerName: buyer ? `${buyer.firstName} ${buyer.lastName}` : "A Buyer",
+        amountKobo: order.totalAmountKobo,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to send quote accepted notification (quoteId=${quoteId}, orderId=${order.id}, merchantId=${quote.merchantId}): ${error instanceof Error ? error.message : error}`,
+      );
+    }
 
     return order;
   }
