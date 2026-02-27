@@ -91,11 +91,15 @@ export class AuthController {
     return this.authService.resendVerification(dto);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   @Post("send-phone-otp")
   @HttpCode(HttpStatus.OK)
-  async sendPhoneOtp(@Body() dto: SendPhoneOtpDto) {
-    return this.authService.sendPhoneOtp(dto);
+  async sendPhoneOtp(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: SendPhoneOtpDto,
+  ) {
+    return this.authService.sendPhoneOtp(dto, user.sub);
   }
 
   @UseGuards(JwtAuthGuard)

@@ -41,6 +41,23 @@ const PHONE_OTP_RATE_PREFIX = "phone_otp_count:";
 const PHONE_OTP_RATE_TTL = 600; // 10 minutes window
 const PHONE_OTP_MAX_RESENDS = 3;
 
+/**
+ * Normalize a phone number to E.164-ish format.
+ * Strips spaces/dashes, ensures leading +.
+ */
+function normalizePhone(phone: string): string {
+  let cleaned = phone.replace(/[\s\-()]/g, "");
+  if (!cleaned.startsWith("+")) {
+    // Assume Nigerian number if no country code
+    if (cleaned.startsWith("0")) {
+      cleaned = "+234" + cleaned.slice(1);
+    } else {
+      cleaned = "+" + cleaned;
+    }
+  }
+  return cleaned;
+}
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -503,8 +520,12 @@ export class AuthService {
     };
   }
 
-  async sendPhoneOtp(dto: SendPhoneOtpDto): Promise<{ message: string }> {
-    const rateKey = `${PHONE_OTP_RATE_PREFIX}${dto.phone}`;
+  async sendPhoneOtp(
+    dto: SendPhoneOtpDto,
+    userId: string,
+  ): Promise<{ message: string }> {
+    const phone = normalizePhone(dto.phone);
+    const rateKey = `${PHONE_OTP_RATE_PREFIX}${phone}:${userId}`;
     const currentCount = await this.redis.get(rateKey);
     const count = currentCount ? parseInt(currentCount, 10) : 0;
 
@@ -515,13 +536,17 @@ export class AuthService {
     }
 
     const otp = randomInt(100000, 999999).toString();
-    await this.redis.set(`${PHONE_OTP_PREFIX}${dto.phone}`, otp, PHONE_OTP_TTL);
+    await this.redis.set(
+      `${PHONE_OTP_PREFIX}${phone}:${userId}`,
+      otp,
+      PHONE_OTP_TTL,
+    );
     await this.redis.set(rateKey, (count + 1).toString(), PHONE_OTP_RATE_TTL);
 
     try {
       if (this.smsClient) {
         await this.smsClient.send({
-          to: [dto.phone],
+          to: [phone],
           message: `Your HARDWARE OS verification code is ${otp}. It expires in 5 minutes.`,
           from: this.configService.get<string>("africastalking.senderId"),
         });
@@ -541,7 +566,10 @@ export class AuthService {
     dto: VerifyPhoneOtpDto,
     userId: string,
   ): Promise<{ message: string }> {
-    const storedOtp = await this.redis.get(`${PHONE_OTP_PREFIX}${dto.phone}`);
+    const phone = normalizePhone(dto.phone);
+    const storedOtp = await this.redis.get(
+      `${PHONE_OTP_PREFIX}${phone}:${userId}`,
+    );
 
     if (!storedOtp) {
       throw new BadRequestException(
@@ -555,11 +583,11 @@ export class AuthService {
 
     await this.prisma.user.update({
       where: { id: userId },
-      data: { phoneVerified: true, phone: dto.phone },
+      data: { phoneVerified: true, phone: phone },
     });
 
-    await this.redis.del(`${PHONE_OTP_PREFIX}${dto.phone}`);
-    await this.redis.del(`${PHONE_OTP_RATE_PREFIX}${dto.phone}`);
+    await this.redis.del(`${PHONE_OTP_PREFIX}${phone}:${userId}`);
+    await this.redis.del(`${PHONE_OTP_RATE_PREFIX}${phone}:${userId}`);
 
     this.logger.log(`Phone verified for user ${userId}`);
 

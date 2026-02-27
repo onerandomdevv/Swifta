@@ -187,14 +187,14 @@ export default function EditProductPage() {
                     }
                     className="w-full px-5 py-4 text-sm font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-slate-700 dark:text-slate-300 appearance-none"
                   >
-                    <option value="bag">Bag</option>
-                    <option value="ton">Ton</option>
-                    <option value="piece">Piece</option>
-                    <option value="bundle">Bundle</option>
-                    <option value="roll">Roll</option>
-                    <option value="length">Length</option>
-                    <option value="kg">Kilogram</option>
-                    <option value="sqm">Square Meter</option>
+                    <option value="BAGS">Bag</option>
+                    <option value="TONNES">Ton</option>
+                    <option value="PIECES">Piece</option>
+                    <option value="BUNDLES">Bundle</option>
+                    <option value="ROLLS">Roll</option>
+                    <option value="LENGTHS">Length</option>
+                    <option value="KG">Kilogram</option>
+                    <option value="SQM">Square Meter</option>
                   </select>
                   <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
                     expand_more
@@ -214,16 +214,16 @@ export default function EditProductPage() {
                     }
                     className="w-full px-5 py-4 text-sm font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-slate-700 dark:text-slate-300 appearance-none"
                   >
-                    <option value="Building Materials">
+                    <option value="BUILDING_MATERIALS">
                       Building Materials
                     </option>
-                    <option value="Metal & Steel">Metal & Steel</option>
-                    <option value="Power Tools">Power Tools</option>
-                    <option value="Heavy Machinery">Heavy Machinery</option>
-                    <option value="Safety Gear">Safety Gear</option>
-                    <option value="Plumbing">Plumbing</option>
-                    <option value="Electrical">Electrical</option>
-                    <option value="Painting">Painting</option>
+                    <option value="METAL_STEEL">Metal &amp; Steel</option>
+                    <option value="POWER_TOOLS">Power Tools</option>
+                    <option value="HEAVY_MACHINERY">Heavy Machinery</option>
+                    <option value="SAFETY_GEAR">Safety Gear</option>
+                    <option value="PLUMBING">Plumbing</option>
+                    <option value="ELECTRICAL">Electrical</option>
+                    <option value="PAINTING">Painting</option>
                   </select>
                   <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
                     expand_more

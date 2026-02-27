@@ -701,26 +701,22 @@ export class AdminService {
   }
 
   async processPayout(payoutId: string, adminUserId: string) {
-    const payout = await this.prisma.payoutRequest.findUnique({
-      where: { id: payoutId },
-    });
-    if (!payout) throw new NotFoundException("Payout request not found.");
-    if (payout.status === "PROCESSED") {
-      throw new BadRequestException("Payout is already processed.");
-    }
-
-    // In a real flow, this could call Paystack to initiate the transfer
-    // and set status to PROCESSING until the webhook resolves it.
-    // For V1 presentation, we'll mark it directly as PROCESSED.
-
-    // Update the payout request
-    const updatedPayout = await this.prisma.payoutRequest.update({
-      where: { id: payoutId },
+    const result = await this.prisma.payoutRequest.updateMany({
+      where: {
+        id: payoutId,
+        status: { not: "PROCESSED" },
+      },
       data: {
         status: "PROCESSED",
         processedAt: new Date(),
       },
     });
+
+    if (result.count === 0) {
+      throw new BadRequestException(
+        "Payout request not found or already processed.",
+      );
+    }
 
     this.logger.log(
       `Payout request ${payoutId} manually marked as PROCESSED by admin ${adminUserId}`,
@@ -730,8 +726,8 @@ export class AdminService {
       success: true,
       message: "Payout marked as processed successfully.",
       payout: {
-        id: updatedPayout.id,
-        status: updatedPayout.status,
+        id: payoutId,
+        status: "PROCESSED",
       },
     };
   }
