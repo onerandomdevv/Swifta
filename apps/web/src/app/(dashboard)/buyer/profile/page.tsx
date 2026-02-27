@@ -19,6 +19,15 @@ export default function BuyerProfilePage() {
   const [lastName, setLastName] = useState(user?.lastName || "");
   const [phone, setPhone] = useState(user?.phone || "");
 
+  useEffect(() => {
+    if (user) {
+      setFirstName(user.firstName || "");
+      setMiddleName(user.middleName || "");
+      setLastName(user.lastName || "");
+      setPhone(user.phone || "");
+    }
+  }, [user]);
+
   function handleTabSelect(tab: Tab) {
     setActiveTab(tab);
   }
