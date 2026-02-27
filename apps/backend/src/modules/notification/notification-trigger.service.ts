@@ -18,6 +18,7 @@ export class NotificationTriggerService {
       NotificationChannel.IN_APP,
       NotificationChannel.EMAIL,
     ],
+    options?: { removeOnFail?: boolean },
   ) {
     await this.queue.add(
       "send-notification",
@@ -33,7 +34,7 @@ export class NotificationTriggerService {
         attempts: 3,
         backoff: { type: "exponential", delay: 2000 },
         removeOnComplete: true,
-        removeOnFail: false,
+        removeOnFail: options?.removeOnFail ?? false,
       },
     );
   }
@@ -55,6 +56,7 @@ export class NotificationTriggerService {
       `Your code is ${otp}`,
       { otp },
       [NotificationChannel.EMAIL],
+      { removeOnFail: true },
     );
   }
 
@@ -224,6 +226,7 @@ export class NotificationTriggerService {
       "Forgot your password?",
       { email, resetToken, frontendUrl },
       [NotificationChannel.EMAIL],
+      { removeOnFail: true },
     );
   }
 

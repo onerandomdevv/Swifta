@@ -33,7 +33,7 @@ export class EmailService {
         this.logger.error(
           `Resend API Error: ${error.message} (to: ${to}, subject: ${subject})`,
         );
-        return;
+        throw new Error(`Resend API Error: ${error.message}`);
       }
 
       this.logger.log(`Email sent successfully: ${data?.id}`);
@@ -41,7 +41,17 @@ export class EmailService {
       this.logger.error(
         `Critical error in EmailService.sendEmail: ${err.message}`,
       );
+      throw err;
     }
+  }
+
+  private escapeHtml(value: string): string {
+    return value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   }
 
   private formatNaira(kobo: number | bigint): string {
@@ -76,9 +86,11 @@ export class EmailService {
     name: string,
     role: string,
   ): Promise<void> {
+    const safeName = this.escapeHtml(name);
+    const safeRole = this.escapeHtml(role);
     const content = `
-      <h2 style="font-size: 20px; margin-bottom: 20px;">Welcome to Hardware OS, ${name}!</h2>
-      <p>We're excited to have you on board as a <strong>${role}</strong>.</p>
+      <h2 style="font-size: 20px; margin-bottom: 20px;">Welcome to Hardware OS, ${safeName}!</h2>
+      <p>We're excited to have you on board as a <strong>${safeRole}</strong>.</p>
       <p>Hardware OS is digitizing Africa's hardware trade network, and you're now part of the movement.</p>
       ${
         role === "MERCHANT"
@@ -93,11 +105,12 @@ export class EmailService {
   }
 
   async sendVerificationOTP(to: string, otp: string): Promise<void> {
+    const safeOtp = this.escapeHtml(otp);
     const content = `
       <h2 style="font-size: 20px; margin-bottom: 20px; text-align: center;">Your Verification Code</h2>
       <p style="text-align: center;">Please use the following code to verify your account. It expires in 10 minutes.</p>
       <div style="background-color: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 12px; padding: 20px; margin: 30px auto; max-width: 200px; text-align: center;">
-        <h1 style="font-size: 32px; letter-spacing: 8px; margin: 0; color: #0f172a;">${otp}</h1>
+        <h1 style="font-size: 32px; letter-spacing: 8px; margin: 0; color: #0f172a;">${safeOtp}</h1>
       </div>
     `;
     await this.sendEmail(to, "Your Verification Code", this.getLayout(content));
@@ -109,9 +122,11 @@ export class EmailService {
     productName: string,
     quantity: number,
   ): Promise<void> {
+    const safeBuyerName = this.escapeHtml(buyerName);
+    const safeProductName = this.escapeHtml(productName);
     const content = `
       <h2 style="font-size: 20px; margin-bottom: 20px;">New Quote Request!</h2>
-      <p><strong>${buyerName}</strong> has requested a quote for <strong>${quantity} units of ${productName}</strong>.</p>
+      <p><strong>${safeBuyerName}</strong> has requested a quote for <strong>${quantity} units of ${safeProductName}</strong>.</p>
       <p>Log in to your dashboard to provide your best price and win this trade.</p>
       <div style="margin-top: 30px; text-align: center;">
         <a href="${this.configService.get("FRONTEND_URL")}/merchant/rfqs" style="background-color: #0f172a; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">View RFQ</a>
@@ -119,7 +134,7 @@ export class EmailService {
     `;
     await this.sendEmail(
       to,
-      `New quote request from ${buyerName}`,
+      `New quote request from ${safeBuyerName}`,
       this.getLayout(content),
     );
   }
@@ -130,9 +145,11 @@ export class EmailService {
     productName: string,
     totalPriceKobo: bigint,
   ): Promise<void> {
+    const safeMerchantName = this.escapeHtml(merchantName);
+    const safeProductName = this.escapeHtml(productName);
     const content = `
       <h2 style="font-size: 20px; margin-bottom: 20px;">You Received a Quote!</h2>
-      <p><strong>${merchantName}</strong> has sent a quote for <strong>${productName}</strong>.</p>
+      <p><strong>${safeMerchantName}</strong> has sent a quote for <strong>${safeProductName}</strong>.</p>
       <p>Total Amount: <span style="font-size: 18px; font-weight: bold; color: #0f172a;">${this.formatNaira(totalPriceKobo)}</span></p>
       <p>Review the quote details and accept it to proceed with your order.</p>
       <div style="margin-top: 30px; text-align: center;">
@@ -141,7 +158,7 @@ export class EmailService {
     `;
     await this.sendEmail(
       to,
-      `You received a quote from ${merchantName}`,
+      `You received a quote from ${safeMerchantName}`,
       this.getLayout(content),
     );
   }
@@ -152,18 +169,20 @@ export class EmailService {
     orderId: string,
     amountKobo: bigint,
   ): Promise<void> {
+    const safeBuyerName = this.escapeHtml(buyerName);
+    const safeOrderId = encodeURIComponent(orderId);
     const content = `
       <h2 style="font-size: 20px; margin-bottom: 20px;">Your Quote Was Accepted!</h2>
-      <p><strong>${buyerName}</strong> has accepted your quote. An order has been created.</p>
+      <p><strong>${safeBuyerName}</strong> has accepted your quote. An order has been created.</p>
       <p>Order Amount: <span style="font-size: 18px; font-weight: bold; color: #0f172a;">${this.formatNaira(amountKobo)}</span></p>
       <p>You will be notified once the buyer makes payment.</p>
       <div style="margin-top: 30px; text-align: center;">
-        <a href="${this.configService.get("FRONTEND_URL")}/merchant/orders/${orderId}" style="background-color: #0f172a; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">View Order</a>
+        <a href="${this.configService.get("FRONTEND_URL")}/merchant/orders/${safeOrderId}" style="background-color: #0f172a; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">View Order</a>
       </div>
     `;
     await this.sendEmail(
       to,
-      `${buyerName} accepted your quote`,
+      `${safeBuyerName} accepted your quote`,
       this.getLayout(content),
     );
   }
@@ -174,9 +193,10 @@ export class EmailService {
     amountKobo: bigint,
     isMerchant: boolean,
   ): Promise<void> {
+    const safeReference = this.escapeHtml(reference.slice(0, 8));
     const content = `
       <h2 style="font-size: 20px; margin-bottom: 20px;">Payment Confirmed</h2>
-      <p>Payment of <strong>${this.formatNaira(amountKobo)}</strong> has been confirmed for Order <strong>#${reference.slice(0, 8)}</strong>.</p>
+      <p>Payment of <strong>${this.formatNaira(amountKobo)}</strong> has been confirmed for Order <strong>#${safeReference}</strong>.</p>
       ${
         isMerchant
           ? `<p>Please prepare the goods for dispatch. Your payout will be released once delivery is confirmed.</p>`
@@ -185,7 +205,7 @@ export class EmailService {
     `;
     await this.sendEmail(
       to,
-      `Payment confirmed for Order #${reference.slice(0, 8)}`,
+      `Payment confirmed for Order #${safeReference}`,
       this.getLayout(content),
     );
   }
@@ -195,12 +215,14 @@ export class EmailService {
     reference: string,
     otp: string,
   ): Promise<void> {
+    const safeReference = this.escapeHtml(reference.slice(0, 8));
+    const safeOtp = this.escapeHtml(otp);
     const content = `
       <h2 style="font-size: 20px; margin-bottom: 20px;">Your Order Has Been Dispatched!</h2>
-      <p>Order <strong>#${reference.slice(0, 8)}</strong> is on its way to your delivery address.</p>
+      <p>Order <strong>#${safeReference}</strong> is on its way to your delivery address.</p>
       <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin: 30px 0;">
         <p style="margin-top: 0; color: #166534; font-weight: bold;">Delivery Verification Code:</p>
-        <h1 style="font-size: 32px; letter-spacing: 4px; margin: 10px 0; color: #166534;">${otp}</h1>
+        <h1 style="font-size: 32px; letter-spacing: 4px; margin: 10px 0; color: #166534;">${safeOtp}</h1>
         <p style="margin-bottom: 0; font-size: 13px; color: #166534;">IMPORTANT: Only share this code with the driver AFTER you have inspected and received your goods.</p>
       </div>
     `;
@@ -216,15 +238,16 @@ export class EmailService {
     reference: string,
     amountKobo: bigint,
   ): Promise<void> {
+    const safeReference = this.escapeHtml(reference.slice(0, 8));
     const content = `
       <h2 style="font-size: 20px; margin-bottom: 20px;">Delivery Confirmed Success!</h2>
-      <p>Delivery of Order <strong>#${reference.slice(0, 8)}</strong> has been confirmed.</p>
+      <p>Delivery of Order <strong>#${safeReference}</strong> has been confirmed.</p>
       <p>The transaction of <strong>${this.formatNaira(amountKobo)}</strong> is now complete.</p>
       <p>Thank you for trading with Hardware OS!</p>
     `;
     await this.sendEmail(
       to,
-      `Order #${reference.slice(0, 8)} delivered successfully`,
+      `Order #${safeReference} delivered successfully`,
       this.getLayout(content),
     );
   }
@@ -234,7 +257,7 @@ export class EmailService {
     resetToken: string,
     frontendUrl: string,
   ): Promise<void> {
-    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
+    const resetUrl = `${frontendUrl}/reset-password?token=${encodeURIComponent(resetToken)}`;
     const content = `
       <h2 style="font-size: 20px; margin-bottom: 20px;">Password Reset Request</h2>
       <p>We received a request to reset your password. If you didn't make this request, you can safely ignore this email.</p>
