@@ -1,4 +1,4 @@
-import { PrismaClient } from "./generated-client";
+import { PrismaClient } from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import { UserRole } from "@hardware-os/shared";
 
@@ -20,14 +20,7 @@ async function main() {
 
   // 1. Check for ANY existing super-admin to prevent duplicates in existing DBs
   const existingAdmin = await prisma.user.findFirst({
-    where: {
-      role: UserRole.SUPER_ADMIN,
-      OR: [
-        { email: LEGACY_ADMIN_EMAIL },
-        { email: BOOTSTRAP_ADMIN_EMAIL },
-        { email: "admin@hardwareos.com" }, // Support the previous interim default
-      ],
-    },
+    where: { role: UserRole.SUPER_ADMIN },
   });
 
   if (existingAdmin) {
@@ -40,33 +33,49 @@ async function main() {
   console.log(`🔒 Hashing master password...`);
   const passwordHash = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, SALT_ROUNDS);
 
-  console.log(`🚀 Creating new Super Admin account...`);
-  await prisma.user.upsert({
+  // 2. Check if a non-admin user already has the bootstrap email
+  const existingUser = await prisma.user.findUnique({
     where: { email: BOOTSTRAP_ADMIN_EMAIL },
-    update: {},
-    create: {
-      email: BOOTSTRAP_ADMIN_EMAIL,
-      phone: "+234000000000",
-      firstName: "HARDWARE",
-      lastName: "Admin",
-      passwordHash: passwordHash,
-      role: UserRole.SUPER_ADMIN,
-      adminProfile: {
-        create: {
-          approvalStatus: "APPROVED",
-        },
-      },
-    },
   });
 
-  console.log(`✨ Super Admin created successfully!`);
-  console.log(`📧 Email: ${BOOTSTRAP_ADMIN_EMAIL}`);
-  console.log(
-    `🔑 Password: [HIDDEN] (Use ADMIN_BOOTSTRAP_PASSWORD environment variable)`,
-  );
-  console.log(
-    `Important: Remember to change your password immediately upon logging in.`,
-  );
+  if (existingUser) {
+    if (existingUser.role !== UserRole.SUPER_ADMIN) {
+      console.log(
+        `⚠️ User with email ${BOOTSTRAP_ADMIN_EMAIL} exists but is not a Super Admin. Promoting to Super Admin...`,
+      );
+      await prisma.user.update({
+        where: { email: BOOTSTRAP_ADMIN_EMAIL },
+        data: { role: UserRole.SUPER_ADMIN },
+      });
+      console.log(`✅ Existing user promoted to Super Admin.`);
+      console.log(`📧 Email: ${BOOTSTRAP_ADMIN_EMAIL}`);
+    }
+  } else {
+    console.log(`🚀 Creating new Super Admin account...`);
+    await prisma.user.create({
+      data: {
+        email: BOOTSTRAP_ADMIN_EMAIL,
+        phone: "+234000000000",
+        firstName: "HARDWARE",
+        lastName: "Admin",
+        passwordHash: passwordHash,
+        role: UserRole.SUPER_ADMIN,
+        adminProfile: {
+          create: {
+            approvalStatus: "APPROVED",
+          },
+        },
+      },
+    });
+    console.log(`✨ Super Admin created successfully!`);
+    console.log(`📧 Email: ${BOOTSTRAP_ADMIN_EMAIL}`);
+    console.log(
+      `🔑 Password: [HIDDEN] (Use ADMIN_BOOTSTRAP_PASSWORD environment variable)`,
+    );
+    console.log(
+      `Important: Remember to change your password immediately upon logging in.`,
+    );
+  }
 }
 
 main()
