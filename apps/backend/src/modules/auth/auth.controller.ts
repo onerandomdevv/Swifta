@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Patch,
   Body,
   UseGuards,
   HttpCode,
@@ -165,7 +166,7 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post("profile")
+  @Patch("profile")
   @HttpCode(HttpStatus.OK)
   async updateProfile(@CurrentUser() user: JwtPayload, @Body() dto: any) {
     return this.authService.updateProfile(user.sub, dto);
