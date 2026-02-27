@@ -9,6 +9,7 @@ import { loginSchema, type LoginFormData } from "../../../lib/validations/auth";
 import { useAuth } from "../../../providers/auth-provider";
 import { useToast } from "../../../providers/toast-provider";
 import { UserRole } from "@hardware-os/shared";
+import { Logo } from "@/components/ui/logo";
 
 const slides = [
   '/images/hero/slide-1.jpg',
@@ -77,20 +78,19 @@ export default function LoginPage() {
             key={index}
             className={`absolute inset-0 transition-opacity duration-[1500ms] ease-in-out ${index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
           >
-            <img src={src} alt="Hardware materials" className="w-full h-full object-cover" />
+            <img src={src} alt="Construction materials" className="w-full h-full object-cover" />
           </div>
         ))}
         {/* Overlay */}
-        <div className="absolute inset-0 z-20 bg-gradient-to-t from-[#101622] via-[#101622]/50 to-transparent" />
+        <div className="absolute inset-0 z-20 bg-gradient-to-t from-deep-blue via-deep-blue/50 to-transparent" />
 
         {/* Overlay Content */}
         <div className="absolute bottom-10 left-10 right-10 z-30 text-white">
           <Link href="/" className="flex items-center gap-2 mb-6">
-            <span className="material-symbols-outlined text-primary text-3xl">settings_input_component</span>
-            <span className="text-2xl font-black tracking-tight uppercase">Hardware OS</span>
+            <Logo variant="dark" size="lg" />
           </Link>
           <p className="text-white/70 text-base font-medium max-w-xs leading-relaxed mb-6">
-            Nigeria&apos;s private B2B hardware trading platform. Secure, verified, and built for scale.
+            Nigeria&apos;s trusted B2B hardware trade platform. Secure, verified, and built for scale.
           </p>
           <div className="flex flex-col gap-3">
             {[
@@ -119,16 +119,15 @@ export default function LoginPage() {
         {/* Mobile header */}
         <div className="lg:hidden flex items-center justify-between p-6 border-b border-slate-100">
           <Link href="/" className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-2xl">settings_input_component</span>
-            <span className="text-lg font-black tracking-tight text-slate-900 uppercase">Hardware OS</span>
+            <Logo variant="light" size="md" />
           </Link>
         </div>
 
         <div className="flex-1 flex flex-col justify-center px-8 py-12 md:px-12 lg:px-14 xl:px-20">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">Welcome Back</h1>
-            <p className="text-slate-500 font-medium">Sign in to your HARDWARE OS account</p>
+            <h1 className="text-3xl font-black text-deep-blue tracking-tight mb-2">Welcome Back</h1>
+            <p className="text-slate-500 font-medium">Sign in to your SwiftTrade account</p>
           </div>
 
           {/* Error alert */}
@@ -156,7 +155,7 @@ export default function LoginPage() {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-sm font-bold text-slate-700">Password</label>
-                <Link href="#" className="text-xs font-bold text-primary hover:underline">Forgot password?</Link>
+                <Link href="/forgot-password" className="text-xs font-bold text-primary hover:underline">Forgot password?</Link>
               </div>
               <div className="relative">
                 <input
@@ -181,7 +180,7 @@ export default function LoginPage() {
             {/* Submit */}
             <button
               disabled={isSubmitting}
-              className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50 text-white font-bold py-3.5 rounded-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 mt-2"
+              className="w-full bg-primary hover:bg-primary-dark disabled:opacity-50 text-white font-bold py-3.5 rounded-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 mt-2"
               type="submit"
             >
               <span>{isSubmitting ? "Signing in..." : "Sign In"}</span>
@@ -199,7 +198,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <footer className="px-8 py-6 border-t border-slate-100">
-          <p className="text-center text-xs text-slate-400">© 2025 Hardware OS. Lagos, Nigeria.</p>
+          <p className="text-center text-xs text-slate-400">&copy; {new Date().getFullYear()} SwiftTrade. Lagos, Nigeria.</p>
         </footer>
       </div>
     </div>

@@ -1,6 +1,6 @@
-# HARDWARE OS — Backend
+# SwiftTrade — Backend
 
-NestJS modular monolith API server for HARDWARE OS.
+NestJS modular monolith API server for SwiftTrade.
 
 ---
 

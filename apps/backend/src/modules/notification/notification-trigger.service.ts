@@ -43,7 +43,7 @@ export class NotificationTriggerService {
     await this.addJob(
       userId,
       "WELCOME",
-      "Welcome to Hardware OS",
+      "Welcome to SwiftTrade",
       "Welcome to Africa's hardware trade network.",
     );
   }

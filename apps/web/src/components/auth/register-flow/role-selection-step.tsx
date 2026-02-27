@@ -27,7 +27,7 @@ export function RoleSelectionStep({
 
       <div className="space-y-2">
         <h2 className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Select Your Role</h2>
-        <p className="text-slate-500 dark:text-slate-400">Choose how you want to interact with the Hardware OS marketplace.</p>
+        <p className="text-slate-500 dark:text-slate-400">Choose how you want to interact with the SwiftTrade marketplace.</p>
       </div>
 
       <div className="space-y-4">

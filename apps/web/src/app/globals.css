@@ -3,16 +3,16 @@
 @tailwind utilities;
 
 :root {
-  --background: #f6f8f7;
-  --foreground: #112117;
-  --background-light: #f6f8f7;
-  --background-dark: #112117;
+  --background: #F8FAFC;
+  --foreground: #0F2B4C;
+  --background-light: #F8FAFC;
+  --background-dark: #0F2B4C;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: 'Inter', sans-serif;
+  font-family: 'DM Sans', Inter, sans-serif;
   @apply antialiased;
 }
 

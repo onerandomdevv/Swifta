@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
 import { getDisplayName } from "@hardware-os/shared";
+import { Logo } from "@/components/ui/logo";
 
 export function MerchantSidebar() {
   const pathname = usePathname();
@@ -36,24 +37,16 @@ export function MerchantSidebar() {
   return (
     <aside className="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col shrink-0 z-50">
       <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center gap-3">
-        <div className="bg-primary size-8 flex items-center justify-center rounded-lg">
-          <span className="material-symbols-outlined text-white text-xl">
-            construction
-          </span>
-        </div>
-        <div>
-          <h1 className="text-sm font-bold tracking-tight uppercase text-slate-900 dark:text-white">
-            Hardware OS
-          </h1>
-          <p className="text-[10px] text-slate-500 uppercase font-medium tracking-wider">
-            Command Center
-          </p>
-        </div>
+        <Logo variant="light" size="sm" />
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
-          const isActive = pathname.startsWith(item.href);
+          // Use exact match for routes that are prefixes of other routes
+          const isActive =
+            item.href === "/merchant/quotes"
+              ? pathname === item.href
+              : pathname.startsWith(item.href);
           return (
             <Link
               key={item.href}
@@ -81,13 +74,18 @@ export function MerchantSidebar() {
             </div>
             <div className="flex-1 overflow-hidden">
               <p className="text-xs font-bold truncate text-slate-900 dark:text-white">
-                {/* Provide fallback for user name since it might be loading or undefined at initial render */}
                 {getDisplayName(user) ||
                   user?.email?.split("@")[0] ||
                   "Merchant User"}
               </p>
               <p className="text-[10px] text-slate-500 xl:truncate">
-                Hardware Admin
+                {user?.role === "MERCHANT"
+                  ? "Merchant"
+                  : user?.role === "BUYER"
+                    ? "Buyer"
+                    : user?.role === "SUPER_ADMIN"
+                      ? "Admin"
+                      : user?.role || "User"}
               </p>
             </div>
             <span className="material-symbols-outlined text-slate-400 text-sm cursor-pointer hover:text-primary transition-colors">

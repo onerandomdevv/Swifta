@@ -76,7 +76,7 @@ export default function InternalLoginPage() {
             Internal Operations
           </h1>
           <p className="text-slate-400 mt-2 text-sm font-medium leading-relaxed max-w-[280px]">
-            Restricted access. Authorized HARDWARE OS personnel only.
+            Restricted access. Authorized SWIFTTRADE personnel only.
           </p>
         </div>
 
@@ -174,7 +174,7 @@ export default function InternalLoginPage() {
 
         <div className="mt-8 pt-6 border-t border-slate-800 text-center">
           <p className="text-xs text-slate-500 font-medium tracking-wide">
-            HARDWARE OS INTERNAL PORTAL
+            SWIFTTRADE INTERNAL PORTAL
           </p>
         </div>
       </div>

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "../../providers/auth-provider";
+import { Logo } from "@/components/ui/logo";
 
 export function AdminSidebar() {
   const pathname = usePathname();
@@ -45,14 +46,9 @@ export function AdminSidebar() {
       >
         <div className="p-6">
           <div className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-md bg-brand text-navy-dark flex items-center justify-center font-black text-xl">
-              H
-            </div>
-            <span className="text-xl font-black tracking-tighter">
-              HARDWARE<span className="text-brand">OS</span>
-            </span>
+            <Logo variant="dark" size="md" />
           </div>
-          <span className="mt-2 block text-xs font-black uppercase text-neon-cyan tracking-widest">
+          <span className="mt-2 block text-xs font-black uppercase text-primary tracking-widest">
             SUPER ADMIN
           </span>
         </div>
@@ -67,7 +63,7 @@ export function AdminSidebar() {
                 onClick={() => setIsOpen(false)}
                 className={`flex items-center space-x-3 px-4 py-3 rounded-lg font-bold transition-all duration-200 ${
                   isActive
-                    ? "bg-brand text-navy-dark shadow-lg shadow-brand/20 scale-[1.02]"
+                    ? "bg-primary text-deep-blue shadow-lg shadow-primary/20 scale-[1.02]"
                     : "text-slate-300 hover:bg-white/10 hover:text-white"
                 }`}
               >

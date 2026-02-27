@@ -52,15 +52,16 @@ export default function GenerateSharedQuotePage() {
     };
   });
 
-  const subtotalKobo = parsedItems.reduce((sum, i) => sum + i.totalKobo, 0);
+  const validItems = parsedItems.filter(
+    (i) => i.productName && i.quantity > 0 && i.unitPriceKobo > 0,
+  );
+
+  const subtotalKobo = validItems.reduce((sum, i) => sum + i.totalKobo, 0);
   const deliveryFeeKobo = Math.round((parseFloat(deliveryFee) || 0) * 100);
   const totalKobo = subtotalKobo + deliveryFeeKobo;
 
   const handleSubmit = async () => {
     setError("");
-    const validItems = parsedItems.filter(
-      (i) => i.productName && i.quantity > 0 && i.unitPriceKobo > 0,
-    );
     if (validItems.length === 0) {
       setError("Add at least one item with a name, quantity, and price.");
       return;
@@ -102,7 +103,7 @@ export default function GenerateSharedQuotePage() {
   const handleWhatsApp = () => {
     if (!result) return;
     const msg = encodeURIComponent(
-      `Hi${buyerName ? ` ${buyerName}` : ""},\n\nI've prepared a quote for you on Hardware OS.\n\nView & pay securely here:\n${result.link}\n\nValid for ${expiryDays} days.`,
+      `Hi${buyerName ? ` ${buyerName}` : ""},\n\nI've prepared a quote for you on SwiftTrade.\n\nView & pay securely here:\n${result.link}\n\nValid for ${expiryDays} days.`,
     );
     window.open(`https://wa.me/?text=${msg}`, "_blank");
   };

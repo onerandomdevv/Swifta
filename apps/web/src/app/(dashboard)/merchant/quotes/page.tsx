@@ -105,7 +105,7 @@ export default function MerchantQuotesPage() {
       <header className="flex h-14 items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 shrink-0 z-10">
         <div className="flex items-center gap-4">
           <div className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 p-1 font-black text-sm tracking-tighter">
-            HARDWARE OS
+            SWIFTTRADE
           </div>
           <div className="h-6 w-[1px] bg-slate-200 dark:bg-slate-700"></div>
           <h1 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">

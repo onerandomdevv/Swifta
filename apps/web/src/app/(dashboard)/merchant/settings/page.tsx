@@ -391,7 +391,7 @@ export default function MerchantSettingsPage() {
                 Configuration Matrix
               </h2>
               <p className="text-xs text-slate-400">
-                Configure multi-channel alerts for HARDWARE OS events.
+                Configure multi-channel alerts for SwiftTrade events.
               </p>
             </div>
 

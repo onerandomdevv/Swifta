@@ -1,4 +1,4 @@
-This Hardware OS V1 Design System Specification serves as the technical blueprint for implementing the high-contrast, utilitarian B2B platform across mobile and desktop.
+This SwiftTrade V1 Design System Specification serves as the technical blueprint for implementing the high-contrast, utilitarian B2B platform across mobile and desktop.
 
 1. Core Philosophy & Aesthetic Rules
 Mission: A "No-Nonsense" industrial tool for high-value commerce. The UI must feel as stable and heavy as the materials (cement, iron) being sold.
@@ -46,7 +46,7 @@ CTA Priority: The primary action is always 'Request Quote' or 'Send RFQ'. There 
 The Typography Scale & Text Hierarchy has been defined to ensure maximum legibility for merchants and contractors, even in high-glare outdoor environments:
 
 Typography Scale & Text Hierarchy: A technical documentation screen that specifies an industrial font system. It uses a clean, bold sans-serif for headings and a monospaced font for data-heavy fields (like SKUs and Naira amounts) to ensure tabular alignment and precision.
-Hardware OS V1 Typography Scale
+SwiftTrade V1 Typography Scale
 Role	Desktop Size	Mobile Size	Weight	Line Height	Usage
 H1 - Dashboard Title	32px	24px	700 (Bold)	1.2	Main Page Titles
 H2 - Section Header	24px	20px	600 (Semi)	1.3	Kanban Columns, Card Titles

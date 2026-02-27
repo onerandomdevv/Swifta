@@ -52,7 +52,10 @@ export async function listSharedQuotes(
   page = 1,
   limit = 20,
   status?: string,
-): Promise<SharedQuote[]> {
+): Promise<{
+  data: SharedQuote[];
+  meta: { total: number; page: number; limit: number; totalPages: number };
+}> {
   const params: Record<string, string> = {
     page: String(page),
     limit: String(limit),

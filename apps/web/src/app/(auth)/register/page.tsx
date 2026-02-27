@@ -14,6 +14,7 @@ import type { RegisterDto } from "@hardware-os/shared";
 import { useAuth } from "@/providers/auth-provider";
 import { useToast } from "@/providers/toast-provider";
 import { authApi } from "@/lib/api/auth.api";
+import { Logo } from "@/components/ui/logo";
 
 import { RoleSelectionStep } from "@/components/auth/register-flow/role-selection-step";
 import { AccountDetailsStep } from "@/components/auth/register-flow/account-details-step";
@@ -61,7 +62,7 @@ export default function RegisterPage() {
   const [resendCooldown, setResendCooldown] = useState(0);
 
   const router = useRouter();
-  const { register: authRegister } = useAuth();
+  const { register: authRegister, refreshUser } = useAuth();
   const toast = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -144,6 +145,8 @@ export default function RegisterPage() {
         email: methods.getValues("email"),
         code: otp.join(""),
       });
+      // Refresh auth context so emailVerified is true across the app
+      await refreshUser();
       setStep(4);
       toast.success("Email verified successfully!");
 
@@ -192,21 +195,16 @@ export default function RegisterPage() {
           >
             <img
               src={src}
-              alt="Hardware materials"
+              alt="Construction materials"
               className="w-full h-full object-cover"
             />
           </div>
         ))}
-        <div className="absolute inset-0 z-20 bg-gradient-to-t from-[#101622] via-[#101622]/50 to-transparent" />
+        <div className="absolute inset-0 z-20 bg-gradient-to-t from-deep-blue via-deep-blue/50 to-transparent" />
 
         <div className="absolute bottom-10 left-10 right-10 z-30 text-white">
           <Link href="/" className="flex items-center gap-2 mb-6">
-            <span className="material-symbols-outlined text-primary text-3xl">
-              settings_input_component
-            </span>
-            <span className="text-2xl font-black tracking-tight uppercase">
-              Hardware OS
-            </span>
+            <Logo variant="dark" size="lg" />
           </Link>
           <p className="text-white/70 text-base font-medium max-w-xs leading-relaxed mb-6">
             Join Nigeria&apos;s trusted B2B hardware trade network. Verified
@@ -245,12 +243,7 @@ export default function RegisterPage() {
         {/* Mobile header */}
         <div className="lg:hidden flex items-center justify-between p-6 border-b border-slate-100">
           <Link href="/" className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-2xl">
-              settings_input_component
-            </span>
-            <span className="text-lg font-black tracking-tight text-slate-900 uppercase">
-              Hardware OS
-            </span>
+            <Logo variant="light" size="md" />
           </Link>
         </div>
 
@@ -295,7 +288,7 @@ export default function RegisterPage() {
 
         <footer className="px-8 py-6 border-t border-slate-100">
           <p className="text-center text-xs text-slate-400">
-            © 2025 Hardware OS. Lagos, Nigeria.
+            &copy; {new Date().getFullYear()} SwiftTrade. Lagos, Nigeria.
           </p>
         </footer>
       </div>
