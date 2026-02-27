@@ -23,7 +23,7 @@ import { AdminRegisterDto } from "./dto/admin-register.dto";
 import { SendPhoneOtpDto } from "./dto/send-phone-otp.dto";
 import { VerifyPhoneOtpDto } from "./dto/verify-phone-otp.dto";
 import { TokenPair, JwtPayload } from "@hardware-os/shared";
-import * as AfricasTalking from "africastalking";
+import AfricasTalking from "africastalking";
 
 const SALT_ROUNDS = 10;
 const REFRESH_TOKEN_PREFIX = "refresh_token:";
