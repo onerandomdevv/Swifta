@@ -2,10 +2,44 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { UpdateMerchantDto } from "./dto/update-merchant.dto";
 import { VerificationStatus } from "@hardware-os/shared";
+import { PaystackClient } from "../payment/paystack.client";
 
 @Injectable()
 export class MerchantService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private paystack: PaystackClient,
+  ) {}
+
+  async resolveBankAccount(accountNumber: string, bankCode: string) {
+    try {
+      const response = await this.paystack.resolveAccount(
+        accountNumber,
+        bankCode,
+      );
+      return {
+        accountName: response.account_name,
+        accountNumber: response.account_number,
+        bankId: response.bank_id,
+      };
+    } catch (error: any) {
+      throw new NotFoundException(
+        `Could not resolve account: ${error.message}`,
+      );
+    }
+  }
+
+  async getBanks() {
+    try {
+      const banks = await this.paystack.getBanks();
+      // Only return active nuban banks to keep the list clean
+      return banks
+        .filter((b) => b.active && b.type === "nuban")
+        .map((b) => ({ code: b.code, name: b.name }));
+    } catch (error: any) {
+      throw new NotFoundException(`Could not get banks: ${error.message}`);
+    }
+  }
 
   async getProfile(merchantId: string) {
     const merchant = await this.prisma.merchantProfile.findUnique({
@@ -41,16 +75,16 @@ export class MerchantService {
   async getAllMerchants() {
     return this.prisma.merchantProfile.findMany({
       where: {
-        verification: 'VERIFIED'
+        verification: "VERIFIED",
       },
       select: {
         id: true,
         businessName: true,
-        verification: true
+        verification: true,
       },
       orderBy: {
-        businessName: 'asc'
-      }
+        businessName: "asc",
+      },
     });
   }
 

@@ -20,7 +20,10 @@ import { ResendVerificationDto } from "./dto/resend-verification.dto";
 import { ForgotPasswordDto } from "./dto/forgot-password.dto";
 import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { AdminRegisterDto } from "./dto/admin-register.dto";
+import { SendPhoneOtpDto } from "./dto/send-phone-otp.dto";
+import { VerifyPhoneOtpDto } from "./dto/verify-phone-otp.dto";
 import { TokenPair, JwtPayload } from "@hardware-os/shared";
+import * as AfricasTalking from "africastalking";
 
 const SALT_ROUNDS = 10;
 const REFRESH_TOKEN_PREFIX = "refresh_token:";
@@ -32,9 +35,16 @@ const EMAIL_OTP_RATE_PREFIX = "email_otp_count:";
 const EMAIL_OTP_RATE_TTL = 600; // 10 minutes window
 const EMAIL_OTP_MAX_RESENDS = 3;
 
+const PHONE_OTP_PREFIX = "phone_otp:";
+const PHONE_OTP_TTL = 300; // 5 minutes in seconds
+const PHONE_OTP_RATE_PREFIX = "phone_otp_count:";
+const PHONE_OTP_RATE_TTL = 600; // 10 minutes window
+const PHONE_OTP_MAX_RESENDS = 3;
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
+  private smsClient: any;
 
   constructor(
     private prisma: PrismaService,
@@ -43,7 +53,16 @@ export class AuthService {
     private redis: RedisService,
     private emailService: EmailService,
     private notificationTriggerService: NotificationTriggerService,
-  ) {}
+  ) {
+    const atConfig = {
+      apiKey: this.configService.get<string>("africastalking.apiKey"),
+      username: this.configService.get<string>("africastalking.username"),
+    };
+    if (atConfig.apiKey && atConfig.username) {
+      const africastalkingClient = AfricasTalking(atConfig);
+      this.smsClient = africastalkingClient.SMS;
+    }
+  }
 
   async register(dto: RegisterDto): Promise<TokenPair & { user: any }> {
     const existingUser = await this.prisma.user.findFirst({
@@ -482,6 +501,69 @@ export class AuthService {
         updatedAt: user.updatedAt,
       },
     };
+  }
+
+  async sendPhoneOtp(dto: SendPhoneOtpDto): Promise<{ message: string }> {
+    const rateKey = `${PHONE_OTP_RATE_PREFIX}${dto.phone}`;
+    const currentCount = await this.redis.get(rateKey);
+    const count = currentCount ? parseInt(currentCount, 10) : 0;
+
+    if (count >= PHONE_OTP_MAX_RESENDS) {
+      throw new BadRequestException(
+        "Too many resend attempts. Please wait 10 minutes before trying again.",
+      );
+    }
+
+    const otp = randomInt(100000, 999999).toString();
+    await this.redis.set(`${PHONE_OTP_PREFIX}${dto.phone}`, otp, PHONE_OTP_TTL);
+    await this.redis.set(rateKey, (count + 1).toString(), PHONE_OTP_RATE_TTL);
+
+    try {
+      if (this.smsClient) {
+        await this.smsClient.send({
+          to: [dto.phone],
+          message: `Your HARDWARE OS verification code is ${otp}. It expires in 5 minutes.`,
+          from: this.configService.get<string>("africastalking.senderId"),
+        });
+      } else {
+        this.logger.warn(
+          "AfricasTalking SMS client not configured. OTP generated but not sent.",
+        );
+      }
+    } catch (error) {
+      this.logger.error("Failed to send SMS via AfricasTalking", error);
+    }
+
+    return { message: "Verification code sent successfully." };
+  }
+
+  async verifyPhoneOtp(
+    dto: VerifyPhoneOtpDto,
+    userId: string,
+  ): Promise<{ message: string }> {
+    const storedOtp = await this.redis.get(`${PHONE_OTP_PREFIX}${dto.phone}`);
+
+    if (!storedOtp) {
+      throw new BadRequestException(
+        "Verification code expired or not found. Please request a new one.",
+      );
+    }
+
+    if (storedOtp !== dto.code) {
+      throw new BadRequestException("Invalid verification code.");
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { phoneVerified: true, phone: dto.phone },
+    });
+
+    await this.redis.del(`${PHONE_OTP_PREFIX}${dto.phone}`);
+    await this.redis.del(`${PHONE_OTP_RATE_PREFIX}${dto.phone}`);
+
+    this.logger.log(`Phone verified for user ${userId}`);
+
+    return { message: "Phone verified successfully." };
   }
 
   async updateProfile(userId: string, dto: any) {

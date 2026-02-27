@@ -18,6 +18,7 @@ export function AdminSidebar() {
     { name: "Merchants", href: "/admin/merchants", icon: "storefront" },
     { name: "Users", href: "/admin/users", icon: "group" },
     { name: "Orders", href: "/admin/orders", icon: "local_shipping" },
+    { name: "Payouts", href: "/admin/payouts", icon: "payments" },
     { name: "Catalogue", href: "/admin/inventory", icon: "inventory_2" },
     { name: "Access Tokens", href: "/admin/access-tokens", icon: "key" },
     { name: "Settings", href: "/admin/settings", icon: "settings" },

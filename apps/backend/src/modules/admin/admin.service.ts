@@ -289,6 +289,24 @@ export class AdminService {
       });
     }
 
+    // Check 3: Pending Payout Requests
+    const pendingPayouts = await this.prisma.payoutRequest.count({
+      where: {
+        status: "PENDING",
+        createdAt: { lt: twentyFourHoursAgo },
+      },
+    });
+
+    if (pendingPayouts > 0) {
+      alerts.push({
+        id: "payout-delay",
+        type: "WARNING",
+        title: "Delayed Payout Processing",
+        message: `${pendingPayouts} payout requests have been waiting > 24 hours for processing.`,
+        actionLink: "/admin/payouts",
+      });
+    }
+
     return alerts;
   }
 
@@ -656,5 +674,65 @@ export class AdminService {
 
     this.logger.log(`Staff ${staffId} approved by admin ${adminId}`);
     return { success: true, message: "Staff member approved successfully." };
+  }
+
+  // ─── Payout Management ───
+
+  async getPendingPayouts() {
+    // Also including PROCESSING for visibility, or we can just fetch all non-PROCESSED
+    return this.prisma.payoutRequest.findMany({
+      where: {
+        status: {
+          in: ["PENDING", "PROCESSING"],
+        },
+      },
+      include: {
+        merchantProfile: {
+          select: {
+            businessName: true,
+            user: {
+              select: { email: true, phone: true },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: "asc" },
+    });
+  }
+
+  async processPayout(payoutId: string, adminUserId: string) {
+    const payout = await this.prisma.payoutRequest.findUnique({
+      where: { id: payoutId },
+    });
+    if (!payout) throw new NotFoundException("Payout request not found.");
+    if (payout.status === "PROCESSED") {
+      throw new BadRequestException("Payout is already processed.");
+    }
+
+    // In a real flow, this could call Paystack to initiate the transfer
+    // and set status to PROCESSING until the webhook resolves it.
+    // For V1 presentation, we'll mark it directly as PROCESSED.
+
+    // Update the payout request
+    const updatedPayout = await this.prisma.payoutRequest.update({
+      where: { id: payoutId },
+      data: {
+        status: "PROCESSED",
+        processedAt: new Date(),
+      },
+    });
+
+    this.logger.log(
+      `Payout request ${payoutId} manually marked as PROCESSED by admin ${adminUserId}`,
+    );
+
+    return {
+      success: true,
+      message: "Payout marked as processed successfully.",
+      payout: {
+        id: updatedPayout.id,
+        status: updatedPayout.status,
+      },
+    };
   }
 }

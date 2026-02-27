@@ -42,15 +42,19 @@ export class ProductService {
       {
         where: { merchantId },
         orderBy: { createdAt: "desc" },
-        include: { stockCache: true },
+        include: { productStockCache: true },
       },
     );
 
     // Mark soft-deleted products with a flag (for frontend convenience if needed)
-    response.data = response.data.map((product: any) => ({
-      ...product,
-      isDeleted: product.deletedAt !== null,
-    }));
+    response.data = response.data.map((product: any) => {
+      const { productStockCache, ...rest } = product;
+      return {
+        ...rest,
+        stockCache: productStockCache,
+        isDeleted: product.deletedAt !== null,
+      };
+    });
 
     return response;
   }

@@ -13,6 +13,7 @@ import { PaystackClient } from "./paystack.client";
 import { OrderService } from "../order/order.service";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
 import { InitializePaymentDto } from "./dto/initialize-payment.dto";
+import { RequestPayoutDto } from "./dto/request-payout.dto";
 import {
   PaymentStatus,
   PaymentDirection,
@@ -452,5 +453,57 @@ export class PaymentService {
       }
       throw new BadRequestException("Could not resolve account");
     }
+  }
+
+  async getBanks() {
+    try {
+      return await this.paystack.getBanks();
+    } catch (err) {
+      this.logger.error("Failed to fetch banks", err);
+      throw new BadRequestException("Could not fetch banks");
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  //  REQUEST PAYOUT (Manual request by Merchant)
+  // ──────────────────────────────────────────────
+
+  async requestPayout(merchantId: string, dto: RequestPayoutDto) {
+    this.logger.log(
+      `Payout requested by merchant ${merchantId} for amount ${dto.amount}`,
+    );
+
+    const merchantProfile = await this.prisma.merchantProfile.findUnique({
+      where: { id: merchantId },
+    });
+
+    if (!merchantProfile) {
+      throw new NotFoundException("Merchant profile not found");
+    }
+
+    if (!merchantProfile.bankAccountNo || !merchantProfile.bankCode) {
+      throw new BadRequestException(
+        "Please set your bank details in settings before requesting a payout.",
+      );
+    }
+
+    // Create the payout request in the database
+    const payoutRequest = await this.prisma.payoutRequest.create({
+      data: {
+        merchantId,
+        amountKobo: dto.amount,
+        status: "PENDING",
+        bankName: merchantProfile.bankCode, // Store bank code or name based on your logic
+        accountNumber: merchantProfile.bankAccountNo,
+        accountName: merchantProfile.bankAccountName,
+      },
+    });
+
+    return {
+      message: "Payout request received and queued for processing",
+      amountRequested: dto.amount,
+      status: "QUEUED",
+      requestId: payoutRequest.id,
+    };
   }
 }

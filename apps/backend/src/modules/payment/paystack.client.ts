@@ -31,6 +31,13 @@ export interface PaystackResolveResponse {
   bank_id: number;
 }
 
+export interface PaystackBank {
+  name: string;
+  code: string;
+  active: boolean;
+  type: string;
+}
+
 @Injectable()
 export class PaystackClient {
   private readonly logger = new Logger(PaystackClient.name);
@@ -198,5 +205,25 @@ export class PaystackClient {
     }
 
     return json.data as PaystackResolveResponse;
+  }
+
+  // ──────────────────────────────────────────────
+  //  GET BANKS
+  // ──────────────────────────────────────────────
+
+  async getBanks(): Promise<PaystackBank[]> {
+    const response = await fetch(`${this.baseUrl}/bank?currency=NGN`, {
+      method: "GET",
+      headers: this.headers,
+    });
+
+    const json = await response.json();
+
+    if (!json.status) {
+      this.logger.error(`Paystack get banks failed: ${json.message}`, json);
+      throw new Error(`Failed to fetch banks: ${json.message}`);
+    }
+
+    return json.data as PaystackBank[];
   }
 }

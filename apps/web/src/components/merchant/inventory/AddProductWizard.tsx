@@ -19,6 +19,7 @@ export type ProductDraft = {
   deliveryTime: string;
   deliveryZones: string[];
   pickupAvailable: boolean;
+  warehouseLocation: string;
 };
 
 const INITIAL_DRAFT: ProductDraft = {
@@ -32,6 +33,7 @@ const INITIAL_DRAFT: ProductDraft = {
   deliveryTime: "Same Day",
   deliveryZones: [],
   pickupAvailable: true,
+  warehouseLocation: "",
 };
 
 export function AddProductWizard() {
@@ -52,6 +54,7 @@ export function AddProductWizard() {
         unit: draft.unit,
         description: draft.description,
         minOrderQuantity: draft.minOrderQuantity,
+        warehouseLocation: draft.warehouseLocation || undefined,
         // other fields like initial stock not in createDto natively, but let's pass what's valid
       });
       return result;
@@ -283,6 +286,21 @@ export function AddProductWizard() {
                     }
                     className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
                     placeholder="e.g. 7500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                    Warehouse Location (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={draft.warehouseLocation}
+                    onChange={(e) =>
+                      updateDraft({ warehouseLocation: e.target.value })
+                    }
+                    className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    placeholder="e.g. Alaba Zone B, Row 4"
                   />
                 </div>
 

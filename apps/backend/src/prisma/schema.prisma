@@ -66,6 +66,7 @@ model MerchantProfile {
   rfqs               Rfq[]
   sharedQuotes       SharedQuote[]
   reorderReminders   ReorderReminder[]
+  payoutRequests     PayoutRequest[]
 
   @@map("merchant_profiles")
 }
@@ -160,6 +161,24 @@ model Payment {
   @@map("payments")
 }
 
+model PayoutRequest {
+  id              String              @id @default(uuid()) @db.Uuid
+  merchantId      String              @map("merchant_id") @db.Uuid
+  amountKobo      BigInt              @map("amount_kobo")
+  status          PayoutRequestStatus @default(PENDING)
+  bankName        String?             @map("bank_name")
+  accountNumber   String?             @map("account_number")
+  accountName     String?             @map("account_name")
+  processedAt     DateTime?           @map("processed_at")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @default(now()) @updatedAt @map("updated_at")
+  merchantProfile MerchantProfile     @relation(fields: [merchantId], references: [id])
+
+  @@index([merchantId])
+  @@index([status])
+  @@map("payout_requests")
+}
+
 model ProductStockCache {
   id        String   @id @default(uuid()) @db.Uuid
   productId String   @unique @map("product_id") @db.Uuid
@@ -179,6 +198,7 @@ model Product {
   categoryTag       String             @map("category_tag")
   minOrderQuantity  Int                @default(1) @map("min_order_quantity")
   isActive          Boolean            @default(true) @map("is_active")
+  warehouseLocation String?            @map("warehouse_location")
   createdAt         DateTime           @default(now()) @map("created_at")
   updatedAt         DateTime           @default(now()) @updatedAt @map("updated_at")
   deletedAt         DateTime?          @map("deleted_at")
@@ -260,6 +280,7 @@ model User {
   passwordHash      String             @map("password_hash")
   role              UserRole
   emailVerified     Boolean            @default(false) @map("email_verified")
+  phoneVerified     Boolean            @default(false) @map("phone_verified")
   createdAt         DateTime           @default(now()) @map("created_at")
   updatedAt         DateTime           @default(now()) @updatedAt @map("updated_at")
   deletedAt         DateTime?          @map("deleted_at")
@@ -319,6 +340,14 @@ enum PaymentStatus {
   SUCCESS
   FAILED
   REFUNDED
+}
+
+enum PayoutRequestStatus {
+  PENDING
+  PROCESSING
+  PROCESSED
+  FAILED
+  REJECTED
 }
 
 enum QuoteStatus {
