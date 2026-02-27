@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/providers/auth-provider";
+import { authApi } from "@/lib/api/auth.api";
 import { getDisplayName } from "@hardware-os/shared";
 
 type Tab = "General" | "Documents" | "Billing";
@@ -11,6 +12,21 @@ export default function BuyerProfilePage() {
 
   const [activeTab, setActiveTab] = useState<Tab>("General");
   const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
+  const [firstName, setFirstName] = useState(user?.firstName || "");
+  const [middleName, setMiddleName] = useState(user?.middleName || "");
+  const [lastName, setLastName] = useState(user?.lastName || "");
+  const [phone, setPhone] = useState(user?.phone || "");
+
+  useEffect(() => {
+    if (user) {
+      setFirstName(user.firstName || "");
+      setMiddleName(user.middleName || "");
+      setLastName(user.lastName || "");
+      setPhone(user.phone || "");
+    }
+  }, [user]);
 
   function handleTabSelect(tab: Tab) {
     setActiveTab(tab);
@@ -19,12 +35,12 @@ export default function BuyerProfilePage() {
   async function handleSaveChanges() {
     if (isSaving) return;
     setIsSaving(true);
+    setSaveMessage(null);
     try {
-      // TODO: wire to profile update API when endpoint is available
-      // e.g. await profileApi.updateProfile({ fullName, phone, deliveryAddress });
-      await new Promise((res) => setTimeout(res, 800)); // placeholder
-    } catch {
-      // TODO: surface error to user via toast
+      await authApi.updateProfile({ firstName, middleName, lastName, phone });
+      setSaveMessage("Profile updated successfully.");
+    } catch (err: any) {
+      setSaveMessage(err?.message || "Failed to save changes.");
     } finally {
       setIsSaving(false);
     }
@@ -74,6 +90,19 @@ export default function BuyerProfilePage() {
         </div>
       </header>
 
+      {/* Save Feedback */}
+      {saveMessage && (
+        <div
+          className={`mx-4 md:mx-8 mt-4 p-4 border text-sm font-bold uppercase tracking-wide ${
+            saveMessage.includes("success")
+              ? "bg-green-50 border-green-200 text-green-700"
+              : "bg-red-50 border-red-200 text-red-700"
+          }`}
+        >
+          {saveMessage}
+        </div>
+      )}
+
       {/* Main Content */}
       <main className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto w-full">
         {activeTab === "General" && (
@@ -103,7 +132,8 @@ export default function BuyerProfilePage() {
                       <input
                         id="firstName"
                         type="text"
-                        defaultValue={user?.firstName || ""}
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
                         placeholder="John"
                         className="w-full h-12 px-4 text-sm rounded-none border border-slate-300 focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-slate-300"
                       />
@@ -118,7 +148,8 @@ export default function BuyerProfilePage() {
                       <input
                         id="middleName"
                         type="text"
-                        defaultValue={user?.middleName || ""}
+                        value={middleName}
+                        onChange={(e) => setMiddleName(e.target.value)}
                         placeholder="Quincy"
                         className="w-full h-12 px-4 text-sm rounded-none border border-slate-300 focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-slate-300"
                       />
@@ -133,7 +164,8 @@ export default function BuyerProfilePage() {
                       <input
                         id="lastName"
                         type="text"
-                        defaultValue={user?.lastName || ""}
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
                         placeholder="Doe"
                         className="w-full h-12 px-4 text-sm rounded-none border border-slate-300 focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-slate-300"
                       />

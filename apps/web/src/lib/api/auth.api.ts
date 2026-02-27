@@ -60,7 +60,7 @@ export const authApi = {
     }),
 
   updateProfile: (dto: any) =>
-    apiClient.post<AuthResponse>("/auth/profile", dto),
+    apiClient.patch<AuthResponse>("/auth/profile", dto),
 
   changePassword: (dto: any) =>
     apiClient.post<{ message: string }>("/auth/change-password", dto),

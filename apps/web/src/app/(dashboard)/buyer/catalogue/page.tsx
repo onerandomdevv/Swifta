@@ -9,11 +9,14 @@ import { CatalogueSkeleton } from "@/components/buyer/catalogue/catalogue-skelet
 
 const CATEGORIES = [
   { label: "All Materials", tag: "All" },
-  { label: "Cement", tag: "CEMENT" },
-  { label: "Steel & Iron", tag: "STEEL" },
-  { label: "Roofing", tag: "ROOFING" },
+  { label: "Building Materials", tag: "BUILDING_MATERIALS" },
+  { label: "Metal & Steel", tag: "METAL_STEEL" },
   { label: "Plumbing", tag: "PLUMBING" },
   { label: "Electrical", tag: "ELECTRICAL" },
+  { label: "Power Tools", tag: "POWER_TOOLS" },
+  { label: "Safety Gear", tag: "SAFETY_GEAR" },
+  { label: "Heavy Machinery", tag: "HEAVY_MACHINERY" },
+  { label: "Painting", tag: "PAINTING" },
 ];
 
 export default function BuyerCataloguePage() {
