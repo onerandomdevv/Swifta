@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/providers/auth-provider";
 import { authApi } from "@/lib/api/auth.api";
 import { getDisplayName } from "@hardware-os/shared";
