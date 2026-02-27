@@ -138,27 +138,6 @@ export function AccountDetailsStep({
           </div>
         )}
 
-        {/* Company / Project Name — Buyer only (optional) */}
-        {!isMerchant && (
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1.5">
-              Company / Project Name{" "}
-              <span className="text-slate-400 font-normal">(optional)</span>
-            </label>
-            <div className="relative">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
-                corporate_fare
-              </span>
-              <input
-                className="w-full pl-10 pr-4 py-3 bg-[#f6f6f8] border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm"
-                placeholder="Lagos Build Ltd"
-                type="text"
-                {...register("businessName")}
-              />
-            </div>
-          </div>
-        )}
-
         {/* Phone */}
         <div>
           <label className="block text-sm font-bold text-slate-700 mb-1.5">
@@ -274,7 +253,8 @@ function PasswordField({ errors, register }: { errors: any; register: any }) {
           type="button"
           onClick={() => setShow(!show)}
           className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-          tabIndex={-1}
+          aria-label={show ? "Hide password" : "Show password"}
+          aria-pressed={show}
         >
           <span className="material-symbols-outlined text-xl">
             {show ? "visibility_off" : "visibility"}

@@ -36,6 +36,7 @@ interface AuthContextType {
   internalLogin: (email: string, password: string) => Promise<void>;
   register: (dto: RegisterDto) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -87,6 +88,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(response.user);
   };
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const response = await authApi.me();
+      setUser(response.user);
+    } catch (e) {
+      // silently fail — user stays as-is
+    }
+  }, []);
+
   const logoutFn = useCallback(async () => {
     try {
       await authApi.logout();
@@ -134,6 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         internalLogin,
         register,
         logout: logoutFn,
+        refreshUser,
       }}
     >
       {children}

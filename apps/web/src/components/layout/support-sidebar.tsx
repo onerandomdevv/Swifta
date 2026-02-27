@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Logo } from "@/components/ui/logo";
 
 export function SupportSidebar() {
   const pathname = usePathname();
@@ -37,12 +38,7 @@ export function SupportSidebar() {
       >
         <div className="p-6">
           <div className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-md bg-blue-500 text-white flex items-center justify-center font-black text-xl">
-              S
-            </div>
-            <span className="text-xl font-black tracking-tighter">
-              HARDWARE<span className="text-blue-400">OS</span>
-            </span>
+            <Logo variant="dark" size="md" />
           </div>
           <span className="mt-2 block text-xs font-black uppercase text-blue-400 tracking-widest">
             SUPPORT PORTAL

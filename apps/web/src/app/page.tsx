@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { Logo } from "@/components/ui/logo";
 
 const SLIDE_INTERVAL = 4000;
 
@@ -32,12 +33,7 @@ export default function LandingPage() {
       <header className="fixed top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-2xl">
-              settings_input_component
-            </span>
-            <span className="text-lg font-black tracking-tight text-slate-900 uppercase">
-              Hardware OS
-            </span>
+            <Logo variant="light" size="md" />
           </Link>
           <nav className="hidden md:flex items-center gap-8">
             <a
@@ -62,7 +58,7 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/register"
-              className="bg-primary hover:bg-primary/90 text-white text-sm font-bold px-5 py-2.5 rounded-lg transition-all shadow-md shadow-primary/20"
+              className="bg-primary hover:bg-primary-dark text-white text-sm font-bold px-5 py-2.5 rounded-lg transition-all shadow-md shadow-primary/20"
             >
               Get Started
             </Link>
@@ -71,7 +67,7 @@ export default function LandingPage() {
       </header>
 
       {/* ─── HERO SECTION WITH SLIDESHOW ─── */}
-      <section className="relative min-h-screen flex items-center overflow-hidden bg-[#101622]">
+      <section className="relative min-h-screen flex items-center overflow-hidden bg-deep-blue">
         {/* Slideshow background */}
         <div className="absolute inset-0 z-0">
           {slides.map((slide, index) => (
@@ -87,7 +83,7 @@ export default function LandingPage() {
             </div>
           ))}
           {/* Overlay */}
-          <div className="absolute inset-0 z-20 bg-[#101622]/65" />
+          <div className="absolute inset-0 z-20 bg-deep-blue/65" />
         </div>
 
         {/* Hero Content */}
@@ -117,7 +113,7 @@ export default function LandingPage() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
               <Link
                 href="/register"
-                className="bg-primary hover:bg-primary/90 text-white font-bold h-14 px-8 rounded-lg flex items-center justify-center gap-2 text-base shadow-xl shadow-primary/30 transition-all hover:scale-[1.02]"
+                className="bg-primary hover:bg-primary-dark text-white font-bold h-14 px-8 rounded-lg flex items-center justify-center gap-2 text-base shadow-xl shadow-primary/30 transition-all hover:scale-[1.02]"
               >
                 Start Buying
                 <span className="material-symbols-outlined">arrow_forward</span>
@@ -152,7 +148,7 @@ export default function LandingPage() {
             <p className="text-primary font-bold text-xs uppercase tracking-widest mb-3">
               The Process
             </p>
-            <h2 className="text-4xl font-black text-slate-900 tracking-tight">
+            <h2 className="text-4xl font-black text-deep-blue tracking-tight">
               How It Works
             </h2>
             <p className="text-slate-500 mt-4 max-w-xl mx-auto font-medium">
@@ -195,7 +191,7 @@ export default function LandingPage() {
                     {item.step}
                   </span>
                 </div>
-                <h3 className="text-lg font-black text-slate-900 mb-2">
+                <h3 className="text-lg font-black text-deep-blue mb-2">
                   {item.title}
                 </h3>
                 <p className="text-slate-500 font-medium leading-relaxed text-sm">
@@ -207,15 +203,15 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── WHY HARDWARE OS ─── */}
+      {/* ─── WHY SWIFTTRADE ─── */}
       <section id="why" className="py-32 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <p className="text-primary font-bold text-xs uppercase tracking-widest mb-3">
               Platform
             </p>
-            <h2 className="text-4xl font-black text-slate-900 tracking-tight">
-              Why HARDWARE OS?
+            <h2 className="text-4xl font-black text-deep-blue tracking-tight">
+              Why SwiftTrade?
             </h2>
             <p className="text-slate-500 mt-4 max-w-xl mx-auto font-medium">
               Built specifically for the unique challenges of the Nigerian
@@ -250,7 +246,7 @@ export default function LandingPage() {
                     {feat.icon}
                   </span>
                 </div>
-                <h3 className="text-lg font-black text-slate-900 mb-2">
+                <h3 className="text-lg font-black text-deep-blue mb-2">
                   {feat.title}
                 </h3>
                 <p className="text-slate-500 font-medium leading-relaxed text-sm">
@@ -263,19 +259,18 @@ export default function LandingPage() {
       </section>
 
       {/* ─── CTA SECTION ─── */}
-      <section className="py-20 bg-[#101622]">
+      <section className="py-20 bg-deep-blue">
         <div className="max-w-3xl mx-auto px-6 text-center">
           <h2 className="text-4xl font-black text-white mb-4 tracking-tight">
             Ready to modernize your procurement?
           </h2>
           <p className="text-white/60 font-medium mb-8">
-            Join hundreds of Nigerian businesses trading securely on the premier
-            hardware operating system.
+            Join hundreds of Nigerian businesses trading securely on SwiftTrade.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/register"
-              className="bg-primary hover:bg-primary/90 text-white font-bold h-14 px-10 rounded-lg flex items-center gap-2 transition-all shadow-xl shadow-primary/30"
+              className="bg-primary hover:bg-primary-dark text-white font-bold h-14 px-10 rounded-lg flex items-center gap-2 transition-all shadow-xl shadow-primary/30"
             >
               Create Free Account
               <span className="material-symbols-outlined">arrow_forward</span>
@@ -293,16 +288,9 @@ export default function LandingPage() {
       {/* ─── FOOTER ─── */}
       <footer className="py-8 border-t border-slate-100 bg-white">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">
-              settings_input_component
-            </span>
-            <span className="font-black text-slate-900 uppercase tracking-tight">
-              Hardware OS
-            </span>
-          </div>
+          <Logo variant="light" size="sm" />
           <p className="text-xs text-slate-400 font-medium">
-            © 2025 Hardware OS Technologies. Built for Nigeria.
+            &copy; {new Date().getFullYear()} SwiftTrade Technologies. Built for Nigeria.
           </p>
           <div className="flex gap-6 text-xs font-bold text-slate-400">
             <a href="#" className="hover:text-primary transition-colors">

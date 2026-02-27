@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
+import { Logo } from "@/components/ui/logo";
 
 export function BuyerSidebar() {
   const pathname = usePathname();
@@ -18,9 +19,7 @@ export function BuyerSidebar() {
   return (
     <aside className="hidden lg:flex w-[240px] flex-col border-r border-slate-200 bg-white h-screen sticky top-0">
       <div className="p-6">
-        <h1 className="text-xl font-bold tracking-tight text-primary">
-          Lagos Wholesale Hub
-        </h1>
+        <Logo variant="light" size="md" />
       </div>
       <nav className="flex-1 px-4 space-y-1 flex flex-col">
         {navItems.map((item) => {
@@ -40,7 +39,7 @@ export function BuyerSidebar() {
             </Link>
           );
         })}
-        
+
         <div className="mt-auto pb-6 space-y-1">
           <Link
             href="/buyer/profile"
@@ -53,7 +52,7 @@ export function BuyerSidebar() {
             <span className="material-symbols-outlined">account_circle</span>
             <span>Profile</span>
           </Link>
-          
+
           <button
             onClick={() => logout()}
             className="w-full flex items-center justify-start gap-3 px-4 py-3 text-red-600 hover:bg-red-50 hover:text-red-700 rounded transition-colors font-medium border-l-4 border-transparent"
@@ -66,4 +65,3 @@ export function BuyerSidebar() {
     </aside>
   );
 }
-

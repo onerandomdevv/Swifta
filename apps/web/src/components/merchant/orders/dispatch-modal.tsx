@@ -114,7 +114,7 @@ export function DispatchModal({ order, onClose }: DispatchModalProps) {
           {/* Footer */}
           <div className="bg-slate-100 dark:bg-slate-800 p-4 border-t border-slate-200 dark:border-slate-700">
             <p className="text-[9px] text-center text-slate-400 uppercase tracking-widest font-bold">
-              Hardware OS — Industrial Logistics Layer
+              SwiftTrade — Industrial Logistics Layer
             </p>
           </div>
         </div>

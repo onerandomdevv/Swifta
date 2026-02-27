@@ -11,9 +11,15 @@ import { authApi } from "@/lib/api/auth.api";
 import type { MerchantProfile } from "@hardware-os/shared";
 
 export default function MerchantVerificationPage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [profile, setProfile] = useState<MerchantProfile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Step 1 state: email OTP verification
+  const [otpSent, setOtpSent] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [emailOtp, setEmailOtp] = useState("");
+  const [verifyingEmail, setVerifyingEmail] = useState(false);
 
   // Step 2 state
   const [rcNumber, setRcNumber] = useState("");
@@ -51,7 +57,7 @@ export default function MerchantVerificationPage() {
 
   // Compute steps
   const step1Complete = user?.emailVerified === true;
-  const step2Complete = !!(profile?.cacNumber && profile?.cacDocumentUrl);
+  const step2Complete = !!profile?.cacNumber;
   const step3Complete = step2Complete && step1Complete; // simplified for V1
   const step4Complete = !!(profile?.bankAccountNo && profile?.bankAccountName);
 
@@ -63,6 +69,43 @@ export default function MerchantVerificationPage() {
   ].filter(Boolean).length;
   const progressPercent = (completedSteps / 4) * 100;
 
+  // Step 1: Send email OTP
+  const handleSendOtp = async () => {
+    if (!user?.email) return;
+    setSendingOtp(true);
+    setError(null);
+    try {
+      await authApi.resendVerification({ email: user.email });
+      setOtpSent(true);
+      setSuccess("Verification code sent to " + user.email);
+    } catch (err: any) {
+      setError(
+        err?.message || err?.error || "Failed to send verification code",
+      );
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  // Step 1: Verify email OTP
+  const handleVerifyEmail = async () => {
+    if (!user?.email || emailOtp.length !== 6) return;
+    setVerifyingEmail(true);
+    setError(null);
+    try {
+      await authApi.verifyEmail({ email: user.email, code: emailOtp });
+      setSuccess("Email verified successfully! Steps unlocked.");
+      // Refresh user data so emailVerified flips to true
+      await refreshUser();
+    } catch (err: any) {
+      setError(
+        err?.message || err?.error || "Invalid or expired verification code",
+      );
+    } finally {
+      setVerifyingEmail(false);
+    }
+  };
+
   // Step 2: Submit CAC
   const handleSubmitCac = async () => {
     if (!rcNumber.trim()) return;
@@ -70,19 +113,35 @@ export default function MerchantVerificationPage() {
     setError(null);
     setSuccess(null);
     try {
-      let docUrl = profile?.cacDocumentUrl;
+      let docUrl: string | undefined = profile?.cacDocumentUrl ?? undefined;
       if (cacFile) {
-        const uploadResult = await uploadDocument(cacFile);
-        docUrl = uploadResult.url;
+        try {
+          const uploadResult = await uploadDocument(cacFile);
+          docUrl = uploadResult.url;
+        } catch (uploadErr: any) {
+          console.warn(
+            "File upload failed (Cloudinary may not be configured):",
+            uploadErr,
+          );
+          // Continue without the document — RC number is the critical field
+        }
       }
-      const updated = await updateProfile({
-        cacNumber: rcNumber,
-        cacDocumentUrl: docUrl,
-      });
+      const payload: Record<string, any> = { cacNumber: rcNumber };
+      if (docUrl) payload.cacDocumentUrl = docUrl;
+      const updated = await updateProfile(payload);
       setProfile(updated);
-      setSuccess("Business registration submitted for review.");
+      if (cacFile && !docUrl) {
+        setSuccess(
+          "RC number saved! Note: Document upload failed — you can re-upload later.",
+        );
+      } else {
+        setSuccess("Business registration submitted for review.");
+      }
     } catch (err: any) {
-      setError(err?.message || "Failed to submit business registration");
+      console.error("CAC submit error:", err);
+      setError(
+        err?.error || err?.message || "Failed to submit business registration",
+      );
     } finally {
       setSubmittingCac(false);
     }
@@ -97,7 +156,7 @@ export default function MerchantVerificationPage() {
       await authApi.resendVerification({ email: user.email });
       setEmailResent(true);
     } catch (err: any) {
-      setError(err?.message || "Failed to resend verification");
+      setError(err?.error || err?.message || "Failed to resend verification");
     } finally {
       setResendingEmail(false);
     }
@@ -118,7 +177,7 @@ export default function MerchantVerificationPage() {
       setProfile(updated);
       setSuccess("Bank account details saved successfully.");
     } catch (err: any) {
-      setError(err?.message || "Failed to save bank details");
+      setError(err?.error || err?.message || "Failed to save bank details");
     } finally {
       setSubmittingBank(false);
     }
@@ -211,7 +270,7 @@ export default function MerchantVerificationPage() {
             <div className="flex justify-between items-start mb-10">
               <div>
                 <p
-                  className={`text-[10px] font-black uppercase tracking-[0.2em] mb-2 ${step1Complete ? "text-emerald-600" : "text-slate-400"}`}
+                  className={`text-[10px] font-black uppercase tracking-[0.2em] mb-2 ${step1Complete ? "text-emerald-600" : "text-amber-600"}`}
                 >
                   Step 01 // {step1Complete ? "Completed" : "Pending"}
                 </p>
@@ -232,27 +291,108 @@ export default function MerchantVerificationPage() {
                 </span>
               )}
             </div>
-            <div className="mt-auto border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span
-                  className={`material-symbols-outlined ${step1Complete ? "text-emerald-600" : "text-slate-400"}`}
-                >
-                  {step1Complete ? "check_circle" : "pending"}
-                </span>
-                <div>
-                  <p className="text-xs font-bold text-slate-900 dark:text-white">
-                    {user?.email || "Email"}
-                  </p>
-                  <p className="text-[10px] text-slate-400 uppercase">
-                    Email Verification
-                  </p>
+            <div className="mt-auto space-y-4">
+              <div className="border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`material-symbols-outlined ${step1Complete ? "text-emerald-600" : "text-amber-500"}`}
+                  >
+                    {step1Complete ? "check_circle" : "pending"}
+                  </span>
+                  <div>
+                    <p className="text-xs font-bold text-slate-900 dark:text-white">
+                      {user?.email || "Email"}
+                    </p>
+                    <p className="text-[10px] text-slate-400 uppercase">
+                      Email Verification
+                    </p>
+                  </div>
                 </div>
+                <span
+                  className={`text-[10px] font-bold uppercase ${step1Complete ? "text-emerald-600" : "text-amber-600"}`}
+                >
+                  {step1Complete ? "Verified" : "Unverified"}
+                </span>
               </div>
-              <span
-                className={`text-[10px] font-bold uppercase ${step1Complete ? "text-emerald-600" : "text-amber-600"}`}
-              >
-                {step1Complete ? "Verified" : "Unverified"}
-              </span>
+
+              {/* Action: Full OTP verification flow */}
+              {!step1Complete && (
+                <div className="space-y-4">
+                  {!otpSent ? (
+                    <>
+                      <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-primary p-3 flex items-start gap-3">
+                        <span className="material-symbols-outlined text-primary text-sm mt-0.5">
+                          info
+                        </span>
+                        <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                          Click below to send a 6-digit verification code to
+                          your email address. You'll enter it here to verify.
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleSendOtp}
+                        disabled={sendingOtp}
+                        className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-3 font-black uppercase tracking-[0.15em] text-xs hover:bg-primary dark:hover:bg-primary dark:hover:text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        <span className="material-symbols-outlined text-sm">
+                          mail
+                        </span>
+                        {sendingOtp ? "Sending..." : "Send Verification Code"}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="bg-emerald-50 dark:bg-emerald-900/20 border-l-4 border-emerald-500 p-3 flex items-start gap-3">
+                        <span className="material-symbols-outlined text-emerald-600 text-sm mt-0.5">
+                          mark_email_read
+                        </span>
+                        <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                          A 6-digit code has been sent to{" "}
+                          <strong className="text-slate-900 dark:text-white">
+                            {user?.email}
+                          </strong>
+                          . Enter it below to verify your email.
+                        </p>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest">
+                          Enter 6-Digit Code
+                        </label>
+                        <input
+                          type="text"
+                          maxLength={6}
+                          value={emailOtp}
+                          onChange={(e) =>
+                            setEmailOtp(e.target.value.replace(/\D/g, ""))
+                          }
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-4 text-xl font-mono focus:ring-1 focus:ring-primary focus:border-primary outline-none tracking-[0.5em] text-center text-slate-900 dark:text-white"
+                          placeholder="000000"
+                        />
+                      </div>
+                      <button
+                        onClick={handleVerifyEmail}
+                        disabled={verifyingEmail || emailOtp.length !== 6}
+                        className="w-full bg-emerald-600 text-white py-3 font-black uppercase tracking-[0.15em] text-xs hover:bg-emerald-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        <span className="material-symbols-outlined text-sm">
+                          verified
+                        </span>
+                        {verifyingEmail ? "Verifying..." : "Verify Email"}
+                      </button>
+                      <button
+                        onClick={handleSendOtp}
+                        disabled={sendingOtp}
+                        className="w-full border border-slate-200 dark:border-slate-700 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <span className="material-symbols-outlined text-xs">
+                          refresh
+                        </span>
+                        {sendingOtp ? "Sending..." : "Resend Code"}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -620,7 +760,7 @@ export default function MerchantVerificationPage() {
         {/* Footer */}
         <footer className="mt-16 pt-8 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
-            Hardware OS Industrial Verification Engine
+            SwiftTrade Industrial Verification Engine
           </p>
           <div className="flex gap-8">
             <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest cursor-pointer hover:text-primary">

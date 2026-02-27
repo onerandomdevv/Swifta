@@ -15,8 +15,8 @@ export default withSentryConfig(
     // For all available options, see:
     // https://github.com/getsentry/sentry-webpack-plugin#options
     silent: true, // Suppresses all logs
-    org: process.env.SENTRY_ORG || "hardware-os",
-    project: process.env.SENTRY_PROJECT || "hardware-os-frontend",
+    org: process.env.SENTRY_ORG || "swifttrade",
+    project: process.env.SENTRY_PROJECT || "swifttrade-frontend",
   },
   {
     // For all available options, see:

@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-
 interface SharedQuoteItem {
   productName: string;
   quantity: number;
@@ -58,9 +57,9 @@ export default function PublicQuotePage() {
   }, [slug]);
 
   const handleAccept = () => {
-    // TODO: Full flow — if logged in, create order from shared quote.
-    // For now, redirect to registration with redirect back to this page.
-    router.push(`/register?redirect=/quote/${slug}&role=BUYER`);
+    router.push(
+      `/register?redirect=/quote/${encodeURIComponent(slug)}&role=BUYER`,
+    );
   };
 
   if (loading) {
@@ -89,9 +88,9 @@ export default function PublicQuotePage() {
           </div>
           <a
             href="/"
-            className="inline-block bg-slate-900 text-white py-3 px-8 text-xs font-black uppercase tracking-[0.15em] hover:bg-slate-800 transition-colors"
+            className="inline-block bg-deep-blue text-white py-3 px-8 text-xs font-black uppercase tracking-[0.15em] hover:bg-mid-blue transition-colors"
           >
-            Visit Hardware OS
+            Visit SwiftTrade
           </a>
         </div>
       </div>
@@ -130,11 +129,11 @@ export default function PublicQuotePage() {
   return (
     <div className="min-h-screen bg-slate-100">
       {/* Top Bar */}
-      <div className="bg-slate-900 text-white py-3 px-6 flex items-center justify-between">
+      <div className="bg-deep-blue text-white py-3 px-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="bg-green-500 h-2 w-2 block animate-pulse"></span>
+          <span className="bg-primary h-2 w-2 block animate-pulse"></span>
           <span className="text-[10px] font-black uppercase tracking-[0.2em]">
-            Secured by Hardware OS
+            Secured by SwiftTrade
           </span>
         </div>
         <span className="text-[9px] font-mono text-slate-400 tracking-tighter">
@@ -145,7 +144,7 @@ export default function PublicQuotePage() {
       <div className="max-w-lg mx-auto p-6 space-y-6 animate-in fade-in duration-500">
         {/* Merchant Header */}
         <div className="bg-white border-2 border-slate-900 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.05)]">
-          <div className="bg-slate-900 p-4 flex items-center justify-between">
+          <div className="bg-deep-blue p-4 flex items-center justify-between">
             <h1 className="text-[11px] font-black text-white uppercase tracking-[0.2em]">
               Official Quote
             </h1>
@@ -164,7 +163,7 @@ export default function PublicQuotePage() {
                 {quote.merchantProfile?.businessName || "Hardware Merchant"}
               </h2>
               {isVerified && (
-                <p className="text-[10px] text-green-500 font-bold flex items-center gap-1">
+                <p className="text-[10px] text-primary font-bold flex items-center gap-1">
                   <span className="material-symbols-outlined text-xs">
                     verified
                   </span>{" "}
@@ -259,9 +258,9 @@ export default function PublicQuotePage() {
         )}
 
         {/* Expiry */}
-        <div className="bg-green-50 border border-green-200 p-4 flex items-center gap-3">
-          <div className="h-2 w-2 bg-green-500 animate-pulse"></div>
-          <p className="text-[10px] font-black text-green-700 uppercase tracking-widest">
+        <div className="bg-primary/10 border border-primary/30 p-4 flex items-center gap-3">
+          <div className="h-2 w-2 bg-primary animate-pulse"></div>
+          <p className="text-[10px] font-black text-deep-blue uppercase tracking-widest">
             Valid for {daysLeft} day{daysLeft !== 1 ? "s" : ""} — Expires{" "}
             {new Date(quote.expiresAt).toLocaleDateString()}
           </p>
@@ -270,7 +269,7 @@ export default function PublicQuotePage() {
         {/* CTA */}
         <button
           onClick={handleAccept}
-          className="w-full bg-green-500 text-white py-5 text-sm font-black uppercase tracking-[0.2em] hover:bg-green-600 transition-colors border border-slate-900 shadow-[6px_6px_0px_0px_rgba(0,0,0,0.08)] active:translate-y-0.5 active:shadow-none"
+          className="w-full bg-primary text-white py-5 text-sm font-black uppercase tracking-[0.2em] hover:bg-primary-dark transition-colors border border-deep-blue shadow-[6px_6px_0px_0px_rgba(0,0,0,0.08)] active:translate-y-0.5 active:shadow-none"
         >
           Accept & Pay Securely
         </button>
@@ -278,7 +277,7 @@ export default function PublicQuotePage() {
         {/* Footer */}
         <div className="text-center py-4">
           <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
-            Escrow-protected payment · Powered by Hardware OS
+            Escrow-protected payment &middot; Powered by SwiftTrade
           </p>
         </div>
       </div>

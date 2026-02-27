@@ -163,7 +163,7 @@ export default function MerchantOnboardingPage() {
             H
           </div>
           <span className="text-xl font-black text-navy-dark dark:text-white uppercase tracking-[0.3em]">
-            Hardware OS
+            SwiftTrade
           </span>
         </div>
         <h2 className="text-3xl font-black text-navy-dark dark:text-white uppercase tracking-tight">

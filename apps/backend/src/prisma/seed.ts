@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🌱 Starting Database Seeding Process...");
 
-  const LEGACY_ADMIN_EMAIL = "admin@hardware-os.com";
+  const LEGACY_ADMIN_EMAIL = "admin@swifttrade.ng";
   const BOOTSTRAP_ADMIN_EMAIL =
     process.env.ADMIN_BOOTSTRAP_EMAIL || LEGACY_ADMIN_EMAIL;
   const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_BOOTSTRAP_PASSWORD;
