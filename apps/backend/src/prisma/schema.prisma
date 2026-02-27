@@ -64,6 +64,8 @@ model MerchantProfile {
   products           Product[]
   quotes             Quote[]
   rfqs               Rfq[]
+  sharedQuotes       SharedQuote[]
+  reorderReminders   ReorderReminder[]
 
   @@map("merchant_profiles")
 }
@@ -113,11 +115,12 @@ model Order {
   idempotencyKey  String            @unique @map("idempotency_key")
   createdAt       DateTime          @default(now()) @map("created_at")
   updatedAt       DateTime          @default(now()) @updatedAt @map("updated_at")
-  orderEvents     OrderEvent[]
-  user            User              @relation(fields: [buyerId], references: [id], onDelete: Cascade)
-  merchantProfile MerchantProfile   @relation(fields: [merchantId], references: [id])
-  quote           Quote             @relation(fields: [quoteId], references: [id])
-  payments        Payment[]
+  orderEvents      OrderEvent[]
+  user             User              @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  merchantProfile  MerchantProfile   @relation(fields: [merchantId], references: [id])
+  quote            Quote             @relation(fields: [quoteId], references: [id])
+  payments         Payment[]
+  reorderReminder  ReorderReminder?
 
   @@index([buyerId])
   @@index([merchantId])
@@ -272,6 +275,7 @@ model User {
   orders            Order[]
   rfqs              Rfq[]
   staffAccessTokens StaffAccessToken[]
+  reorderReminders  ReorderReminder[]
 
   @@map("users")
 }
@@ -347,4 +351,78 @@ enum VerificationStatus {
   PENDING
   VERIFIED
   REJECTED
+}
+
+enum SharedQuoteStatus {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  EXPIRED
+}
+
+enum ReorderReminderStatus {
+  PENDING
+  SENT
+  DISMISSED
+  REORDERED
+}
+
+model SharedQuote {
+  id              String            @id @default(uuid()) @db.Uuid
+  merchantId      String            @map("merchant_id") @db.Uuid
+  slug            String            @unique
+  buyerName       String?           @map("buyer_name")
+  buyerPhone      String?           @map("buyer_phone")
+  buyerEmail      String?           @map("buyer_email")
+  items           Json
+  subtotalKobo    BigInt            @map("subtotal_kobo")
+  deliveryFeeKobo BigInt            @default(0) @map("delivery_fee_kobo")
+  totalKobo       BigInt            @map("total_kobo")
+  note            String?
+  status          SharedQuoteStatus @default(DRAFT)
+  expiresAt       DateTime          @map("expires_at")
+  viewedAt        DateTime?         @map("viewed_at")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @default(now()) @updatedAt @map("updated_at")
+  merchantProfile MerchantProfile   @relation(fields: [merchantId], references: [id])
+
+  @@index([merchantId])
+  @@index([status])
+  @@map("shared_quotes")
+}
+
+model ProductAssociation {
+  id               String   @id @default(uuid()) @db.Uuid
+  productCategoryA String   @map("product_category_a")
+  productCategoryB String   @map("product_category_b")
+  strength         Float
+  promptText       String   @map("prompt_text")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@unique([productCategoryA, productCategoryB])
+  @@map("product_associations")
+}
+
+model ReorderReminder {
+  id               String                @id @default(uuid()) @db.Uuid
+  orderId          String                @map("order_id") @db.Uuid
+  buyerId          String                @map("buyer_id") @db.Uuid
+  merchantId       String                @map("merchant_id") @db.Uuid
+  productCategory  String                @map("product_category")
+  productName      String                @map("product_name")
+  originalQuantity Int                   @map("original_quantity")
+  remindAt         DateTime              @map("remind_at")
+  status           ReorderReminderStatus @default(PENDING)
+  createdAt        DateTime              @default(now()) @map("created_at")
+  updatedAt        DateTime              @default(now()) @updatedAt @map("updated_at")
+  order            Order                 @relation(fields: [orderId], references: [id])
+  user             User                  @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  merchantProfile  MerchantProfile       @relation(fields: [merchantId], references: [id])
+
+  @@unique([orderId])
+  @@index([status, remindAt])
+  @@index([buyerId])
+  @@map("reorder_reminders")
 }

@@ -20,7 +20,9 @@ async function main() {
 
   // 1. Check for ANY existing super-admin to prevent duplicates in existing DBs
   const existingAdmin = await prisma.user.findFirst({
-    where: { role: UserRole.SUPER_ADMIN },
+    where: {
+      role: UserRole.SUPER_ADMIN,
+    },
   });
 
   if (existingAdmin) {
@@ -33,22 +35,32 @@ async function main() {
   console.log(`🔒 Hashing master password...`);
   const passwordHash = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, SALT_ROUNDS);
 
-  // 2. Check if a non-admin user already has the bootstrap email
-  const existingUser = await prisma.user.findUnique({
+  console.log(`🚀 Checking for existing user with bootstrap email...`);
+  const existingUser = await prisma.user.findFirst({
     where: { email: BOOTSTRAP_ADMIN_EMAIL },
   });
 
   if (existingUser) {
     if (existingUser.role !== UserRole.SUPER_ADMIN) {
       console.log(
-        `⚠️ User with email ${BOOTSTRAP_ADMIN_EMAIL} exists but is not a Super Admin. Promoting to Super Admin...`,
+        `Updating existing user ${BOOTSTRAP_ADMIN_EMAIL} to SUPER_ADMIN...`,
       );
       await prisma.user.update({
-        where: { email: BOOTSTRAP_ADMIN_EMAIL },
-        data: { role: UserRole.SUPER_ADMIN },
+        where: { id: existingUser.id },
+        data: {
+          role: UserRole.SUPER_ADMIN,
+          passwordHash: passwordHash,
+          adminProfile: {
+            upsert: {
+              create: { approvalStatus: "APPROVED" },
+              update: { approvalStatus: "APPROVED" },
+            },
+          },
+        },
       });
-      console.log(`✅ Existing user promoted to Super Admin.`);
-      console.log(`📧 Email: ${BOOTSTRAP_ADMIN_EMAIL}`);
+      console.log(`✨ Existing user upgraded to Super Admin successfully!`);
+    } else {
+      console.log(`✅ User ${BOOTSTRAP_ADMIN_EMAIL} is already a Super Admin.`);
     }
   } else {
     console.log(`🚀 Creating new Super Admin account...`);
@@ -68,14 +80,15 @@ async function main() {
       },
     });
     console.log(`✨ Super Admin created successfully!`);
-    console.log(`📧 Email: ${BOOTSTRAP_ADMIN_EMAIL}`);
-    console.log(
-      `🔑 Password: [HIDDEN] (Use ADMIN_BOOTSTRAP_PASSWORD environment variable)`,
-    );
-    console.log(
-      `Important: Remember to change your password immediately upon logging in.`,
-    );
   }
+
+  console.log(`📧 Email: ${BOOTSTRAP_ADMIN_EMAIL}`);
+  console.log(
+    `🔑 Password: [HIDDEN] (Use ADMIN_BOOTSTRAP_PASSWORD environment variable)`,
+  );
+  console.log(
+    `Important: Remember to change your password immediately upon logging in.`,
+  );
 }
 
 main()
