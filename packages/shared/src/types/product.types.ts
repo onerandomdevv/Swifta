@@ -8,6 +8,7 @@ export interface Product {
   imageUrl?: string;
   minOrderQuantity: number;
   isActive: boolean;
+  warehouseLocation?: string;
   createdAt: Date;
   updatedAt: Date;
   merchant?: any;
@@ -21,6 +22,9 @@ export interface CreateProductDto {
   categoryTag: string;
   imageUrl?: string;
   minOrderQuantity?: number;
+  warehouseLocation?: string;
 }
 
-export type UpdateProductDto = Partial<CreateProductDto>;
+export type UpdateProductDto = Partial<CreateProductDto> & {
+  isActive?: boolean;
+};

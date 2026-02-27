@@ -3,7 +3,12 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
-import { getProfile, updateProfile } from "@/lib/api/merchant.api";
+import {
+  getProfile,
+  updateProfile,
+  getBanks,
+  resolveBankAccount,
+} from "@/lib/api/merchant.api";
 import { authApi } from "@/lib/api/auth.api";
 import { MerchantProfile, getDisplayName } from "@hardware-os/shared";
 
@@ -38,6 +43,16 @@ export default function MerchantSettingsPage() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+
+  // Banking state
+  const [bankCode, setBankCode] = useState("");
+  const [bankAccountNo, setBankAccountNo] = useState("");
+  const [bankAccountName, setBankAccountName] = useState("");
+  const [banksList, setBanksList] = useState<{ name: string; code: string }[]>(
+    [],
+  );
+  const [resolvingAccount, setResolvingAccount] = useState(false);
+
   const [savingProfile, setSavingProfile] = useState(false);
 
   // Notifications tab state
@@ -62,28 +77,77 @@ export default function MerchantSettingsPage() {
         setMiddleName(user?.middleName || "");
         setLastName(user?.lastName || "");
         setEmail(user?.email || "");
+        setBankCode(p?.bankCode || "");
+        setBankAccountNo(p?.bankAccountNo || "");
+        setBankAccountName(p?.bankAccountName || "");
       })
       .catch(() => {})
       .finally(() => setLoading(false));
+
+    getBanks()
+      .then((fetchedBanks) => setBanksList(fetchedBanks || []))
+      .catch(() => {});
   }, [user]);
+
+  // Account Number Resolution Effect
+  useEffect(() => {
+    if (bankCode && bankAccountNo.length === 10) {
+      setResolvingAccount(true);
+      setBankAccountName("");
+      resolveBankAccount(bankAccountNo, bankCode)
+        .then((res) => setBankAccountName(res.accountName))
+        .catch(() => setBankAccountName("Resolution failed. Check details."))
+        .finally(() => setResolvingAccount(false));
+    }
+  }, [bankCode, bankAccountNo]);
 
   const handleSaveProfile = async () => {
     setSavingProfile(true);
     setFeedback(null);
     try {
-      const updated = await updateProfile({
-        businessName: profile?.businessName,
-      });
-      setProfile(updated);
+      const tasks: Promise<any>[] = [
+        authApi.updateProfile({
+          firstName,
+          middleName,
+          lastName,
+          phone,
+        }),
+      ];
+      if (profile) {
+        tasks.push(
+          updateProfile({
+            businessName: profile.businessName,
+            bankCode,
+            bankAccountNo,
+            bankAccountName,
+          }).then((updated) => setProfile(updated)),
+        );
+      }
+      await Promise.all(tasks);
       setFeedback({ type: "success", msg: "Profile updated successfully." });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err: any) {
       setFeedback({
         type: "error",
         msg: err?.message || "Failed to update profile",
       });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setSavingProfile(false);
     }
+  };
+
+  const handleSaveNotifPrefs = () => {
+    setFeedback({ type: "success", msg: "Notification preferences saved." });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleUnsupported = () => {
+    setFeedback({
+      type: "error",
+      msg: "This feature will be available in Phase 2.",
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleChangePassword = async () => {
@@ -301,6 +365,70 @@ export default function MerchantSettingsPage() {
 
             <hr className="border-slate-200 dark:border-slate-800" />
 
+            {/* Settlement Account Section */}
+            <section className="space-y-4">
+              <h2 className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-widest mb-4">
+                Settlement Account
+              </h2>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+                    Bank Name
+                  </label>
+                  <select
+                    value={bankCode}
+                    onChange={(e) => setBankCode(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-slate-900 dark:text-white"
+                  >
+                    <option value="">Select a Bank</option>
+                    {banksList.map((b) => (
+                      <option key={b.code} value={b.code}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+                    Account Number
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={10}
+                    value={bankAccountNo}
+                    onChange={(e) =>
+                      setBankAccountNo(e.target.value.replace(/\D/g, ""))
+                    }
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-slate-900 dark:text-white"
+                    placeholder="10 digit account number"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+                    Account Name (Auto-resolved)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      readOnly
+                      value={
+                        resolvingAccount ? "Resolving..." : bankAccountName
+                      }
+                      className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 p-3 text-sm outline-none text-slate-500 dark:text-slate-400 font-bold tracking-wide"
+                      placeholder="Name will appear here"
+                    />
+                    {resolvingAccount && (
+                      <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-slate-400">
+                        progress_activity
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <hr className="border-slate-200 dark:border-slate-800" />
+
             {/* Notification Preferences Preview */}
             <div className="space-y-4">
               <h2 className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-widest">
@@ -448,7 +576,10 @@ export default function MerchantSettingsPage() {
             </div>
 
             <div className="mt-8">
-              <button className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-black uppercase tracking-widest py-4 border border-slate-900 dark:border-white hover:bg-primary dark:hover:bg-primary dark:hover:text-white transition-colors">
+              <button
+                onClick={handleSaveNotifPrefs}
+                className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-black uppercase tracking-widest py-4 border border-slate-900 dark:border-white hover:bg-primary dark:hover:bg-primary dark:hover:text-white transition-colors"
+              >
                 Save Preferences
               </button>
               <p className="text-[10px] text-center text-slate-400 mt-4 uppercase tracking-tighter">
@@ -538,7 +669,10 @@ export default function MerchantSettingsPage() {
                     </div>
                   </div>
                 </div>
-                <button className="w-full border border-primary text-primary text-xs font-bold uppercase py-4 px-4 hover:bg-primary hover:text-white transition-colors">
+                <button
+                  onClick={handleUnsupported}
+                  className="w-full border border-primary text-primary text-xs font-bold uppercase py-4 px-4 hover:bg-primary hover:text-white transition-colors"
+                >
                   Set Up 2FA
                 </button>
               </div>
@@ -576,7 +710,10 @@ export default function MerchantSettingsPage() {
                   </button>
                 </div>
               </div>
-              <button className="w-full text-red-600 text-[10px] font-bold uppercase py-2 hover:underline">
+              <button
+                onClick={handleUnsupported}
+                className="w-full text-red-600 text-[10px] font-bold uppercase py-2 hover:underline"
+              >
                 Log out from all other devices
               </button>
             </section>

@@ -166,7 +166,13 @@ export default function MerchantInventory() {
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {filteredProducts.length > 0 ? (
                 filteredProducts.map((product) => (
-                  <InventoryRow key={product.id} product={product} />
+                  <InventoryRow
+                    key={product.id}
+                    product={product}
+                    onQuickEdit={(id) =>
+                      router.push(`/merchant/products/${id}/edit`)
+                    }
+                  />
                 ))
               ) : (
                 <tr>

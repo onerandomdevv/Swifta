@@ -13,6 +13,7 @@ export function OperatorSidebar() {
     { name: "Overview", href: "/operator", icon: "dashboard" },
     { name: "Merchants", href: "/operator/merchants", icon: "storefront" },
     { name: "Orders", href: "/operator/orders", icon: "local_shipping" },
+    { name: "Payouts", href: "/operator/payouts", icon: "payments" },
   ];
 
   return (

@@ -289,6 +289,24 @@ export class AdminService {
       });
     }
 
+    // Check 3: Pending Payout Requests
+    const pendingPayouts = await this.prisma.payoutRequest.count({
+      where: {
+        status: "PENDING",
+        createdAt: { lt: twentyFourHoursAgo },
+      },
+    });
+
+    if (pendingPayouts > 0) {
+      alerts.push({
+        id: "payout-delay",
+        type: "WARNING",
+        title: "Delayed Payout Processing",
+        message: `${pendingPayouts} payout requests have been waiting > 24 hours for processing.`,
+        actionLink: "/admin/payouts",
+      });
+    }
+
     return alerts;
   }
 
@@ -656,5 +674,61 @@ export class AdminService {
 
     this.logger.log(`Staff ${staffId} approved by admin ${adminId}`);
     return { success: true, message: "Staff member approved successfully." };
+  }
+
+  // ─── Payout Management ───
+
+  async getPendingPayouts() {
+    // Also including PROCESSING for visibility, or we can just fetch all non-PROCESSED
+    return this.prisma.payoutRequest.findMany({
+      where: {
+        status: {
+          in: ["PENDING", "PROCESSING"],
+        },
+      },
+      include: {
+        merchantProfile: {
+          select: {
+            businessName: true,
+            user: {
+              select: { email: true, phone: true },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: "asc" },
+    });
+  }
+
+  async processPayout(payoutId: string, adminUserId: string) {
+    const result = await this.prisma.payoutRequest.updateMany({
+      where: {
+        id: payoutId,
+        status: { not: "PROCESSED" },
+      },
+      data: {
+        status: "PROCESSED",
+        processedAt: new Date(),
+      },
+    });
+
+    if (result.count === 0) {
+      throw new BadRequestException(
+        "Payout request not found or already processed.",
+      );
+    }
+
+    this.logger.log(
+      `Payout request ${payoutId} manually marked as PROCESSED by admin ${adminUserId}`,
+    );
+
+    return {
+      success: true,
+      message: "Payout marked as processed successfully.",
+      payout: {
+        id: payoutId,
+        status: "PROCESSED",
+      },
+    };
   }
 }

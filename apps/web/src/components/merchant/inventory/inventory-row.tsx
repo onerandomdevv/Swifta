@@ -71,8 +71,8 @@ export function InventoryRow({ product, onQuickEdit }: InventoryRowProps) {
             location_on
           </span>
           <span className="text-sm text-slate-700 dark:text-slate-300">
-            {/* We don't have warehouse zones in the V1 model yet, defaulting to dynamic placeholder based on category */}
-            Zone {product.categoryTag?.slice(0, 2).toUpperCase() || "A"}
+            {product.warehouseLocation ||
+              `Zone ${product.categoryTag?.slice(0, 2).toUpperCase() || "A"}`}
           </span>
         </div>
       </td>

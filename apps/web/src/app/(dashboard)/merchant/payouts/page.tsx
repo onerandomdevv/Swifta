@@ -1,40 +1,26 @@
 "use client";
 
-import React from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatKobo } from "@/lib/utils";
 import { getOrders, getOrderSummary } from "@/lib/api/order.api";
-import { getProfile } from "@/lib/api/merchant.api";
+import {
+  getProfile,
+  updateProfile,
+  resolveBankAccount,
+  getBanks,
+  requestPayout,
+} from "@/lib/api/merchant.api";
 import { OrderStatus } from "@hardware-os/shared";
 import type { Order } from "@hardware-os/shared";
 
-// Common Nigerian bank codes → human-readable names
-const BANK_NAMES: Record<string, string> = {
-  "058": "Guaranty Trust Bank (GTBank)",
-  "044": "Access Bank",
-  "011": "First Bank of Nigeria",
-  "033": "United Bank for Africa (UBA)",
-  "057": "Zenith Bank",
-  "032": "Union Bank",
-  "035": "Wema Bank",
-  "082": "Keystone Bank",
-  "070": "Fidelity Bank",
-  "076": "Polaris Bank",
-  "214": "First City Monument Bank (FCMB)",
-  "221": "Stanbic IBTC Bank",
-  "050": "EcoBank",
-  "301": "Jaiz Bank",
-  "215": "Unity Bank",
-  "232": "Sterling Bank",
-  "100": "Suntrust Bank",
-  "068": "Standard Chartered Bank",
-  "104": "Parallex Bank",
-  "090110": "VFD Microfinance Bank",
-};
-
-function resolveBankName(code?: string | null): string {
+function resolveBankName(
+  code?: string | null,
+  banksList: { code: string; name: string }[] = [],
+): string {
   if (!code) return "Not configured";
-  return BANK_NAMES[code] || `Bank (${code})`;
+  const bank = banksList.find((b) => b.code === code);
+  return bank ? bank.name : `Bank (${code})`;
 }
 
 function maskAccountNo(acct?: string | null): string {
@@ -88,6 +74,54 @@ function getStatusBadge(status: string) {
 }
 
 export default function MerchantPayoutsPage() {
+  const queryClient = useQueryClient();
+  const [isEditingBank, setIsEditingBank] = useState(false);
+  const [formBankCode, setFormBankCode] = useState("");
+  const [bankSearchQuery, setBankSearchQuery] = useState("");
+  const [isBankDropdownOpen, setIsBankDropdownOpen] = useState(false);
+  const [formAccountNo, setFormAccountNo] = useState("");
+  const [formAccountName, setFormAccountName] = useState("");
+  const [isRequestingPayout, setIsRequestingPayout] = useState(false);
+  const [isResolving, setIsResolving] = useState(false);
+  const [resolveError, setResolveError] = useState("");
+  const bankDropdownRef = React.useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        bankDropdownRef.current &&
+        !bankDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsBankDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Auto-resolve account name when bank code and account number criteria are met
+  React.useEffect(() => {
+    if (formBankCode && formAccountNo.length === 10) {
+      setIsResolving(true);
+      setResolveError("");
+
+      resolveBankAccount(formAccountNo, formBankCode)
+        .then((data) => {
+          setFormAccountName(data.accountName);
+          setIsResolving(false);
+        })
+        .catch((err) => {
+          setResolveError("Account resolution failed. Please check details.");
+          setFormAccountName("");
+          setIsResolving(false);
+        });
+    } else {
+      setFormAccountName("");
+      setResolveError("");
+    }
+  }, [formBankCode, formAccountNo]);
+
   const {
     data: orders = [],
     isLoading,
@@ -107,12 +141,80 @@ export default function MerchantPayoutsPage() {
     queryFn: getProfile,
   });
 
+  const { data: banksList = [], isLoading: isLoadingBanks } = useQuery({
+    queryKey: ["merchant-banks"],
+    queryFn: getBanks,
+  });
+
+  // Filter banks based on search query
+  const filteredBanks = banksList.filter((bank) =>
+    bank.name.toLowerCase().includes(bankSearchQuery.toLowerCase()),
+  );
+
   const hasBankInfo = !!(profile as any)?.bankAccountNo;
-  const bankName = resolveBankName((profile as any)?.bankCode);
+  const bankName = resolveBankName((profile as any)?.bankCode, banksList);
   const accountNo = maskAccountNo((profile as any)?.bankAccountNo);
   const accountName = (profile as any)?.bankAccountName || "Not configured";
   const businessName = (profile as any)?.businessName || "Merchant";
   const isVerified = (profile as any)?.verification === "VERIFIED";
+
+  const updateBankMutation = useMutation({
+    mutationFn: updateProfile,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["merchant-profile"] });
+      setIsEditingBank(false);
+    },
+    onError: (err) => {
+      alert("Failed to update bank details. Please try again.");
+      console.error(err);
+    },
+  });
+
+  const handleUpdateBank = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formBankCode || !formAccountNo || !formAccountName) return;
+    updateBankMutation.mutate({
+      bankCode: formBankCode,
+      bankAccountNo: formAccountNo,
+      bankAccountName: formAccountName,
+    });
+  };
+
+  const handleEditClick = () => {
+    const currentCode = (profile as any)?.bankCode || "";
+    setFormBankCode(currentCode);
+    setBankSearchQuery(
+      currentCode && banksList
+        ? banksList.find((b) => b.code === currentCode)?.name || ""
+        : "",
+    );
+    setFormAccountNo((profile as any)?.bankAccountNo || "");
+    setFormAccountName((profile as any)?.bankAccountName || "");
+    setIsEditingBank(true);
+  };
+
+  const handleRequestPayout = () => {
+    if (!summary?.escrow || summary.escrow <= 0) {
+      alert("No escrow balance available for payout.");
+      return;
+    }
+    setIsRequestingPayout(true);
+
+    requestPayout({ amount: Number(summary.escrow) })
+      .then(() => {
+        alert(
+          "Payout request submitted! Funds will be transferred within 24 hours.",
+        );
+      })
+      .catch((err) => {
+        alert(
+          err?.message || "Failed to submit payout request. Please try again.",
+        );
+      })
+      .finally(() => {
+        setIsRequestingPayout(false);
+      });
+  };
 
   // All orders sorted by date (most recent first) for the ledger
   const ledgerOrders = [...orders].sort(
@@ -335,7 +437,7 @@ export default function MerchantPayoutsPage() {
               </div>
             </div>
 
-            {hasBankInfo ? (
+            {hasBankInfo && !isEditingBank ? (
               <div className="space-y-4">
                 <div>
                   <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest">
@@ -362,34 +464,135 @@ export default function MerchantPayoutsPage() {
                   </p>
                 </div>
               </div>
+            ) : isEditingBank ? (
+              <form onSubmit={handleUpdateBank} className="space-y-4 pt-2">
+                <div className="relative" ref={bankDropdownRef}>
+                  <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest block mb-1">
+                    Bank
+                  </label>
+                  <input
+                    type="text"
+                    value={bankSearchQuery}
+                    onChange={(e) => {
+                      setBankSearchQuery(e.target.value);
+                      setFormBankCode(""); // Reset code if they change the text
+                      setIsBankDropdownOpen(true);
+                    }}
+                    onFocus={() => setIsBankDropdownOpen(true)}
+                    placeholder={
+                      isLoadingBanks ? "Loading banks..." : "Search bank..."
+                    }
+                    className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-2 text-sm text-slate-900 dark:text-white"
+                    disabled={isLoadingBanks}
+                  />
+                  {isBankDropdownOpen && !isLoadingBanks && (
+                    <ul className="absolute z-10 w-full mt-1 max-h-48 overflow-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg">
+                      {filteredBanks.length > 0 ? (
+                        filteredBanks.map((bank) => (
+                          <li
+                            key={bank.code}
+                            onClick={() => {
+                              setFormBankCode(bank.code);
+                              setBankSearchQuery(bank.name);
+                              setIsBankDropdownOpen(false);
+                            }}
+                            className="p-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                          >
+                            {bank.name}
+                          </li>
+                        ))
+                      ) : (
+                        <li className="p-2 text-sm text-slate-500 italic">
+                          No banks found
+                        </li>
+                      )}
+                    </ul>
+                  )}
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest block mb-1">
+                    Account Number
+                  </label>
+                  <input
+                    type="text"
+                    value={formAccountNo}
+                    onChange={(e) => setFormAccountNo(e.target.value)}
+                    required
+                    maxLength={10}
+                    className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-2 text-sm text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest block mb-1">
+                    Account Name
+                  </label>
+                  <input
+                    type="text"
+                    value={formAccountName}
+                    readOnly
+                    placeholder={
+                      isResolving
+                        ? "Resolving name..."
+                        : "Auto-filled from bank"
+                    }
+                    className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-2 text-sm text-slate-900 dark:text-white disabled:opacity-50"
+                  />
+                  {resolveError && (
+                    <p className="text-[10px] text-red-500 mt-1 font-bold">
+                      {resolveError}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingBank(false)}
+                    className="flex-1 border border-slate-200 dark:border-slate-800 p-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={
+                      updateBankMutation.isPending ||
+                      isResolving ||
+                      !formAccountName
+                    }
+                    className="flex-1 bg-primary text-white p-2 text-xs font-bold uppercase tracking-widest hover:bg-primary/90 disabled:opacity-50"
+                  >
+                    Save
+                  </button>
+                </div>
+              </form>
             ) : (
               <div className="text-center py-4">
                 <span className="material-symbols-outlined text-3xl text-slate-300 mb-2 block">
                   account_balance
                 </span>
                 <p className="text-xs text-slate-500 mb-3">
-                  Add your bank details in Settings to receive payouts.
+                  Add your bank details here to receive payouts.
                 </p>
-                <a
-                  href="/merchant/settings"
+                <button
+                  type="button"
+                  onClick={handleEditClick}
                   className="inline-block bg-primary text-white text-xs font-bold uppercase tracking-widest px-6 py-2.5 hover:bg-primary/90 transition-colors"
                 >
-                  Go to Settings
-                </a>
+                  Add Bank Details
+                </button>
               </div>
             )}
 
-            {hasBankInfo && (
+            {hasBankInfo && !isEditingBank && (
               <div className="mt-8 border-t border-slate-100 dark:border-slate-800 pt-4 flex justify-between items-center">
-                <a
-                  href="/merchant/settings"
+                <button
+                  onClick={handleEditClick}
                   className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-sm">
                     settings
                   </span>{" "}
                   Update Account
-                </a>
+                </button>
                 <span className="text-[10px] font-bold text-slate-400">
                   {isVerified ? "VERIFIED" : "PENDING"}
                 </span>
@@ -407,8 +610,14 @@ export default function MerchantPayoutsPage() {
               via the OTP code. Funds are transferred to your settlement account
               within 24 hours.
             </p>
-            <button className="w-full bg-primary py-3 text-xs font-bold uppercase tracking-widest text-white hover:bg-primary/90 transition-colors">
-              Request Immediate Payout
+            <button
+              onClick={handleRequestPayout}
+              disabled={isRequestingPayout || !hasBankInfo}
+              className="w-full bg-primary py-3 text-xs font-bold uppercase tracking-widest text-white hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isRequestingPayout
+                ? "Requesting..."
+                : "Request Immediate Payout"}
             </button>
           </div>
 

@@ -36,6 +36,12 @@ export const authApi = {
   resendVerification: (dto: { email: string }) =>
     apiClient.post<{ message: string }>("/auth/resend-verification", dto),
 
+  sendPhoneOtp: (dto: { phone: string }) =>
+    apiClient.post<{ message: string }>("/auth/send-phone-otp", dto),
+
+  verifyPhoneOtp: (dto: { phone: string; code: string }) =>
+    apiClient.post<{ message: string }>("/auth/verify-phone-otp", dto),
+
   refresh: () => apiClient.post<TokenPair>("/auth/refresh"),
 
   logout: () => apiClient.post<void>("/auth/logout"),

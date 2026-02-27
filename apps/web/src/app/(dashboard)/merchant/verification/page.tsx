@@ -1,11 +1,14 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 import {
   getProfile,
   updateProfile,
   uploadDocument,
+  getBanks,
+  resolveBankAccount,
 } from "@/lib/api/merchant.api";
 import { authApi } from "@/lib/api/auth.api";
 import type { MerchantProfile } from "@hardware-os/shared";
@@ -30,17 +33,72 @@ export default function MerchantVerificationPage() {
   const [resendingEmail, setResendingEmail] = useState(false);
   const [emailResent, setEmailResent] = useState(false);
   const [phoneOtp, setPhoneOtp] = useState("");
+  const [phoneOtpSent, setPhoneOtpSent] = useState(false);
+  const [sendingPhoneOtp, setSendingPhoneOtp] = useState(false);
+  const [verifyingPhoneOtp, setVerifyingPhoneOtp] = useState(false);
 
   // Step 4 state
   const [bankAccountNo, setBankAccountNo] = useState("");
   const [bankAccountName, setBankAccountName] = useState("");
   const [bankCode, setBankCode] = useState("");
   const [submittingBank, setSubmittingBank] = useState(false);
+  const [bankSearchQuery, setBankSearchQuery] = useState("");
+  const [isBankDropdownOpen, setIsBankDropdownOpen] = useState(false);
+  const [isResolving, setIsResolving] = useState(false);
+  const [resolveError, setResolveError] = useState("");
+  const bankDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [phoneVerified, setPhoneVerified] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  const { data: banksList = [], isLoading: isLoadingBanks } = useQuery({
+    queryKey: ["merchant-banks"],
+    queryFn: getBanks,
+  });
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Close drop down
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        bankDropdownRef.current &&
+        !bankDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsBankDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // auto-resolve bank details
+  useEffect(() => {
+    if (bankCode && bankAccountNo.length === 10) {
+      setIsResolving(true);
+      setResolveError("");
+
+      resolveBankAccount(bankAccountNo, bankCode)
+        .then((data) => {
+          setBankAccountName(data.accountName);
+          setIsResolving(false);
+        })
+        .catch((err) => {
+          setResolveError("Account resolution failed. Please check details.");
+          setBankAccountName("");
+          setIsResolving(false);
+        });
+    } else {
+      setBankAccountName("");
+      setResolveError("");
+    }
+  }, [bankCode, bankAccountNo]);
+
+  const filteredBanks = banksList.filter((bank) =>
+    bank.name.toLowerCase().includes(bankSearchQuery.toLowerCase()),
+  );
 
   useEffect(() => {
     getProfile()
@@ -58,7 +116,7 @@ export default function MerchantVerificationPage() {
   // Compute steps
   const step1Complete = user?.emailVerified === true;
   const step2Complete = !!profile?.cacNumber;
-  const step3Complete = step2Complete && step1Complete; // simplified for V1
+  const step3Complete = step2Complete && step1Complete && phoneVerified;
   const step4Complete = !!(profile?.bankAccountNo && profile?.bankAccountName);
 
   const completedSteps = [
@@ -159,6 +217,42 @@ export default function MerchantVerificationPage() {
       setError(err?.error || err?.message || "Failed to resend verification");
     } finally {
       setResendingEmail(false);
+    }
+  };
+
+  const handleSendPhoneOtp = async () => {
+    if (!user?.phone) {
+      setError("No phone number associated with your account.");
+      return;
+    }
+    setSendingPhoneOtp(true);
+    setError(null);
+    try {
+      await authApi.sendPhoneOtp({ phone: user.phone });
+      setPhoneOtpSent(true);
+      setSuccess("Verification code sent to " + user.phone);
+    } catch (err: any) {
+      setError(err?.error || err?.message || "Failed to send SMS code");
+    } finally {
+      setSendingPhoneOtp(false);
+    }
+  };
+
+  const handleVerifyPhone = async () => {
+    if (!user?.phone || phoneOtp.length !== 6) return;
+    setVerifyingPhoneOtp(true);
+    setError(null);
+    try {
+      await authApi.verifyPhoneOtp({ phone: user.phone, code: phoneOtp });
+      setSuccess("Phone number verified successfully!");
+      setPhoneVerified(true);
+      await refreshUser();
+    } catch (err: any) {
+      setError(
+        err?.error || err?.message || "Invalid or expired verification code",
+      );
+    } finally {
+      setVerifyingPhoneOtp(false);
     }
   };
 
@@ -590,31 +684,85 @@ export default function MerchantVerificationPage() {
                     </>
                   )}
                 </div>
-                {/* Phone OTP */}
                 <div className="border border-slate-200 dark:border-slate-700 p-4">
                   <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">
                     Phone Verification
                   </p>
+                  <p className="text-sm font-medium text-slate-900 dark:text-white mb-3">
+                    {user?.phone}
+                  </p>
                   <div className="space-y-3">
-                    <label className="block text-[10px] font-bold uppercase text-slate-400">
-                      Enter 6-Digit OTP
-                    </label>
-                    <input
-                      type="text"
-                      maxLength={6}
-                      value={phoneOtp}
-                      onChange={(e) =>
-                        setPhoneOtp(e.target.value.replace(/\D/g, ""))
-                      }
-                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-4 text-xl font-mono focus:ring-1 focus:ring-primary focus:border-primary outline-none tracking-[0.5em] text-center text-slate-900 dark:text-white"
-                      placeholder="000000"
-                    />
-                    <button className="w-full bg-primary text-white text-xs font-bold uppercase py-3 hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
-                      Verify via SMS
-                      <span className="material-symbols-outlined text-sm">
-                        arrow_forward
-                      </span>
-                    </button>
+                    {!phoneOtpSent ? (
+                      <>
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-primary p-3 flex items-start gap-3 mb-3">
+                          <span className="material-symbols-outlined text-primary text-sm mt-0.5">
+                            info
+                          </span>
+                          <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                            A verification code will be sent to your phone
+                            number.
+                          </p>
+                        </div>
+                        <button
+                          onClick={handleSendPhoneOtp}
+                          disabled={sendingPhoneOtp}
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-900 dark:border-white text-slate-900 dark:text-white text-xs font-bold uppercase py-3 hover:bg-slate-900 dark:hover:bg-white hover:text-white dark:hover:text-slate-900 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                          <span className="material-symbols-outlined text-sm">
+                            sms
+                          </span>
+                          {sendingPhoneOtp ? "Sending..." : "Send SMS Code"}
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <div className="bg-emerald-50 dark:bg-emerald-900/20 border-l-4 border-emerald-500 p-3 flex items-start gap-3 mb-3">
+                          <span className="material-symbols-outlined text-emerald-600 text-sm mt-0.5">
+                            mark_email_read
+                          </span>
+                          <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                            An SMS code has been sent to your phone.
+                          </p>
+                        </div>
+                        <label className="block text-[10px] font-bold uppercase text-slate-400">
+                          Enter 6-Digit OTP
+                        </label>
+                        <input
+                          type="text"
+                          maxLength={6}
+                          value={phoneOtp}
+                          onChange={(e) =>
+                            setPhoneOtp(e.target.value.replace(/\D/g, ""))
+                          }
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-4 text-xl font-mono focus:ring-1 focus:ring-primary focus:border-primary outline-none tracking-[0.5em] text-center text-slate-900 dark:text-white"
+                          placeholder="000000"
+                        />
+                        <button
+                          onClick={handleVerifyPhone}
+                          disabled={phoneOtp.length !== 6 || verifyingPhoneOtp}
+                          className="w-full bg-primary text-white text-xs font-bold uppercase py-3 hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                          {verifyingPhoneOtp
+                            ? "Verifying..."
+                            : "Verify via SMS"}
+                          {!verifyingPhoneOtp && (
+                            <span className="material-symbols-outlined text-sm">
+                              arrow_forward
+                            </span>
+                          )}
+                        </button>
+                        <button
+                          onClick={handleSendPhoneOtp}
+                          disabled={sendingPhoneOtp}
+                          className="w-full border border-slate-200 dark:border-slate-700 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 mt-2"
+                        >
+                          <span className="material-symbols-outlined text-xs">
+                            refresh
+                          </span>
+                          {sendingPhoneOtp ? "Sending..." : "Resend Code"}
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -674,18 +822,49 @@ export default function MerchantVerificationPage() {
             </div>
 
             {step3Complete && !step4Complete ? (
-              <div className="space-y-6">
-                <div>
+              <div className="space-y-6 pt-2">
+                <div className="relative" ref={bankDropdownRef}>
                   <label className="text-[10px] font-black uppercase text-slate-500 mb-2 block tracking-widest">
-                    Bank Name / Code
+                    Bank
                   </label>
                   <input
                     type="text"
-                    value={bankCode}
-                    onChange={(e) => setBankCode(e.target.value)}
-                    className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-4 text-sm font-bold placeholder:text-slate-300 focus:ring-0 focus:border-primary text-slate-900 dark:text-white"
-                    placeholder="e.g. GTBank, Access Bank"
+                    value={bankSearchQuery}
+                    onChange={(e) => {
+                      setBankSearchQuery(e.target.value);
+                      setBankCode("");
+                      setIsBankDropdownOpen(true);
+                    }}
+                    onFocus={() => setIsBankDropdownOpen(true)}
+                    placeholder={
+                      isLoadingBanks ? "Loading banks..." : "Search bank..."
+                    }
+                    className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-4 text-sm font-bold text-slate-900 dark:text-white"
+                    disabled={isLoadingBanks}
                   />
+                  {isBankDropdownOpen && !isLoadingBanks && (
+                    <ul className="absolute z-10 w-full mt-1 max-h-48 overflow-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg">
+                      {filteredBanks.length > 0 ? (
+                        filteredBanks.map((bank) => (
+                          <li
+                            key={bank.code}
+                            onClick={() => {
+                              setBankCode(bank.code);
+                              setBankSearchQuery(bank.name);
+                              setIsBankDropdownOpen(false);
+                            }}
+                            className="p-4 text-sm font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer uppercase"
+                          >
+                            {bank.name}
+                          </li>
+                        ))
+                      ) : (
+                        <li className="p-4 text-sm text-slate-500 italic">
+                          No banks found
+                        </li>
+                      )}
+                    </ul>
+                  )}
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-slate-500 mb-2 block tracking-widest">
@@ -709,10 +888,19 @@ export default function MerchantVerificationPage() {
                   <input
                     type="text"
                     value={bankAccountName}
-                    onChange={(e) => setBankAccountName(e.target.value)}
-                    className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-4 text-sm font-bold placeholder:text-slate-300 focus:ring-0 focus:border-primary uppercase text-slate-900 dark:text-white"
-                    placeholder="Business account name"
+                    readOnly
+                    placeholder={
+                      isResolving
+                        ? "Resolving name..."
+                        : "Auto-filled from bank"
+                    }
+                    className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-4 text-sm font-bold uppercase text-slate-900 dark:text-white disabled:opacity-50"
                   />
+                  {resolveError && (
+                    <p className="text-[10px] text-red-500 mt-2 font-bold uppercase tracking-widest">
+                      {resolveError}
+                    </p>
+                  )}
                 </div>
                 <button
                   onClick={handleSubmitBank}

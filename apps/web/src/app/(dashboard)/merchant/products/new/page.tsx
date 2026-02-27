@@ -201,14 +201,14 @@ export default function NewProductPage() {
               }
               className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all text-slate-400 appearance-none bg-transparent"
             >
-              <option value="bag">Bag</option>
-              <option value="ton">Ton</option>
-              <option value="piece">Piece</option>
-              <option value="bundle">Bundle</option>
-              <option value="roll">Roll</option>
-              <option value="length">Length</option>
-              <option value="kg">Kilogram</option>
-              <option value="sqm">Square Meter</option>
+              <option value="BAGS">Bag</option>
+              <option value="TONNES">Ton</option>
+              <option value="PIECES">Piece</option>
+              <option value="BUNDLES">Bundle</option>
+              <option value="ROLLS">Roll</option>
+              <option value="LENGTHS">Length</option>
+              <option value="KG">Kilogram</option>
+              <option value="SQM">Square Meter</option>
             </select>
           </div>
 
@@ -223,14 +223,7 @@ export default function NewProductPage() {
               }
               className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all text-slate-400 appearance-none bg-transparent"
             >
-              <option>Building Materials</option>
-              <option>Metal & Steel</option>
-              <option>Power Tools</option>
-              <option>Heavy Machinery</option>
-              <option>Safety Gear</option>
-              <option>Plumbing</option>
-              <option>Electrical</option>
-              <option>Painting</option>
+    categoryTag: "BUILDING_MATERIALS",
             </select>
           </div>
         </div>
