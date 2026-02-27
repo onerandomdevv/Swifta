@@ -256,4 +256,43 @@ export class NotificationTriggerService {
       },
     );
   }
+
+  async triggerReorderReminder(
+    buyerId: string,
+    metadata: {
+      reminderId: string;
+      productName: string;
+      merchantName: string;
+      originalQuantity: number;
+      daysSinceOrder: number;
+    },
+  ) {
+    await this.addJob(
+      buyerId,
+      "REORDER_REMINDER",
+      "Time to Reorder",
+      `It's been ${metadata.daysSinceOrder} days since you ordered ${metadata.productName}. Need a restock?`,
+      { ...metadata },
+      [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+    );
+  }
+
+  async triggerMerchantReorderPrompt(
+    merchantId: string,
+    metadata: {
+      reminderId: string;
+      buyerName: string;
+      productName: string;
+      originalQuantity: number;
+      daysSinceOrder: number;
+    },
+  ) {
+    await this.addJob(
+      merchantId,
+      "MERCHANT_REORDER_PROMPT",
+      "Reorder Opportunity",
+      `${metadata.buyerName} might need a restock of ${metadata.productName}. Send a quote?`,
+      { ...metadata, isMerchantId: true },
+    );
+  }
 }
