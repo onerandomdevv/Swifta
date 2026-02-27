@@ -1,11 +1,11 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Job } from 'bullmq';
-import { Logger } from '@nestjs/common';
-import { NOTIFICATION_QUEUE } from '../../queue/queue.constants';
-import { PrismaService } from '../../prisma/prisma.service';
-import { EmailService } from './email.service';
-import { SmsService } from './sms.service';
-import { NotificationChannel } from '@hardware-os/shared';
+import { Processor, WorkerHost } from "@nestjs/bullmq";
+import { Job } from "bullmq";
+import { Logger } from "@nestjs/common";
+import { NOTIFICATION_QUEUE } from "../../queue/queue.constants";
+import { PrismaService } from "../../prisma/prisma.service";
+import { EmailService } from "../email/email.service";
+import { SmsService } from "./sms.service";
+import { NotificationChannel } from "@hardware-os/shared";
 
 @Processor(NOTIFICATION_QUEUE, {
   concurrency: 5,
@@ -64,13 +64,84 @@ export class NotificationProcessor extends WorkerHost {
           });
           this.logger.log(`In-app notification sent to ${targetUserId}`);
         } else if (channel === NotificationChannel.EMAIL) {
-          await this.emailService.sendEmail(user.email, title, body);
-          this.logger.log(`Email notification sent to ${user.email}`);
+          switch (type) {
+            case "WELCOME":
+              await this.emailService.sendWelcomeEmail(
+                user.email,
+                user.firstName,
+                user.role,
+              );
+              break;
+            case "EMAIL_VERIFICATION":
+              await this.emailService.sendVerificationOTP(
+                user.email,
+                metadata.otp,
+              );
+              break;
+            case "NEW_RFQ":
+              await this.emailService.sendNewRFQNotification(
+                user.email,
+                metadata.buyerName,
+                metadata.productName,
+                metadata.quantity,
+              );
+              break;
+            case "QUOTE_RECEIVED":
+              await this.emailService.sendQuoteSubmittedNotification(
+                user.email,
+                metadata.merchantName,
+                metadata.productName,
+                BigInt(metadata.totalPriceKobo),
+              );
+              break;
+            case "QUOTE_ACCEPTED":
+              await this.emailService.sendQuoteAcceptedNotification(
+                user.email,
+                metadata.buyerName,
+                metadata.orderId,
+                BigInt(metadata.amountKobo),
+              );
+              break;
+            case "PAYMENT_CONFIRMED":
+              await this.emailService.sendPaymentConfirmedNotification(
+                user.email,
+                metadata.reference,
+                BigInt(metadata.amountKobo),
+                !!metadata.isMerchantId,
+              );
+              break;
+            case "ORDER_DISPATCHED":
+              await this.emailService.sendOrderDispatchedNotification(
+                user.email,
+                metadata.reference,
+                metadata.otp,
+              );
+              break;
+            case "DELIVERY_CONFIRMED":
+              await this.emailService.sendDeliveryConfirmedNotification(
+                user.email,
+                metadata.reference,
+                BigInt(metadata.amountKobo),
+              );
+              break;
+            case "PASSWORD_RESET":
+              await this.emailService.sendPasswordResetEmail(
+                user.email,
+                metadata.resetToken,
+                metadata.frontendUrl,
+              );
+              break;
+            default:
+              await this.emailService.sendEmail(user.email, title, body);
+          }
+          this.logger.log(`Email notification (${type}) sent to ${user.email}`);
         } else if (channel === NotificationChannel.SMS && user.phone) {
           try {
             await this.smsService.sendSms(user.phone, body);
           } catch (smsError) {
-             this.logger.warn(`Failed to dispatch SMS, moving to next channel. Warning: ${smsError}`);
+            this.logger.warn(
+              `Failed to dispatch SMS, moving to next channel. Warning: ${smsError}`,
+            );
           }
         }
       } catch (error: unknown) {

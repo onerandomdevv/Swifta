@@ -15,6 +15,7 @@ import {
   BuyerOrderActions,
   OrderInfoSidebar,
 } from "@/components/buyer/orders";
+import { useAuth } from "@/providers/auth-provider";
 
 export default function BuyerOrderDetailsPage() {
   const { id } = useParams();
@@ -25,6 +26,7 @@ export default function BuyerOrderDetailsPage() {
   const [paying, setPaying] = useState(false);
   const [confirmingOtp, setConfirmingOtp] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     async function fetchOrder() {
@@ -50,25 +52,26 @@ export default function BuyerOrderDetailsPage() {
     try {
       const result = await initializePayment({ orderId: order.id });
       const paymentData = result as any;
-      
+
       if (paymentData.access_code) {
         // Use Paystack Inline instead of redirecting so React state isn't lost
         const handler = (window as any).PaystackPop.setup({
-          key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "pk_test_x", // In production this must be set
-          email: "buyer@hardwareos.com", // Paystack requires email, ideally we would pass the actual user email from AuthContext, but this is a fallback
+          key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "pk_test_x",
           access_code: paymentData.access_code,
           onClose: () => {
             setPaying(false);
           },
           callback: (response: any) => {
             // Paystack verified client side. We redirect to our callback page to await backend webhook sync.
-            router.push(`/buyer/orders/payment/callback?reference=${response.reference}`);
-          }
+            router.push(
+              `/buyer/orders/payment/callback?reference=${response.reference}`,
+            );
+          },
         });
         handler.openIframe();
       } else if (paymentData.authorization_url) {
-         // Fallback to redirect if no access_code
-         window.location.href = paymentData.authorization_url;
+        // Fallback to redirect if no access_code
+        window.location.href = paymentData.authorization_url;
       }
     } catch (err: any) {
       setError(err?.message || "Failed to initialize payment");
@@ -153,17 +156,22 @@ export default function BuyerOrderDetailsPage() {
           </p>
         </div>
         <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-          {order && ["PAID", "DISPATCHED", "DELIVERED", "COMPLETED"].includes(order.status) && (
-            <Link
-              href={`/buyer/orders/${order.id}/receipt`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-6 py-3 bg-slate-50 dark:bg-slate-800 text-navy-dark dark:text-white rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-200 dark:border-slate-700 hover:scale-105 active:scale-95 transition-all"
-            >
-              <span className="material-symbols-outlined text-lg">receipt_long</span>
-              View Receipt
-            </Link>
-          )}
+          {order &&
+            ["PAID", "DISPATCHED", "DELIVERED", "COMPLETED"].includes(
+              order.status,
+            ) && (
+              <Link
+                href={`/buyer/orders/${order.id}/receipt`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-6 py-3 bg-slate-50 dark:bg-slate-800 text-navy-dark dark:text-white rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-200 dark:border-slate-700 hover:scale-105 active:scale-95 transition-all"
+              >
+                <span className="material-symbols-outlined text-lg">
+                  receipt_long
+                </span>
+                View Receipt
+              </Link>
+            )}
           <StatusBadge
             status={order.status}
             className="px-6 py-3 text-[10px] tracking-[0.2em]"

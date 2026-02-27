@@ -277,7 +277,11 @@ export class OrderService {
     );
 
     // Notification (async, best-effort)
-    await this.notifications.triggerOrderDispatched(order.buyerId, orderId);
+    await this.notifications.triggerOrderDispatched(order.buyerId, {
+      orderId,
+      reference: orderId.slice(0, 8).toUpperCase(),
+      otp: deliveryOtp,
+    });
 
     this.logger.log(`Order ${orderId} dispatched, OTP generated`);
     return updatedOrder;
@@ -315,10 +319,15 @@ export class OrderService {
       { action: "delivery_confirmed" },
     );
 
-    // Notify merchant
+    // Notify both merchant and buyer
     await this.notifications.triggerDeliveryConfirmed(
       order.merchantId,
-      orderId,
+      order.buyerId,
+      {
+        orderId,
+        reference: orderId.slice(0, 8).toUpperCase(),
+        amountKobo: order.totalAmountKobo,
+      },
     );
 
     // Auto-transition: DELIVERED → COMPLETED

@@ -304,7 +304,11 @@ export class PaymentService {
       await this.notifications.triggerPaymentConfirmed(
         payment.order.buyerId,
         payment.order.merchantId,
-        payment.orderId,
+        {
+          orderId: payment.orderId,
+          reference: reference, // Paystack reference
+          amountKobo: payment.order.totalAmountKobo,
+        },
       );
 
       this.logger.log(
@@ -312,6 +316,9 @@ export class PaymentService {
       );
     } else {
       // Payment failed
+      this.logger.error(
+        `Paystack verification failed for ${reference}: ${verification.status}`,
+      );
       await this.prisma.$transaction(async (tx) => {
         await tx.payment.update({
           where: { id: payment.id },

@@ -73,7 +73,26 @@ export class RFQService {
       },
     });
 
-    await this.notifications.triggerNewRFQ(merchantId, rfq.id);
+    // Fetch buyer details for notification
+    const buyer = await this.prisma.user.findUnique({
+      where: { id: buyerId },
+      select: { firstName: true, lastName: true },
+    });
+
+    const buyerName = buyer
+      ? `${buyer.firstName} ${buyer.lastName}`
+      : "A Buyer";
+    const productName = dto.productId
+      ? (await this.prisma.product.findUnique({ where: { id: dto.productId } }))
+          ?.name || "Hardware Product"
+      : dto.unlistedItemDetails?.name || "Custom Hardware Item";
+
+    await this.notifications.triggerNewRFQ(merchantId, {
+      rfqId: rfq.id,
+      buyerName,
+      productName,
+      quantity: rfq.quantity,
+    });
 
     return rfq;
   }

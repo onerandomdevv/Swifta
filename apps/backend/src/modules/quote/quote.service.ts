@@ -66,7 +66,23 @@ export class QuoteService {
       data: { status: RFQStatus.QUOTED },
     });
 
-    await this.notifications.triggerQuoteReceived(rfq.buyerId, quote.id);
+    // Fetch details for notification
+    const merchant = await this.prisma.merchantProfile.findUnique({
+      where: { id: merchantId },
+      select: { businessName: true },
+    });
+
+    const productName = rfq.productId
+      ? (await this.prisma.product.findUnique({ where: { id: rfq.productId } }))
+          ?.name || "Hardware Product"
+      : (rfq.unlistedItemDetails as any)?.name || "Custom Hardware Item";
+
+    await this.notifications.triggerQuoteReceived(rfq.buyerId, {
+      quoteId: quote.id,
+      merchantName: merchant?.businessName || "A Merchant",
+      productName,
+      totalPriceKobo: quote.totalPriceKobo,
+    });
 
     return quote;
   }
@@ -191,7 +207,18 @@ export class QuoteService {
     });
 
     // Notifications outside transaction (best-effort)
-    await this.notifications.triggerQuoteAccepted(quote.merchantId, quoteId);
+    // Fetch buyer name for merchant notification
+    const buyer = await this.prisma.user.findUnique({
+      where: { id: buyerId },
+      select: { firstName: true, lastName: true },
+    });
+
+    await this.notifications.triggerQuoteAccepted(quote.merchantId, {
+      quoteId,
+      orderId: order.id,
+      buyerName: buyer ? `${buyer.firstName} ${buyer.lastName}` : "A Buyer",
+      amountKobo: order.totalAmountKobo,
+    });
 
     return order;
   }
