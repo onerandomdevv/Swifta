@@ -14,9 +14,22 @@ export default function MerchantLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (user && user.role !== "MERCHANT") {
-      router.push("/buyer/dashboard");
+      if (user.role === "SUPER_ADMIN") {
+        router.push("/admin/dashboard");
+      } else {
+        router.push("/buyer/dashboard");
+      }
     }
   }, [user, router]);
+
+  // Block merchant UI rendering if user is not a merchant
+  if (!user || user.role !== "MERCHANT") {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-background-light dark:bg-background-dark font-display text-slate-900">

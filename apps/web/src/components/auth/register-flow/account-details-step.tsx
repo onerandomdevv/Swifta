@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { useFormContext } from "react-hook-form";
 import Link from "next/link";
 import type { RegistrationFormData } from "@/lib/validations/auth";
+import { UserRole } from "@hardware-os/shared";
 
 interface AccountDetailsStepProps {
   onSubmit: (e: React.FormEvent) => void;
@@ -17,8 +19,12 @@ export function AccountDetailsStep({
 }: AccountDetailsStepProps) {
   const {
     register,
+    watch,
     formState: { errors },
   } = useFormContext<RegistrationFormData>();
+
+  const role = watch("role");
+  const isMerchant = role === UserRole.MERCHANT;
 
   return (
     <div className="max-w-md w-full mx-auto animate-in fade-in slide-in-from-right-4 duration-700">
@@ -39,11 +45,12 @@ export function AccountDetailsStep({
 
       <div className="mb-8">
         <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">
-          Join the Network
+          {isMerchant ? "Set Up Your Store" : "Create Your Account"}
         </h1>
         <p className="text-slate-500 font-medium">
-          Register to start trading on Lagos&apos;s premier hardware
-          marketplace.
+          {isMerchant
+            ? "Register your business to start selling on Lagos's premier hardware marketplace."
+            : "Sign up to source quality hardware from verified merchants across Lagos."}
         </p>
       </div>
 
@@ -106,28 +113,51 @@ export function AccountDetailsStep({
           </div>
         </div>
 
-        {/* Business Name */}
-        <div>
-          <label className="block text-sm font-bold text-slate-700 mb-1.5">
-            Business Name
-          </label>
-          <div className="relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
-              corporate_fare
-            </span>
-            <input
-              className={`w-full pl-10 pr-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.businessName ? "border-red-400" : "border-slate-200"}`}
-              placeholder="Lagos Build Ltd"
-              type="text"
-              {...register("businessName")}
-            />
+        {/* Business Name — Merchant only */}
+        {isMerchant && (
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">
+              Business Name
+            </label>
+            <div className="relative">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
+                storefront
+              </span>
+              <input
+                className={`w-full pl-10 pr-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.businessName ? "border-red-400" : "border-slate-200"}`}
+                placeholder="Adamu Cement Supplies"
+                type="text"
+                {...register("businessName")}
+              />
+            </div>
+            {errors.businessName && (
+              <p className="text-xs font-semibold text-red-500 mt-1">
+                {errors.businessName.message}
+              </p>
+            )}
           </div>
-          {errors.businessName && (
-            <p className="text-xs font-semibold text-red-500 mt-1">
-              {errors.businessName.message}
-            </p>
-          )}
-        </div>
+        )}
+
+        {/* Company / Project Name — Buyer only (optional) */}
+        {!isMerchant && (
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">
+              Company / Project Name{" "}
+              <span className="text-slate-400 font-normal">(optional)</span>
+            </label>
+            <div className="relative">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
+                corporate_fare
+              </span>
+              <input
+                className="w-full pl-10 pr-4 py-3 bg-[#f6f6f8] border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm"
+                placeholder="Lagos Build Ltd"
+                type="text"
+                {...register("businessName")}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Phone */}
         <div>
@@ -176,34 +206,20 @@ export function AccountDetailsStep({
         </div>
 
         {/* Password */}
-        <div>
-          <label className="block text-sm font-bold text-slate-700 mb-1.5">
-            Password
-          </label>
-          <div className="relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
-              lock
-            </span>
-            <input
-              className={`w-full pl-10 pr-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.password ? "border-red-400" : "border-slate-200"}`}
-              placeholder="••••••••"
-              type="password"
-              {...register("password")}
-            />
-          </div>
-          {errors.password && (
-            <p className="text-xs font-semibold text-red-500 mt-1">
-              {errors.password.message}
-            </p>
-          )}
-        </div>
+        <PasswordField errors={errors} register={register} />
 
         <button
           disabled={isLoading}
           className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50 text-white font-bold py-3.5 rounded-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 mt-2"
           type="submit"
         >
-          <span>{isLoading ? "Creating Account..." : "Create Account"}</span>
+          <span>
+            {isLoading
+              ? "Creating Account..."
+              : isMerchant
+                ? "Register My Store"
+                : "Create Account"}
+          </span>
           {!isLoading && (
             <span className="material-symbols-outlined text-lg">
               arrow_forward
@@ -233,6 +249,43 @@ export function AccountDetailsStep({
           </Link>
         </p>
       </div>
+    </div>
+  );
+}
+
+function PasswordField({ errors, register }: { errors: any; register: any }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div>
+      <label className="block text-sm font-bold text-slate-700 mb-1.5">
+        Password
+      </label>
+      <div className="relative">
+        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
+          lock
+        </span>
+        <input
+          className={`w-full pl-10 pr-12 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.password ? "border-red-400" : "border-slate-200"}`}
+          placeholder="••••••••"
+          type={show ? "text" : "password"}
+          {...register("password")}
+        />
+        <button
+          type="button"
+          onClick={() => setShow(!show)}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+          tabIndex={-1}
+        >
+          <span className="material-symbols-outlined text-xl">
+            {show ? "visibility_off" : "visibility"}
+          </span>
+        </button>
+      </div>
+      {errors.password && (
+        <p className="text-xs font-semibold text-red-500 mt-1">
+          {errors.password.message}
+        </p>
+      )}
     </div>
   );
 }
