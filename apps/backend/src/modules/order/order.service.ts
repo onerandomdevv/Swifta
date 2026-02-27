@@ -11,6 +11,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
 import { InventoryService } from "../inventory/inventory.service";
 import { PaymentService } from "../payment/payment.service";
+import { ReorderService } from "../reorder/reorder.service";
 import {
   OrderStatus,
   OTP_LENGTH,
@@ -31,6 +32,7 @@ export class OrderService {
     private inventoryService: InventoryService,
     @Inject(forwardRef(() => PaymentService))
     private paymentService: PaymentService,
+    private reorderService: ReorderService,
   ) {}
 
   // ──────────────────────────────────────────────
@@ -360,10 +362,22 @@ export class OrderService {
     }
 
     try {
-      await this.notifications.triggerPayoutInitiated(order.merchantId, orderId);
+      await this.notifications.triggerPayoutInitiated(
+        order.merchantId,
+        orderId,
+      );
     } catch (error) {
       this.logger.error(
         `Failed to send payout initiated notification (orderId=${orderId}, merchantId=${order.merchantId}): ${error instanceof Error ? error.message : error}`,
+      );
+    }
+
+    // Create reorder reminder (best-effort)
+    try {
+      await this.reorderService.createReminder(orderId);
+    } catch (error) {
+      this.logger.error(
+        `Failed to create reorder reminder for order ${orderId}: ${error instanceof Error ? error.message : error}`,
       );
     }
 

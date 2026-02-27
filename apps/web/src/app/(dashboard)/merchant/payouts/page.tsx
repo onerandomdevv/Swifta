@@ -4,8 +4,43 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { formatKobo } from "@/lib/utils";
 import { getOrders, getOrderSummary } from "@/lib/api/order.api";
+import { getProfile } from "@/lib/api/merchant.api";
 import { OrderStatus } from "@hardware-os/shared";
 import type { Order } from "@hardware-os/shared";
+
+// Common Nigerian bank codes → human-readable names
+const BANK_NAMES: Record<string, string> = {
+  "058": "Guaranty Trust Bank (GTBank)",
+  "044": "Access Bank",
+  "011": "First Bank of Nigeria",
+  "033": "United Bank for Africa (UBA)",
+  "057": "Zenith Bank",
+  "032": "Union Bank",
+  "035": "Wema Bank",
+  "082": "Keystone Bank",
+  "070": "Fidelity Bank",
+  "076": "Polaris Bank",
+  "214": "First City Monument Bank (FCMB)",
+  "221": "Stanbic IBTC Bank",
+  "050": "EcoBank",
+  "301": "Jaiz Bank",
+  "215": "Unity Bank",
+  "232": "Sterling Bank",
+  "100": "Suntrust Bank",
+  "068": "Standard Chartered Bank",
+  "104": "Parallex Bank",
+  "090110": "VFD Microfinance Bank",
+};
+
+function resolveBankName(code?: string | null): string {
+  if (!code) return "Not configured";
+  return BANK_NAMES[code] || `Bank (${code})`;
+}
+
+function maskAccountNo(acct?: string | null): string {
+  if (!acct || acct.length < 4) return "****";
+  return acct.slice(0, 3) + "****" + acct.slice(-3);
+}
 
 function formatDate(date: Date | string): string {
   return new Date(date).toLocaleDateString("en-NG", {
@@ -66,6 +101,18 @@ export default function MerchantPayoutsPage() {
     queryKey: ["merchant-order-summary"],
     queryFn: getOrderSummary,
   });
+
+  const { data: profile } = useQuery({
+    queryKey: ["merchant-profile"],
+    queryFn: getProfile,
+  });
+
+  const hasBankInfo = !!(profile as any)?.bankAccountNo;
+  const bankName = resolveBankName((profile as any)?.bankCode);
+  const accountNo = maskAccountNo((profile as any)?.bankAccountNo);
+  const accountName = (profile as any)?.bankAccountName || "Not configured";
+  const businessName = (profile as any)?.businessName || "Merchant";
+  const isVerified = (profile as any)?.verification === "VERIFIED";
 
   // All orders sorted by date (most recent first) for the ledger
   const ledgerOrders = [...orders].sort(
@@ -265,55 +312,89 @@ export default function MerchantPayoutsPage() {
           {/* Settlement Account Card */}
           <div className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
             <div className="flex items-center gap-3 mb-6">
-              <div className="h-10 w-10 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 flex items-center justify-center border border-emerald-100 dark:border-emerald-800">
-                <span className="material-symbols-outlined">verified_user</span>
+              <div
+                className={`h-10 w-10 flex items-center justify-center border ${hasBankInfo ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-100 dark:border-emerald-800" : "bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-100 dark:border-amber-800"}`}
+              >
+                <span className="material-symbols-outlined">
+                  {hasBankInfo ? "verified_user" : "warning"}
+                </span>
               </div>
               <div>
                 <h4 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white">
                   Settlement Account
                 </h4>
-                <p className="text-[10px] text-emerald-600 font-bold uppercase">
-                  Verified & Active
+                <p
+                  className={`text-[10px] font-bold uppercase ${hasBankInfo ? "text-emerald-600" : "text-amber-600"}`}
+                >
+                  {hasBankInfo
+                    ? isVerified
+                      ? "Verified & Active"
+                      : "Configured"
+                    : "Not Configured"}
                 </p>
               </div>
             </div>
-            <div className="space-y-4">
-              <div>
-                <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest">
-                  Bank Name
-                </label>
-                <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                  Guaranty Trust Bank (GTBank)
-                </p>
+
+            {hasBankInfo ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest">
+                    Bank Name
+                  </label>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                    {bankName}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest">
+                    Account Number
+                  </label>
+                  <p className="text-sm font-mono tracking-widest text-slate-800 dark:text-slate-200">
+                    {accountNo}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest">
+                    Account Name
+                  </label>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                    {accountName}
+                  </p>
+                </div>
               </div>
-              <div>
-                <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest">
-                  Account Number
-                </label>
-                <p className="text-sm font-mono tracking-widest text-slate-800 dark:text-slate-200">
-                  012****894
+            ) : (
+              <div className="text-center py-4">
+                <span className="material-symbols-outlined text-3xl text-slate-300 mb-2 block">
+                  account_balance
+                </span>
+                <p className="text-xs text-slate-500 mb-3">
+                  Add your bank details in Settings to receive payouts.
                 </p>
+                <a
+                  href="/merchant/settings"
+                  className="inline-block bg-primary text-white text-xs font-bold uppercase tracking-widest px-6 py-2.5 hover:bg-primary/90 transition-colors"
+                >
+                  Go to Settings
+                </a>
               </div>
-              <div>
-                <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest">
-                  Account Name
-                </label>
-                <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                  HARDWARE OS MERCHANT
-                </p>
+            )}
+
+            {hasBankInfo && (
+              <div className="mt-8 border-t border-slate-100 dark:border-slate-800 pt-4 flex justify-between items-center">
+                <a
+                  href="/merchant/settings"
+                  className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-sm">
+                    settings
+                  </span>{" "}
+                  Update Account
+                </a>
+                <span className="text-[10px] font-bold text-slate-400">
+                  {isVerified ? "VERIFIED" : "PENDING"}
+                </span>
               </div>
-            </div>
-            <div className="mt-8 border-t border-slate-100 dark:border-slate-800 pt-4 flex justify-between items-center">
-              <a className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 cursor-pointer">
-                <span className="material-symbols-outlined text-sm">
-                  settings
-                </span>{" "}
-                Update Account
-              </a>
-              <span className="text-[10px] font-bold text-slate-400">
-                VERIFIED
-              </span>
-            </div>
+            )}
           </div>
 
           {/* Payout Schedule */}

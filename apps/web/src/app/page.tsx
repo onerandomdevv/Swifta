@@ -1,16 +1,19 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useState, useEffect } from "react";
+import Link from "next/link";
 
 const SLIDE_INTERVAL = 4000;
 
 const slides = [
-  { url: '/images/hero/slide-1.jpg', alt: 'PVC pipes and plumbing supplies' },
-  { url: '/images/hero/slide-2.jpg', alt: 'Concrete blocks and masonry materials' },
-  { url: '/images/hero/slide-3.jpg', alt: 'Corrugated metal roofing sheets' },
-  { url: '/images/hero/slide-4.jpg', alt: 'Industrial paint and coatings' },
-  { url: '/images/hero/slide-5.jpg', alt: 'Structural steel channels' },
+  { url: "/images/hero/slide-1.jpg", alt: "PVC pipes and plumbing supplies" },
+  {
+    url: "/images/hero/slide-2.jpg",
+    alt: "Concrete blocks and masonry materials",
+  },
+  { url: "/images/hero/slide-3.jpg", alt: "Corrugated metal roofing sheets" },
+  { url: "/images/hero/slide-4.jpg", alt: "Industrial paint and coatings" },
+  { url: "/images/hero/slide-5.jpg", alt: "Structural steel channels" },
 ];
 
 export default function LandingPage() {
@@ -25,23 +28,42 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white text-slate-900 antialiased font-display">
-
       {/* ─── NAVBAR ─── */}
       <header className="fixed top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-2xl">settings_input_component</span>
-            <span className="text-lg font-black tracking-tight text-slate-900 uppercase">Hardware OS</span>
+            <span className="material-symbols-outlined text-primary text-2xl">
+              settings_input_component
+            </span>
+            <span className="text-lg font-black tracking-tight text-slate-900 uppercase">
+              Hardware OS
+            </span>
           </Link>
           <nav className="hidden md:flex items-center gap-8">
-            <a href="#how-it-works" className="text-sm font-semibold text-slate-600 hover:text-primary transition-colors">How it Works</a>
-            <a href="#why" className="text-sm font-semibold text-slate-600 hover:text-primary transition-colors">Why Us</a>
+            <a
+              href="#how-it-works"
+              className="text-sm font-semibold text-slate-600 hover:text-primary transition-colors"
+            >
+              How it Works
+            </a>
+            <a
+              href="#why"
+              className="text-sm font-semibold text-slate-600 hover:text-primary transition-colors"
+            >
+              Why Us
+            </a>
           </nav>
           <div className="flex items-center gap-3">
-            <Link href="/login" className="text-sm font-bold text-slate-700 px-4 py-2 border border-slate-200 rounded-lg hover:border-primary hover:text-primary transition-all">
+            <Link
+              href="/login"
+              className="text-sm font-bold text-slate-700 px-4 py-2 border border-slate-200 rounded-lg hover:border-primary hover:text-primary transition-all"
+            >
               Sign In
             </Link>
-            <Link href="/register" className="bg-primary hover:bg-primary/90 text-white text-sm font-bold px-5 py-2.5 rounded-lg transition-all shadow-md shadow-primary/20">
+            <Link
+              href="/register"
+              className="bg-primary hover:bg-primary/90 text-white text-sm font-bold px-5 py-2.5 rounded-lg transition-all shadow-md shadow-primary/20"
+            >
               Get Started
             </Link>
           </div>
@@ -50,13 +72,12 @@ export default function LandingPage() {
 
       {/* ─── HERO SECTION WITH SLIDESHOW ─── */}
       <section className="relative min-h-screen flex items-center overflow-hidden bg-[#101622]">
-
         {/* Slideshow background */}
         <div className="absolute inset-0 z-0">
           {slides.map((slide, index) => (
             <div
               key={index}
-              className={`absolute inset-0 transition-opacity duration-[1500ms] ease-in-out ${index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+              className={`absolute inset-0 transition-opacity duration-[1500ms] ease-in-out ${index === currentSlide ? "opacity-100 z-10" : "opacity-0 z-0"}`}
             >
               <img
                 src={slide.url}
@@ -66,13 +87,13 @@ export default function LandingPage() {
             </div>
           ))}
           {/* Overlay */}
-          <div className="absolute inset-0 z-20 bg-gradient-to-r from-[#101622]/95 via-[#101622]/75 to-[#101622]/30" />
+          <div className="absolute inset-0 z-20 bg-[#101622]/65" />
         </div>
 
         {/* Hero Content */}
-        <div className="max-w-7xl mx-auto px-6 relative z-30 w-full py-32 pt-40">
-          <div className="max-w-3xl flex flex-col gap-8">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/20 border border-primary/30 text-white text-[11px] font-bold uppercase tracking-widest w-fit">
+        <div className="max-w-7xl mx-auto px-6 relative z-30 w-full py-32 pt-40 flex flex-col items-center text-center">
+          <div className="max-w-4xl flex flex-col items-center gap-8">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/20 border border-primary/30 text-white text-[11px] font-bold uppercase tracking-widest">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
@@ -80,17 +101,20 @@ export default function LandingPage() {
               Now Live in Lagos State
             </div>
 
-            <h1 className="text-5xl lg:text-7xl font-black text-white leading-[1.05] tracking-tight">
-              Nigeria&apos;s Private<br />
-              <span className="text-primary">Hardware Trading</span><br />
+            <h1 className="text-6xl lg:text-8xl font-black text-white leading-[1.05] tracking-tight">
+              Nigeria&apos;s Private
+              <br />
+              <span className="text-primary">Hardware Trading</span>
+              <br />
               Infrastructure
             </h1>
 
-            <p className="text-xl text-white/80 max-w-xl leading-relaxed font-medium">
-              Connect with verified merchants. Request quotes privately. Pay securely with escrow protection.
+            <p className="text-xl lg:text-2xl text-white/80 max-w-2xl leading-relaxed font-medium">
+              Connect with verified merchants. Request quotes privately. Pay
+              securely with escrow protection.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 pt-2">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
               <Link
                 href="/register"
                 className="bg-primary hover:bg-primary/90 text-white font-bold h-14 px-8 rounded-lg flex items-center justify-center gap-2 text-base shadow-xl shadow-primary/30 transition-all hover:scale-[1.02]"
@@ -109,12 +133,12 @@ export default function LandingPage() {
           </div>
 
           {/* Slide indicators */}
-          <div className="absolute bottom-12 left-6 flex gap-2">
+          <div className="flex gap-2 mt-12">
             {slides.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentSlide(index)}
-                className={`h-1.5 rounded-full transition-all duration-500 bg-white ${index === currentSlide ? 'w-8 opacity-100' : 'w-2 opacity-40'}`}
+                className={`h-1.5 rounded-full transition-all duration-500 bg-white ${index === currentSlide ? "w-8 opacity-100" : "w-2 opacity-40"}`}
               />
             ))}
           </div>
@@ -125,26 +149,58 @@ export default function LandingPage() {
       <section id="how-it-works" className="py-32 bg-[#f6f6f8]">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
-            <p className="text-primary font-bold text-xs uppercase tracking-widest mb-3">The Process</p>
-            <h2 className="text-4xl font-black text-slate-900 tracking-tight">How It Works</h2>
-            <p className="text-slate-500 mt-4 max-w-xl mx-auto font-medium">Streamlining industrial procurement from request to delivery.</p>
+            <p className="text-primary font-bold text-xs uppercase tracking-widest mb-3">
+              The Process
+            </p>
+            <h2 className="text-4xl font-black text-slate-900 tracking-tight">
+              How It Works
+            </h2>
+            <p className="text-slate-500 mt-4 max-w-xl mx-auto font-medium">
+              Streamlining industrial procurement from request to delivery.
+            </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { icon: 'forum', step: '01', title: 'Request a Quote', desc: 'Post your hardware requirements to our network of pre-verified suppliers. Prices stay private.' },
-              { icon: 'receipt_long', step: '02', title: 'Get Competitive Quotes', desc: 'Receive multiple bids within hours. Compare pricing, quality, and delivery timelines.' },
-              { icon: 'verified_user', step: '03', title: 'Pay & Receive Securely', desc: 'Funds held in escrow until you confirm delivery and product quality at your facility.' },
+              {
+                icon: "forum",
+                step: "01",
+                title: "Request a Quote",
+                desc: "Post your hardware requirements to our network of pre-verified suppliers. Prices stay private.",
+              },
+              {
+                icon: "receipt_long",
+                step: "02",
+                title: "Get Competitive Quotes",
+                desc: "Receive multiple bids within hours. Compare pricing, quality, and delivery timelines.",
+              },
+              {
+                icon: "verified_user",
+                step: "03",
+                title: "Pay & Receive Securely",
+                desc: "Funds held in escrow until you confirm delivery and product quality at your facility.",
+              },
             ].map((item) => (
-              <div key={item.step} className="bg-white border border-slate-200 rounded-lg p-8 hover:border-primary/30 hover:shadow-lg transition-all duration-300">
+              <div
+                key={item.step}
+                className="bg-white border border-slate-200 rounded-lg p-8 hover:border-primary/30 hover:shadow-lg transition-all duration-300"
+              >
                 <div className="flex items-center justify-between mb-6">
                   <div className="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                    <span className="material-symbols-outlined text-primary">{item.icon}</span>
+                    <span className="material-symbols-outlined text-primary">
+                      {item.icon}
+                    </span>
                   </div>
-                  <span className="text-3xl font-black text-slate-100">{item.step}</span>
+                  <span className="text-3xl font-black text-slate-100">
+                    {item.step}
+                  </span>
                 </div>
-                <h3 className="text-lg font-black text-slate-900 mb-2">{item.title}</h3>
-                <p className="text-slate-500 font-medium leading-relaxed text-sm">{item.desc}</p>
+                <h3 className="text-lg font-black text-slate-900 mb-2">
+                  {item.title}
+                </h3>
+                <p className="text-slate-500 font-medium leading-relaxed text-sm">
+                  {item.desc}
+                </p>
               </div>
             ))}
           </div>
@@ -155,23 +211,51 @@ export default function LandingPage() {
       <section id="why" className="py-32 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
-            <p className="text-primary font-bold text-xs uppercase tracking-widest mb-3">Platform</p>
-            <h2 className="text-4xl font-black text-slate-900 tracking-tight">Why HARDWARE OS?</h2>
-            <p className="text-slate-500 mt-4 max-w-xl mx-auto font-medium">Built specifically for the unique challenges of the Nigerian industrial supply chain.</p>
+            <p className="text-primary font-bold text-xs uppercase tracking-widest mb-3">
+              Platform
+            </p>
+            <h2 className="text-4xl font-black text-slate-900 tracking-tight">
+              Why HARDWARE OS?
+            </h2>
+            <p className="text-slate-500 mt-4 max-w-xl mx-auto font-medium">
+              Built specifically for the unique challenges of the Nigerian
+              industrial supply chain.
+            </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { icon: 'lock', title: 'Escrow Protection', desc: 'Payments released only after you inspect and confirm delivery. Zero fraud risk.' },
-              { icon: 'verified', title: 'Verified Merchants', desc: 'Every supplier undergoes a rigorous 5-step background and inventory verification process.' },
-              { icon: 'visibility_off', title: 'Private Pricing', desc: 'Access exclusive B2B rates hidden from the open consumer market. Your margins stay yours.' },
+              {
+                icon: "lock",
+                title: "Escrow Protection",
+                desc: "Payments released only after you inspect and confirm delivery. Zero fraud risk.",
+              },
+              {
+                icon: "verified",
+                title: "Verified Merchants",
+                desc: "Every supplier undergoes a rigorous 5-step background and inventory verification process.",
+              },
+              {
+                icon: "visibility_off",
+                title: "Private Pricing",
+                desc: "Access exclusive B2B rates hidden from the open consumer market. Your margins stay yours.",
+              },
             ].map((feat) => (
-              <div key={feat.title} className="p-8 rounded-lg border border-slate-200 group hover:border-primary/30 hover:bg-primary/5 transition-all duration-300">
+              <div
+                key={feat.title}
+                className="p-8 rounded-lg border border-slate-200 group hover:border-primary/30 hover:bg-primary/5 transition-all duration-300"
+              >
                 <div className="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center mb-5 group-hover:bg-primary group-hover:text-white transition-all">
-                  <span className="material-symbols-outlined text-primary group-hover:text-white">{feat.icon}</span>
+                  <span className="material-symbols-outlined text-primary group-hover:text-white">
+                    {feat.icon}
+                  </span>
                 </div>
-                <h3 className="text-lg font-black text-slate-900 mb-2">{feat.title}</h3>
-                <p className="text-slate-500 font-medium leading-relaxed text-sm">{feat.desc}</p>
+                <h3 className="text-lg font-black text-slate-900 mb-2">
+                  {feat.title}
+                </h3>
+                <p className="text-slate-500 font-medium leading-relaxed text-sm">
+                  {feat.desc}
+                </p>
               </div>
             ))}
           </div>
@@ -181,14 +265,25 @@ export default function LandingPage() {
       {/* ─── CTA SECTION ─── */}
       <section className="py-20 bg-[#101622]">
         <div className="max-w-3xl mx-auto px-6 text-center">
-          <h2 className="text-4xl font-black text-white mb-4 tracking-tight">Ready to modernize your procurement?</h2>
-          <p className="text-white/60 font-medium mb-8">Join hundreds of Nigerian businesses trading securely on the premier hardware operating system.</p>
+          <h2 className="text-4xl font-black text-white mb-4 tracking-tight">
+            Ready to modernize your procurement?
+          </h2>
+          <p className="text-white/60 font-medium mb-8">
+            Join hundreds of Nigerian businesses trading securely on the premier
+            hardware operating system.
+          </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/register" className="bg-primary hover:bg-primary/90 text-white font-bold h-14 px-10 rounded-lg flex items-center gap-2 transition-all shadow-xl shadow-primary/30">
+            <Link
+              href="/register"
+              className="bg-primary hover:bg-primary/90 text-white font-bold h-14 px-10 rounded-lg flex items-center gap-2 transition-all shadow-xl shadow-primary/30"
+            >
               Create Free Account
               <span className="material-symbols-outlined">arrow_forward</span>
             </Link>
-            <Link href="/login" className="border border-white/20 text-white font-bold h-14 px-10 rounded-lg flex items-center gap-2 hover:bg-white/10 transition-all">
+            <Link
+              href="/login"
+              className="border border-white/20 text-white font-bold h-14 px-10 rounded-lg flex items-center gap-2 hover:bg-white/10 transition-all"
+            >
               Sign In
             </Link>
           </div>
@@ -199,14 +294,26 @@ export default function LandingPage() {
       <footer className="py-8 border-t border-slate-100 bg-white">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">settings_input_component</span>
-            <span className="font-black text-slate-900 uppercase tracking-tight">Hardware OS</span>
+            <span className="material-symbols-outlined text-primary">
+              settings_input_component
+            </span>
+            <span className="font-black text-slate-900 uppercase tracking-tight">
+              Hardware OS
+            </span>
           </div>
-          <p className="text-xs text-slate-400 font-medium">© 2025 Hardware OS Technologies. Built for Nigeria.</p>
+          <p className="text-xs text-slate-400 font-medium">
+            © 2025 Hardware OS Technologies. Built for Nigeria.
+          </p>
           <div className="flex gap-6 text-xs font-bold text-slate-400">
-            <a href="#" className="hover:text-primary transition-colors">Privacy</a>
-            <a href="#" className="hover:text-primary transition-colors">Terms</a>
-            <a href="#" className="hover:text-primary transition-colors">Support</a>
+            <a href="#" className="hover:text-primary transition-colors">
+              Privacy
+            </a>
+            <a href="#" className="hover:text-primary transition-colors">
+              Terms
+            </a>
+            <a href="#" className="hover:text-primary transition-colors">
+              Support
+            </a>
           </div>
         </div>
       </footer>

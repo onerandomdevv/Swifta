@@ -14,6 +14,11 @@ export function MerchantSidebar() {
     { label: "Orders", icon: "list_alt", href: "/merchant/orders" },
     { label: "Quotes", icon: "request_quote", href: "/merchant/quotes" },
     {
+      label: "Quote Link",
+      icon: "link",
+      href: "/merchant/quotes/generate",
+    },
+    {
       label: "Storefront Preview",
       icon: "storefront",
       href: "/merchant/catalogue",

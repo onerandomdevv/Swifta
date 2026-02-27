@@ -206,4 +206,16 @@ export class ProductService {
       await this.cacheManager.clear();
     }
   }
+
+  async getAssociations(category: string) {
+    return this.prisma.productAssociation.findMany({
+      where: { productCategoryA: category },
+      orderBy: { strength: "desc" },
+      select: {
+        productCategoryB: true,
+        strength: true,
+        promptText: true,
+      },
+    });
+  }
 }
