@@ -85,9 +85,7 @@ Instead of creating an admin through the frontend (which leaves messy 'Merchant'
    ```bash
    npx prisma db seed
    ```
-3. Once it says "Super Admin created successfully", you can log into your dashboard using:
-   - **Email:** `admin@hardware-os.com`
-   - **Password:** `Admin@123`
+3. Once it says "Super Admin created successfully", you can log into your dashboard using the email and password you set in your `ADMIN_BOOTSTRAP_EMAIL` and `ADMIN_BOOTSTRAP_PASSWORD` environment variables.
 
 _(**CRITICAL**: You must securely change this default password the very first time you log in!)_
 
