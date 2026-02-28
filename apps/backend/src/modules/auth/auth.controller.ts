@@ -148,8 +148,8 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async getMe(@CurrentUser() user: JwtPayload) {
-    // In a real scenario we might fetch full user from db, but payload usually suffices
-    return { user };
+    const freshUser = await this.authService.getInternalMe(user.sub);
+    return { user: freshUser };
   }
 
   @Throttle({ default: { limit: 3, ttl: 3600000 } }) // 3 per hour limit
