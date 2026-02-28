@@ -8,7 +8,7 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { UserRole } from "@hardware-os/shared";
 import type { LoginDto, RegisterDto } from "@hardware-os/shared";
 import { authApi } from "../lib/api/auth.api";
@@ -45,6 +45,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
+
+  // Routes where we should NOT redirect to /login on auth failure
+  const isPublicAuthRoute =
+    /^\/(login|register|admin\/login|admin\/join|admin\/verify)/.test(pathname);
 
   const clearAuth = useCallback(() => {
     setUser(null);
@@ -56,10 +61,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return true;
     } catch (error) {
       clearAuth();
-      router.push("/login");
+      if (!isPublicAuthRoute) {
+        router.push("/login");
+      }
       return false;
     }
-  }, [router, clearAuth]);
+  }, [router, clearAuth, isPublicAuthRoute]);
 
   // Configure apiClient
   useEffect(() => {
@@ -67,7 +74,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refreshToken: handleRefresh,
       onUnauthorized: () => {
         clearAuth();
-        router.push("/login");
+        if (!isPublicAuthRoute) {
+          router.push("/login");
+        }
       },
     });
   }, [handleRefresh, clearAuth, router]);
