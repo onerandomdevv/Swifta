@@ -114,10 +114,15 @@ export default function MerchantVerificationPage() {
   }, []);
 
   // Compute steps
-  const step1Complete = user?.emailVerified === true;
-  const step2Complete = !!profile?.cacNumber;
-  const step3Complete = step2Complete && step1Complete && phoneVerified;
-  const step4Complete = !!(profile?.bankAccountNo && profile?.bankAccountName);
+  const isManuallyVerified = profile?.verification === "VERIFIED";
+
+  const step1Complete = isManuallyVerified || user?.emailVerified === true;
+  const step2Complete = isManuallyVerified || !!profile?.cacNumber;
+  const step3Complete =
+    isManuallyVerified || (step2Complete && step1Complete && phoneVerified);
+  const step4Complete =
+    isManuallyVerified ||
+    !!(profile?.bankAccountNo && profile?.bankAccountName);
 
   const completedSteps = [
     step1Complete,
