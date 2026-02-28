@@ -23,6 +23,7 @@
     "seed": "ts-node src/prisma/seed.ts"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@hardware-os/shared": "workspace:*",
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/cache-manager": "^3.1.0",

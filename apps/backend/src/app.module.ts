@@ -30,6 +30,7 @@ import { NotificationModule } from "./modules/notification/notification.module";
 import { EmailModule } from "./modules/email/email.module";
 import { UploadModule } from "./modules/upload/upload.module";
 import { AdminModule } from "./modules/admin/admin.module";
+import { WhatsAppModule } from "./modules/whatsapp/whatsapp.module";
 
 import { LoggerModule } from "./common/logger/logger.module";
 
@@ -102,6 +103,7 @@ import { APP_GUARD } from "@nestjs/core";
     EmailModule,
     UploadModule,
     AdminModule,
+    WhatsAppModule,
   ],
   controllers: [],
   providers: [

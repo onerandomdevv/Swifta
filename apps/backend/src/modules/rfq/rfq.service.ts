@@ -96,6 +96,7 @@ export class RFQService {
         buyerName,
         productName,
         quantity: rfq.quantity,
+        deliveryAddress: dto.deliveryAddress,
       });
     } catch (error) {
       this.logger.error(
