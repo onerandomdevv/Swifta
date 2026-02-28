@@ -1,8 +1,39 @@
-node_modules
-dist
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.next/
+.turbo/
+*.tsbuildinfo
+
+# Environment files
 .env
 .env.local
-.next
-prisma/*.db
-.turbo
-coverage
+.env.*.local
+
+# Database
+*.db
+*.db-journal
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Package manager
+.pnpm-store/
+
+# Test coverage
+coverage/
+
+# Confidential Documentation
+ENGINEERING_AUDIT_REPORT.md
+HARDWARE_OS_Backend_Fullstack_Guide.md
+CLAUDE.md

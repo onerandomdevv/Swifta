@@ -1,26 +1,163 @@
-import Navbar from "@/components/layout/navbar";
+"use client";
+
+import React from "react";
+import { useMerchantDashboard } from "@/hooks/use-merchant-data";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { dispatchOrder } from "@/lib/api/order.api";
+import { DashboardSkeleton } from "@/components/merchant/dashboard/dashboard-skeleton";
+import { KanbanColumn } from "@/components/merchant/dashboard/kanban-column";
+import { KanbanRfqCard } from "@/components/merchant/dashboard/kanban-rfq-card";
+import { KanbanOrderCard } from "@/components/merchant/dashboard/kanban-order-card";
 
 export default function MerchantDashboard() {
+  const { rfqs, orders, isLoading, isError, error } = useMerchantDashboard();
+  const queryClient = useQueryClient();
+
+  const dispatchMutation = useMutation({
+    mutationFn: dispatchOrder,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["merchant", "orders", "all"],
+      });
+    },
+    onError: (err) => {
+      console.error("Dispatch order failed:", err);
+      // Optional: Add toast notification error here
+      alert("Failed to generate OTP. Please try again.");
+    },
+  });
+
+  if (isLoading) return <DashboardSkeleton />;
+
+  if (isError) {
+    return (
+      <div className="py-20 text-center">
+        <span className="material-symbols-outlined text-5xl text-red-400 mb-4">
+          error
+        </span>
+        <p className="text-red-500 font-bold">{error}</p>
+      </div>
+    );
+  }
+
+  // --- Handlers ---
+  const handleReviewQuote = (id: string) => {
+    // Navigate straight to the RFQ details page
+    window.location.href = `/merchant/rfqs/${id}`;
+  };
+
+  const handleOrderAction = (id: string) => {
+    const order = orders.find((o) => o.id === id);
+    if (order?.status === "PAID") {
+      // Trigger the backend dispatch API immediately
+      dispatchMutation.mutate(id);
+    } else {
+      // For all other statuses, click the card to view the deeper Escrow/Logistics order tracking screen
+      window.location.href = `/merchant/orders/${id}`;
+    }
+  };
+
+  // --- Filtered Arrays ---
+  const pendingRfqs = rfqs.filter((r) => r.status === "OPEN");
+  const awaitingOrders = orders.filter((o) => o.status === "PAID");
+  const transitOrders = orders.filter((o) => o.status === "DISPATCHED");
+  const completedOrders = orders.filter(
+    (o) => o.status === "DELIVERED" || o.status === "COMPLETED",
+  );
+
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <main className="flex-1 p-8">
-        <h1 className="text-3xl font-bold mb-6">Merchant Dashboard</h1>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="p-6 border rounded-lg shadow-sm">
-            <h2 className="text-xl font-semibold">Active Products</h2>
-            <p className="text-3xl font-bold mt-2">12</p>
-          </div>
-          <div className="p-6 border rounded-lg shadow-sm">
-            <h2 className="text-xl font-semibold">Pending RFQs</h2>
-            <p className="text-3xl font-bold mt-2">5</p>
-          </div>
-          <div className="p-6 border rounded-lg shadow-sm">
-            <h2 className="text-xl font-semibold">Total Sales</h2>
-            <p className="text-3xl font-bold mt-2">₦0.00</p>
-          </div>
+    <div className="h-full bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-8 overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="flex-1 overflow-x-auto">
+        <div className="flex gap-6 h-full min-w-max pb-4">
+          {/* Column 1: Pending Quotes */}
+          <KanbanColumn
+            title="Pending Quotes"
+            count={pendingRfqs.length}
+            colorClass="bg-amber-400"
+          >
+            {pendingRfqs.map((rfq) => (
+              <KanbanRfqCard
+                key={rfq.id}
+                rfq={rfq}
+                onReview={handleReviewQuote}
+              />
+            ))}
+            {pendingRfqs.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-32 text-slate-400 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg">
+                <span className="text-[10px] font-bold uppercase tracking-widest">
+                  Inbox Zero
+                </span>
+              </div>
+            )}
+          </KanbanColumn>
+
+          {/* Column 2: Awaiting Dispatch */}
+          <KanbanColumn
+            title="Awaiting Dispatch"
+            count={awaitingOrders.length}
+            colorClass="bg-blue-500"
+          >
+            {awaitingOrders.map((order) => (
+              <KanbanOrderCard
+                key={order.id}
+                order={order}
+                onAction={handleOrderAction}
+              />
+            ))}
+            {awaitingOrders.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-32 text-slate-400 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg">
+                <span className="text-[10px] font-bold uppercase tracking-widest">
+                  No pending orders
+                </span>
+              </div>
+            )}
+          </KanbanColumn>
+
+          {/* Column 3: In Transit */}
+          <KanbanColumn
+            title="In Transit"
+            count={transitOrders.length}
+            colorClass="bg-primary"
+          >
+            {transitOrders.map((order) => (
+              <KanbanOrderCard
+                key={order.id}
+                order={order}
+                onAction={handleOrderAction}
+              />
+            ))}
+            {transitOrders.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-32 text-slate-400 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg">
+                <span className="text-[10px] font-bold uppercase tracking-widest">
+                  Nothing on road
+                </span>
+              </div>
+            )}
+          </KanbanColumn>
+
+          {/* Column 4: Payout Completed */}
+          <KanbanColumn
+            title="Payout Completed"
+            count={completedOrders.length}
+            colorClass="bg-emerald-500"
+          >
+            {completedOrders.map((order) => (
+              <KanbanOrderCard
+                key={order.id}
+                order={order}
+                onAction={handleOrderAction}
+              />
+            ))}
+            {completedOrders.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-32 text-slate-400 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg">
+                <span className="text-[10px] font-bold uppercase tracking-widest">
+                  No history
+                </span>
+              </div>
+            )}
+          </KanbanColumn>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

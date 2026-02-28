@@ -3,10 +3,14 @@ import { RFQStatus } from '../enums/rfq-status.enum';
 export interface RFQ {
   id: string;
   buyerId: string;
-  productId: string;
+  productId?: string;
   merchantId: string;
   quantity: number;
   deliveryAddress: string;
+  unlistedItemDetails?: any;
+  product?: any;
+  merchant?: { businessName: string };
+  quotes?: any[];
   notes?: string;
   status: RFQStatus;
   expiresAt: Date;
@@ -14,7 +18,13 @@ export interface RFQ {
 }
 
 export interface CreateRFQDto {
-  productId: string;
+  productId?: string;
+  targetMerchantId?: string;
+  unlistedItemDetails?: {
+    name: string;
+    description?: string;
+    unit: string;
+  };
   quantity: number;
   deliveryAddress: string;
   notes?: string;

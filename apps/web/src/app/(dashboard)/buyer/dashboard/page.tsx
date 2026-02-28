@@ -1,26 +1,48 @@
-import Navbar from "@/components/layout/navbar";
+"use client";
+
+import React from "react";
+import { useBuyerDashboard } from "@/hooks/use-buyer-data";
+import { DashboardSkeleton } from "@/components/buyer/dashboard/dashboard-skeleton";
+import { BuyerSummaryCards } from "@/components/buyer/dashboard/buyer-summary-cards";
+import { PendingQuotes } from "@/components/buyer/dashboard/pending-quotes";
+import { ActiveDeliveries } from "@/components/buyer/dashboard/active-deliveries";
 
 export default function BuyerDashboard() {
+  const { rfqs, orders, isLoading, isError, error } = useBuyerDashboard();
+
+  if (isLoading) return <DashboardSkeleton />;
+
+  if (isError) {
+    return (
+      <div className="py-20 text-center">
+        <span className="material-symbols-outlined text-5xl text-red-400 mb-4">
+          error
+        </span>
+        <p className="text-red-500 font-bold">{error}</p>
+      </div>
+    );
+  }
+
+  // Pending Quotes (Action Required): An RFQ where the merchant has provided a Quote.
+  const pendingQuotes = rfqs.filter((r) => r.status === "QUOTED");
+
+  // Active Orders: Orders that are not COMPLETED or CANCELLED, but have been initialized/paid.
+  const activeOrders = orders.filter(
+    (o) => o.status !== "COMPLETED" && o.status !== "CANCELLED"
+  );
+
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <main className="flex-1 p-8">
-        <h1 className="text-3xl font-bold mb-6">Buyer Dashboard</h1>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="p-6 border rounded-lg shadow-sm">
-            <h2 className="text-xl font-semibold">Active RFQs</h2>
-            <p className="text-3xl font-bold mt-2">3</p>
-          </div>
-          <div className="p-6 border rounded-lg shadow-sm">
-            <h2 className="text-xl font-semibold">Orders in Progress</h2>
-            <p className="text-3xl font-bold mt-2">1</p>
-          </div>
-          <div className="p-6 border rounded-lg shadow-sm">
-            <h2 className="text-xl font-semibold">Completed Orders</h2>
-            <p className="text-3xl font-bold mt-2">0</p>
-          </div>
-        </div>
-      </main>
-    </div>
+    <>
+      <BuyerSummaryCards
+        activeOrdersCount={activeOrders.length}
+        pendingQuotesCount={pendingQuotes.length}
+        orders={orders}
+      />
+
+      <PendingQuotes quotes={pendingQuotes} />
+
+      <ActiveDeliveries deliveries={activeOrders} />
+    </>
   );
 }
+

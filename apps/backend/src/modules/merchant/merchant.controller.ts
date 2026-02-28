@@ -1,38 +1,74 @@
-import { Controller, Get, Patch, Body, Param, UseGuards, NotFoundException } from '@nestjs/common';
-import { MerchantService } from './merchant.service';
-import { UpdateMerchantDto } from './dto/update-merchant.dto';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { UserRole, JwtPayload } from '@hardware-os/shared';
+import {
+  Controller,
+  Get,
+  Patch,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  ParseUUIDPipe,
+  Post,
+} from "@nestjs/common";
+import { MerchantService } from "./merchant.service";
+import { UpdateMerchantDto } from "./dto/update-merchant.dto";
+import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
+import { RolesGuard } from "../../common/guards/roles.guard";
+import { Roles } from "../../common/decorators/roles.decorator";
+import { CurrentMerchant } from "../../common/decorators/current-merchant.decorator";
+import { UserRole } from "@hardware-os/shared";
 
-@Controller('merchants')
+@Controller("merchants")
 export class MerchantController {
   constructor(private readonly merchantService: MerchantService) {}
 
-  @Get('me')
+  @Get("me")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.MERCHANT)
-  async getMyProfile(@CurrentUser() user: JwtPayload) {
-    if (!user.merchantId) {
-        throw new NotFoundException('Merchant profile not found');
-    }
-    return this.merchantService.getProfile(user.merchantId);
+  async getMyProfile(@CurrentMerchant() merchantId: string) {
+    return this.merchantService.getProfile(merchantId);
   }
 
-  @Patch('me')
+  @Patch("me")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.MERCHANT)
-  async updateMyProfile(@CurrentUser() user: JwtPayload, @Body() dto: UpdateMerchantDto) {
-    if (!user.merchantId) {
-        throw new NotFoundException('Merchant profile not found');
-    }
-    return this.merchantService.updateProfile(user.merchantId, dto);
+  async updateMyProfile(
+    @CurrentMerchant() merchantId: string,
+    @Body() dto: UpdateMerchantDto,
+  ) {
+    return this.merchantService.updateProfile(merchantId, dto);
   }
 
-  @Get(':id')
-  async getPublicProfile(@Param('id') id: string) {
+  @Get()
+  async getAllMerchants() {
+    return this.merchantService.getAllMerchants();
+  }
+
+  @Get(":id")
+  async getPublicProfile(@Param("id", ParseUUIDPipe) id: string) {
     return this.merchantService.getPublicProfile(id);
+  }
+
+  @Get("bank/resolve")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.MERCHANT)
+  async resolveBank(
+    @Query("accountNumber") accountNumber: string,
+    @Query("bankCode") bankCode: string,
+  ) {
+    return this.merchantService.resolveBankAccount(accountNumber, bankCode);
+  }
+
+  @Get("banks/list")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.MERCHANT)
+  async getBanks() {
+    return this.merchantService.getBanks();
+  }
+
+  @Post("me/submit")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.MERCHANT)
+  async submitVerification(@CurrentMerchant() merchantId: string) {
+    return this.merchantService.submitForVerification(merchantId);
   }
 }

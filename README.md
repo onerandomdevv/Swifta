@@ -1,8 +1,8 @@
-# HARDWARE OS
+# SwiftTrade
 
 **The Operating System for Lagos Hardware Trade**
 
-HARDWARE OS is a production-grade B2B trade platform that digitizes the hardware materials supply chain in Lagos, Nigeria. It handles the complete transaction lifecycle — from product listing to merchant payout — while preserving the trust, negotiation dynamics, and relationships that define Lagos hardware trade.
+SwiftTrade is a production-grade B2B trade platform that digitizes the hardware materials supply chain in Lagos, Nigeria. It handles the complete transaction lifecycle — from product listing to merchant payout — while preserving the trust, negotiation dynamics, and relationships that define Lagos hardware trade.
 
 > This is not a marketplace clone. It's trade infrastructure.
 
@@ -145,7 +145,7 @@ NEXT_PUBLIC_PAYSTACK_KEY=pk_test_xxxxx
 
 ### Not Included (Future Phases)
 
-- ❌ WhatsApp / SMS / USSD
+- ❌ SMS / USSD
 - ❌ Product images
 - ❌ BNPL / trade credit
 - ❌ AI forecasting

@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/ui/logo";
 
 export default function Navbar() {
   return (
     <nav className="border-b">
       <div className="flex h-16 items-center px-4 max-w-7xl mx-auto">
         <Link href="/" className="font-bold text-xl">
-          Hardware OS
+          <Logo variant="light" size="md" />
         </Link>
         <div className="ml-auto flex items-center space-x-4">
           <Link href="/auth/login">

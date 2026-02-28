@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev]
+
+jobs:
+  build:
+    name: Lint & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @hardware-os/backend exec prisma generate --schema=src/prisma/schema.prisma
+
+      - name: Validate Prisma schema
+        run: DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" pnpm --filter @hardware-os/backend exec prisma validate --schema=src/prisma/schema.prisma
+
+      - name: Generate Prisma client
+        run: DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" pnpm --filter @hardware-os/backend exec prisma generate --schema=src/prisma/schema.prisma
+        
+      - name: Build all packages
+        run: pnpm build

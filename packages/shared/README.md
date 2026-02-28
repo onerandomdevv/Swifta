@@ -1,4 +1,4 @@
-# @hardware-os/shared
+# @hardware-os/shared (SwiftTrade)
 
 Shared types, enums, constants, and utilities used by both the backend and frontend.
 

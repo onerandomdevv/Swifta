@@ -1,18 +1,67 @@
-import { apiClient } from '../api-client';
-import type { LoginDto, RegisterDto, RefreshTokenDto, ApiResponse, JwtPayload } from '@hardware-os/shared';
+import { UserRole } from "@hardware-os/shared";
+import type { LoginDto, RegisterDto, TokenPair } from "@hardware-os/shared";
+import { apiClient } from "../api-client";
 
-export async function login(dto: LoginDto): Promise<ApiResponse<{ accessToken: string; refreshToken: string; user: JwtPayload }>> {
-  return apiClient.post('/auth/login', dto);
+export interface AuthResponse {
+  user: {
+    id: string;
+    email: string;
+    phone: string;
+    firstName: string;
+    middleName?: string;
+    lastName: string;
+    role: UserRole;
+    emailVerified: boolean;
+    merchantId?: string;
+    createdAt: string;
+    updatedAt: string;
+  };
 }
 
-export async function register(dto: RegisterDto): Promise<ApiResponse<{ accessToken: string; refreshToken: string; user: JwtPayload }>> {
-  return apiClient.post('/auth/register', dto);
-}
+export const authApi = {
+  login: (dto: LoginDto) => apiClient.post<AuthResponse>("/auth/login", dto),
 
-export async function refresh(dto: RefreshTokenDto): Promise<ApiResponse<{ accessToken: string; refreshToken: string }>> {
-  return apiClient.post('/auth/refresh', dto);
-}
+  internalLogin: (dto: LoginDto) =>
+    apiClient.post<AuthResponse>("/auth/internal/login", dto),
 
-export async function logout(): Promise<ApiResponse<void>> {
-  return apiClient.post('/auth/logout');
-}
+  register: (dto: RegisterDto) =>
+    apiClient.post<AuthResponse>("/auth/register", dto),
+
+  adminRegister: (dto: Record<string, any>) =>
+    apiClient.post<{ message: string }>("/auth/internal/register", dto),
+
+  verifyEmail: (dto: { email: string; code: string }) =>
+    apiClient.post<{ message: string }>("/auth/verify-email", dto),
+
+  resendVerification: (dto: { email: string }) =>
+    apiClient.post<{ message: string }>("/auth/resend-verification", dto),
+
+  sendPhoneOtp: (dto: { phone: string }) =>
+    apiClient.post<{ message: string }>("/auth/send-phone-otp", dto),
+
+  verifyPhoneOtp: (dto: { phone: string; code: string }) =>
+    apiClient.post<{ message: string }>("/auth/verify-phone-otp", dto),
+
+  refresh: () => apiClient.post<TokenPair>("/auth/refresh"),
+
+  logout: () => apiClient.post<void>("/auth/logout"),
+
+  forgotPassword: (email: string) =>
+    apiClient.post<{ message: string }>("/auth/forgot-password", { email }),
+
+  me: () => apiClient.get<{ user: AuthResponse["user"] }>("/auth/me"),
+
+  resetPassword: (dto: { token: string; newPassword: string }) =>
+    apiClient.post<{ message: string }>("/auth/reset-password", dto),
+
+  verifyStaffToken: (token: string) =>
+    apiClient.post<{ verified: boolean }>("/auth/internal/verify-token", {
+      token,
+    }),
+
+  updateProfile: (dto: any) =>
+    apiClient.patch<AuthResponse>("/auth/profile", dto),
+
+  changePassword: (dto: any) =>
+    apiClient.post<{ message: string }>("/auth/change-password", dto),
+};

@@ -3,11 +3,30 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import { Request } from 'express';
+
+const cookieExtractor = (req: Request): string | null => {
+  let token = null;
+  if (req && req.cookies && req.cookies['hwos_refresh_token']) {
+    token = req.cookies['hwos_refresh_token'];
+  }
+
+  // Non-production fallback to support easy Postman/Swagger testing without
+  // cookie manipulation. Production strictly enforces purely HttpOnly cookies.
+  if (process.env.NODE_ENV !== 'production') {
+    if (!token && req.body && req.body.refreshToken) {
+      token = req.body.refreshToken;
+    }
+  }
+
+  return token;
+};
+
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
   constructor(configService: ConfigService) {
     super({
-      jwtFromRequest: ExtractJwt.fromBodyField('refreshToken'),
+      jwtFromRequest: ExtractJwt.fromExtractors([cookieExtractor]),
       ignoreExpiration: false,
       secretOrKey: configService.get<string>('jwt.refreshSecret'),
     });
