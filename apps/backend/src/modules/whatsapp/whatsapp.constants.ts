@@ -3,16 +3,44 @@
 // ---------------------------------------------------------------------------
 
 /** Numbered menu shown to linked merchants */
-export const MAIN_MENU = `Here's what I can help you with:
+export const MAIN_MENU = `Welcome back! 🤝 Here's what I fit help you with:
 
-1️⃣ Sales Summary
-2️⃣ Pending RFQs
-3️⃣ Inventory Check
-4️⃣ Respond to RFQ
-5️⃣ Update Stock
-6️⃣ My Products
+1️⃣ Sales Summary — "How market?"
+2️⃣ Pending RFQs — "Any new order?"
+3️⃣ Inventory Check — "Wetin dey my store?"
+4️⃣ Respond to RFQ — "Quote [ref] at [price]"
+5️⃣ Update Stock — "Add 50 bags cement"
+6️⃣ My Products — "Wetin I dey sell?"
 
-Just type a number or tell me what you need!`;
+Just type a number or tell me wetin you need! 🤝`;
+
+/** Friendly fallback when AI can't determine intent */
+export const FRIENDLY_FALLBACK = `I no too understand that one o 😅 But no worry, here's what I fit help you with:
+
+1️⃣ Sales Summary — "How market?"
+2️⃣ Pending RFQs — "Any new order?"
+3️⃣ Inventory Check — "Wetin dey my store?"
+4️⃣ Respond to RFQ — "Quote [ref] at [price]"
+5️⃣ Update Stock — "Add 50 bags cement"
+6️⃣ My Products — "Wetin I dey sell?"
+
+Just tell me wetin you need! 🤝`;
+
+/** Follow-up when stock update is incomplete */
+export const STOCK_UPDATE_FOLLOWUP = `No wahala! Which product you wan update? And how many?
+
+For example: "add 50 bags cement" or "remove 10 iron rods"
+
+Say *6* if you wan see your products first.`;
+
+/** Follow-up when RFQ response is incomplete */
+export const RFQ_RESPOND_FOLLOWUP = `To respond to an RFQ, I need:
+• The RFQ reference (e.g. "a3f2")
+• Your price per unit in Naira
+
+Example: "quote a3f2 at 8500 per bag"
+
+Reply *2* to see your pending RFQs first.`;
 
 /** First message for an unlinked phone */
 export const WELCOME_MESSAGE = `Welcome to SwiftTrade! 🔗
@@ -57,15 +85,63 @@ export const NUMBER_INTENT_MAP: Record<string, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Gemini system prompt
+// Gemini system prompt — rich with Pidgin / Yoruba-English examples
 // ---------------------------------------------------------------------------
-export const SYSTEM_PROMPT = `You are SwiftTrade Bot, a WhatsApp assistant for hardware merchants in Lagos, Nigeria.
-Your job is to understand what the merchant wants and call the right function.
-Merchants may write in English, Pidgin English, or a mix.
-Examples: "how market today" = get_sales_summary, "wetin dey my store" = get_inventory, "I wan add 50 bags cement" = update_stock.
-If you cannot determine the intent, return the show_menu function.
-Always be friendly and use emojis sparingly.
-Never make up data — only call functions to retrieve real data.`;
+export const SYSTEM_PROMPT = `You are SwiftTrade Bot, a friendly AI assistant for hardware merchants in Lagos, Nigeria.
+
+YOUR JOB: Understand what the merchant wants and call the right function. That's it.
+
+LANGUAGE: Merchants write in English, Pidgin English, Yoruba-English mix, or short slang. You must understand all of these. Examples:
+
+Sales/Revenue queries:
+- "how market" → get_sales_summary (today)
+- "how market dey be naa" → get_sales_summary (today)
+- "how much I sell today" → get_sales_summary (today)
+- "wetin I sell this week" → get_sales_summary (this_week)
+- "my sales" → get_sales_summary (today)
+- "anything for me today?" → get_sales_summary (today)
+- "how business" → get_sales_summary (today)
+- "market summary" → get_sales_summary (today)
+
+RFQ queries:
+- "any new order?" → get_pending_rfqs
+- "anybody wan buy?" → get_pending_rfqs
+- "check my rfq" → get_pending_rfqs
+- "pending orders" → get_pending_rfqs
+- "new request" → get_pending_rfqs
+- "who dey find goods" → get_pending_rfqs
+
+Inventory queries:
+- "wetin dey my store" → get_inventory
+- "check my stock" → get_inventory
+- "I want to see inventory" → get_inventory
+- "how many cement I get" → get_inventory (productName: "cement")
+- "my goods" → get_inventory
+- "warehouse" → get_inventory
+
+Stock updates:
+- "add 50 bags cement" → update_stock (productName: "cement", quantity: 50, action: "add")
+- "I just receive 100 iron rod" → update_stock (productName: "iron rod", quantity: 100, action: "add")
+- "remove 20 bags cement" → update_stock (productName: "cement", quantity: 20, action: "remove")
+- "50 blocks don sell" → update_stock (productName: "blocks", quantity: 50, action: "remove")
+
+Product queries:
+- "my products" → get_products
+- "wetin I dey sell" → get_products
+- "show me my listings" → get_products
+
+RFQ responses:
+- "quote a3f2 at 8500 per bag" → respond_to_rfq (rfqReference: "a3f2", unitPriceNaira: 8500)
+- "give am price 8500 delivery 15000" → respond_to_rfq (unitPriceNaira: 8500, deliveryFeeNaira: 15000)
+
+Greetings (show menu):
+- "hi", "hello", "hey", "good morning", "menu", "help" → show_menu
+
+RULES:
+- If you understand what they want, call the function. DO NOT show the menu.
+- If you partially understand (e.g., they want to update stock but didn't say which product), still call the function with whatever params you have.
+- Only show the menu if you truly cannot determine their intent.
+- Never say "I don't understand" — always try your best to match an intent.`;
 
 // ---------------------------------------------------------------------------
 // Gemini function declarations (for function calling)
@@ -73,83 +149,74 @@ Never make up data — only call functions to retrieve real data.`;
 export const GEMINI_FUNCTION_DECLARATIONS = [
   {
     name: 'get_sales_summary',
-    description: "Get merchant's sales/revenue summary for a time period",
+    description: "Get merchant sales/revenue summary. Triggered by: 'how market', 'my sales', 'how much I sell', 'how business'",
     parameters: {
       type: 'object' as const,
       properties: {
         timeframe: {
           type: 'string',
           enum: ['today', 'this_week', 'this_month', 'all_time'],
-          description: 'Time period for the summary. Defaults to today.',
+          description: 'Time period for summary. Default: today',
         },
       },
     },
   },
   {
     name: 'get_pending_rfqs',
-    description: 'Get list of open/pending RFQs (Request for Quotes) for the merchant',
+    description: "Get open/pending RFQs for the merchant. Triggered by: 'any new order', 'pending orders', 'anybody wan buy', 'check rfq'",
     parameters: { type: 'object' as const, properties: {} },
   },
   {
     name: 'get_inventory',
-    description: 'Get current stock levels for all products or a specific product',
+    description: "Get stock levels for all or specific product. Triggered by: 'check my stock', 'wetin dey my store', 'inventory', 'my goods'",
     parameters: {
       type: 'object' as const,
       properties: {
         productName: {
           type: 'string',
-          description: 'Optional: specific product name to check stock for',
+          description: 'Optional specific product to check',
         },
       },
-    },
-  },
-  {
-    name: 'respond_to_rfq',
-    description: 'Submit a quote/price for an RFQ',
-    parameters: {
-      type: 'object' as const,
-      properties: {
-        rfqReference: {
-          type: 'string',
-          description: 'The RFQ ID or short reference (first 4 chars of UUID)',
-        },
-        unitPriceNaira: {
-          type: 'number',
-          description: 'Price per unit in Naira',
-        },
-        deliveryFeeNaira: {
-          type: 'number',
-          description: 'Delivery fee in Naira (optional)',
-        },
-      },
-      required: ['rfqReference', 'unitPriceNaira'],
     },
   },
   {
     name: 'update_stock',
-    description: 'Add or remove inventory stock for a product',
+    description: "Add or remove inventory stock. Triggered by: 'add 50 bags cement', 'remove 10 rods', 'I just receive 100 iron', 'restock'",
     parameters: {
       type: 'object' as const,
       properties: {
-        productName: { type: 'string', description: 'Product name or partial name' },
-        quantity: { type: 'number', description: 'Number of units to add or remove' },
+        productName: { type: 'string', description: 'Product name' },
+        quantity: { type: 'number', description: 'Quantity to add or remove' },
         action: {
           type: 'string',
           enum: ['add', 'remove'],
-          description: 'Whether to add or remove stock. Defaults to add.',
+          description: 'Whether to add or remove stock',
         },
       },
-      required: ['productName', 'quantity'],
+      required: ['productName', 'quantity', 'action'],
     },
   },
   {
     name: 'get_products',
-    description: "List all merchant's products with stock levels",
+    description: "List all merchant products. Triggered by: 'my products', 'wetin I dey sell', 'show listings'",
     parameters: { type: 'object' as const, properties: {} },
   },
   {
+    name: 'respond_to_rfq',
+    description: "Submit a quote for an RFQ. Triggered by: 'quote a3f2 at 8500', 'give am price 8500'",
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        rfqReference: { type: 'string', description: 'RFQ ID or short reference' },
+        unitPriceNaira: { type: 'number', description: 'Price per unit in Naira' },
+        deliveryFeeNaira: { type: 'number', description: 'Delivery fee in Naira' },
+      },
+      required: ['unitPriceNaira'],
+    },
+  },
+  {
     name: 'show_menu',
-    description: 'Show the main menu of available commands',
+    description: 'Show the main menu ONLY when intent is truly unclear or user explicitly asks for help/menu',
     parameters: { type: 'object' as const, properties: {} },
   },
 ];

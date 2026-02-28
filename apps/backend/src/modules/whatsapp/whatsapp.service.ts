@@ -11,6 +11,9 @@ import { WhatsAppIntentService, ParsedIntent } from './whatsapp-intent.service';
 import {
   MAIN_MENU,
   GENERIC_ERROR,
+  FRIENDLY_FALLBACK,
+  STOCK_UPDATE_FOLLOWUP,
+  RFQ_RESPOND_FOLLOWUP,
   META_API_VERSION,
 } from './whatsapp.constants';
 import { RFQStatus, OrderStatus } from '@hardware-os/shared';
@@ -63,7 +66,7 @@ export class WhatsAppService {
         return;
       }
 
-      // 2. Parse intent
+      // 2. Parse intent (numbers → AI → keyword fallback)
       const intent = await this.intentService.parseIntent(messageText);
       this.logger.log(
         `Intent: ${intent.functionName} | Params: ${JSON.stringify(intent.params)} | Phone: ${phone}`,
@@ -119,6 +122,8 @@ export class WhatsAppService {
           );
         case 'get_products':
           return this.handleGetProducts(merchantId);
+        case 'friendly_fallback':
+          return FRIENDLY_FALLBACK;
         case 'show_menu':
         default:
           return MAIN_MENU;
@@ -132,12 +137,11 @@ export class WhatsAppService {
   }
 
   // =======================================================================
-  // Command handlers
+  // Command handlers — warm, conversational Pidgin/Lagos tone
   // =======================================================================
 
   /**
-   * 📊 Sales Summary — uses direct Prisma query for timeframe filtering
-   * (OrderService.getMerchantSummary doesn't support timeframes)
+   * 📊 Sales Summary
    */
   private async handleSalesSummary(
     merchantId: string,
@@ -185,15 +189,21 @@ export class WhatsAppService {
       where: { merchantId, status: RFQStatus.OPEN },
     });
 
-    let msg = `📊 *Your Sales Summary* (${timeframeLabel})\n\n`;
-    msg += `Orders completed: *${orders.length}*\n`;
-    msg += `Total revenue: *${this.formatNaira(totalRevenue)}*\n`;
-    if (topSeller) {
-      msg += `Top seller: ${topSeller[0]} (${topSeller[1]} orders)\n`;
+    let msg = `📊 *Oga, here's how market dey* (${timeframeLabel}):\n\n`;
+
+    if (orders.length === 0) {
+      msg += `E never move ${timeframe === 'today' ? 'today' : 'for this period'}, but no worry — day never end! 💪\n`;
+    } else {
+      msg += `✅ Orders completed: *${orders.length}*\n`;
+      msg += `💰 Total revenue: *${this.formatNaira(totalRevenue)}*\n`;
+      if (topSeller) {
+        msg += `🏆 Top seller: ${topSeller[0]} (${topSeller[1]} orders)\n`;
+      }
     }
-    msg += `\nPending RFQs: *${pendingRfqs}*`;
+
+    msg += `\n📋 Pending RFQs: *${pendingRfqs}*`;
     if (pendingRfqs > 0) {
-      msg += `\n💡 Reply *2* to view pending RFQs`;
+      msg += `\nYou get people waiting for your price o! Say *"check rfq"* to see them.`;
     }
 
     return msg;
@@ -207,26 +217,29 @@ export class WhatsAppService {
     const rfqs = result.data.filter((r: any) => r.status === RFQStatus.OPEN);
 
     if (rfqs.length === 0) {
-      return '📋 No pending RFQs right now. You\'re all caught up! ✅\n\n💡 Reply *1* for sales summary';
+      return '📋 No pending RFQs right now. You dey free! ✅\n\n💡 Say *"how market"* to check your sales.';
     }
 
-    let msg = `📋 You have *${rfqs.length}* pending RFQ${rfqs.length > 1 ? 's' : ''}:\n`;
+    let msg = `📋 You get *${rfqs.length}* pending RFQ${rfqs.length > 1 ? 's' : ''}:\n`;
 
     rfqs.forEach((rfq: any, i: number) => {
       const shortId = rfq.id.substring(0, 4);
       const productName = rfq.product?.name || 'Custom Item';
       const unit = rfq.product?.unit || 'units';
+      const buyerName = rfq.user
+        ? `${rfq.user.firstName} ${rfq.user.lastName}`
+        : 'A buyer';
       const expiresAt = new Date(rfq.expiresAt);
       const expiresIn = this.formatTimeRemaining(expiresAt);
       const address = rfq.deliveryAddress || 'Not specified';
-      const location = address.split(',')[0].trim(); // First part of address
+      const location = address.split(',')[0].trim();
 
-      msg += `\n${i + 1}. RFQ #${shortId} — ${rfq.quantity} ${unit} ${productName}`;
+      msg += `\n${i + 1}. *${buyerName}* wan buy ${rfq.quantity} ${unit} ${productName}`;
       msg += `\n   📍 ${location} | ⏰ ${expiresIn}`;
+      msg += `\n   🏷️ Ref: #${shortId}`;
     });
 
-    msg += `\n\nReply: "quote [RFQ#] at [price] per [unit]"`;
-    msg += `\nExample: "quote ${rfqs[0].id.substring(0, 4)} at 8500 per bag"`;
+    msg += `\n\nTo quote, just say: "quote ${rfqs[0].id.substring(0, 4)} at [price] per [unit]"`;
 
     return msg;
   }
@@ -251,15 +264,16 @@ export class WhatsAppService {
       });
 
       if (products.length === 0) {
-        return `📦 No products matching "${productName}" found.\n\n💡 Reply *6* to see all your products`;
+        return `📦 No products matching "${productName}" found.\n\n💡 Say *"my products"* to see all your listings.`;
       }
 
-      let msg = `📦 *Inventory for "${productName}":*\n`;
+      let msg = `📦 *Stock for "${productName}":*\n`;
       for (const p of products) {
         const stock = p.productStockCache?.stock ?? 0;
-        msg += `\n${p.name} — *${stock} ${p.unit}s*`;
+        const lowStock = stock <= 10 ? ' ⚠️ _Low stock!_' : '';
+        msg += `\n• ${p.name} — *${stock} ${p.unit}s*${lowStock}`;
       }
-      msg += `\n\n💡 Reply *5* to update stock`;
+      msg += `\n\nWant to update? Just say: "add 50 ${products[0].unit}s ${products[0].name}"`;
       return msg;
     }
 
@@ -271,16 +285,26 @@ export class WhatsAppService {
     });
 
     if (products.length === 0) {
-      return '📦 You haven\'t listed any products yet.\n\nAdd products on the SwiftTrade web app to get started!';
+      return '📦 You never list any product yet.\n\nAdd products on the SwiftTrade web app to get started! 🛒';
     }
 
-    let msg = '📦 *Your Inventory:*\n';
+    let msg = '📦 *Your Stock Levels:*\n';
+    const lowStockItems: string[] = [];
+
     for (const p of products) {
       const stock = p.productStockCache?.stock ?? 0;
       const lowStock = stock <= 10 ? ' ⚠️' : '';
-      msg += `\n${p.name} — *${stock} ${p.unit}s*${lowStock}`;
+      msg += `\n• ${p.name} — *${stock} ${p.unit}s*${lowStock}`;
+      if (stock <= 10) {
+        lowStockItems.push(`${p.name} (${stock} left)`);
+      }
     }
-    msg += `\n\n💡 Reply *5* to update stock`;
+
+    if (lowStockItems.length > 0) {
+      msg += `\n\n⚠️ *Low stock alert:* ${lowStockItems.join(', ')} — consider restocking!`;
+    }
+
+    msg += `\n\nWant to update any? Just tell me like: "add 50 bags cement"`;
 
     return msg;
   }
@@ -295,11 +319,10 @@ export class WhatsAppService {
     deliveryFeeNaira?: number,
   ): Promise<string> {
     if (!rfqReference || !unitPriceNaira) {
-      return `To respond to an RFQ, I need:\n• The RFQ reference (e.g. "a3f2")\n• Your price per unit in Naira\n\nExample: "quote a3f2 at 8500 per bag"\n\nReply *2* to see your pending RFQs first.`;
+      return RFQ_RESPOND_FOLLOWUP;
     }
 
     // Find the RFQ by short reference (first chars of UUID)
-    // UUID fields don't support startsWith in Prisma, so we fetch open RFQs and filter
     const openRfqs = await this.prisma.rfq.findMany({
       where: {
         merchantId,
@@ -312,7 +335,7 @@ export class WhatsAppService {
     const rfq = openRfqs.find((r) => r.id.toLowerCase().startsWith(refLower));
 
     if (!rfq) {
-      return `❌ RFQ #${rfqReference} not found or already responded to.\n\nReply *2* to see your pending RFQs.`;
+      return `❌ RFQ #${rfqReference} not found or already responded to.\n\nSay *"check rfq"* to see your pending RFQs.`;
     }
 
     // Convert Naira to kobo
@@ -337,7 +360,7 @@ export class WhatsAppService {
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       if (errorMsg.includes('not open')) {
-        return `❌ This RFQ is no longer open for quotes.`;
+        return `❌ This RFQ don close already. E no dey open for quotes again.`;
       }
       throw error;
     }
@@ -346,14 +369,14 @@ export class WhatsAppService {
     const unit = rfq.product?.unit || 'unit';
     const grandTotal = Number(totalPriceKobo + deliveryFeeKobo);
 
-    let msg = `✅ *Quote submitted!*\n\n`;
-    msg += `RFQ: #${rfqReference} — ${rfq.quantity} ${unit}s ${productName}\n`;
-    msg += `Your price: ${this.formatNaira(Number(unitPriceKobo))}/${unit}\n`;
+    let msg = `✅ *Done! Quote submitted!* 🤝\n\n`;
+    msg += `📦 RFQ #${rfqReference} — ${rfq.quantity} ${unit}s ${productName}\n`;
+    msg += `💰 Your price: ${this.formatNaira(Number(unitPriceKobo))}/${unit}\n`;
     if (deliveryFeeNaira && deliveryFeeNaira > 0) {
-      msg += `Delivery: ${this.formatNaira(Number(deliveryFeeKobo))}\n`;
+      msg += `🚛 Delivery: ${this.formatNaira(Number(deliveryFeeKobo))}\n`;
     }
-    msg += `Total: *${this.formatNaira(grandTotal)}*\n\n`;
-    msg += `The buyer will be notified. You'll hear back when they respond! 🤝`;
+    msg += `💵 Total: *${this.formatNaira(grandTotal)}*\n\n`;
+    msg += `The buyer go see your quote now. I go notify you when dem respond! 🤝`;
 
     return msg;
   }
@@ -368,7 +391,7 @@ export class WhatsAppService {
     action?: string,
   ): Promise<string> {
     if (!productName || !quantity) {
-      return `To update stock, I need:\n• Product name\n• Quantity to add or remove\n\nExample: "add 50 bags cement" or "remove 10 iron rods"\n\nReply *6* to see your products first.`;
+      return STOCK_UPDATE_FOLLOWUP;
     }
 
     // Fuzzy match product by name
@@ -382,7 +405,7 @@ export class WhatsAppService {
     });
 
     if (!product) {
-      return `❌ No product matching "${productName}" found.\n\nReply *6* to see your products.`;
+      return `❌ No product matching "${productName}" found.\n\nSay *"my products"* to see your listings.`;
     }
 
     const isRemove = action === 'remove';
@@ -404,9 +427,15 @@ export class WhatsAppService {
     const currentStock = (product.productStockCache?.stock ?? 0) + adjustedQty;
     const symbol = isRemove ? '-' : '+';
 
-    let msg = `✅ *Stock updated!*\n\n`;
+    let msg = `✅ *Done!*\n\n`;
     msg += `${product.name}: ${symbol}${Math.abs(quantity)} ${product.unit}s\n`;
     msg += `New total: *${currentStock} ${product.unit}s*`;
+
+    if (currentStock <= 20 && currentStock > 0) {
+      msg += `\n\n⚠️ Stock dey go down o. Consider restocking soon!`;
+    } else if (currentStock <= 0) {
+      msg += `\n\n🚨 *Out of stock!* Restock ASAP to avoid missing orders.`;
+    }
 
     return msg;
   }
@@ -419,19 +448,19 @@ export class WhatsAppService {
     const products = result.data;
 
     if (products.length === 0) {
-      return '📋 You haven\'t listed any products yet.\n\nAdd products on the SwiftTrade web app!';
+      return '🏪 You never list any product yet.\n\nAdd products for your SwiftTrade store on the web app! 🛒';
     }
 
-    let msg = `📋 *Your Products (${products.length}):*\n`;
+    let msg = `🏪 *Your Products (${products.length}):*\n`;
 
     for (const p of products) {
-      const stock = (p as any).stockCache?.stock ?? 0;
+      const stock = (p as any).productStockCache?.stock ?? (p as any).stockCache?.stock ?? '?';
       const status = (p as any).isDeleted ? '🔴' : p.isActive ? '🟢' : '🟡';
-      msg += `\n${status} ${p.name} — ${stock} ${p.unit}s`;
+      msg += `\n${status} ${p.name} (${p.unit}) — Stock: ${stock}`;
     }
 
     msg += `\n\n🟢 Active  🟡 Inactive  🔴 Deleted`;
-    msg += `\n\n💡 Reply *3* to check inventory details`;
+    msg += `\n\n💡 Say *"check stock"* for detailed inventory`;
 
     return msg;
   }
@@ -460,12 +489,12 @@ export class WhatsAppService {
       const shortId = rfqData.rfqId.substring(0, 4);
 
       let msg = `🚨 *New RFQ Alert!*\n\n`;
-      msg += `Buyer: ${rfqData.buyerName}\n`;
-      msg += `Product: ${rfqData.productName}\n`;
-      msg += `Quantity: ${rfqData.quantity}\n`;
-      msg += `Delivery to: ${rfqData.deliveryAddress}\n`;
-      msg += `Expires: 48 hours\n\n`;
-      msg += `Reply "quote ${shortId} at [price] per [unit]" to respond now!`;
+      msg += `👤 Buyer: ${rfqData.buyerName}\n`;
+      msg += `📦 Product: ${rfqData.productName}\n`;
+      msg += `🔢 Quantity: ${rfqData.quantity}\n`;
+      msg += `📍 Delivery to: ${rfqData.deliveryAddress}\n`;
+      msg += `⏰ Expires: 48 hours\n\n`;
+      msg += `Reply "quote ${shortId} at [price] per [unit]" to respond now! 💰`;
 
       await this.sendWhatsAppMessage(link.phone, msg);
       this.logger.log(`RFQ push notification sent to merchant ${merchantId} (phone: ${link.phone})`);
@@ -574,7 +603,7 @@ export class WhatsAppService {
 
     if (days > 1) return `Expires in ${days} days`;
     if (days === 1) return 'Expires tomorrow';
-    if (hours > 1) return `Expires in ${hours} hours`;
-    return 'Expires soon';
+    if (hours > 1) return `Expires in ${hours}hrs`;
+    return 'Expires soon ⚡';
   }
 }
