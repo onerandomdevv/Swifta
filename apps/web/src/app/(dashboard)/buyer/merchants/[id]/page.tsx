@@ -308,7 +308,7 @@ export default function BuyerMerchantProfilePage() {
 
               <div className="mt-10 pt-8 border-t border-white/10">
                 <p className="text-[10px] font-medium text-white/40 leading-relaxed italic">
-                  *Logistics information is verified by Hardware OS field agents
+                  *Logistics information is verified by SwiftTrade field agents
                   regularly.
                 </p>
               </div>

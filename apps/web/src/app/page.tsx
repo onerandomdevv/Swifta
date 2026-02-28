@@ -19,6 +19,7 @@ const slides = [
 
 export default function LandingPage() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -27,44 +28,60 @@ export default function LandingPage() {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
     <div className="min-h-screen bg-white text-slate-900 antialiased font-display">
       {/* ─── NAVBAR ─── */}
-      <header className="fixed top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Logo variant="light" size="md" />
-          </Link>
-          <nav className="hidden md:flex items-center gap-8">
-            <a
-              href="#how-it-works"
-              className="text-sm font-semibold text-slate-600 hover:text-primary transition-colors"
-            >
-              How it Works
-            </a>
-            <a
-              href="#why"
-              className="text-sm font-semibold text-slate-600 hover:text-primary transition-colors"
-            >
-              Why Us
-            </a>
-          </nav>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="text-sm font-bold text-slate-700 px-4 py-2 border border-slate-200 rounded-lg hover:border-primary hover:text-primary transition-all"
-            >
-              Sign In
+      <div className="fixed top-0 z-50 w-full">
+        {/* Accent stripe */}
+        <div className="h-[2px] bg-primary w-full" />
+        <header
+          className={`w-full transition-all duration-300 ${
+            scrolled
+              ? "bg-deep-blue/95 backdrop-blur-md shadow-lg shadow-black/10"
+              : "bg-transparent"
+          }`}
+        >
+          <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-2">
+              <Logo variant="dark" size="md" />
             </Link>
-            <Link
-              href="/register"
-              className="bg-primary hover:bg-primary-dark text-white text-sm font-bold px-5 py-2.5 rounded-lg transition-all shadow-md shadow-primary/20"
-            >
-              Get Started
-            </Link>
+            <nav className="hidden md:flex items-center gap-8">
+              <a
+                href="#how-it-works"
+                className="text-sm font-semibold text-white/70 hover:text-primary transition-colors"
+              >
+                How it Works
+              </a>
+              <a
+                href="#why"
+                className="text-sm font-semibold text-white/70 hover:text-primary transition-colors"
+              >
+                Why Us
+              </a>
+            </nav>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/login"
+                className="text-sm font-bold text-white/80 px-4 py-2 border border-white/20 rounded-lg hover:border-primary hover:text-primary transition-all"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/register"
+                className="bg-primary hover:bg-primary-dark text-white text-sm font-bold px-5 py-2.5 rounded-lg transition-all shadow-md shadow-primary/30"
+              >
+                Get Started
+              </Link>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      </div>
 
       {/* ─── HERO SECTION WITH SLIDESHOW ─── */}
       <section className="relative min-h-screen flex items-center overflow-hidden bg-deep-blue">

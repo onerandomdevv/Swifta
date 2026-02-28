@@ -550,7 +550,7 @@ export class AuthService {
       if (this.smsClient) {
         await this.smsClient.send({
           to: [phone],
-          message: `Your HARDWARE OS verification code is ${otp}. It expires in 5 minutes.`,
+          message: `Your SwiftTrade verification code is ${otp}. It expires in 5 minutes.`,
           from: this.configService.get<string>("africastalking.senderId"),
         });
       } else {

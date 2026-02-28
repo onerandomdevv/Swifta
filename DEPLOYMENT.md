@@ -1,6 +1,6 @@
 # Server Deployment Guide (Render)
 
-This guide takes you step-by-step through deploying the HARDWARE OS Backend to Render, connecting your database, and launching the Frontend on Vercel.
+This guide takes you step-by-step through deploying the SwiftTrade Backend to Render, connecting your database, and launching the Frontend on Vercel.
 
 ## Step 1: Prepare Your Database & Cache
 
@@ -72,7 +72,7 @@ Now that the backend is running, you must create all the tables in your live Sup
    ```bash
    npx prisma migrate deploy
    ```
-   _This analyzes your database and safely applies all the tables needed for HARDWARE OS._
+   _This analyzes your database and safely applies all the tables needed for SwiftTrade._
 
 ---
 
@@ -117,4 +117,4 @@ Once Vercel finishes deploying, your frontend is live! One last step is required
 4. Replace `*` with your Vercel URL: `https://hardware-os.vercel.app`
 5. Save the changes. Render will automatically restart your backend.
 
-**Congratulations! HARDWARE OS is now fully live and securely linked!** 🎉
+**Congratulations! SwiftTrade is now fully live and securely linked!** 🎉
