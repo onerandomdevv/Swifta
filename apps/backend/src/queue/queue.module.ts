@@ -11,11 +11,20 @@ import {
 @Module({
   imports: [
     BullModule.forRootAsync({
-      useFactory: (configService: ConfigService) => ({
-        connection: {
-          url: configService.get("redis.url"),
-        },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const redisUrlString =
+          configService.get<string>("redis.url") || "redis://127.0.0.1:6379";
+        const redisUrl = new URL(redisUrlString);
+        return {
+          connection: {
+            host: redisUrl.hostname,
+            port: parseInt(redisUrl.port, 10) || 6379,
+            password: redisUrl.password || undefined,
+            username: redisUrl.username || undefined,
+            tls: redisUrl.protocol === "rediss:" ? {} : undefined,
+          },
+        };
+      },
       inject: [ConfigService],
     }),
     BullModule.registerQueue(
