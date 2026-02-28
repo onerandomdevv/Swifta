@@ -1,0 +1,21 @@
+{
+  "name": "SwiftTrade",
+  "short_name": "SwiftTrade",
+  "description": "B2B Trade Platform for Construction Materials",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F2B4C",
+  "theme_color": "#00C853",
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
