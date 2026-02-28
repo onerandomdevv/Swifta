@@ -56,6 +56,7 @@ export class QuoteController {
   }
 
   @Get("rfq/:rfqId")
+  @Roles(UserRole.BUYER)
   getByRFQ(@Param("rfqId", ParseUUIDPipe) rfqId: string) {
     return this.quoteService.getByRFQ(rfqId);
   }

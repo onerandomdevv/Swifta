@@ -1,4 +1,5 @@
 import { QuoteStatus } from "../enums/quote-status.enum";
+import { MerchantProfile } from "./merchant.types";
 
 export interface Quote {
   id: string;
@@ -13,7 +14,7 @@ export interface Quote {
   status: QuoteStatus;
   createdAt: Date;
   merchant?: any;
-  merchantProfile?: any;
+  merchantProfile?: Partial<MerchantProfile>;
 }
 
 export interface SubmitQuoteDto {

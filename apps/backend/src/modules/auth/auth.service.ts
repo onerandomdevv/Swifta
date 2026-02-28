@@ -605,8 +605,12 @@ export class AuthService {
       firstName: dto.firstName,
       middleName: dto.middleName,
       lastName: dto.lastName,
-      phone: dto.phone,
     };
+
+    if (dto.phone && dto.phone !== user.phone) {
+      data.phone = dto.phone;
+      data.phoneVerified = false;
+    }
 
     if (dto.email && dto.email !== user.email) {
       const existingUser = await this.prisma.user.findUnique({

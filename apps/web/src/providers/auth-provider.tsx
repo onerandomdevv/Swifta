@@ -49,7 +49,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Routes where we should NOT redirect to /login on auth failure
   const isPublicAuthRoute =
-    /^\/(login|register|admin\/login|admin\/join|admin\/verify)/.test(pathname);
+    /^\/(login|register|admin\/login|admin\/join|admin\/verify)(?:\/|$)/.test(
+      pathname,
+    );
 
   const clearAuth = useCallback(() => {
     setUser(null);

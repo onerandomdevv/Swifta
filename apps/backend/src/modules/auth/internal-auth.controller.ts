@@ -66,7 +66,7 @@ export class InternalAuthController {
   @HttpCode(HttpStatus.OK)
   async verifyStaffToken(@Body("token") token: string, @Req() req: any) {
     return this.adminService.verifyStaffToken(
-      req.user.id,
+      req.user.sub,
       req.user.role,
       token,
     );

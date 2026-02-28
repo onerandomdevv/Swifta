@@ -18,23 +18,35 @@ export default function BuyerMerchantProfilePage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    let active = true;
     const fetchData = async () => {
       try {
+        setError("");
         setLoading(true);
         const [profileData, productsData] = await Promise.all([
           getPublicProfile(id as string),
           getPublicProductsByMerchant(id as string, 1, 50),
         ]);
-        setProfile(profileData);
-        setProducts(productsData as unknown as Product[]);
+
+        if (active) {
+          setProfile(profileData);
+          setProducts(productsData as unknown as Product[]);
+        }
       } catch (err: any) {
-        setError(err?.message || "Failed to load merchant profile");
+        if (active) {
+          setError(err?.message || "Failed to load merchant profile");
+        }
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     };
 
     if (id) fetchData();
+    return () => {
+      active = false;
+    };
   }, [id]);
 
   if (loading) {

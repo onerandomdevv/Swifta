@@ -34,30 +34,30 @@ Before deploying the backend code, you need a live database and cache.
 
 4. Scroll down to **Environment Variables** and click Add Environment Variable. Add all of these:
 
-| Key                        | Value                                                     |
-| -------------------------- | --------------------------------------------------------- |
-| `DATABASE_URL`             | _(The Supabase URL you copied in Step 1)_                 |
-| `REDIS_URL`                | _(The Render Internal Redis URL from Step 1)_             |
-| `PORT`                     | `4000`                                                    |
-| `JWT_ACCESS_SECRET`        | _(Any random long string, e.g., `my-super-secret`)_       |
-| `JWT_REFRESH_SECRET`       | _(Another random long string)_                            |
-| `JWT_ACCESS_TTL`           | `15m`                                                     |
-| `JWT_REFRESH_TTL`          | `7d`                                                      |
-| `PAYSTACK_SECRET_KEY`      | _(Your Paystack Test Secret Key from Paystack Dashboard)_ |
-| `PAYSTACK_PUBLIC_KEY`      | _(Your Paystack Test Public Key)_                         |
-| `PAYSTACK_WEBHOOK_SECRET`  | _(Same as your Secret Key)_                               |
-| `PAYSTACK_BASE_URL`        | `https://api.paystack.co`                                 |
-| `EMAIL_PROVIDER`           | `resend`                                                  |
-| `RESEND_API_KEY`           | _(Your Resend API Key for sending emails)_                |
-| `EMAIL_FROM`               | `onboarding@resend.dev`                                   |
-| `CLOUDINARY_CLOUD_NAME`    | _(Your Cloudinary Cloud Name)_                            |
-| `CLOUDINARY_API_KEY`       | _(Your Cloudinary API Key)_                               |
-| `CLOUDINARY_API_SECRET`    | _(Your Cloudinary API Secret)_                            |
-| `AT_USERNAME`              | `sandbox` _(or your Africa's Talking username)_           |
-| `AT_API_KEY`               | _(Your Africa's Talking API Key)_                         |
-| `ADMIN_BOOTSTRAP_EMAIL`    | `admin@swifttrade.ng` _(or your actual admin email)_      |
-| `ADMIN_BOOTSTRAP_PASSWORD` | `hardwareadmin` _(Change this!)_                          |
-| `CORS_ORIGINS`             | `*` _(We will change this to your Vercel URL later!)_     |
+| Key                        | Value                                                                                                                                                     |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`             | _(The Supabase URL you copied in Step 1)_                                                                                                                 |
+| `REDIS_URL`                | _(The Render Internal Redis URL from Step 1)_                                                                                                             |
+| `PORT`                     | `4000`                                                                                                                                                    |
+| `JWT_ACCESS_SECRET`        | _(Any random long string, e.g., `my-super-secret`)_                                                                                                       |
+| `JWT_REFRESH_SECRET`       | _(Another random long string)_                                                                                                                            |
+| `JWT_ACCESS_TTL`           | `15m`                                                                                                                                                     |
+| `JWT_REFRESH_TTL`          | `7d`                                                                                                                                                      |
+| `PAYSTACK_SECRET_KEY`      | _(Your Paystack Test Secret Key from Paystack Dashboard)_                                                                                                 |
+| `PAYSTACK_PUBLIC_KEY`      | _(Your Paystack Test Public Key)_                                                                                                                         |
+| `PAYSTACK_WEBHOOK_SECRET`  | _(Same as your Secret Key)_                                                                                                                               |
+| `PAYSTACK_BASE_URL`        | `https://api.paystack.co`                                                                                                                                 |
+| `EMAIL_PROVIDER`           | `resend`                                                                                                                                                  |
+| `RESEND_API_KEY`           | _(Your Resend API Key for sending emails)_                                                                                                                |
+| `EMAIL_FROM`               | `onboarding@resend.dev`                                                                                                                                   |
+| `CLOUDINARY_CLOUD_NAME`    | _(Your Cloudinary Cloud Name)_                                                                                                                            |
+| `CLOUDINARY_API_KEY`       | _(Your Cloudinary API Key)_                                                                                                                               |
+| `CLOUDINARY_API_SECRET`    | _(Your Cloudinary API Secret)_                                                                                                                            |
+| `AT_USERNAME`              | `sandbox` _(or your Africa's Talking username)_                                                                                                           |
+| `AT_API_KEY`               | _(Your Africa's Talking API Key)_                                                                                                                         |
+| `ADMIN_BOOTSTRAP_EMAIL`    | `admin@swifttrade.ng` _(Change if used!)_                                                                                                                 |
+| `ADMIN_BOOTSTRAP_PASSWORD` | _(Generate a strong secret, e.g. via your password manager. Set this as an env var)_                                                                      |
+| `CORS_ORIGINS`             | `https://your-vercel-domain.vercel.app` _(Explicitly list allowed origins for security! Ensure sameSite/secure cookie settings align with this for auth)_ |
 
 5. Click **Deploy Web Service**. Render will now install dependencies, build the code, and start the server.
 

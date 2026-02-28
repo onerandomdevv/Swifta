@@ -321,15 +321,17 @@ export class NotificationTriggerService {
     adminUserIds: string[],
     metadata: { merchantId: string; merchantName: string },
   ) {
-    for (const adminId of adminUserIds) {
-      await this.addJob(
-        adminId,
-        "NEW_MERCHANT_SUBMISSION",
-        "New Merchant Verification Pending",
-        `${metadata.merchantName} has submitted their account for verification.`,
-        { ...metadata },
-      );
-    }
+    await Promise.allSettled(
+      adminUserIds.map((adminId) =>
+        this.addJob(
+          adminId,
+          "NEW_MERCHANT_SUBMISSION",
+          "New Merchant Verification Pending",
+          `${metadata.merchantName} has submitted their account for verification.`,
+          { ...metadata },
+        ),
+      ),
+    );
   }
 
   async triggerPayoutRequested(
@@ -341,15 +343,17 @@ export class NotificationTriggerService {
       requestId: string;
     },
   ) {
-    for (const adminId of adminUserIds) {
-      await this.addJob(
-        adminId,
-        "PAYOUT_REQUESTED",
-        "New Payout Request",
-        `${metadata.merchantName} has requested a payout.`,
-        { ...metadata },
-      );
-    }
+    await Promise.allSettled(
+      adminUserIds.map((adminId) =>
+        this.addJob(
+          adminId,
+          "PAYOUT_REQUESTED",
+          "New Payout Request",
+          `${metadata.merchantName} has requested a payout.`,
+          { ...metadata },
+        ),
+      ),
+    );
   }
 
   async triggerMerchantPayoutRequestedConfirmation(
