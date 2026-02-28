@@ -608,8 +608,17 @@ export class AuthService {
     };
 
     if (dto.phone && dto.phone !== user.phone) {
-      data.phone = dto.phone;
-      data.phoneVerified = false;
+      const normalizedPhone = normalizePhone(dto.phone);
+      if (normalizedPhone !== user.phone) {
+        const existingUser = await this.prisma.user.findFirst({
+          where: { phone: normalizedPhone },
+        });
+        if (existingUser) {
+          throw new ConflictException("Phone number already in use");
+        }
+        data.phone = normalizedPhone;
+        data.phoneVerified = false;
+      }
     }
 
     if (dto.email && dto.email !== user.email) {

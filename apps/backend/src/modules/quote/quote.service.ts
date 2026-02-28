@@ -308,7 +308,19 @@ export class QuoteService {
     });
   }
 
-  async getByRFQ(rfqId: string) {
+  async getByRFQ(rfqId: string, buyerId: string) {
+    const rfq = await this.prisma.rfq.findUnique({
+      where: { id: rfqId },
+    });
+
+    if (!rfq) {
+      throw new NotFoundException("RFQ not found");
+    }
+
+    if (rfq.buyerId !== buyerId) {
+      throw new ForbiddenException("Access denied");
+    }
+
     return this.prisma.quote.findMany({
       where: { rfqId },
       orderBy: { createdAt: "desc" },

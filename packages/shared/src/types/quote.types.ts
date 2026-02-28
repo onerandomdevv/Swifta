@@ -14,7 +14,9 @@ export interface Quote {
   status: QuoteStatus;
   createdAt: Date;
   merchant?: any;
-  merchantProfile?: Partial<MerchantProfile>;
+  merchantProfile?: Partial<MerchantProfile> & {
+    user?: { phone: string; email: string };
+  };
 }
 
 export interface SubmitQuoteDto {
