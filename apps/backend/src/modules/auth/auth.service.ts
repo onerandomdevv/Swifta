@@ -454,6 +454,9 @@ export class AuthService {
     }
 
     const otp = randomInt(100000, 999999).toString();
+    this.logger.log(
+      `[DEVELOPMENT / SANDBOX] Generated OTP for ${email}: ${otp}`,
+    );
     await this.redis.set(`${EMAIL_OTP_PREFIX}${email}`, otp, EMAIL_OTP_TTL);
     await this.notificationTriggerService.triggerEmailVerification(
       user.id,
@@ -469,6 +472,9 @@ export class AuthService {
     email: string,
   ): Promise<void> {
     const otp = randomInt(100000, 999999).toString();
+    this.logger.log(
+      `[DEVELOPMENT / SANDBOX] Generated OTP for ${email}: ${otp}`,
+    );
 
     await this.redis.set(`${EMAIL_OTP_PREFIX}${email}`, otp, EMAIL_OTP_TTL);
 
