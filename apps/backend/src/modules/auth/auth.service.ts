@@ -573,7 +573,7 @@ export class AuthService {
 
     const otp = randomInt(100000, 999999).toString();
     this.logger.log(
-      `[DEVELOPMENT / LIVE] Generated SMS OTP for ${phone}: ${otp}`,
+      `[DEVELOPMENT / LIVE] Generated SMS OTP and queued delivery for ${phone}`,
     );
     await this.redis.set(
       `${PHONE_OTP_PREFIX}${phone}:${userId}`,
