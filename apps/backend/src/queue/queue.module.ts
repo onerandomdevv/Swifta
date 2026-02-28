@@ -5,6 +5,7 @@ import {
   NOTIFICATION_QUEUE,
   RFQ_EXPIRY_QUEUE,
   REORDER_REMINDER_QUEUE,
+  WHATSAPP_QUEUE,
 } from "./queue.constants";
 
 @Global()
@@ -35,6 +36,7 @@ import {
       { name: NOTIFICATION_QUEUE },
       { name: RFQ_EXPIRY_QUEUE },
       { name: REORDER_REMINDER_QUEUE },
+      { name: WHATSAPP_QUEUE },
     ),
   ],
   exports: [BullModule],
