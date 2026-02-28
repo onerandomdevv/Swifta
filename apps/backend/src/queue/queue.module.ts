@@ -21,7 +21,11 @@ import {
             port: parseInt(redisUrl.port, 10) || 6379,
             password: redisUrl.password || undefined,
             username: redisUrl.username || undefined,
-            tls: redisUrl.protocol === "rediss:" ? {} : undefined,
+            tls:
+              redisUrl.protocol === "rediss:"
+                ? { rejectUnauthorized: false }
+                : undefined,
+            family: 0,
           },
         };
       },
