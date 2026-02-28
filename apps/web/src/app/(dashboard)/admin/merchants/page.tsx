@@ -160,7 +160,7 @@ export default function AdminMerchantsQueuePage() {
                   >
                     <td className="p-4 md:p-6">
                       <p className="font-bold text-navy-dark dark:text-white group-hover:text-brand transition-colors">
-                        {merchant.businessName}
+                        {merchant?.businessName || "N/A"}
                       </p>
                       <p className="text-xs font-bold text-slate-500 uppercase mt-1">
                         {merchant.category || "General"} •{" "}
@@ -251,7 +251,7 @@ export default function AdminMerchantsQueuePage() {
                       Business Name
                     </span>
                     <span className="font-bold text-navy-dark dark:text-white">
-                      {selectedMerchant.businessName}
+                      {selectedMerchant?.businessName || "N/A"}
                     </span>
                   </div>
                   <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700">

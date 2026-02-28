@@ -186,7 +186,7 @@ export default function AdminOrdersPage() {
                       </td>
                       <td className="p-4 md:p-6">
                         <p className="font-bold text-sm text-navy-dark dark:text-white uppercase tracking-wider">
-                          {order.merchant.businessName}{" "}
+                          {order.merchant?.businessName || "N/A"}{" "}
                           <span className="text-slate-400 font-normal lowercase">
                             (Seller)
                           </span>

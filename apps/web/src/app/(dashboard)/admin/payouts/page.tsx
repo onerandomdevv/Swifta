@@ -114,7 +114,7 @@ export default function AdminPayoutsPage() {
                   >
                     <td className="p-4 md:p-6">
                       <p className="font-bold text-navy-dark dark:text-white group-hover:text-neon-cyan transition-colors">
-                        {payout.merchantProfile.businessName}
+                        {payout.merchantProfile?.businessName || "N/A"}
                       </p>
                       <p className="text-xs font-bold text-slate-500 mt-1">
                         {payout.merchantProfile.user.email}
@@ -208,7 +208,7 @@ export default function AdminPayoutsPage() {
                       Business Name
                     </span>
                     <span className="font-bold text-navy-dark dark:text-white">
-                      {selectedPayout.merchantProfile.businessName}
+                      {selectedPayout.merchantProfile?.businessName || "N/A"}
                     </span>
                   </div>
                   <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
