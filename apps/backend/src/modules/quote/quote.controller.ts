@@ -5,6 +5,7 @@ import {
   Param,
   UseGuards,
   Get,
+  Patch,
   ParseUUIDPipe,
 } from "@nestjs/common";
 import { QuoteService } from "./quote.service";
@@ -45,7 +46,7 @@ export class QuoteController {
     return this.quoteService.decline(user.sub, id);
   }
 
-  @Post(":id")
+  @Patch(":id")
   @Roles(UserRole.MERCHANT)
   update(
     @CurrentMerchant() merchantId: string,
