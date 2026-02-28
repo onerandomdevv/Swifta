@@ -14,7 +14,7 @@ interface AdminProduct {
   minOrderQuantity: number;
   isActive: boolean;
   createdAt: string;
-  merchant: {
+  merchantProfile?: {
     businessName: string;
   };
 }
@@ -111,7 +111,8 @@ export default function AdminInventoryPage() {
                     </td>
                     <td className="p-4 md:p-6">
                       <p className="font-bold text-sm text-slate-700 dark:text-slate-300">
-                        {product.merchant?.businessName || "Unknown Merchant"}
+                        {product.merchantProfile?.businessName ||
+                          "Unknown Merchant"}
                       </p>
                     </td>
                     <td className="p-4 md:p-6">

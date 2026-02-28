@@ -22,6 +22,7 @@ import { SendPhoneOtpDto } from "./dto/send-phone-otp.dto";
 import { VerifyPhoneOtpDto } from "./dto/verify-phone-otp.dto";
 import { ForgotPasswordDto } from "./dto/forgot-password.dto";
 import { ResetPasswordDto } from "./dto/reset-password.dto";
+import { UpdateProfileDto } from "./dto/update-profile.dto";
 import { JwtRefreshGuard } from "../../common/guards/jwt-refresh.guard";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { JwtPayload } from "@hardware-os/shared";
@@ -168,7 +169,10 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Patch("profile")
   @HttpCode(HttpStatus.OK)
-  async updateProfile(@CurrentUser() user: JwtPayload, @Body() dto: any) {
+  async updateProfile(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: UpdateProfileDto,
+  ) {
     return this.authService.updateProfile(user.sub, dto);
   }
 

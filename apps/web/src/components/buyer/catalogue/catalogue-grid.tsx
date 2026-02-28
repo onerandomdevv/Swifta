@@ -79,15 +79,20 @@ export function CatalogueGrid({
             </p>
 
             {/* Merchant Info */}
-            {p.merchant && (
-              <div className="flex items-center gap-1.5 mt-3">
-                <span className="material-symbols-outlined text-green-500 text-sm">
-                  verified
+            {p.merchantProfile && (
+              <Link
+                href={`/buyer/merchants/${p.merchantProfile.id}`}
+                className="flex items-center gap-1.5 mt-3 group/m hover:opacity-80 transition-opacity"
+              >
+                {p.merchantProfile.verification === "VERIFIED" && (
+                  <span className="material-symbols-outlined text-green-500 text-sm">
+                    verified
+                  </span>
+                )}
+                <span className="text-[11px] font-bold text-primary dark:text-primary-light truncate group-hover/m:underline decoration-1 underline-offset-2">
+                  {p.merchantProfile.businessName}
                 </span>
-                <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
-                  {p.merchant.businessName || "Verified Supplier"}
-                </span>
-              </div>
+              </Link>
             )}
 
             {/* Specs Table */}

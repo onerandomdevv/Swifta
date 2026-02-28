@@ -18,7 +18,7 @@ export class NotificationTriggerService {
       NotificationChannel.IN_APP,
       NotificationChannel.EMAIL,
     ],
-    options?: { removeOnFail?: boolean },
+    options?: { removeOnFail?: boolean; url?: string },
   ) {
     await this.queue.add(
       "send-notification",
@@ -29,6 +29,7 @@ export class NotificationTriggerService {
         body,
         channels,
         metadata,
+        url: options?.url,
       },
       {
         attempts: 3,
@@ -293,6 +294,111 @@ export class NotificationTriggerService {
       "Reorder Opportunity",
       `${metadata.buyerName} might need a restock of ${metadata.productName}. Send a quote?`,
       { ...metadata, isMerchantId: true },
+    );
+  }
+
+  async triggerMerchantVerified(userId: string) {
+    await this.addJob(
+      userId,
+      "MERCHANT_VERIFIED",
+      "Account Verified",
+      "Your merchant account has been successfully verified. You can now list products and receive quotes.",
+      {},
+    );
+  }
+
+  async triggerMerchantRejected(userId: string, reason?: string) {
+    await this.addJob(
+      userId,
+      "MERCHANT_REJECTED",
+      "Account Verification Rejected",
+      `Your merchant account verification was unsuccessful. ${reason ? "Reason: " + reason : "Please review your details and re-submit."}`,
+      { reason },
+    );
+  }
+
+  async triggerNewMerchantSubmission(
+    adminUserIds: string[],
+    metadata: { merchantId: string; merchantName: string },
+  ) {
+    for (const adminId of adminUserIds) {
+      await this.addJob(
+        adminId,
+        "NEW_MERCHANT_SUBMISSION",
+        "New Merchant Verification Pending",
+        `${metadata.merchantName} has submitted their account for verification.`,
+        { ...metadata },
+      );
+    }
+  }
+
+  async triggerPayoutRequested(
+    adminUserIds: string[],
+    metadata: {
+      merchantId: string;
+      merchantName: string;
+      amountKobo: string;
+      requestId: string;
+    },
+  ) {
+    for (const adminId of adminUserIds) {
+      await this.addJob(
+        adminId,
+        "PAYOUT_REQUESTED",
+        "New Payout Request",
+        `${metadata.merchantName} has requested a payout.`,
+        { ...metadata },
+      );
+    }
+  }
+
+  async triggerMerchantPayoutRequestedConfirmation(
+    userId: string,
+    metadata: { amountKobo: string; requestId: string },
+  ) {
+    await this.addJob(
+      userId,
+      "PAYOUT_REQUEST_RECEIVED",
+      "Payout Request Received",
+      `Your payout request has been received and is being processed.`,
+      { ...metadata },
+    );
+  }
+
+  async triggerOrderDisputed(
+    merchantId: string,
+    orderId: string,
+    reason: string,
+  ) {
+    // Notify Merchant
+    await this.addJob(
+      merchantId,
+      "ORDER_DISPUTED",
+      "Order Dispute Raised",
+      `A buyer has raised a dispute for Order #${orderId.slice(0, 8)}. Reason: ${reason}`,
+      { orderId, reason, isMerchantId: true },
+      [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+      { url: `/merchant/orders/${orderId}` },
+    );
+
+    // Notify Admins (Static broadcast for now, in a real app we'd fetch admin IDs)
+    // For now, the OrderService will handle the call if it has admin IDs,
+    // but here we just provide the capability.
+  }
+
+  async triggerOrderDisputeResolved(
+    userId: string,
+    orderId: string,
+    resolution: string,
+  ) {
+    await this.addJob(
+      userId,
+      "DISPUTE_RESOLVED",
+      "Dispute Resolved",
+      `The dispute for Order #${orderId.slice(0, 8)} has been resolved.`,
+      { orderId, resolution },
+      [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+      { url: `/buyer/orders/${orderId}` },
     );
   }
 }

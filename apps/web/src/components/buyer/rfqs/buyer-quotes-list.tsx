@@ -58,12 +58,12 @@ export function BuyerQuotesList({ quotes, acceptingId, onAcceptQuote }: Props) {
                   {quote.status !== "PENDING" && (
                     <StatusBadge status={quote.status} className="text-[9px]" />
                   )}
-                  {quote.merchant && (
+                  {quote.merchantProfile && (
                     <Link
-                      href={`/merchants/${quote.merchantId || quote.merchant.id}`}
+                      href={`/merchants/${quote.merchantId}`}
                       className="text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-primary transition-colors"
                     >
-                      {quote.merchant.businessName}
+                      {quote.merchantProfile.businessName}
                     </Link>
                   )}
                 </div>
@@ -170,9 +170,9 @@ export function BuyerQuotesList({ quotes, acceptingId, onAcceptQuote }: Props) {
                               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                                 WhatsApp Direct
                               </span>
-                              {quote.merchant?.phone ? (
+                              {quote.merchantProfile?.user?.phone ? (
                                 <a
-                                  href={`https://wa.me/${quote.merchant.phone
+                                  href={`https://wa.me/${quote.merchantProfile.user.phone
                                     .replace(/\D/g, "")
                                     .replace(/^0/, "234")
                                     .replace(/^(\d)/, (match: string) =>
@@ -182,7 +182,7 @@ export function BuyerQuotesList({ quotes, acceptingId, onAcceptQuote }: Props) {
                                   rel="noopener noreferrer"
                                   className="text-[11px] font-mono font-bold text-slate-900 dark:text-white hover:underline"
                                 >
-                                  {quote.merchant.phone}
+                                  {quote.merchantProfile.user.phone}
                                 </a>
                               ) : (
                                 <a

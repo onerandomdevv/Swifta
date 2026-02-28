@@ -452,7 +452,7 @@ export class OrderService {
   //  DISPUTE (buyer only, DISPATCHED only)
   // ──────────────────────────────────────────────
 
-  async dispute(buyerId: string, orderId: string) {
+  async reportIssue(buyerId: string, orderId: string, reason: string) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
     });
@@ -460,21 +460,49 @@ export class OrderService {
     if (order.buyerId !== buyerId)
       throw new ForbiddenException("Access denied");
 
-    if (order.status !== OrderStatus.DISPATCHED) {
+    // Issues can be raised for PAID or DISPATCHED orders
+    if (
+      order.status !== OrderStatus.DISPATCHED &&
+      order.status !== OrderStatus.PAID
+    ) {
       throw new BadRequestException(
-        "Disputes can only be raised for DISPATCHED orders",
+        "Issues can only be raised for PAID or DISPATCHED orders",
       );
     }
 
-    await this.transition(
-      orderId,
-      OrderStatus.DISPATCHED,
-      OrderStatus.DISPUTE,
-      buyerId,
-      { action: "dispute_raised" },
-    );
+    const updatedOrder = await this.prisma.order.update({
+      where: { id: orderId },
+      data: {
+        status: OrderStatus.DISPUTE,
+        disputeStatus: "PENDING",
+        disputeReason: reason,
+      },
+    });
 
-    return { message: "Order dispute raised" };
+    await this.prisma.orderEvent.create({
+      data: {
+        orderId,
+        fromStatus: order.status as OrderStatus,
+        toStatus: OrderStatus.DISPUTE,
+        triggeredBy: buyerId,
+        metadata: { action: "issue_reported", reason },
+      },
+    });
+
+    // Notify merchant and admin
+    try {
+      await this.notifications.triggerOrderDisputed(
+        order.merchantId,
+        orderId,
+        reason,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to send dispute notification: ${error instanceof Error ? error.message : error}`,
+      );
+    }
+
+    return updatedOrder;
   }
 
   // ──────────────────────────────────────────────

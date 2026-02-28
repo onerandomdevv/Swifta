@@ -18,6 +18,7 @@ import {
   PaymentStatus,
   PaymentDirection,
   OrderStatus,
+  UserRole,
 } from "@hardware-os/shared";
 import * as crypto from "crypto";
 
@@ -592,6 +593,33 @@ export class PaymentService {
         accountName: merchantProfile.bankAccountName,
       },
     });
+
+    // Notify Admins
+    const admins = await this.prisma.user.findMany({
+      where: {
+        role: { in: [UserRole.SUPER_ADMIN, UserRole.OPERATOR] },
+      },
+      select: { id: true },
+    });
+
+    const adminIds = admins.map((a) => a.id);
+    if (adminIds.length > 0) {
+      await this.notifications.triggerPayoutRequested(adminIds, {
+        merchantId,
+        merchantName: merchantProfile.businessName || "Unknown Merchant",
+        amountKobo: dto.amount.toString(),
+        requestId: payoutRequest.id,
+      });
+    }
+
+    // Notify Merchant
+    await this.notifications.triggerMerchantPayoutRequestedConfirmation(
+      merchantProfile.userId,
+      {
+        amountKobo: dto.amount.toString(),
+        requestId: payoutRequest.id,
+      },
+    );
 
     return {
       message: "Payout request received and queued for processing",

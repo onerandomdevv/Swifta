@@ -76,10 +76,14 @@ export class OrderController {
     return this.orderService.cancel(user.sub, id, user.merchantId);
   }
 
-  @Post(":id/dispute")
+  @Post(":id/report-issue")
   @Roles(UserRole.BUYER)
-  dispute(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
-    return this.orderService.dispute(user.sub, id);
+  reportIssue(
+    @CurrentUser() user: JwtPayload,
+    @Param("id") id: string,
+    @Body("reason") reason: string,
+  ) {
+    return this.orderService.reportIssue(user.sub, id, reason);
   }
 
   @Get(":id/receipt")

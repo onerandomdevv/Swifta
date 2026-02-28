@@ -1,4 +1,5 @@
 import { OrderStatus } from "../enums/order-status.enum";
+import { OrderDisputeStatus } from "../enums/order-dispute-status.enum";
 
 export interface Order {
   id: string;
@@ -10,6 +11,8 @@ export interface Order {
   currency: string;
   status: OrderStatus;
   deliveryOtp?: string;
+  disputeStatus: OrderDisputeStatus;
+  disputeReason?: string;
   idempotencyKey: string;
   createdAt: Date;
   updatedAt: Date;

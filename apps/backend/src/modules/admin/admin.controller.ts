@@ -50,6 +50,16 @@ export class AdminController {
     return this.adminService.rejectMerchant(merchantId);
   }
 
+  @Patch("merchants/:id/flags")
+  @Roles(UserRole.SUPER_ADMIN, UserRole.OPERATOR)
+  toggleMerchantFlag(
+    @Param("id") merchantId: string,
+    @Body("flag") flag: "cacVerified" | "addressVerified" | "bankVerified",
+    @Body("value") value: boolean,
+  ) {
+    return this.adminService.toggleMerchantFlag(merchantId, flag, value);
+  }
+
   @Get("merchants/pending")
   getPendingMerchants() {
     return this.adminService.getPendingMerchants();

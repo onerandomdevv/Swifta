@@ -10,6 +10,7 @@ interface Props {
   confirmingOtp: string;
   setConfirmingOtp: (val: string) => void;
   onConfirmDelivery: () => void;
+  onReportIssue: () => void;
 }
 
 export function BuyerOrderActions({
@@ -20,9 +21,22 @@ export function BuyerOrderActions({
   confirmingOtp,
   setConfirmingOtp,
   onConfirmDelivery,
+  onReportIssue,
 }: Props) {
   return (
     <>
+      {/* Report Issue Button - always visible if not COMPLETED/CANCELLED */}
+      {!["COMPLETED", "CANCELLED", "DISPUTE"].includes(order.status) && (
+        <div className="mb-6">
+          <button
+            onClick={onReportIssue}
+            className="w-full py-4 border-2 border-slate-100 dark:border-slate-800 text-slate-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-900 transition-all flex items-center justify-center gap-2"
+          >
+            <span className="material-symbols-outlined text-lg">report</span>
+            Report an Issue
+          </button>
+        </div>
+      )}
       {/* Pay Now - only for PENDING_PAYMENT */}
       {order.status === "PENDING_PAYMENT" && (
         <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-10 shadow-sm">

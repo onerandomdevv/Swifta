@@ -1,5 +1,5 @@
-import { NotificationType } from '../enums/notification-type.enum';
-import { NotificationChannel } from '../enums/notification-channel.enum';
+import { NotificationType } from "../enums/notification-type.enum";
+import { NotificationChannel } from "../enums/notification-channel.enum";
 
 export interface Notification {
   id: string;
@@ -10,5 +10,6 @@ export interface Notification {
   channel: NotificationChannel;
   isRead: boolean;
   metadata?: any;
+  url?: string;
   createdAt: Date;
 }

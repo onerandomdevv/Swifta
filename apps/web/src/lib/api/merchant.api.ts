@@ -49,3 +49,7 @@ export async function requestPayout(dto: {
 }): Promise<{ message: string; amountRequested: number; status: string }> {
   return apiClient.post("/payments/request-payout", dto);
 }
+
+export async function submitVerification(): Promise<MerchantProfile> {
+  return apiClient.post("/merchants/me/submit");
+}

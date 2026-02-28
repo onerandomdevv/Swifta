@@ -49,6 +49,9 @@ export class QuoteService {
       throw new BadRequestException("RFQ has expired");
     }
 
+    const now = new Date();
+    const responseTimeMs = now.getTime() - new Date(rfq.createdAt).getTime();
+
     const quote = await this.prisma.quote.create({
       data: {
         rfqId: dto.rfqId,
@@ -60,6 +63,15 @@ export class QuoteService {
         notes: dto.notes,
         currency: DEFAULT_CURRENCY,
         status: QuoteStatus.PENDING,
+      },
+    });
+
+    // Update merchant's response velocity metrics
+    await this.prisma.merchantProfile.update({
+      where: { id: merchantId },
+      data: {
+        responseTimeTotal: { increment: responseTimeMs },
+        quoteCount: { increment: 1 },
       },
     });
 
@@ -300,7 +312,14 @@ export class QuoteService {
     return this.prisma.quote.findMany({
       where: { rfqId },
       orderBy: { createdAt: "desc" },
-      include: { merchantProfile: { select: { businessName: true } } },
+      include: {
+        merchantProfile: {
+          select: {
+            businessName: true,
+            user: { select: { phone: true, email: true } },
+          },
+        },
+      },
     });
   }
 }

@@ -3,8 +3,10 @@ import {
   UnauthorizedException,
   ConflictException,
   BadRequestException,
+  NotFoundException,
   Logger,
 } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
 import { randomInt, randomBytes, createHash } from "crypto";
@@ -22,6 +24,7 @@ import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { AdminRegisterDto } from "./dto/admin-register.dto";
 import { SendPhoneOtpDto } from "./dto/send-phone-otp.dto";
 import { VerifyPhoneOtpDto } from "./dto/verify-phone-otp.dto";
+import { UpdateProfileDto } from "./dto/update-profile.dto";
 import { TokenPair, JwtPayload } from "@hardware-os/shared";
 import AfricasTalking from "africastalking";
 
@@ -594,15 +597,31 @@ export class AuthService {
     return { message: "Phone verified successfully." };
   }
 
-  async updateProfile(userId: string, dto: any) {
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException("User not found");
+
+    const data: Prisma.UserUpdateInput = {
+      firstName: dto.firstName,
+      middleName: dto.middleName,
+      lastName: dto.lastName,
+      phone: dto.phone,
+    };
+
+    if (dto.email && dto.email !== user.email) {
+      const existingUser = await this.prisma.user.findUnique({
+        where: { email: dto.email },
+      });
+      if (existingUser) {
+        throw new BadRequestException("Email already in use");
+      }
+      data.email = dto.email;
+      data.emailVerified = false;
+    }
+
     return this.prisma.user.update({
       where: { id: userId },
-      data: {
-        firstName: dto.firstName,
-        middleName: dto.middleName,
-        lastName: dto.lastName,
-        phone: dto.phone,
-      },
+      data,
       select: {
         id: true,
         email: true,

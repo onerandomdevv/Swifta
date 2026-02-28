@@ -1,4 +1,4 @@
-import { QuoteStatus } from '../enums/quote-status.enum';
+import { QuoteStatus } from "../enums/quote-status.enum";
 
 export interface Quote {
   id: string;
@@ -13,6 +13,7 @@ export interface Quote {
   status: QuoteStatus;
   createdAt: Date;
   merchant?: any;
+  merchantProfile?: any;
 }
 
 export interface SubmitQuoteDto {
