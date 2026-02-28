@@ -7,6 +7,7 @@ import {
   Query,
   UseGuards,
   ParseUUIDPipe,
+  Post,
 } from "@nestjs/common";
 import { MerchantService } from "./merchant.service";
 import { UpdateMerchantDto } from "./dto/update-merchant.dto";
@@ -62,5 +63,12 @@ export class MerchantController {
   @Roles(UserRole.MERCHANT)
   async getBanks() {
     return this.merchantService.getBanks();
+  }
+
+  @Post("me/submit")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.MERCHANT)
+  async submitVerification(@CurrentMerchant() merchantId: string) {
+    return this.merchantService.submitForVerification(merchantId);
   }
 }

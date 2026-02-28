@@ -56,7 +56,11 @@ export class QuoteController {
   }
 
   @Get("rfq/:rfqId")
-  getByRFQ(@Param("rfqId", ParseUUIDPipe) rfqId: string) {
-    return this.quoteService.getByRFQ(rfqId);
+  @Roles(UserRole.BUYER)
+  getByRFQ(
+    @CurrentUser() user: JwtPayload,
+    @Param("rfqId", ParseUUIDPipe) rfqId: string,
+  ) {
+    return this.quoteService.getByRFQ(rfqId, user.sub);
   }
 }

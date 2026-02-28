@@ -9,6 +9,8 @@ import { VerificationStatus, OrderStatus, UserRole } from "@hardware-os/shared";
 import * as bcrypt from "bcrypt";
 import { RedisService } from "../../redis/redis.service";
 
+import { NotificationTriggerService } from "../notification/notification-trigger.service";
+
 @Injectable()
 export class AdminService {
   private readonly logger = new Logger(AdminService.name);
@@ -16,6 +18,7 @@ export class AdminService {
   constructor(
     private prisma: PrismaService,
     private redis: RedisService,
+    private notifications: NotificationTriggerService,
   ) {}
 
   async getPlatformStats() {
@@ -23,13 +26,17 @@ export class AdminService {
     const [
       totalMerchants,
       verifiedMerchants,
+      pendingVerificationCount,
       totalBuyers,
       totalOrders,
       totalRevenueKobo,
     ] = await Promise.all([
       this.prisma.merchantProfile.count(),
       this.prisma.merchantProfile.count({
-        where: { verification: "VERIFIED" },
+        where: { verification: VerificationStatus.VERIFIED },
+      }),
+      this.prisma.merchantProfile.count({
+        where: { verification: VerificationStatus.PENDING },
       }),
       this.prisma.user.count({ where: { role: "BUYER" } }),
       this.prisma.order.count(),
@@ -42,7 +49,7 @@ export class AdminService {
     return {
       totalMerchants,
       verifiedMerchants,
-      pendingMerchants: totalMerchants - verifiedMerchants,
+      pendingMerchants: pendingVerificationCount,
       totalBuyers,
       totalUsers: totalMerchants + totalBuyers,
       totalOrders,
@@ -59,13 +66,17 @@ export class AdminService {
       throw new NotFoundException("Merchant profile not found");
     }
 
-    return this.prisma.merchantProfile.update({
+    const updated = await this.prisma.merchantProfile.update({
       where: { id: merchantId },
       data: { verification: VerificationStatus.VERIFIED },
     });
+
+    await this.notifications.triggerMerchantVerified(merchant.userId);
+
+    return updated;
   }
 
-  async rejectMerchant(merchantId: string) {
+  async rejectMerchant(merchantId: string, reason?: string) {
     const merchant = await this.prisma.merchantProfile.findUnique({
       where: { id: merchantId },
     });
@@ -74,16 +85,22 @@ export class AdminService {
       throw new NotFoundException("Merchant profile not found");
     }
 
-    return this.prisma.merchantProfile.update({
+    const updated = await this.prisma.merchantProfile.update({
       where: { id: merchantId },
       data: { verification: VerificationStatus.REJECTED },
     });
+
+    await this.notifications.triggerMerchantRejected(merchant.userId, reason);
+
+    return updated;
   }
 
   async getPendingMerchants() {
     return this.prisma.merchantProfile.findMany({
       where: {
-        verification: VerificationStatus.UNVERIFIED,
+        verification: {
+          in: [VerificationStatus.PENDING, VerificationStatus.REJECTED],
+        },
       },
       include: {
         user: {
@@ -391,6 +408,12 @@ export class AdminService {
         role: true,
         emailVerified: true,
         createdAt: true,
+        merchantProfile: {
+          select: { verification: true },
+        },
+        adminProfile: {
+          select: { approvalStatus: true },
+        },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -730,5 +753,24 @@ export class AdminService {
         status: "PROCESSED",
       },
     };
+  }
+
+  async toggleMerchantFlag(
+    merchantId: string,
+    flag: "cacVerified" | "addressVerified" | "bankVerified",
+    value: boolean,
+  ) {
+    const merchant = await this.prisma.merchantProfile.findUnique({
+      where: { id: merchantId },
+    });
+
+    if (!merchant) {
+      throw new NotFoundException("Merchant profile not found");
+    }
+
+    return this.prisma.merchantProfile.update({
+      where: { id: merchantId },
+      data: { [flag]: value },
+    });
   }
 }

@@ -15,10 +15,21 @@ interface PlatformUser {
   role: "BUYER" | "MERCHANT" | "SUPER_ADMIN" | "OPERATOR" | "SUPPORT";
   emailVerified: boolean;
   createdAt: string;
+  merchantProfile?: {
+    verification: string;
+  };
   adminProfile?: {
     approvalStatus: string;
   };
 }
+
+const VERIFICATION_COLORS: Record<string, string> = {
+  VERIFIED: "text-green-500 bg-green-500/10",
+  PENDING: "text-amber-500 bg-amber-500/10",
+  UNVERIFIED: "text-slate-400 bg-slate-400/10",
+  REJECTED: "text-red-500 bg-red-500/10",
+  APPROVED: "text-green-500 bg-green-500/10",
+};
 
 const ROLE_STYLES: Record<string, string> = {
   SUPER_ADMIN:
@@ -226,17 +237,45 @@ export default function AdminUsersPage() {
                           ? `${user.firstName} ${user.lastName}`
                           : "Unnamed User"}
                       </p>
-                      <p className="text-xs font-bold text-slate-400 mt-0.5 flex items-center gap-1">
-                        {user.emailVerified ? (
-                          <span className="material-symbols-outlined text-green-500 text-[14px]">
-                            verified
-                          </span>
-                        ) : (
-                          <span className="material-symbols-outlined text-orange-400 text-[14px]">
-                            pending
+                      <p className="text-xs font-bold text-slate-400 mt-0.5 flex flex-wrap items-center gap-2">
+                        {/* Email Status */}
+                        <span className="flex items-center gap-1">
+                          {user.emailVerified ? (
+                            <span className="material-symbols-outlined text-green-500 text-[14px]">
+                              verified
+                            </span>
+                          ) : (
+                            <span className="material-symbols-outlined text-orange-400 text-[14px]">
+                              pending
+                            </span>
+                          )}
+                          {user.emailVerified ? "Email OK" : "Email Pending"}
+                        </span>
+
+                        {/* Business/Staff Status */}
+                        {(user.role === "MERCHANT" ||
+                          user.role !== "BUYER") && (
+                          <span className="text-[10px] text-slate-300">•</span>
+                        )}
+
+                        {user.role === "MERCHANT" && user.merchantProfile && (
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${VERIFICATION_COLORS[user.merchantProfile.verification] || "text-slate-400 bg-slate-400/10"}`}
+                          >
+                            Business: {user.merchantProfile.verification}
                           </span>
                         )}
-                        {user.emailVerified ? "Verified" : "Unverified"}
+
+                        {["SUPER_ADMIN", "OPERATOR", "SUPPORT"].includes(
+                          user.role,
+                        ) &&
+                          user.adminProfile && (
+                            <span
+                              className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${VERIFICATION_COLORS[user.adminProfile.approvalStatus] || "text-slate-400 bg-slate-400/10"}`}
+                            >
+                              Access: {user.adminProfile.approvalStatus}
+                            </span>
+                          )}
                       </p>
                     </td>
                     <td className="p-4 md:p-6">

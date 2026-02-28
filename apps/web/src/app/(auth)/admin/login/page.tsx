@@ -102,7 +102,7 @@ export default function InternalLoginPage() {
             <span className="text-orange-400 font-bold block mb-1 tracking-widest text-xs uppercase">
               Internal Operations Portal
             </span>
-            Secure administration and operational management for the Hardware OS
+            Secure administration and operational management for the SwiftTrade
             infrastructure.
           </p>
           <div className="flex flex-col gap-3">

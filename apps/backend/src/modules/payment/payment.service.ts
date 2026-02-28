@@ -18,6 +18,7 @@ import {
   PaymentStatus,
   PaymentDirection,
   OrderStatus,
+  UserRole,
 } from "@hardware-os/shared";
 import * as crypto from "crypto";
 
@@ -165,18 +166,37 @@ export class PaymentService {
   // ──────────────────────────────────────────────
 
   async handleWebhook(payload: any) {
-    if (payload.event !== "charge.success") {
-      this.logger.log(`Ignoring webhook event: ${payload.event}`);
-      return { status: "ignored" };
+    const event = payload.event;
+    this.logger.log(`Webhook received: ${event}`);
+
+    // ── CHARGE SUCCESS (buyer payment) ──
+    if (event === "charge.success") {
+      return this.handleChargeSuccess(payload);
     }
 
+    // ── TRANSFER EVENTS (merchant payout) ──
+    if (
+      event === "transfer.success" ||
+      event === "transfer.failed" ||
+      event === "transfer.reversed"
+    ) {
+      return this.handleTransferEvent(payload);
+    }
+
+    this.logger.log(`Ignoring webhook event: ${event}`);
+    return { status: "ignored" };
+  }
+
+  /**
+   * Handle charge.success — buyer payment confirmed by Paystack.
+   */
+  private async handleChargeSuccess(payload: any) {
     const reference = payload.data?.reference;
     if (!reference) {
       this.logger.warn("Webhook missing reference");
       return { status: "missing_reference" };
     }
 
-    // Find payment record
     const payment = await this.prisma.payment.findUnique({
       where: { paystackReference: reference },
     });
@@ -192,7 +212,6 @@ export class PaymentService {
       return { status: "already_processed" };
     }
 
-    // Double-verify with Paystack API
     try {
       await this.processSuccessfulPayment(payment.id, reference);
     } catch (err) {
@@ -202,7 +221,83 @@ export class PaymentService {
       );
     }
 
-    // Always return 200 to Paystack
+    return { status: "received" };
+  }
+
+  /**
+   * Handle transfer.success / transfer.failed / transfer.reversed
+   * These fire after the platform initiates a payout to a merchant's bank.
+   */
+  private async handleTransferEvent(payload: any) {
+    const event = payload.event as string;
+    const transferCode = payload.data?.transfer_code;
+    const reference = payload.data?.reference;
+
+    if (!transferCode && !reference) {
+      this.logger.warn(`Transfer webhook missing transfer_code and reference`);
+      return { status: "missing_identifiers" };
+    }
+
+    // Find the payout record by transfer code or reference
+    const payout = await this.prisma.payment.findFirst({
+      where: {
+        direction: PaymentDirection.PAYOUT,
+        OR: [
+          ...(transferCode ? [{ paystackTransferRef: transferCode }] : []),
+          ...(reference ? [{ paystackReference: reference }] : []),
+        ],
+      },
+    });
+
+    if (!payout) {
+      this.logger.warn(
+        `No payout found for transfer_code=${transferCode} / reference=${reference}`,
+      );
+      return { status: "unknown_transfer" };
+    }
+
+    // Map Paystack event to our status
+    let newStatus: PaymentStatus;
+    let eventType: string;
+
+    if (event === "transfer.success") {
+      newStatus = PaymentStatus.SUCCESS;
+      eventType = "PAYOUT_CONFIRMED";
+    } else if (event === "transfer.failed") {
+      newStatus = PaymentStatus.FAILED;
+      eventType = "PAYOUT_FAILED";
+    } else {
+      // transfer.reversed
+      newStatus = PaymentStatus.FAILED;
+      eventType = "PAYOUT_REVERSED";
+    }
+
+    // Update payout status + log event
+    await this.prisma.$transaction(async (tx) => {
+      await tx.payment.update({
+        where: { id: payout.id },
+        data: { status: newStatus },
+      });
+
+      await tx.paymentEvent.create({
+        data: {
+          paymentId: payout.id,
+          eventType,
+          payload: {
+            paystackEvent: event,
+            transferCode,
+            reference,
+            amount: payload.data?.amount,
+            reason: payload.data?.reason,
+          },
+        },
+      });
+    });
+
+    this.logger.log(
+      `Transfer ${event} processed for payout ${payout.id} (order: ${payout.orderId})`,
+    );
+
     return { status: "received" };
   }
 
@@ -498,6 +593,33 @@ export class PaymentService {
         accountName: merchantProfile.bankAccountName,
       },
     });
+
+    // Notify Admins
+    const admins = await this.prisma.user.findMany({
+      where: {
+        role: { in: [UserRole.SUPER_ADMIN, UserRole.OPERATOR] },
+      },
+      select: { id: true },
+    });
+
+    const adminIds = admins.map((a) => a.id);
+    if (adminIds.length > 0) {
+      await this.notifications.triggerPayoutRequested(adminIds, {
+        merchantId,
+        merchantName: merchantProfile.businessName || "Unknown Merchant",
+        amountKobo: dto.amount.toString(),
+        requestId: payoutRequest.id,
+      });
+    }
+
+    // Notify Merchant
+    await this.notifications.triggerMerchantPayoutRequestedConfirmation(
+      merchantProfile.userId,
+      {
+        amountKobo: dto.amount.toString(),
+        requestId: payoutRequest.id,
+      },
+    );
 
     return {
       message: "Payout request received and queued for processing",

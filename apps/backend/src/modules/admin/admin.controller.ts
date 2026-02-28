@@ -15,7 +15,7 @@ import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { UserRole, OrderStatus } from "@hardware-os/shared";
-import { IsEnum, IsString, IsNotEmpty } from "class-validator";
+import { IsEnum, IsString, IsNotEmpty, IsBoolean, IsIn } from "class-validator";
 
 export class CreateAccessTokenDto {
   @IsEnum(UserRole)
@@ -24,6 +24,14 @@ export class CreateAccessTokenDto {
   @IsString()
   @IsNotEmpty()
   token: string;
+}
+
+export class ToggleMerchantFlagDto {
+  @IsIn(["cacVerified", "addressVerified", "bankVerified"])
+  flag: "cacVerified" | "addressVerified" | "bankVerified";
+
+  @IsBoolean()
+  value: boolean;
 }
 
 @Controller("admin")
@@ -50,6 +58,19 @@ export class AdminController {
     return this.adminService.rejectMerchant(merchantId);
   }
 
+  @Patch("merchants/:id/flags")
+  @Roles(UserRole.SUPER_ADMIN, UserRole.OPERATOR)
+  toggleMerchantFlag(
+    @Param("id") merchantId: string,
+    @Body() dto: ToggleMerchantFlagDto,
+  ) {
+    return this.adminService.toggleMerchantFlag(
+      merchantId,
+      dto.flag,
+      dto.value,
+    );
+  }
+
   @Get("merchants/pending")
   getPendingMerchants() {
     return this.adminService.getPendingMerchants();
@@ -67,7 +88,7 @@ export class AdminController {
     @Body("status") status: OrderStatus,
     @Req() req: any,
   ) {
-    return this.adminService.forceResolveOrder(orderId, status, req.user.id);
+    return this.adminService.forceResolveOrder(orderId, status, req.user.sub);
   }
 
   @Get("products")
@@ -118,7 +139,7 @@ export class AdminController {
     @Body("role") role: UserRole,
     @Req() req: any,
   ) {
-    return this.adminService.promoteToAdmin(userId, role, req.user.id);
+    return this.adminService.promoteToAdmin(userId, role, req.user.sub);
   }
   @Get("users/pending")
   @Roles(UserRole.SUPER_ADMIN)

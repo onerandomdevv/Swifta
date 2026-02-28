@@ -555,14 +555,21 @@ export default function MerchantVerificationPage() {
                     {cacFile ? cacFile.name : "Upload CAC Certificate"}
                   </p>
                   <p className="text-[10px] text-slate-400">
-                    PDF, JPG, OR PNG (MAX 10MB)
+                    PDF, JPG, OR PNG (MAX 5MB)
                   </p>
                   <input
                     ref={fileInputRef}
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png"
                     className="hidden"
-                    onChange={(e) => setCacFile(e.target.files?.[0] || null)}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file && file.size > 5 * 1024 * 1024) {
+                        setError("File size must be under 5MB");
+                        return;
+                      }
+                      setCacFile(file || null);
+                    }}
                   />
                 </div>
                 <button

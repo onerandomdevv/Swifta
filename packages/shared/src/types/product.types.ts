@@ -1,3 +1,5 @@
+import { MerchantProfile } from "./merchant.types";
+
 export interface Product {
   id: string;
   merchantId: string;
@@ -11,6 +13,7 @@ export interface Product {
   warehouseLocation?: string;
   createdAt: Date;
   updatedAt: Date;
+  merchantProfile?: Partial<MerchantProfile>;
   merchant?: any;
   stockCache?: { stock: number };
 }

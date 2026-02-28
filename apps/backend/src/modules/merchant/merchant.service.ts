@@ -1,14 +1,20 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { UpdateMerchantDto } from "./dto/update-merchant.dto";
-import { VerificationStatus } from "@hardware-os/shared";
+import { UserRole, VerificationStatus } from "@hardware-os/shared";
 import { PaystackClient } from "../payment/paystack.client";
+import { NotificationTriggerService } from "../notification/notification-trigger.service";
 
 @Injectable()
 export class MerchantService {
   constructor(
     private prisma: PrismaService,
     private paystack: PaystackClient,
+    private notifications: NotificationTriggerService,
   ) {}
 
   async resolveBankAccount(accountNumber: string, bankCode: string) {
@@ -60,16 +66,50 @@ export class MerchantService {
   async getPublicProfile(merchantId: string) {
     const merchant = await this.prisma.merchantProfile.findUnique({
       where: { id: merchantId },
-      select: {
-        id: true,
-        businessName: true,
-        businessAddress: true,
-        verification: true,
-        createdAt: true,
+      include: {
+        user: {
+          select: {
+            email: true,
+            phone: true,
+          },
+        },
+        _count: {
+          select: {
+            orders: {
+              where: {
+                status: "COMPLETED",
+              },
+            },
+          },
+        },
       },
     });
+
     if (!merchant) throw new NotFoundException("Merchant not found");
-    return merchant;
+
+    // We only expose contact info if the merchant is VERIFIED
+    const isVerified = merchant.verification === VerificationStatus.VERIFIED;
+
+    return {
+      id: merchant.id,
+      businessName: merchant.businessName,
+      businessAddress: merchant.businessAddress,
+      businessType: merchant.businessType,
+      estYear: merchant.estYear,
+      category: merchant.category,
+      warehouseLocation: merchant.warehouseLocation,
+      distributionCenter: merchant.distributionCenter,
+      warehouseCapacity: merchant.warehouseCapacity,
+      verification: merchant.verification,
+      createdAt: merchant.createdAt,
+      dealsClosed: merchant._count.orders,
+      contact: isVerified
+        ? {
+            email: merchant.user.email,
+            phone: merchant.user.phone,
+          }
+        : null,
+    };
   }
 
   async getAllMerchants() {
@@ -160,6 +200,47 @@ export class MerchantService {
         },
       },
     });
+
+    return updated;
+  }
+
+  async submitForVerification(merchantId: string) {
+    const merchant = await this.prisma.merchantProfile.findUnique({
+      where: { id: merchantId },
+    });
+
+    if (!merchant) throw new NotFoundException("Merchant not found");
+
+    // Only allow submission if they've at least provided bank details (Step 4+)
+    if (merchant.onboardingStep < 4) {
+      throw new BadRequestException(
+        "Please complete your profile and bank details before submitting for verification.",
+      );
+    }
+
+    const updated = await this.prisma.merchantProfile.update({
+      where: { id: merchantId },
+      data: {
+        verification: VerificationStatus.PENDING,
+        onboardingStep: Math.max(merchant.onboardingStep, 5),
+      },
+    });
+
+    // Notify Admins
+    const admins = await this.prisma.user.findMany({
+      where: {
+        role: { in: [UserRole.SUPER_ADMIN, UserRole.OPERATOR] },
+      },
+      select: { id: true },
+    });
+
+    const adminIds = admins.map((a) => a.id);
+    if (adminIds.length > 0) {
+      await this.notifications.triggerNewMerchantSubmission(adminIds, {
+        merchantId,
+        merchantName: merchant.businessName || "Unknown Merchant",
+      });
+    }
 
     return updated;
   }

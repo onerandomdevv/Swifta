@@ -27,6 +27,9 @@ interface PendingMerchant {
   bankAccountName: string | null;
   createdAt: string;
   user: UserInfo;
+  cacVerified: boolean;
+  addressVerified: boolean;
+  bankVerified: boolean;
 }
 
 export default function AdminMerchantsQueuePage() {
@@ -86,6 +89,35 @@ export default function AdminMerchantsQueuePage() {
     },
     onError: (error: any) => {
       toast.error(error?.message || "Failed to reject merchant.");
+    },
+  });
+
+  const toggleFlagMutation = useMutation({
+    mutationFn: ({
+      merchantId,
+      flag,
+      value,
+    }: {
+      merchantId: string;
+      flag: "cacVerified" | "addressVerified" | "bankVerified";
+      value: boolean;
+    }) =>
+      apiClient.patch(`/admin/merchants/${merchantId}/flags`, { flag, value }),
+    onSuccess: (_, variables) => {
+      toast.success(`Flag ${variables.flag} updated successfully.`);
+      queryClient.invalidateQueries({
+        queryKey: ["admin", "merchants", "pending"],
+      });
+      // Optionally update local state to reflect UI instantly
+      if (selectedMerchant && selectedMerchant.id === variables.merchantId) {
+        setSelectedMerchant({
+          ...selectedMerchant,
+          [variables.flag]: variables.value,
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || "Failed to update flag.");
     },
   });
 
@@ -160,7 +192,7 @@ export default function AdminMerchantsQueuePage() {
                   >
                     <td className="p-4 md:p-6">
                       <p className="font-bold text-navy-dark dark:text-white group-hover:text-brand transition-colors">
-                        {merchant.businessName}
+                        {merchant?.businessName || "N/A"}
                       </p>
                       <p className="text-xs font-bold text-slate-500 uppercase mt-1">
                         {merchant.category || "General"} •{" "}
@@ -251,7 +283,7 @@ export default function AdminMerchantsQueuePage() {
                       Business Name
                     </span>
                     <span className="font-bold text-navy-dark dark:text-white">
-                      {selectedMerchant.businessName}
+                      {selectedMerchant?.businessName || "N/A"}
                     </span>
                   </div>
                   <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
@@ -262,13 +294,27 @@ export default function AdminMerchantsQueuePage() {
                       {selectedMerchant.cacNumber || "Missing"}
                     </span>
                   </div>
-                  <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700 md:col-span-2">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                      Registered Address
-                    </span>
-                    <span className="font-bold text-navy-dark dark:text-white">
-                      {selectedMerchant.businessAddress || "Missing"}
-                    </span>
+                  <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700 md:col-span-2 flex justify-between items-start">
+                    <div>
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                        Registered Address
+                      </span>
+                      <span className="font-bold text-navy-dark dark:text-white">
+                        {selectedMerchant.businessAddress || "Missing"}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() =>
+                        toggleFlagMutation.mutate({
+                          merchantId: selectedMerchant.id,
+                          flag: "addressVerified",
+                          value: !selectedMerchant.addressVerified,
+                        })
+                      }
+                      className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border transition-colors ${selectedMerchant.addressVerified ? "bg-green-50 text-green-600 border-green-200 dark:bg-green-900/20 dark:border-green-800" : "bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-700 hover:bg-slate-50"}`}
+                    >
+                      {selectedMerchant.addressVerified ? "Verified" : "Verify"}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -297,16 +343,30 @@ export default function AdminMerchantsQueuePage() {
                     </div>
                   </div>
                   {selectedMerchant.cacDocumentUrl ? (
-                    <a
-                      href={selectedMerchant.cacDocumentUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-navy-dark text-xs font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity"
-                    >
-                      View File
-                    </a>
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={selectedMerchant.cacDocumentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-navy-dark text-[10px] font-black uppercase tracking-widest rounded-lg hover:opacity-90 transition-opacity"
+                      >
+                        View
+                      </a>
+                      <button
+                        onClick={() =>
+                          toggleFlagMutation.mutate({
+                            merchantId: selectedMerchant.id,
+                            flag: "cacVerified",
+                            value: !selectedMerchant.cacVerified,
+                          })
+                        }
+                        className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-colors ${selectedMerchant.cacVerified ? "bg-green-50 text-green-600 border-green-200 dark:bg-green-900/20 dark:border-green-800" : "bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-700 hover:bg-slate-50"}`}
+                      >
+                        {selectedMerchant.cacVerified ? "Verified" : "Verify"}
+                      </button>
+                    </div>
                   ) : (
-                    <span className="px-3 py-1 bg-red-50 text-red-500 rounded-md text-xs font-bold uppercase">
+                    <span className="px-3 py-1 bg-red-50 text-red-500 rounded-md text-[10px] font-bold uppercase tracking-widest">
                       Unverifiable
                     </span>
                   )}
@@ -337,6 +397,18 @@ export default function AdminMerchantsQueuePage() {
                         {selectedMerchant.bankAccountNo || "---"}
                       </p>
                     </div>
+                    <button
+                      onClick={() =>
+                        toggleFlagMutation.mutate({
+                          merchantId: selectedMerchant.id,
+                          flag: "bankVerified",
+                          value: !selectedMerchant.bankVerified,
+                        })
+                      }
+                      className={`ml-auto px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border transition-colors shrink-0 ${selectedMerchant.bankVerified ? "bg-green-50 text-green-600 border-green-200 dark:bg-green-900/20 dark:border-green-800" : "bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-700 hover:bg-slate-50"}`}
+                    >
+                      {selectedMerchant.bankVerified ? "Verified" : "Verify"}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -360,7 +432,12 @@ export default function AdminMerchantsQueuePage() {
                   verifyMutation.isPending ||
                   rejectMutation.isPending ||
                   !selectedMerchant.cacDocumentUrl ||
-                  !selectedMerchant.bankAccountNo
+                  !selectedMerchant.bankAccountNo ||
+                  !(
+                    selectedMerchant.cacVerified &&
+                    selectedMerchant.addressVerified &&
+                    selectedMerchant.bankVerified
+                  )
                 }
               >
                 {verifyMutation.isPending ? "Approving..." : "Approve Merchant"}

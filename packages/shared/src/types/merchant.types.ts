@@ -1,4 +1,4 @@
-import { VerificationStatus } from '../enums/verification-status.enum';
+import { VerificationStatus } from "../enums/verification-status.enum";
 
 export interface MerchantProfile {
   id: string;
@@ -20,6 +20,16 @@ export interface MerchantProfile {
   verification: VerificationStatus;
   onboardingStep: number;
   createdAt: Date;
+  dealsClosed?: number;
+  responseTimeTotal?: number;
+  quoteCount?: number;
+  cacVerified: boolean;
+  addressVerified: boolean;
+  bankVerified: boolean;
+  contact?: {
+    email: string;
+    phone: string;
+  } | null;
 }
 
 export interface UpdateMerchantDto {

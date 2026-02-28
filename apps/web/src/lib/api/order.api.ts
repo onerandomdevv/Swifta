@@ -31,8 +31,8 @@ export async function cancelOrder(id: string): Promise<Order> {
   return apiClient.post(`/orders/${id}/cancel`);
 }
 
-export async function disputeOrder(id: string): Promise<Order> {
-  return apiClient.post(`/orders/${id}/dispute`);
+export async function reportIssue(id: string, reason: string): Promise<Order> {
+  return apiClient.post(`/orders/${id}/report-issue`, { reason });
 }
 
 export async function getReceipt(id: string): Promise<Order> {

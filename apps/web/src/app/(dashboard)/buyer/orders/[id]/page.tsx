@@ -5,9 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getOrder, confirmDelivery } from "@/lib/api/order.api";
+import { getOrder, confirmDelivery, reportIssue } from "@/lib/api/order.api";
 import { initializePayment } from "@/lib/api/payment.api";
 import type { Order } from "@hardware-os/shared";
+import { Modal } from "@/components/ui/modal";
 
 // Extracted Components
 import {
@@ -26,6 +27,9 @@ export default function BuyerOrderDetailsPage() {
   const [paying, setPaying] = useState(false);
   const [confirmingOtp, setConfirmingOtp] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [disputeReason, setDisputeReason] = useState("");
+  const [reporting, setReporting] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -90,6 +94,22 @@ export default function BuyerOrderDetailsPage() {
       setError(err?.message || "Failed to confirm delivery");
     } finally {
       setConfirming(false);
+    }
+  };
+
+  const handleReportIssue = async () => {
+    if (!order || !disputeReason.trim()) return;
+    setReporting(true);
+    setError(null);
+    try {
+      const updated = await reportIssue(order.id, disputeReason);
+      setOrder((updated as any).data || updated);
+      setShowDisputeModal(false);
+      setDisputeReason("");
+    } catch (err: any) {
+      setError(err?.message || "Failed to report issue");
+    } finally {
+      setReporting(false);
     }
   };
 
@@ -202,11 +222,46 @@ export default function BuyerOrderDetailsPage() {
             confirmingOtp={confirmingOtp}
             setConfirmingOtp={setConfirmingOtp}
             onConfirmDelivery={handleConfirmDelivery}
+            onReportIssue={() => setShowDisputeModal(true)}
           />
 
           <OrderInfoSidebar order={order} />
         </div>
       </div>
+
+      <Modal
+        isOpen={showDisputeModal}
+        onClose={() => setShowDisputeModal(false)}
+        title="Report an Issue"
+      >
+        <div className="space-y-6">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest leading-relaxed">
+            Please describe the issue you're having with this order. Our admin
+            team will be notified to mediate.
+          </p>
+          <textarea
+            value={disputeReason}
+            onChange={(e) => setDisputeReason(e.target.value)}
+            placeholder="E.g. I received fewer bags than ordered, or the quality is not as described..."
+            className="w-full h-40 bg-slate-50 dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-2xl p-6 text-sm outline-none focus:border-navy-dark dark:focus:border-white transition-all resize-none"
+          />
+          <div className="flex gap-4">
+            <button
+              onClick={() => setShowDisputeModal(false)}
+              className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleReportIssue}
+              disabled={reporting || !disputeReason.trim()}
+              className="flex-1 py-4 bg-navy-dark text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 disabled:opacity-50 transition-all"
+            >
+              {reporting ? "Reporting..." : "Submit Report"}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

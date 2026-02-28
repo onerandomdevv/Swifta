@@ -29,8 +29,8 @@ export default function NewProductPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      setError("Image must be under 5MB");
+    if (file.size > 2 * 1024 * 1024) {
+      setError("Image must be under 2MB");
       return;
     }
 
@@ -133,7 +133,7 @@ export default function NewProductPage() {
                   Click to Upload Photo
                 </span>
                 <span className="text-[10px] tracking-widest font-bold opacity-60 mt-1">
-                  MAX 5MB (JPG, PNG)
+                  MAX 2MB (JPG, PNG)
                 </span>
               </div>
             )}
@@ -223,7 +223,7 @@ export default function NewProductPage() {
               }
               className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all text-slate-400 appearance-none bg-transparent"
             >
-    categoryTag: "BUILDING_MATERIALS",
+              categoryTag: "BUILDING_MATERIALS",
             </select>
           </div>
         </div>
