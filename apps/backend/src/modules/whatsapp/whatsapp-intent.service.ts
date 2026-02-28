@@ -18,9 +18,11 @@ export interface ParsedIntent {
 /**
  * AI-powered intent parsing using Gemini function calling.
  *
- * - Numbers 1–6 bypass the AI entirely (fast, free, always works).
- * - Free-text messages go through Gemini with function declarations.
- * - Falls back to show_menu on any AI error (graceful degradation).
+ * Priority:
+ * 1. Numbers 1–6 bypass the AI entirely (fast, free, always works).
+ * 2. Greetings / "menu" / "help" → show_menu (no AI call).
+ * 3. Everything else → Gemini function calling.
+ * 4. Fallback on AI error → friendly_fallback (NOT show_menu).
  */
 @Injectable()
 export class WhatsAppIntentService {
@@ -41,41 +43,121 @@ export class WhatsAppIntentService {
 
   /**
    * Parse the merchant's message text and determine which function to call.
-   *
-   * Priority:
-   * 1. Number 1–6 → direct map (no AI)
-   * 2. "menu" / "help" keywords → show_menu (no AI)
-   * 3. Free text → Gemini function calling
-   * 4. Fallback → show_menu
    */
   async parseIntent(messageText: string): Promise<ParsedIntent> {
     const text = messageText.trim();
 
-    // 1. Direct number mapping
+    // 1. Direct number mapping (fastest path — no AI needed)
     if (NUMBER_INTENT_MAP[text]) {
+      this.logger.log(`Number shortcut: "${text}" → ${NUMBER_INTENT_MAP[text]}`);
       return { functionName: NUMBER_INTENT_MAP[text], params: {} };
     }
 
-    // 2. Keyword shortcuts
+    // 2. Explicit greetings / menu requests only (keep this list SHORT)
     const lower = text.toLowerCase();
-    if (['menu', 'help', 'hi', 'hello', 'hey', 'start'].includes(lower)) {
+    if (['menu', 'help', 'start'].includes(lower)) {
+      this.logger.log(`Keyword shortcut: "${text}" → show_menu`);
       return { functionName: 'show_menu', params: {} };
     }
 
-    // 3. AI intent parsing via Gemini
+    // 3. EVERYTHING ELSE → send to Gemini AI for intent parsing
+    //    This includes "hi", "hello", "how market", "check stock", etc.
+    //    The AI will decide the right function.
     if (this.genAI) {
       try {
-        return await this.parseWithGemini(text);
+        this.logger.log(`Sending to Gemini AI: "${text}"`);
+        const intent = await this.parseWithGemini(text);
+        this.logger.log(
+          `Gemini returned: ${intent.functionName} | Params: ${JSON.stringify(intent.params)}`,
+        );
+        return intent;
       } catch (error) {
         this.logger.error(
           `Gemini intent parsing failed: ${error instanceof Error ? error.message : error}`,
         );
-        // Fall through to default
+        // AI failed — show friendly fallback, NOT the plain menu
+        return { functionName: 'friendly_fallback', params: {} };
       }
     }
 
-    // 4. Fallback — show menu
-    return { functionName: 'show_menu', params: {} };
+    // 4. No AI configured — try basic keyword matching as last resort
+    this.logger.log(`No AI available, trying keyword match for: "${text}"`);
+    return this.basicKeywordMatch(text);
+  }
+
+  // -----------------------------------------------------------------------
+  // Basic keyword matching (when AI is unavailable)
+  // -----------------------------------------------------------------------
+  private basicKeywordMatch(text: string): ParsedIntent {
+    const lower = text.toLowerCase();
+
+    // Sales-related
+    if (
+      lower.includes('sales') ||
+      lower.includes('market') ||
+      lower.includes('revenue') ||
+      lower.includes('sell') ||
+      lower.includes('business')
+    ) {
+      let timeframe = 'today';
+      if (lower.includes('week')) timeframe = 'this_week';
+      if (lower.includes('month')) timeframe = 'this_month';
+      if (lower.includes('all')) timeframe = 'all_time';
+      return { functionName: 'get_sales_summary', params: { timeframe } };
+    }
+
+    // RFQ queries
+    if (
+      lower.includes('rfq') ||
+      lower.includes('order') ||
+      lower.includes('request') ||
+      lower.includes('buy') ||
+      lower.includes('pending')
+    ) {
+      return { functionName: 'get_pending_rfqs', params: {} };
+    }
+
+    // Inventory / stock check
+    if (
+      lower.includes('inventory') ||
+      lower.includes('stock') ||
+      lower.includes('store') ||
+      lower.includes('warehouse') ||
+      lower.includes('goods')
+    ) {
+      return { functionName: 'get_inventory', params: {} };
+    }
+
+    // Product listing
+    if (
+      lower.includes('product') ||
+      lower.includes('listing') ||
+      lower.includes('sell')
+    ) {
+      return { functionName: 'get_products', params: {} };
+    }
+
+    // Stock update
+    if (
+      lower.includes('add') ||
+      lower.includes('remove') ||
+      lower.includes('restock') ||
+      lower.includes('receive')
+    ) {
+      return { functionName: 'update_stock', params: {} };
+    }
+
+    // Quote / price
+    if (lower.includes('quote') || lower.includes('price')) {
+      return { functionName: 'respond_to_rfq', params: {} };
+    }
+
+    // Greetings
+    if (['hi', 'hello', 'hey', 'good morning', 'good evening'].includes(lower)) {
+      return { functionName: 'show_menu', params: {} };
+    }
+
+    return { functionName: 'friendly_fallback', params: {} };
   }
 
   // -----------------------------------------------------------------------
@@ -121,7 +203,8 @@ export class WhatsAppIntentService {
     const candidate = response.candidates?.[0];
 
     if (!candidate?.content?.parts) {
-      return { functionName: 'show_menu', params: {} };
+      this.logger.warn('Gemini returned no candidate parts');
+      return { functionName: 'friendly_fallback', params: {} };
     }
 
     // Look for a function call in the response
@@ -134,7 +217,13 @@ export class WhatsAppIntentService {
       }
     }
 
-    // No function call found — show menu
-    return { functionName: 'show_menu', params: {} };
+    // Gemini returned text instead of a function call — check if it's a text response
+    const textPart = candidate.content.parts.find((p) => p.text);
+    if (textPart?.text) {
+      this.logger.log(`Gemini returned text instead of function call: "${textPart.text.substring(0, 100)}"`);
+    }
+
+    // No function call found — friendly fallback
+    return { functionName: 'friendly_fallback', params: {} };
   }
 }
