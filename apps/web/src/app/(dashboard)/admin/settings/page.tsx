@@ -67,7 +67,7 @@ export default function AdminSettingsPage() {
 
   const changePasswordMutation = useMutation({
     mutationFn: (payload: { currentPassword: string; newPassword: string }) =>
-      apiClient.post("/auth/change-password", payload),
+      apiClient.patch("/admin/change-password", payload),
     onSuccess: () => {
       toast.success("Password updated successfully.");
       setCurrentPassword("");
