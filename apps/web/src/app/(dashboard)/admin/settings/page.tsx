@@ -1,25 +1,73 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { apiClient } from "@/lib/api-client";
 import { useToast } from "@/providers/toast-provider";
 import { useAuth } from "@/providers/auth-provider";
+import { getDisplayName } from "@hardware-os/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { authApi } from "@/lib/api/auth.api";
+
+const profileSchema = z.object({
+  firstName: z.string().min(2, "First name is too short"),
+  lastName: z.string().min(2, "Last name is too short"),
+  email: z.string().email("Invalid email address"),
+});
+
+type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export default function AdminSettingsPage() {
   const toast = useToast();
-  const { user, logout } = useAuth();
+  const { user, refreshUser, logout } = useAuth();
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPasswords, setShowPasswords] = useState(false);
 
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isDirty },
+  } = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
+      email: user?.email || "",
+    },
+  });
+
+  useEffect(() => {
+    if (user) {
+      reset({
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+      });
+    }
+  }, [user, reset]);
+
+  const updateProfileMutation = useMutation({
+    mutationFn: (data: ProfileFormValues) => authApi.updateProfile(data),
+    onSuccess: () => {
+      toast.success("Profile updated successfully.");
+      refreshUser();
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || "Failed to update profile.");
+    },
+  });
+
   const changePasswordMutation = useMutation({
     mutationFn: (payload: { currentPassword: string; newPassword: string }) =>
-      apiClient.patch("/admin/change-password", payload),
+      apiClient.post("/auth/change-password", payload),
     onSuccess: () => {
       toast.success("Password updated successfully.");
       setCurrentPassword("");
@@ -34,6 +82,10 @@ export default function AdminSettingsPage() {
       );
     },
   });
+
+  const onProfileSubmit = (data: ProfileFormValues) => {
+    updateProfileMutation.mutate(data);
+  };
 
   const handlePasswordChange = () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
@@ -62,64 +114,90 @@ export default function AdminSettingsPage() {
           Admin Settings
         </h1>
         <p className="text-sm font-bold text-slate-500 mt-1 uppercase tracking-wider">
-          Account security & session management
+          Account security & profile management
         </p>
       </header>
 
-      {/* Account Info Card */}
+      {/* Profile Information Card */}
       <section className="bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-sm p-6 md:p-8">
         <h3 className="text-xs font-black text-neon-cyan uppercase tracking-widest mb-6 border-b-2 border-slate-100 dark:border-slate-800 pb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px]">badge</span>
-          Account Information
+          <span className="material-symbols-outlined text-[18px]">person</span>
+          Profile Information
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
-              Full Name
-            </span>
-            <span className="font-bold text-navy-dark dark:text-white">
-              {user?.fullName || "Admin User"}
-            </span>
-          </div>
-          <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
-              Email
-            </span>
-            <span className="font-bold text-navy-dark dark:text-white">
-              {user?.email || "—"}
-            </span>
-          </div>
-          <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
-              Role
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50">
-              {user?.role}
-            </span>
-          </div>
-          <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
-              Email Verified
-            </span>
-            <span className="font-bold text-navy-dark dark:text-white flex items-center gap-1.5">
-              {user?.emailVerified ? (
-                <>
-                  <span className="material-symbols-outlined text-green-500 text-[16px]">
-                    check_circle
-                  </span>
-                  Verified
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined text-orange-400 text-[16px]">
-                    pending
-                  </span>
-                  Unverified
-                </>
+        <form onSubmit={handleSubmit(onProfileSubmit)} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block">
+                First Name
+              </label>
+              <Input
+                {...register("firstName")}
+                className="bg-slate-50 dark:bg-slate-800 h-12 border-slate-200 dark:border-slate-700"
+                placeholder="First Name"
+              />
+              {errors.firstName && (
+                <p className="text-xs text-red-500 font-bold">
+                  {errors.firstName.message}
+                </p>
               )}
-            </span>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block">
+                Last Name
+              </label>
+              <Input
+                {...register("lastName")}
+                className="bg-slate-50 dark:bg-slate-800 h-12 border-slate-200 dark:border-slate-700"
+                placeholder="Last Name"
+              />
+              {errors.lastName && (
+                <p className="text-xs text-red-500 font-bold">
+                  {errors.lastName.message}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block">
+              Email Address
+            </label>
+            <Input
+              {...register("email")}
+              className="bg-slate-50 dark:bg-slate-800 h-12 border-slate-200 dark:border-slate-700"
+              placeholder="Email Address"
+            />
+            {errors.email && (
+              <p className="text-xs text-red-500 font-bold">
+                {errors.email.message}
+              </p>
+            )}
+            {user?.emailVerified ? (
+              <p className="text-[10px] font-black text-green-600 uppercase tracking-widest flex items-center gap-1">
+                <span className="material-symbols-outlined text-[14px]">
+                  check_circle
+                </span>
+                Verified Email
+              </p>
+            ) : (
+              <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest flex items-center gap-1">
+                <span className="material-symbols-outlined text-[14px]">
+                  pending
+                </span>
+                Unverified Email
+              </p>
+            )}
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <Button
+              type="submit"
+              className="bg-neon-cyan hover:bg-brand text-navy-dark font-black tracking-widest uppercase shadow-lg shadow-neon-cyan/20 px-6"
+              disabled={updateProfileMutation.isPending || !isDirty}
+            >
+              {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
+        </form>
       </section>
 
       {/* Change Password Card */}

@@ -1,50 +1,88 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
-import { PaginatedResponse, Product } from '@hardware-os/shared';
-import { paginate } from '../../common/utils/pagination';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+  Inject,
+} from "@nestjs/common";
+import { CACHE_MANAGER } from "@nestjs/cache-manager";
+import { Cache } from "cache-manager";
+import { PrismaService } from "../../prisma/prisma.service";
+import { CreateProductDto } from "./dto/create-product.dto";
+import { UpdateProductDto } from "./dto/update-product.dto";
+import { PaginatedResponse, Product } from "@hardware-os/shared";
+import { paginate } from "../../common/utils/pagination";
 
 @Injectable()
 export class ProductService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {}
 
   async create(merchantId: string, dto: CreateProductDto) {
-    return this.prisma.product.create({
+    const product = await this.prisma.product.create({
       data: {
         merchantId,
         ...dto,
       },
     });
+    await this.invalidateCatalogueCache();
+    return product;
   }
 
-  async listByMerchant(merchantId: string, page: number, limit: number): Promise<PaginatedResponse<Product>> {
-    const response = await paginate(this.prisma.product, { page, limit }, {
-      where: { merchantId },
-      orderBy: { createdAt: 'desc' },
-    });
+  async listByMerchant(
+    merchantId: string,
+    page: number,
+    limit: number,
+  ): Promise<PaginatedResponse<Product>> {
+    const response = await paginate(
+      this.prisma.product,
+      { page, limit },
+      {
+        where: { merchantId },
+        orderBy: { createdAt: "desc" },
+        include: { productStockCache: true },
+      },
+    );
 
     // Mark soft-deleted products with a flag (for frontend convenience if needed)
-    response.data = response.data.map((product: any) => ({
-      ...product,
-      isDeleted: product.deletedAt !== null,
-    }));
+    response.data = response.data.map((product: any) => {
+      const { productStockCache, ...rest } = product;
+      return {
+        ...rest,
+        stockCache: productStockCache,
+        isDeleted: product.deletedAt !== null,
+      };
+    });
 
     return response;
   }
 
-  async listPublicByMerchant(merchantId: string, page: number, limit: number): Promise<PaginatedResponse<Product>> {
-    return paginate(this.prisma.product, { page, limit }, {
-      where: { 
-        merchantId,
-        isActive: true,
-        deletedAt: null,
+  async listPublicByMerchant(
+    merchantId: string,
+    page: number,
+    limit: number,
+  ): Promise<PaginatedResponse<Product>> {
+    return paginate(
+      this.prisma.product,
+      { page, limit },
+      {
+        where: {
+          merchantId,
+          isActive: true,
+          deletedAt: null,
+        },
+        orderBy: { createdAt: "desc" },
       },
-      orderBy: { createdAt: 'desc' },
-    });
+    );
   }
 
-  async catalogue(search: string = '', page: number, limit: number): Promise<PaginatedResponse<Product>> {
+  async catalogue(
+    search: string = "",
+    page: number,
+    limit: number,
+  ): Promise<PaginatedResponse<Product>> {
     const where: any = {
       isActive: true,
       deletedAt: null,
@@ -52,30 +90,34 @@ export class ProductService {
 
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { categoryTag: { contains: search, mode: 'insensitive' } },
+        { name: { contains: search, mode: "insensitive" } },
+        { categoryTag: { contains: search, mode: "insensitive" } },
       ];
     }
 
-    return paginate(this.prisma.product, { page, limit }, {
-      where,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        merchant: {
-          select: {
-            id: true,
-            businessName: true,
+    return paginate(
+      this.prisma.product,
+      { page, limit },
+      {
+        where,
+        orderBy: { createdAt: "desc" },
+        include: {
+          merchantProfile: {
+            select: {
+              id: true,
+              businessName: true,
+            },
           },
         },
       },
-    });
+    );
   }
 
   async getById(id: string) {
     const product = await this.prisma.product.findUnique({
       where: { id },
       include: {
-        merchant: {
+        merchantProfile: {
           select: {
             id: true,
             businessName: true,
@@ -85,39 +127,45 @@ export class ProductService {
       },
     });
     if (!product || product.deletedAt) {
-      throw new NotFoundException('Product not found');
+      throw new NotFoundException("Product not found");
     }
     return product;
   }
 
   async update(merchantId: string, productId: string, dto: UpdateProductDto) {
     await this.verifyProductOwnership(merchantId, productId);
-    return this.prisma.product.update({
+    const updated = await this.prisma.product.update({
       where: { id: productId },
       data: dto,
     });
+    await this.invalidateCatalogueCache();
+    return updated;
   }
 
   async softDelete(merchantId: string, productId: string) {
     await this.verifyProductOwnership(merchantId, productId);
-    return this.prisma.product.update({
+    const deleted = await this.prisma.product.update({
       where: { id: productId },
       data: { deletedAt: new Date() },
     });
+    await this.invalidateCatalogueCache();
+    return deleted;
   }
 
   async restore(merchantId: string, productId: string) {
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
     });
-    if (!product) throw new NotFoundException('Product not found');
+    if (!product) throw new NotFoundException("Product not found");
     if (product.merchantId !== merchantId) {
-      throw new ForbiddenException('Access denied');
+      throw new ForbiddenException("Access denied");
     }
-    return this.prisma.product.update({
+    const restored = await this.prisma.product.update({
       where: { id: productId },
       data: { deletedAt: null },
     });
+    await this.invalidateCatalogueCache();
+    return restored;
   }
 
   async validateProductAvailability(productId: string) {
@@ -126,28 +174,52 @@ export class ProductService {
     });
 
     if (!product || product.deletedAt) {
-      throw new NotFoundException('Product not found');
+      throw new NotFoundException("Product not found");
     }
 
     if (!product.isActive) {
-      throw new BadRequestException('Product is not currently active');
+      throw new BadRequestException("Product is not currently active");
     }
 
     return product;
   }
 
-  private async verifyProductOwnership(
-    merchantId: string,
-    productId: string,
-  ) {
+  private async verifyProductOwnership(merchantId: string, productId: string) {
     const product = await this.prisma.product.findFirst({
       where: { id: productId, merchantId },
     });
     if (!product) {
-      throw new NotFoundException('Product not found');
+      throw new NotFoundException("Product not found");
     }
     if (product.deletedAt) {
-      throw new NotFoundException('Product has been deleted');
+      throw new NotFoundException("Product has been deleted");
     }
+  }
+
+  private async invalidateCatalogueCache() {
+    try {
+      // Clear out all keys starting with /products to purge all paginated endpoints
+      const keys: string[] = await (this.cacheManager as any).store.keys(
+        "/products*",
+      );
+      if (keys && keys.length > 0) {
+        await Promise.all(keys.map((k) => this.cacheManager.del(k)));
+      }
+    } catch (e) {
+      // In case underlying store lacks `.keys()` or errors, safely fallback to full reset
+      await this.cacheManager.clear();
+    }
+  }
+
+  async getAssociations(category: string) {
+    return this.prisma.productAssociation.findMany({
+      where: { productCategoryA: category },
+      orderBy: { strength: "desc" },
+      select: {
+        productCategoryB: true,
+        strength: true,
+        promptText: true,
+      },
+    });
   }
 }

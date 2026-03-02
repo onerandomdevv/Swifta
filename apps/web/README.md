@@ -1,6 +1,6 @@
-# HARDWARE OS — Frontend
+# SwiftTrade — Frontend
 
-Next.js 14 App Router web application for HARDWARE OS.
+Next.js 14 App Router web application for SwiftTrade.
 
 ---
 

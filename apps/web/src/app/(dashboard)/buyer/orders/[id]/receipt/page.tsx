@@ -116,7 +116,7 @@ export default function OrderReceiptPage() {
                 <span className="material-symbols-outlined text-white font-bold">bolt</span>
               </div>
               <h1 className="text-2xl font-black text-navy-dark font-display tracking-tight uppercase">
-                Hardware OS
+                SwiftTrade
               </h1>
             </div>
             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
@@ -266,7 +266,7 @@ export default function OrderReceiptPage() {
           </div>
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">
-              Thank you for trading with Hardware OS
+              Thank you for trading with SwiftTrade
             </p>
           </div>
         </div>

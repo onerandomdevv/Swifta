@@ -47,7 +47,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       code = 'VALIDATION_ERROR';
     } else {
       // Unknown errors — log full details, return generic message
-      this.logger.error('Unhandled exception', exception);
+      this.logger.error(
+        { err: exception instanceof Error ? exception : new Error(String(exception)) },
+        'Unhandled exception'
+      );
       status = HttpStatus.INTERNAL_SERVER_ERROR;
       errorMessage = 'Internal server error';
       code = 'INTERNAL_ERROR';

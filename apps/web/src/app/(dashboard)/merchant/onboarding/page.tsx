@@ -3,7 +3,11 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getProfile, updateProfile } from "@/lib/api/merchant.api";
+import {
+  getProfile,
+  updateProfile,
+  submitVerification,
+} from "@/lib/api/merchant.api";
 
 // Extracted Components
 import { OnboardingFormData } from "@/components/merchant/onboarding/types";
@@ -133,7 +137,8 @@ export default function MerchantOnboardingPage() {
         await updateProfile(getStepPayload());
         setStep((s) => s + 1);
       } else {
-        // Final step — all data already saved, redirect to dashboard
+        // Final step — explicitly submit for verification
+        await submitVerification();
         router.push("/merchant/dashboard");
       }
     } catch (err: any) {
@@ -163,7 +168,7 @@ export default function MerchantOnboardingPage() {
             H
           </div>
           <span className="text-xl font-black text-navy-dark dark:text-white uppercase tracking-[0.3em]">
-            Hardware OS
+            SwiftTrade
           </span>
         </div>
         <h2 className="text-3xl font-black text-navy-dark dark:text-white uppercase tracking-tight">

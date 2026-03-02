@@ -1,238 +1,226 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { useMerchantInventory } from "@/hooks/use-merchant-data";
+import { InventoryRow } from "@/components/merchant/inventory/inventory-row";
 import { useRouter } from "next/navigation";
-import { Skeleton } from "@/components/ui/skeleton";
-import { getMyProducts } from "@/lib/api/product.api";
-import { getStock } from "@/lib/api/inventory.api";
-import type { Product } from "@hardware-os/shared";
 
-interface InventoryItem {
-  product: Product;
-  stock: number;
-  status: "HEALTHY" | "LOW" | "OUT_OF_STOCK";
-}
-
-export default function MerchantInventoryPage() {
+export default function MerchantInventory() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const response = await getMyProducts();
-        const products: Product[] = response.filter(
-          (p) => !(p as any).isDeleted,
-        );
-        const items: InventoryItem[] = await Promise.all(
-          products.map(async (product) => {
-            try {
-              const stockData = (await getStock(product.id)) as unknown as {
-                productId: string;
-                stock: number;
-              };
-              const stock = stockData.stock ?? 0;
-              const status: InventoryItem["status"] =
-                stock === 0 ? "OUT_OF_STOCK" : stock < 50 ? "LOW" : "HEALTHY";
-              return { product, stock, status };
-            } catch {
-              return { product, stock: 0, status: "OUT_OF_STOCK" as const };
-            }
-          }),
-        );
-        setInventory(items);
-      } catch (err: unknown) {
-        setError(
-          err instanceof Error ? err.message : "Failed to load inventory",
-        );
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
+  const { products, isLoading, isError, error } = useMerchantInventory();
 
-  const totalStock = inventory.reduce((sum, i) => sum + i.stock, 0);
-  const lowStockCount = inventory.filter((i) => i.status === "LOW").length;
-  const outOfStockCount = inventory.filter(
-    (i) => i.status === "OUT_OF_STOCK",
-  ).length;
+  const [activeTab, setActiveTab] = useState<
+    "ALL" | "LOW" | "OUT" | "ACTIVE" | "PAUSED"
+  >("ALL");
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="space-y-10 py-4 animate-in fade-in duration-500">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-4">
-            <Skeleton className="h-10 w-64 rounded-xl" />
-            <Skeleton className="h-4 w-96" />
-          </div>
-          <Skeleton className="h-12 w-48 rounded-xl" />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-32 rounded-[2rem]" />
-          ))}
-        </div>
-
-        <div className="space-y-6">
-          {[1, 2].map((i) => (
-            <Skeleton key={i} className="h-40 w-full rounded-[2.5rem]" />
-          ))}
-        </div>
+      <div className="h-full bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-8 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="py-20 text-center">
         <span className="material-symbols-outlined text-5xl text-red-400 mb-4">
           error
         </span>
-        <p className="text-red-500 font-bold">{error}</p>
+        <p className="text-red-500 font-bold">
+          {error || "Failed to load inventory"}
+        </p>
       </div>
     );
   }
 
+  // Calculate generic stats wired to real data
+  const totalSkus = products.length || 0;
+
+  // Use the same logic as InventoryRow for determining what is active/paused/low/out
+  const activeStatus = products.filter((p) => p.isActive).length;
+
+  const lowStock = products.filter((p) => {
+    const stock = p.stockCache?.stock || 0;
+    const threshold = p.minOrderQuantity > 0 ? p.minOrderQuantity * 2 : 10;
+    return p.isActive && stock > 0 && stock <= threshold;
+  }).length;
+
+  // Filter logic for tabs based on activeTab state
+  const filteredProducts = products.filter((p) => {
+    const stock = p.stockCache?.stock || 0;
+    const threshold = p.minOrderQuantity > 0 ? p.minOrderQuantity * 2 : 10;
+
+    switch (activeTab) {
+      case "ACTIVE":
+        return p.isActive && stock > 0;
+      case "PAUSED":
+        return !p.isActive;
+      case "OUT":
+        return stock === 0;
+      case "LOW":
+        return p.isActive && stock > 0 && stock <= threshold;
+      case "ALL":
+      default:
+        return true;
+    }
+  });
+
   return (
-    <div className="space-y-10 py-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div className="space-y-1">
-          <h1 className="text-4xl font-black text-navy-dark dark:text-white tracking-tight uppercase leading-none font-display">
-            Inventory Vault
-          </h1>
-          <p className="text-slate-500 font-bold text-sm tracking-wide mt-2">
-            Oversee your physical stock levels and warehouse distribution
-          </p>
-        </div>
+    <div className="h-full bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* Header Area - Action Button */}
+      <div className="p-8 pb-4 flex justify-end shrink-0">
         <button
           onClick={() => router.push("/merchant/inventory/new")}
-          className="flex items-center gap-2 px-8 py-3 bg-navy-dark text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-navy-dark/20 hover:scale-105 active:scale-95 transition-all"
+          className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors"
         >
-          <span className="material-symbols-outlined text-lg">inventory_2</span>
-          Update Stock Levels
+          <span className="material-symbols-outlined text-[20px]">add</span>
+          Add New Product
         </button>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] p-8 shadow-sm group hover:border-blue-200 transition-colors">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">
-            Total Stock Volume
+      {/* Stats Overview */}
+      <div className="grid grid-cols-4 gap-4 px-8 pb-0 shrink-0">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-lg">
+          <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">
+            Total SKUs
           </p>
-          <div className="flex items-end justify-between">
-            <h3 className="text-3xl font-black text-navy-dark dark:text-white tracking-tighter">
-              {totalStock.toLocaleString()}
-            </h3>
-            <span className="material-symbols-outlined text-blue-500 opacity-20 text-4xl group-hover:scale-125 transition-transform font-black">
-              box
-            </span>
-          </div>
+          <p className="text-2xl font-bold mt-1">{totalSkus}</p>
         </div>
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] p-8 shadow-sm group hover:border-amber-200 transition-colors">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">
-            Low Stock Alerts
+
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-lg">
+          <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">
+            Active Status
           </p>
-          <div className="flex items-end justify-between">
-            <h3 className="text-3xl font-black text-amber-500 tracking-tighter">
-              {lowStockCount}
-            </h3>
-            <span className="material-symbols-outlined text-amber-500 opacity-20 text-4xl group-hover:scale-125 transition-transform font-black">
-              warning
-            </span>
-          </div>
+          <p className="text-2xl font-bold mt-1 text-green-600">
+            {activeStatus}
+          </p>
         </div>
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] p-8 shadow-sm group hover:border-red-200 transition-colors">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">
-            Out of Stock
+
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-lg">
+          <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">
+            Low Stock
           </p>
-          <div className="flex items-end justify-between">
-            <h3 className="text-3xl font-black text-red-500 tracking-tighter">
-              {outOfStockCount}
-            </h3>
-            <span className="material-symbols-outlined text-red-500 opacity-20 text-4xl group-hover:scale-125 transition-transform font-black">
-              block
-            </span>
-          </div>
+          <p className="text-2xl font-bold mt-1 text-amber-500">{lowStock}</p>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-lg">
+          <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">
+            Warehouse Capacity
+          </p>
+          <p className="text-2xl font-bold mt-1 text-primary">--%</p>
         </div>
       </div>
 
-      {/* Inventory List */}
-      {inventory.length === 0 ? (
-        <div className="text-center py-20">
-          <span className="material-symbols-outlined text-6xl text-slate-200 mb-4">
-            inventory_2
-          </span>
-          <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">
-            No products yet. Add products first to track inventory.
-          </p>
+      {/* Filter Bar */}
+      <div className="px-8 mt-6 shrink-0">
+        <div className="flex border-b border-slate-200 dark:border-slate-800 gap-8">
+          {(["ALL", "LOW", "OUT", "ACTIVE", "PAUSED"] as const).map((tab) => {
+            const labels = {
+              ALL: "All Stock",
+              LOW: "Low Stock",
+              OUT: "Out of Stock",
+              ACTIVE: "Active",
+              PAUSED: "Paused",
+            };
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`pb-3 px-1 text-sm font-bold border-b-2 transition-colors ${activeTab === tab ? "border-primary text-primary" : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
+              >
+                {labels[tab]}
+              </button>
+            );
+          })}
         </div>
-      ) : (
-        <div className="space-y-6">
-          {inventory.map((item) => (
-            <div
-              key={item.product.id}
-              className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-8 hover:shadow-xl transition-all duration-300 group"
-            >
-              <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-                <div className="flex items-center gap-8">
-                  <div className="size-16 rounded-3xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center border border-slate-100 dark:border-slate-700 group-hover:scale-110 transition-transform">
-                    <span className="material-symbols-outlined text-3xl text-slate-300">
-                      pallet
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    <h3 className="text-lg font-black text-navy-dark dark:text-white uppercase tracking-tight">
-                      {item.product.name}
-                    </h3>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                      {item.product.categoryTag} • {item.product.unit}
-                    </p>
-                  </div>
-                </div>
+      </div>
 
-                <div className="grid grid-cols-2 lg:flex items-center gap-10">
-                  <div className="text-center md:text-right">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                      Current Stock
+      {/* Data Table Section */}
+      <div className="flex-1 p-8 pt-4 overflow-hidden flex flex-col">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-y-auto flex-1">
+          <table className="w-full text-left border-collapse relative">
+            <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-800/90 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800">
+              <tr>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Product Description
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Stock Level
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Warehouse Location
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Unit of Measure
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Market Status
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+              {filteredProducts.length > 0 ? (
+                filteredProducts.map((product) => (
+                  <InventoryRow
+                    key={product.id}
+                    product={product}
+                    onQuickEdit={(id) =>
+                      router.push(`/merchant/products/${id}/edit`)
+                    }
+                  />
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-6 py-12 text-center text-slate-500"
+                  >
+                    <span className="material-symbols-outlined text-4xl mb-2 opacity-50">
+                      inventory_2
+                    </span>
+                    <p className="text-sm">
+                      No products found for this filter.
                     </p>
-                    <p
-                      className={`text-xl font-black tracking-tighter ${item.status === "OUT_OF_STOCK" ? "text-red-500" : item.status === "LOW" ? "text-amber-500" : "text-navy-dark dark:text-white"}`}
-                    >
-                      {item.stock.toLocaleString()} Units
-                    </p>
-                  </div>
-                  <div className="text-center md:text-right">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                      Status
-                    </p>
-                    <p
-                      className={`text-sm font-black uppercase tracking-widest ${item.status === "OUT_OF_STOCK" ? "text-red-500" : item.status === "LOW" ? "text-amber-500" : "text-emerald-500"}`}
-                    >
-                      {item.status.replace("_", " ")}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-4 col-span-2 lg:col-span-1 justify-center">
-                    <button
-                      onClick={() =>
-                        router.push(
-                          `/merchant/inventory/new?productId=${item.product.id}`,
-                        )
-                      }
-                      className="size-14 rounded-2xl bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 flex items-center justify-center text-navy-dark dark:text-white hover:border-navy-dark active:scale-95 transition-all shadow-sm"
-                    >
-                      <span className="material-symbols-outlined">edit</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
+
+        {/* Table Pagination */}
+        <div className="p-4 mt-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-lg flex items-center justify-between shrink-0">
+          <p className="text-xs font-medium text-slate-500">
+            Showing {filteredProducts.length} results
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              className="p-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-400 hover:text-slate-600 disabled:opacity-50"
+              disabled
+            >
+              <span className="material-symbols-outlined text-[18px]">
+                chevron_left
+              </span>
+            </button>
+            <button className="size-8 rounded bg-primary text-white text-xs font-bold">
+              1
+            </button>
+            <button
+              className="p-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-400 hover:text-slate-600 disabled:opacity-50"
+              disabled
+            >
+              <span className="material-symbols-outlined text-[18px]">
+                chevron_right
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

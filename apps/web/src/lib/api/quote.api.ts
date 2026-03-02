@@ -1,8 +1,15 @@
-import { apiClient } from '../api-client';
-import type { SubmitQuoteDto, Quote } from '@hardware-os/shared';
+import { apiClient } from "../api-client";
+import type { SubmitQuoteDto, Quote } from "@hardware-os/shared";
 
 export async function submitQuote(dto: SubmitQuoteDto): Promise<Quote> {
-  return apiClient.post('/quotes', dto);
+  return apiClient.post("/quotes", dto);
+}
+
+export async function updateQuote(
+  id: string,
+  dto: Partial<SubmitQuoteDto>,
+): Promise<Quote> {
+  return apiClient.post(`/quotes/${id}`, dto);
 }
 
 export async function acceptQuote(id: string): Promise<Quote> {

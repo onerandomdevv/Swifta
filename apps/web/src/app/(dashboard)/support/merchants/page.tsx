@@ -12,7 +12,7 @@ interface PendingMerchant {
   businessAddress: string | null;
   cacNumber: string | null;
   createdAt: string;
-  user: { email: string; fullName: string | null; phone: string };
+  user: { email: string; firstName: string; lastName: string; phone: string };
 }
 
 export default function SupportMerchantsPage() {
@@ -61,9 +61,8 @@ export default function SupportMerchantsPage() {
               <h3 className="font-black text-navy-dark dark:text-white text-lg">
                 {m.businessName}
               </h3>
-              <p className="text-sm text-slate-500 mt-1">
-                {m.user.fullName} • {m.user.email} • {m.user.phone}
-              </p>
+              {m.user.firstName} {m.user.lastName} • {m.user.email} •{" "}
+              {m.user.phone}
               <div className="flex flex-wrap gap-2 mt-2">
                 {m.category && (
                   <span className="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-full font-bold text-slate-600 dark:text-slate-400">

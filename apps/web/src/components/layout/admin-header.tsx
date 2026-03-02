@@ -10,13 +10,8 @@ export function AdminHeader() {
   const { unreadCount } = useNotifications(true, true);
   const { user } = useAuth();
 
-  const initials = user?.fullName
-    ? user.fullName
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
+  const initials = user?.firstName
+    ? ((user.firstName[0] || "") + (user.lastName?.[0] || "")).toUpperCase()
     : user?.email?.slice(0, 2).toUpperCase() || "??";
 
   const roleLabel = user?.role?.replace("_", " ") || "Staff";

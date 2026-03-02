@@ -9,7 +9,7 @@ interface Order {
   status: string;
   totalAmountKobo: number;
   createdAt: string;
-  buyer: { email: string; fullName: string | null };
+  buyer: { email: string; firstName: string; lastName: string };
   merchant: { businessName: string };
 }
 
@@ -73,8 +73,10 @@ export default function SupportOrdersPage() {
                 </span>
               </div>
               <p className="text-sm text-slate-500 mt-1">
-                {order.buyer.fullName || order.buyer.email} →{" "}
-                {order.merchant.businessName}
+                {order.buyer.firstName || order.buyer.lastName
+                  ? `${order.buyer.firstName} ${order.buyer.lastName}`
+                  : order.buyer.email}{" "}
+                → {order.merchant.businessName}
               </p>
               <p className="text-xs text-slate-400 mt-0.5">
                 ₦{(order.totalAmountKobo / 100).toLocaleString()} •{" "}
