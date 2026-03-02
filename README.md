@@ -39,6 +39,11 @@ Generic platforms fail because they don't understand how this billion-naira indu
   - Merchant verification queues and manual flags (e.g., CAC, Address).
   - Staff user management with secure **Access Token Generation** for `OPERATOR` and `SUPPORT` roles.
 
+### 4. WhatsApp AI Assistant
+
+- **Conversational RFQs:** Merchants interact with a natural language AI assistant on WhatsApp to seamlessly receive and respond to quotes without opening the app.
+- **Automated Alerts:** Stock alerts and order updates pushed directly to the merchant's WhatsApp.
+
 ### 3. Trust Profiles & Issue Resolution
 
 - **Merchant Trust Profiles:** Buyers see delivery velocity, response rates, and verification status before initiating trade.
@@ -68,7 +73,7 @@ hardware-os/
 - **Database:** PostgreSQL 16 (Relational state, structured data - Supabase managed).
 - **Cache / Background Jobs:** Redis 7 (OTP limits, rate-limiting, session management, job queuing).
 - **Payments:** Paystack API & Webhooks.
-- **Notifications & Comm:** Resend (Email), Africa's Talking (SMS OTPs).
+- **Notifications & Comm:** Resend (Email), Africa's Talking (SMS OTPs), Meta WhatsApp Business Cloud API.
 
 ---
 
@@ -119,10 +124,9 @@ pnpm --filter @hardware-os/web dev        # Starts frontend on http://localhost:
 
 ## 🚀 The Future Roadmap
 
-V1 establishes the core transaction loop. The data generated actively paves the way for advanced integrations:
+V1 establishes the core transaction loop and foundational WhatsApp integrations. The data generated actively paves the way for advanced phases:
 
-- **Phase 2 (WhatsApp Native):** Deep WhatsApp integration. Merchants will receive and respond to RFQs directly from WhatsApp without app friction.
-- **Phase 3 (Credit):** Behavioral Credit Scoring (TradeScore) leading to embedded BNPL and Trade Credit financing.
-- **Phase 4 (Market Intelligence):** AI-driven demand forecasting and the creation of a Lagos Hardware Price Index.
+- **Phase 2 (Credit):** Behavioral Credit Scoring (TradeScore) leading to embedded BNPL and Trade Credit financing.
+- **Phase 3 (Market Intelligence):** AI-driven demand forecasting and the creation of a Lagos Hardware Price Index.
 
 Looking ahead, SwiftTrade isn't just about software; it's about providing the market infrastructure that scales Africa's largest informal trade network.
