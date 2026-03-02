@@ -3,7 +3,11 @@
 import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getProduct, updateProduct } from "@/lib/api/product.api";
+import {
+  getProduct,
+  updateProduct,
+  uploadProductImage,
+} from "@/lib/api/product.api";
 import { getStock, adjustStock } from "@/lib/api/inventory.api";
 import type { Product } from "@hardware-os/shared";
 
@@ -25,7 +29,11 @@ export default function EditProductPage() {
     minOrderQuantity: 1,
     isActive: true,
     warehouseLocation: "",
+    imageUrl: "",
   });
+
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Stock state
   const [initialStock, setInitialStock] = useState(0);
@@ -47,6 +55,7 @@ export default function EditProductPage() {
           minOrderQuantity: product.minOrderQuantity,
           isActive: product.isActive,
           warehouseLocation: product.warehouseLocation || "",
+          imageUrl: product.imageUrl || "",
         });
 
         setInitialStock(stockData.stock);
@@ -59,6 +68,27 @@ export default function EditProductPage() {
     }
     fetchData();
   }, [productId]);
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      setError("Image must be under 2MB");
+      return;
+    }
+
+    try {
+      setIsUploadingImage(true);
+      setError(null);
+      const res = await uploadProductImage(file);
+      setFormData((prev) => ({ ...prev, imageUrl: res.url }));
+    } catch (err: any) {
+      setError(err?.message || "Failed to upload image");
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,6 +105,7 @@ export default function EditProductPage() {
         minOrderQuantity: formData.minOrderQuantity,
         isActive: formData.isActive,
         warehouseLocation: formData.warehouseLocation || undefined,
+        imageUrl: formData.imageUrl || undefined,
       });
 
       // 2. Adjust stock if changed
@@ -145,6 +176,60 @@ export default function EditProductPage() {
               <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
                 Basic Information
               </h2>
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 block">
+                Product Image
+              </label>
+              <div
+                onClick={() =>
+                  !isUploadingImage && fileInputRef.current?.click()
+                }
+                className={`w-full h-48 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all ${formData.imageUrl ? "border-green-400 bg-green-50/50 dark:bg-green-900/10" : "border-slate-200 dark:border-slate-700 hover:border-primary dark:hover:border-slate-600 bg-slate-50 dark:bg-slate-800/50"}`}
+              >
+                {formData.imageUrl ? (
+                  <div className="flex flex-col items-center text-green-600 dark:text-green-500">
+                    <span className="material-symbols-outlined text-4xl mb-2">
+                      check_circle
+                    </span>
+                    <span className="text-xs font-black uppercase tracking-widest text-green-700 dark:text-green-400">
+                      Image Uploaded
+                    </span>
+                    <img
+                      src={formData.imageUrl}
+                      alt="Preview"
+                      className="h-16 mt-4 rounded border border-green-200"
+                    />
+                  </div>
+                ) : isUploadingImage ? (
+                  <div className="flex flex-col items-center">
+                    <div className="size-8 border-4 border-slate-200 border-t-primary rounded-full animate-spin mb-4" />
+                    <span className="text-xs font-black uppercase tracking-widest text-slate-400">
+                      Uploading...
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center text-slate-400">
+                    <span className="material-symbols-outlined text-4xl mb-2">
+                      add_photo_alternate
+                    </span>
+                    <span className="text-xs font-black uppercase tracking-widest">
+                      Click to Upload Photo
+                    </span>
+                    <span className="text-[10px] tracking-widest font-bold opacity-60 mt-1">
+                      MAX 2MB (JPG, PNG)
+                    </span>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                />
+              </div>
             </div>
 
             <div className="space-y-3">

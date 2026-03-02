@@ -1,12 +1,15 @@
 import { Injectable } from "@nestjs/common";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Queue } from "bullmq";
-import { NOTIFICATION_QUEUE } from "../../queue/queue.constants";
+import { NOTIFICATION_QUEUE, WHATSAPP_QUEUE } from "../../queue/queue.constants";
 import { NotificationType, NotificationChannel } from "@hardware-os/shared";
 
 @Injectable()
 export class NotificationTriggerService {
-  constructor(@InjectQueue(NOTIFICATION_QUEUE) private queue: Queue) {}
+  constructor(
+    @InjectQueue(NOTIFICATION_QUEUE) private queue: Queue,
+    @InjectQueue(WHATSAPP_QUEUE) private whatsappQueue: Queue,
+  ) {}
 
   private async addJob(
     userId: string,
@@ -68,8 +71,10 @@ export class NotificationTriggerService {
       buyerName: string;
       productName: string;
       quantity: number;
+      deliveryAddress?: string;
     },
   ) {
+    // Standard in-app + email notification
     await this.addJob(
       merchantId,
       "NEW_RFQ",
@@ -77,6 +82,31 @@ export class NotificationTriggerService {
       "You have a new request for quote.",
       { ...metadata, isMerchantId: true },
     );
+
+    // WhatsApp push notification (async — fire and forget)
+    try {
+      await this.whatsappQueue.add(
+        "send-rfq-notification",
+        {
+          merchantId,
+          rfqData: {
+            rfqId: metadata.rfqId,
+            buyerName: metadata.buyerName,
+            productName: metadata.productName,
+            quantity: metadata.quantity,
+            deliveryAddress: metadata.deliveryAddress || "Not specified",
+          },
+        },
+        {
+          attempts: 2,
+          backoff: { type: "exponential", delay: 3000 },
+          removeOnComplete: true,
+          removeOnFail: true,
+        },
+      );
+    } catch {
+      // Never let WhatsApp notification failure affect the main flow
+    }
   }
 
   async triggerQuoteReceived(

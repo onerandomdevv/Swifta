@@ -5,6 +5,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "SwiftTrade",
   description: "B2B Trade Platform for Construction Materials",
+  manifest: "/manifest.json",
   openGraph: {
     title: "SwiftTrade",
     siteName: "SwiftTrade",

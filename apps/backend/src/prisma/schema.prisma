@@ -72,6 +72,7 @@ model MerchantProfile {
   sharedQuotes       SharedQuote[]
   reorderReminders   ReorderReminder[]
   payoutRequests     PayoutRequest[]
+  whatsappLink       WhatsAppLink?
 
   @@map("merchant_profiles")
 }
@@ -468,4 +469,15 @@ model ReorderReminder {
   @@index([status, remindAt])
   @@index([buyerId])
   @@map("reorder_reminders")
+}
+
+model WhatsAppLink {
+  id          String          @id @default(uuid()) @db.Uuid
+  phone       String          @unique
+  merchantId  String          @unique @map("merchant_id") @db.Uuid
+  linkedAt    DateTime        @default(now()) @map("linked_at")
+  isActive    Boolean         @default(true) @map("is_active")
+  merchant    MerchantProfile @relation(fields: [merchantId], references: [id])
+
+  @@map("whatsapp_links")
 }

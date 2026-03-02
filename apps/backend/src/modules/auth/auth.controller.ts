@@ -40,13 +40,13 @@ export class AuthController {
     res.cookie("hwos_access_token", tokens.accessToken, {
       httpOnly: true,
       secure: isProd,
-      sameSite: "lax",
+      sameSite: isProd ? "none" : "lax",
       maxAge: 15 * 60 * 1000,
     });
     res.cookie("hwos_refresh_token", tokens.refreshToken, {
       httpOnly: true,
       secure: isProd,
-      sameSite: "lax",
+      sameSite: isProd ? "none" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
   }
@@ -148,8 +148,8 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async getMe(@CurrentUser() user: JwtPayload) {
-    // In a real scenario we might fetch full user from db, but payload usually suffices
-    return { user };
+    const freshUser = await this.authService.getInternalMe(user.sub);
+    return { user: freshUser };
   }
 
   @Throttle({ default: { limit: 3, ttl: 3600000 } }) // 3 per hour limit

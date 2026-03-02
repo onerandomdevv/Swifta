@@ -29,4 +29,8 @@ export class UpdateProductDto {
   @IsOptional()
   @IsString()
   warehouseLocation?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
 }

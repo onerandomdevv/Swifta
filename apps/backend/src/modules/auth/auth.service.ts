@@ -335,6 +335,33 @@ export class AuthService {
     return { message: "Logged out successfully" };
   }
 
+  async getInternalMe(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { merchantProfile: true, adminProfile: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      phone: user.phone,
+      firstName: user.firstName,
+      middleName: user.middleName,
+      lastName: user.lastName,
+      role: user.role,
+      emailVerified: user.emailVerified,
+      phoneVerified: user.phoneVerified,
+      merchantId: user.merchantProfile?.id,
+      adminId: user.adminProfile?.id,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+  }
+
   async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string }> {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
@@ -427,6 +454,9 @@ export class AuthService {
     }
 
     const otp = randomInt(100000, 999999).toString();
+    this.logger.log(
+      `[DEVELOPMENT / SANDBOX] Generated OTP for ${email}: ${otp}`,
+    );
     await this.redis.set(`${EMAIL_OTP_PREFIX}${email}`, otp, EMAIL_OTP_TTL);
     await this.notificationTriggerService.triggerEmailVerification(
       user.id,
@@ -442,6 +472,9 @@ export class AuthService {
     email: string,
   ): Promise<void> {
     const otp = randomInt(100000, 999999).toString();
+    this.logger.log(
+      `[DEVELOPMENT / SANDBOX] Generated OTP for ${email}: ${otp}`,
+    );
 
     await this.redis.set(`${EMAIL_OTP_PREFIX}${email}`, otp, EMAIL_OTP_TTL);
 
@@ -539,6 +572,9 @@ export class AuthService {
     }
 
     const otp = randomInt(100000, 999999).toString();
+    this.logger.log(
+      `[DEVELOPMENT / LIVE] Generated SMS OTP and queued delivery for ${phone}`,
+    );
     await this.redis.set(
       `${PHONE_OTP_PREFIX}${phone}:${userId}`,
       otp,

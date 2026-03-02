@@ -9,7 +9,7 @@ export async function updateQuote(
   id: string,
   dto: Partial<SubmitQuoteDto>,
 ): Promise<Quote> {
-  return apiClient.post(`/quotes/${id}`, dto);
+  return apiClient.patch(`/quotes/${id}`, dto);
 }
 
 export async function acceptQuote(id: string): Promise<Quote> {

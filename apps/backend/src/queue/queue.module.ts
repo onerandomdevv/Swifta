@@ -5,23 +5,38 @@ import {
   NOTIFICATION_QUEUE,
   RFQ_EXPIRY_QUEUE,
   REORDER_REMINDER_QUEUE,
+  WHATSAPP_QUEUE,
 } from "./queue.constants";
 
 @Global()
 @Module({
   imports: [
     BullModule.forRootAsync({
-      useFactory: (configService: ConfigService) => ({
-        connection: {
-          url: configService.get("redis.url"),
-        },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const redisUrlString =
+          configService.get<string>("redis.url") || "redis://127.0.0.1:6379";
+        const redisUrl = new URL(redisUrlString);
+        return {
+          connection: {
+            host: redisUrl.hostname,
+            port: parseInt(redisUrl.port, 10) || 6379,
+            password: redisUrl.password || undefined,
+            username: redisUrl.username || undefined,
+            tls:
+              redisUrl.protocol === "rediss:"
+                ? { rejectUnauthorized: false }
+                : undefined,
+            family: 0,
+          },
+        };
+      },
       inject: [ConfigService],
     }),
     BullModule.registerQueue(
       { name: NOTIFICATION_QUEUE },
       { name: RFQ_EXPIRY_QUEUE },
       { name: REORDER_REMINDER_QUEUE },
+      { name: WHATSAPP_QUEUE },
     ),
   ],
   exports: [BullModule],
