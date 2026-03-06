@@ -246,6 +246,11 @@ export default function StaffJoinPage() {
                       placeholder="e.g. Yusuf"
                       {...register("firstName")}
                     />
+                    {errors.firstName && (
+                      <p className="text-xs font-bold text-red-500 mt-1.5 ml-1">
+                        {errors.firstName.message}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-1.5">
@@ -256,6 +261,11 @@ export default function StaffJoinPage() {
                       placeholder="e.g. Saheed"
                       {...register("lastName")}
                     />
+                    {errors.lastName && (
+                      <p className="text-xs font-bold text-red-500 mt-1.5 ml-1">
+                        {errors.lastName.message}
+                      </p>
+                    )}
                   </div>
                 </div>
 

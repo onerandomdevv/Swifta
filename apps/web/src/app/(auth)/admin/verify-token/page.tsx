@@ -276,7 +276,7 @@ export default function VerifyTokenPage() {
             <button
               disabled={isSubmitting || token.length < 10}
               className={`w-full h-16 text-sm font-black uppercase tracking-[0.2em] shadow-lg shadow-slate-900/10 transition-all rounded-2xl active:scale-[0.98] flex items-center justify-center gap-3 ${
-                token.length >= 29
+                token.length >= 10
                   ? "bg-slate-900 text-white hover:bg-black"
                   : "bg-slate-200 text-slate-400 cursor-not-allowed"
               }`}
