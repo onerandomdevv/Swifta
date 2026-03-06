@@ -35,12 +35,19 @@ export class VerificationService {
       );
     }
 
-    // 2 & 3. Atomic create (unique constraint will throw PrismaClientKnownRequestError if PENDING exists)
-    // Since prisma schema doesn't have a partial unique index defined natively without raw SQL,
-    // and we want to preserve the PR author's request to "attempt the create directly and handle error":
-    let request;
-    try {
-      request = await this.prisma.verificationRequest.create({
+    // 2 & 3. Atomically check for existing PENDING request and create if none exists
+    const request = await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.verificationRequest.findFirst({
+        where: { merchantId, status: "PENDING" },
+      });
+
+      if (existing) {
+        throw new BadRequestException(
+          "You already have a verification request pending review",
+        );
+      }
+
+      return tx.verificationRequest.create({
         data: {
           merchantId,
           governmentIdUrl: dto.governmentIdUrl,
@@ -50,16 +57,11 @@ export class VerificationService {
         },
         include: {
           merchant: {
-             include: { user: true },
+            include: { user: true },
           },
         },
       });
-    } catch (error: any) {
-      if (error.code === 'P2002') {
-         throw new BadRequestException("You already have a verification request pending review");
-      }
-      throw error;
-    }
+    });
 
     // Notify admins (best effort)
     try {
@@ -186,14 +188,14 @@ export class VerificationService {
         },
       });
 
-      // Notify merchant
-      await this.notifications.addJob(
+      // Notify merchant (fire-and-forget — enqueue failure must not affect the response)
+      this.notifications.addJob(
         request.merchant.userId,
         "VERIFICATION_REJECTED",
         "Verification Request Rejected",
         `Your verification request was rejected. Reason: ${dto.rejectionReason}`,
         { requestId },
-      );
+      ).catch((err) => this.logger.error(`Failed to enqueue rejection notification for request ${requestId}`, err));
 
       return {
         message: "Verification request rejected",
@@ -265,14 +267,14 @@ export class VerificationService {
       return { meetsRequirements, completedOrdersCount, newTier, message };
     });
 
-    // Notify merchant outside transaction
-    await this.notifications.addJob(
+    // Notify merchant outside transaction (fire-and-forget)
+    this.notifications.addJob(
       request.merchant.userId,
       "VERIFICATION_APPROVED",
       "Verification Documents Approved",
       txResult.message,
       { requestId, newTier: txResult.newTier, completedOrdersCount: txResult.completedOrdersCount },
-    );
+    ).catch((err) => this.logger.error(`Failed to enqueue approval notification for request ${requestId}`, err));
 
     return {
       message: "Verification request approved",
@@ -313,12 +315,12 @@ export class VerificationService {
           data: { verificationTier: VerificationTier.BASIC },
         });
 
-        await this.notifications.addJob(
+        this.notifications.addJob(
           merchant.userId,
           "TIER_UPGRADED",
           "Verification Tier Upgraded",
           "You have been upgraded to the BASIC verification tier! Submit your identity documents to unlock VERIFIED status and Direct Payments.",
-        );
+        ).catch((err) => this.logger.error(`Failed to enqueue BASIC tier upgrade notification for merchant ${merchantId}`, err));
         return; // Upgraded to BASIC, return for now. Next order can trigger the verified check.
       }
     }
@@ -352,12 +354,12 @@ export class VerificationService {
           },
         });
 
-        await this.notifications.addJob(
+        this.notifications.addJob(
           merchant.userId,
           "TIER_UPGRADED",
           "You are now a Verified Merchant! 🎉",
           "Congratulations! Because you've maintained a perfect track record of 10+ completed orders, you have been upgraded to VERIFIED status. You can now offer Direct Payments to your buyers.",
-        );
+        ).catch((err) => this.logger.error(`Failed to enqueue VERIFIED tier upgrade notification for merchant ${merchantId}`, err));
         this.logger.log(`Auto-upgraded merchant ${merchantId} to VERIFIED`);
       }
     }

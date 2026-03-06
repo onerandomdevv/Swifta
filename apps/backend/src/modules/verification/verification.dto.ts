@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsEnum, IsUrl } from "class-validator";
+import { IsString, IsNotEmpty, IsOptional, IsEnum, IsUrl, IsIn } from "class-validator";
 import { VerificationIdType, VerificationRequestStatus } from "@hardware-os/shared";
 
 export class SubmitVerificationDto {
@@ -15,8 +15,8 @@ export class SubmitVerificationDto {
 }
 
 export class ReviewVerificationDto {
-  @IsEnum(VerificationRequestStatus)
-  decision: VerificationRequestStatus;
+  @IsIn(["APPROVED", "REJECTED"], { message: "decision must be APPROVED or REJECTED" })
+  decision: "APPROVED" | "REJECTED";
 
   @IsOptional()
   @IsString()

@@ -30,7 +30,7 @@ export function MerchantHeader({
     .filter((o) => o.status === "PAID" || o.status === "DISPATCHED")
     .reduce((sum, o) => sum + BigInt(o.totalAmountKobo || 0), 0n);
 
-  const verificationStatus = profile?.verificationTier || "UNVERIFIED";
+
 
   return (
     <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-6 shrink-0">

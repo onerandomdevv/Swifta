@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../prisma/prisma.service';
-import { OrderStatus, VerificationStatus } from '@hardware-os/shared';
+import { OrderStatus } from '@hardware-os/shared';
  
 @Injectable()
 export class AdminCronService {
@@ -35,10 +35,12 @@ export class AdminCronService {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const chokeSize = await this.prisma.merchantProfile.count({
       where: {
-        verificationTier: "UNVERIFIED",
-        updatedAt: {
-          lt: twentyFourHoursAgo
-        }
+        verificationRequests: {
+          some: {
+            status: "PENDING",
+            createdAt: { lt: twentyFourHoursAgo },
+          },
+        },
       }
     });
 

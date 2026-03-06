@@ -231,7 +231,21 @@ export default function AdminVerificationQueuePage() {
                         <p className="text-[10px] text-slate-500 font-medium uppercase">{selectedRequest.idType}</p>
                       </div>
                     </div>
-                    {selectedRequest.governmentIdUrl?.startsWith('http') ? (
+                    {(() => {
+                      const isValidDocumentUrl = (url?: string): boolean => {
+                        if (!url) return false;
+                        try {
+                          const parsed = new URL(url);
+                          return (
+                            parsed.protocol === "https:" &&
+                            (parsed.hostname.endsWith("cloudinary.com") ||
+                              parsed.hostname.endsWith("res.cloudinary.com"))
+                          );
+                        } catch {
+                          return false;
+                        }
+                      };
+                      return isValidDocumentUrl(selectedRequest.governmentIdUrl) ? (
                       <a
                         href={selectedRequest.governmentIdUrl}
                         target="_blank"
@@ -242,7 +256,8 @@ export default function AdminVerificationQueuePage() {
                       </a>
                     ) : (
                       <span className="text-[10px] text-red-500 font-bold uppercase tracking-widest">Invalid URL</span>
-                    )}
+                    );
+                    })()}
                   </div>
 
                   {selectedRequest.cacCertUrl && (

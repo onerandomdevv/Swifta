@@ -1,0 +1,19 @@
+fix(v3): PR feedback round 2 - verification system improvements
+
+Critical fixes:
+- admin.service: getPendingMerchants filters by latest verification request only
+- admin.service + admin-cron: chokeSize counts PENDING requests by age, not profile tier/updatedAt
+- notification-type.enum: add 14 missing members (WELCOME, EMAIL_VERIFICATION, etc.)
+- verification.dto: restrict ReviewVerificationDto.decision to APPROVED|REJECTED only (@IsIn)
+- verification.service: replace broken P2002 guard with atomic transactional check-create
+- merchant-header: remove unused verificationStatus variable
+
+Notification safety:
+- verification.service: wrap all notifications.addJob in fire-and-forget (.catch + logger)
+
+Nitpicks:
+- merchant-verified.guard: use VerificationTier enum constant, remove unused import
+- admin-cron: remove unused VerificationStatus import
+- admin/verification/page: strict HTTPS + cloudinary domain URL validation
+- merchant/verification/page: typed state (no more any), remove redundant try/catch
+- merchant/verification/page: fix onboardingStep possibly undefined

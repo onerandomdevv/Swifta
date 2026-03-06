@@ -1,7 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../../prisma/prisma.service';
-import { VerificationStatus } from '@hardware-os/shared';
+import { VerificationTier } from '@hardware-os/shared';
 
 @Injectable()
 export class MerchantVerifiedGuard implements CanActivate {
@@ -22,7 +22,7 @@ export class MerchantVerifiedGuard implements CanActivate {
       where: { id: merchantId },
     });
 
-    if (!merchant || merchant.verificationTier !== "VERIFIED") {
+    if (!merchant || merchant.verificationTier !== VerificationTier.VERIFIED) {
         throw new ForbiddenException('Merchant account not verified');
     }
 

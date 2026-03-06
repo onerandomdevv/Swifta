@@ -98,12 +98,11 @@ export class AdminService {
   }
 
   async getPendingMerchants() {
-    return this.prisma.merchantProfile.findMany({
+    // Fetch all merchants who have at least one verification request
+    const merchants = await this.prisma.merchantProfile.findMany({
       where: {
         verificationRequests: {
-          some: {
-            status: { in: ["PENDING", "REJECTED"] }
-          }
+          some: {},
         },
       },
       include: {
@@ -115,10 +114,20 @@ export class AdminService {
             phone: true,
           },
         },
+        verificationRequests: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
       },
       orderBy: {
         createdAt: "asc",
       },
+    });
+
+    // Filter to only merchants whose LATEST request is PENDING or REJECTED
+    return merchants.filter((m) => {
+      const latest = m.verificationRequests[0];
+      return latest && (latest.status === "PENDING" || latest.status === "REJECTED");
     });
   }
 
@@ -295,8 +304,12 @@ export class AdminService {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const chokeSize = await this.prisma.merchantProfile.count({
       where: {
-        verificationTier: "UNVERIFIED",
-        updatedAt: { lt: twentyFourHoursAgo },
+        verificationRequests: {
+          some: {
+            status: "PENDING",
+            createdAt: { lt: twentyFourHoursAgo },
+          },
+        },
       },
     });
 
