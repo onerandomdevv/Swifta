@@ -14,7 +14,7 @@ export class NotificationTriggerService {
     @InjectQueue(WHATSAPP_QUEUE) private whatsappQueue: Queue,
   ) {}
 
-  private async addJob(
+  public async addJob(
     userId: string,
     type: string,
     title: string,

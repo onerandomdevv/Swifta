@@ -6,6 +6,7 @@ import { NotificationModule } from "../notification/notification.module";
 import { InventoryModule } from "../inventory/inventory.module";
 import { PaymentModule } from "../payment/payment.module";
 import { ReorderModule } from "../reorder/reorder.module";
+import { VerificationModule } from "../verification/verification.module";
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { ReorderModule } from "../reorder/reorder.module";
     InventoryModule,
     forwardRef(() => PaymentModule),
     ReorderModule,
+    VerificationModule,
   ],
   controllers: [OrderController],
   providers: [OrderService],

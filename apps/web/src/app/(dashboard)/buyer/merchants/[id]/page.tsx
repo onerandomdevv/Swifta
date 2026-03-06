@@ -8,6 +8,7 @@ import { getPublicProductsByMerchant } from "@/lib/api/product.api";
 import type { MerchantProfile, Product } from "@hardware-os/shared";
 import { Button } from "@/components/ui/button";
 import { CatalogueGrid } from "@/components/buyer/catalogue/catalogue-grid";
+import { VerificationBadge } from "@/components/ui/verification-badge";
 
 export default function BuyerMerchantProfilePage() {
   const { id } = useParams();
@@ -97,13 +98,8 @@ export default function BuyerMerchantProfilePage() {
                     <h1 className="text-3xl font-black text-navy-dark dark:text-white uppercase tracking-tight">
                       {profile.businessName}
                     </h1>
-                    {profile.verification === "VERIFIED" && (
-                      <span
-                        className="material-symbols-outlined text-green-500 text-2xl"
-                        title="Verified Merchant"
-                      >
-                        verified
-                      </span>
+                    {profile.verificationTier && (
+                      <VerificationBadge tier={profile.verificationTier as any} className="ml-2 scale-125 origin-left" />
                     )}
                   </div>
                   <p className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] mt-1">
@@ -205,15 +201,12 @@ export default function BuyerMerchantProfilePage() {
                     Trust Status
                   </p>
                   <div className="flex items-center gap-2">
-                    <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
-                        profile.verification === "VERIFIED"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-slate-100 text-slate-600"
-                      }`}
-                    >
-                      {profile.verification}
-                    </span>
+                    <VerificationBadge tier={profile.verificationTier as any} />
+                    {(!profile.verificationTier || profile.verificationTier === "UNVERIFIED" || profile.verificationTier === "BASIC") && (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600">
+                        {profile.verificationTier || "UNVERIFIED"}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="space-y-1">
