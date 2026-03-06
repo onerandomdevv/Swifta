@@ -17,14 +17,26 @@ export function OrderInfoSidebar({ order }: Props) {
           {order.id}
         </p>
       </div>
-      <div className="space-y-2">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-          Quote Reference
-        </p>
-        <p className="text-xs font-black text-navy-dark dark:text-white uppercase tracking-widest break-all">
-          {order.quoteId}
-        </p>
-      </div>
+      {order.quoteId ? (
+        <div className="space-y-2">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            Quote Reference
+          </p>
+          <p className="text-xs font-black text-navy-dark dark:text-white uppercase tracking-widest break-all">
+            {order.quoteId}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            Order Type
+          </p>
+          <div className="flex items-center gap-1 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded border border-emerald-100 dark:border-emerald-800/30 text-[10px] w-fit font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
+            <span className="material-symbols-outlined text-sm">flash_on</span>
+            Direct Purchase
+          </div>
+        </div>
+      )}
 
       {order.merchant && (
         <div className="space-y-2 pt-6 border-t border-slate-200 dark:border-slate-700">
@@ -35,7 +47,9 @@ export function OrderInfoSidebar({ order }: Props) {
             href={`/merchants/${order.merchantId || order.merchant.id}`}
             className="flex items-center gap-2 text-xs font-black text-accent-orange uppercase tracking-widest hover:underline decoration-2 underline-offset-4"
           >
-            <span className="material-symbols-outlined text-sm">storefront</span>
+            <span className="material-symbols-outlined text-sm">
+              storefront
+            </span>
             {order.merchant.businessName}
           </Link>
         </div>

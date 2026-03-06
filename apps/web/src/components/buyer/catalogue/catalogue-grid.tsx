@@ -95,6 +95,46 @@ export function CatalogueGrid({
               </Link>
             )}
 
+            {/* Stock Availability Badge */}
+            {(p as any).stockAvailability &&
+              (p as any).stockAvailability !== "OUT_OF_STOCK" && (
+                <span
+                  className={`inline-block mt-2 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider w-fit ${
+                    (p as any).stockAvailability === "IN_STOCK"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-yellow-100 text-yellow-700"
+                  }`}
+                >
+                  {(p as any).stockAvailability === "IN_STOCK"
+                    ? "In Stock"
+                    : "Low Stock"}
+                </span>
+              )}
+            {(p as any).stockAvailability === "OUT_OF_STOCK" && (
+              <span className="inline-block mt-2 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider w-fit bg-red-100 text-red-700">
+                Out of Stock
+              </span>
+            )}
+
+            {/* Price Details */}
+            {p.pricePerUnitKobo ? (
+              <div className="mt-3">
+                <span className="text-lg font-black text-navy-dark dark:text-emerald-400">
+                  {(Number(p.pricePerUnitKobo) / 100).toLocaleString("en-NG", {
+                    style: "currency",
+                    currency: "NGN",
+                  })}
+                </span>
+                <span className="text-[10px] text-slate-500 font-bold ml-1 uppercase tracking-widest">
+                  / {p.unit}
+                </span>
+              </div>
+            ) : (
+              <div className="mt-3 text-xs font-bold text-slate-400 italic">
+                Request Quote for Price
+              </div>
+            )}
+
             {/* Specs Table */}
             <div className="mt-4 mb-6 border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
               <div className="grid grid-cols-2 text-[10px] p-2 border-b border-slate-100 dark:border-slate-800">
@@ -105,23 +145,28 @@ export function CatalogueGrid({
                   {p.minOrderQuantity} {p.unit.toUpperCase()}
                 </span>
               </div>
-              <div className="grid grid-cols-2 text-[10px] p-2">
-                <span className="text-slate-500 uppercase font-bold tracking-tighter">
-                  Unit
-                </span>
-                <span className="text-right font-black text-slate-900 dark:text-white">
-                  {p.unit.toUpperCase()}
-                </span>
-              </div>
             </div>
 
             {/* CTA */}
-            <Link
-              href={`/buyer/rfqs/new?productId=${p.id}`}
-              className="mt-auto w-full bg-primary text-white text-xs font-bold py-3 uppercase tracking-widest hover:bg-orange-600 transition-colors text-center block"
-            >
-              Request Quote
-            </Link>
+            {p.pricePerUnitKobo ? (
+              <Link
+                href={`/buyer/checkout/${p.id}`}
+                className={`mt-auto w-full text-white text-xs font-black py-3 uppercase tracking-widest text-center block transition-colors ${
+                  (p as any).stockAvailability === "OUT_OF_STOCK"
+                    ? "bg-slate-300 cursor-not-allowed pointer-events-none"
+                    : "bg-navy-dark hover:bg-navy"
+                }`}
+              >
+                Buy Now
+              </Link>
+            ) : (
+              <Link
+                href={`/buyer/rfqs/new?productId=${p.id}`}
+                className="mt-auto w-full bg-primary text-white text-xs font-bold py-3 uppercase tracking-widest hover:bg-orange-600 transition-colors text-center block"
+              >
+                Request Quote
+              </Link>
+            )}
           </div>
         </div>
       ))}

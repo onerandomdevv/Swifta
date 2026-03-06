@@ -8,9 +8,10 @@ export const MAIN_MENU = `Welcome back! 🤝 Here's what I fit help you with:
 1️⃣ Sales Summary — "How market?"
 2️⃣ Pending RFQs — "Any new order?"
 3️⃣ Inventory Check — "Wetin dey my store?"
-4️⃣ Respond to RFQ — "Quote [ref] at [price]"
+4️⃣ My Orders — "Show my orders"
 5️⃣ Update Stock — "Add 50 bags cement"
 6️⃣ My Products — "Wetin I dey sell?"
+7️⃣ Update Price — "Update cement price to 8500"
 
 Just type a number or tell me wetin you need! 🤝`;
 
@@ -20,9 +21,10 @@ export const FRIENDLY_FALLBACK = `I no too understand that one o 😅 But no wor
 1️⃣ Sales Summary — "How market?"
 2️⃣ Pending RFQs — "Any new order?"
 3️⃣ Inventory Check — "Wetin dey my store?"
-4️⃣ Respond to RFQ — "Quote [ref] at [price]"
+4️⃣ My Orders — "Show my orders"
 5️⃣ Update Stock — "Add 50 bags cement"
 6️⃣ My Products — "Wetin I dey sell?"
+7️⃣ Update Price — "Update cement price to 8500"
 
 Just tell me wetin you need! 🤝`;
 
@@ -68,20 +70,21 @@ export const GENERIC_ERROR = `Something went wrong on our end. Please try again 
 // Session states for multi-step flows
 // ---------------------------------------------------------------------------
 export enum SessionState {
-  AWAITING_EMAIL = 'AWAITING_EMAIL',
-  AWAITING_OTP = 'AWAITING_OTP',
+  AWAITING_EMAIL = "AWAITING_EMAIL",
+  AWAITING_OTP = "AWAITING_OTP",
 }
 
 // ---------------------------------------------------------------------------
 // Number-to-intent quick map (no AI call required)
 // ---------------------------------------------------------------------------
 export const NUMBER_INTENT_MAP: Record<string, string> = {
-  '1': 'get_sales_summary',
-  '2': 'get_pending_rfqs',
-  '3': 'get_inventory',
-  '4': 'respond_to_rfq',
-  '5': 'update_stock',
-  '6': 'get_products',
+  "1": "get_sales_summary",
+  "2": "get_pending_rfqs",
+  "3": "get_inventory",
+  "4": "get_recent_orders",
+  "5": "update_stock",
+  "6": "get_products",
+  "7": "update_product_price",
 };
 
 // ---------------------------------------------------------------------------
@@ -134,6 +137,15 @@ RFQ responses:
 - "quote a3f2 at 8500 per bag" → respond_to_rfq (rfqReference: "a3f2", unitPriceNaira: 8500)
 - "give am price 8500 delivery 15000" → respond_to_rfq (unitPriceNaira: 8500, deliveryFeeNaira: 15000)
 
+Orders/Dispatch queries:
+- "my orders" → get_recent_orders
+- "dispatch ABC123" → dispatch_order (orderReference: "ABC123")
+- "dispatch" → dispatch_order
+
+Price updates:
+- "update cement price to 9000" → update_product_price (productName: "cement", priceNaira: 9000)
+- "change price 8500" → update_product_price (priceNaira: 8500)
+
 Greetings (show menu):
 - "hi", "hello", "hey", "good morning", "menu", "help" → show_menu
 
@@ -148,86 +160,139 @@ RULES:
 // ---------------------------------------------------------------------------
 export const GEMINI_FUNCTION_DECLARATIONS = [
   {
-    name: 'get_sales_summary',
-    description: "Get merchant sales/revenue summary. Triggered by: 'how market', 'my sales', 'how much I sell', 'how business'",
+    name: "get_sales_summary",
+    description:
+      "Get merchant sales/revenue summary. Triggered by: 'how market', 'my sales', 'how much I sell', 'how business'",
     parameters: {
-      type: 'object' as const,
+      type: "object" as const,
       properties: {
         timeframe: {
-          type: 'string',
-          enum: ['today', 'this_week', 'this_month', 'all_time'],
-          description: 'Time period for summary. Default: today',
+          type: "string",
+          enum: ["today", "this_week", "this_month", "all_time"],
+          description: "Time period for summary. Default: today",
         },
       },
     },
   },
   {
-    name: 'get_pending_rfqs',
-    description: "Get open/pending RFQs for the merchant. Triggered by: 'any new order', 'pending orders', 'anybody wan buy', 'check rfq'",
-    parameters: { type: 'object' as const, properties: {} },
+    name: "get_pending_rfqs",
+    description:
+      "Get open/pending RFQs for the merchant. Triggered by: 'any new order', 'pending orders', 'anybody wan buy', 'check rfq'",
+    parameters: { type: "object" as const, properties: {} },
   },
   {
-    name: 'get_inventory',
-    description: "Get stock levels for all or specific product. Triggered by: 'check my stock', 'wetin dey my store', 'inventory', 'my goods'",
+    name: "get_inventory",
+    description:
+      "Get stock levels for all or specific product. Triggered by: 'check my stock', 'wetin dey my store', 'inventory', 'my goods'",
     parameters: {
-      type: 'object' as const,
+      type: "object" as const,
       properties: {
         productName: {
-          type: 'string',
-          description: 'Optional specific product to check',
+          type: "string",
+          description: "Optional specific product to check",
         },
       },
     },
   },
   {
-    name: 'update_stock',
-    description: "Add or remove inventory stock. Triggered by: 'add 50 bags cement', 'remove 10 rods', 'I just receive 100 iron', 'restock'",
+    name: "update_stock",
+    description:
+      "Add or remove inventory stock. Triggered by: 'add 50 bags cement', 'remove 10 rods', 'I just receive 100 iron', 'restock'",
     parameters: {
-      type: 'object' as const,
+      type: "object" as const,
       properties: {
-        productName: { type: 'string', description: 'Product name' },
-        quantity: { type: 'number', description: 'Quantity to add or remove' },
+        productName: { type: "string", description: "Product name" },
+        quantity: { type: "number", description: "Quantity to add or remove" },
         action: {
-          type: 'string',
-          enum: ['add', 'remove'],
-          description: 'Whether to add or remove stock',
+          type: "string",
+          enum: ["add", "remove"],
+          description: "Whether to add or remove stock",
         },
       },
-      required: ['productName', 'quantity', 'action'],
+      required: ["productName", "quantity", "action"],
     },
   },
   {
-    name: 'get_products',
-    description: "List all merchant products. Triggered by: 'my products', 'wetin I dey sell', 'show listings'",
-    parameters: { type: 'object' as const, properties: {} },
+    name: "get_products",
+    description:
+      "List all merchant products. Triggered by: 'my products', 'wetin I dey sell', 'show listings'",
+    parameters: { type: "object" as const, properties: {} },
   },
   {
-    name: 'respond_to_rfq',
-    description: "Submit a quote for an RFQ. Triggered by: 'quote a3f2 at 8500', 'give am price 8500'",
+    name: "respond_to_rfq",
+    description:
+      "Submit a quote for an RFQ. Triggered by: 'quote a3f2 at 8500', 'give am price 8500'",
     parameters: {
-      type: 'object' as const,
+      type: "object" as const,
       properties: {
-        rfqReference: { type: 'string', description: 'RFQ ID or short reference' },
-        unitPriceNaira: { type: 'number', description: 'Price per unit in Naira' },
-        deliveryFeeNaira: { type: 'number', description: 'Delivery fee in Naira' },
+        rfqReference: {
+          type: "string",
+          description: "RFQ ID or short reference",
+        },
+        unitPriceNaira: {
+          type: "number",
+          description: "Price per unit in Naira",
+        },
+        deliveryFeeNaira: {
+          type: "number",
+          description: "Delivery fee in Naira",
+        },
       },
-      required: ['unitPriceNaira'],
+      required: ["unitPriceNaira"],
     },
   },
   {
-    name: 'show_menu',
-    description: 'Show the main menu ONLY when intent is truly unclear or user explicitly asks for help/menu',
-    parameters: { type: 'object' as const, properties: {} },
+    name: "show_menu",
+    description:
+      "Show the main menu ONLY when intent is truly unclear or user explicitly asks for help/menu",
+    parameters: { type: "object" as const, properties: {} },
+  },
+  {
+    name: "get_recent_orders",
+    description:
+      "Get recent orders for the merchant. Triggered by: 'my orders', 'show my orders', 'recent orders'",
+    parameters: { type: "object" as const, properties: {} },
+  },
+  {
+    name: "dispatch_order",
+    description:
+      "Dispatch an order. Triggered by: 'dispatch ABC123', 'dispatch'",
+    parameters: {
+      type: "object" as const,
+      properties: {
+        orderReference: {
+          type: "string",
+          description: "Order ID or short reference to dispatch",
+        },
+      },
+      required: ["orderReference"],
+    },
+  },
+  {
+    name: "update_product_price",
+    description:
+      "Update the price of a product. Triggered by: 'update cement price to 9000', 'change price 8500'",
+    parameters: {
+      type: "object" as const,
+      properties: {
+        productName: { type: "string", description: "Product name to update" },
+        priceNaira: {
+          type: "number",
+          description: "New price per unit in Naira",
+        },
+      },
+      required: ["productName", "priceNaira"],
+    },
   },
 ];
 
 /** Meta Graph API version */
-export const META_API_VERSION = 'v21.0';
+export const META_API_VERSION = "v21.0";
 
 /** Redis key prefix for WhatsApp sessions */
-export const WA_SESSION_PREFIX = 'wa:session:';
+export const WA_SESSION_PREFIX = "wa:session:";
 /** Redis key prefix for WhatsApp OTPs */
-export const WA_OTP_PREFIX = 'wa:otp:';
+export const WA_OTP_PREFIX = "wa:otp:";
 
 /** Session TTL in seconds (30 minutes) */
 export const SESSION_TTL = 30 * 60;
@@ -235,6 +300,6 @@ export const SESSION_TTL = 30 * 60;
 export const OTP_TTL = 10 * 60;
 
 /** Redis key prefix for message dedup */
-export const WA_MSG_DEDUP_PREFIX = 'wa:msg:';
+export const WA_MSG_DEDUP_PREFIX = "wa:msg:";
 /** Dedup TTL in seconds (5 minutes) */
 export const MSG_DEDUP_TTL = 5 * 60;

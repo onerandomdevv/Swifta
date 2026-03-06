@@ -17,6 +17,7 @@ export default function NewProductPage() {
     categoryTag: "Building Materials",
     minOrderQuantity: 1,
     imageUrl: "",
+    pricePerUnit: "",
   });
 
   const getWordCount = (text: string) => {
@@ -59,6 +60,9 @@ export default function NewProductPage() {
         categoryTag: formData.categoryTag,
         minOrderQuantity: formData.minOrderQuantity,
         imageUrl: formData.imageUrl || undefined,
+        pricePerUnitKobo: formData.pricePerUnit
+          ? (Number(formData.pricePerUnit) * 100).toString()
+          : undefined,
       });
       router.push("/merchant/products");
     } catch (err: any) {
@@ -157,6 +161,27 @@ export default function NewProductPage() {
             className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white"
             placeholder="e.g. Elephant Cement (50kg)"
           />
+        </div>
+
+        <div className="space-y-3">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+            Price per unit (₦)
+          </label>
+          <input
+            type="number"
+            min={0}
+            step={1}
+            value={formData.pricePerUnit}
+            onChange={(e) =>
+              setFormData({ ...formData, pricePerUnit: e.target.value })
+            }
+            className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white"
+            placeholder="e.g. 8500"
+          />
+          <p className="text-[10px] text-slate-500 font-bold ml-2">
+            Leave blank if you prefer buyers to request quotes instead of buying
+            directly
+          </p>
         </div>
 
         <div className="space-y-3">

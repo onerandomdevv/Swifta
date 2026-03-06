@@ -79,8 +79,12 @@ export default function BuyerOrdersPage() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-32 text-center space-y-4">
-        <span className="material-symbols-outlined text-5xl text-red-400">error</span>
-        <p className="text-sm font-bold text-red-600 uppercase tracking-wide">{error}</p>
+        <span className="material-symbols-outlined text-5xl text-red-400">
+          error
+        </span>
+        <p className="text-sm font-bold text-red-600 uppercase tracking-wide">
+          {error}
+        </p>
         <button
           onClick={() => window.location.reload()}
           className="px-6 py-3 bg-primary text-white rounded font-bold uppercase tracking-wide"
@@ -91,15 +95,15 @@ export default function BuyerOrdersPage() {
     );
   }
 
-  const pendingCount = orders.filter((o) => o.status === "PENDING_PAYMENT").length;
+  const pendingCount = orders.filter(
+    (o) => o.status === "PENDING_PAYMENT",
+  ).length;
   const completedCount = orders.filter(
-    (o) => o.status === "COMPLETED" || o.status === "DELIVERED"
+    (o) => o.status === "COMPLETED" || o.status === "DELIVERED",
   ).length;
 
   const filteredOrders =
-    activeTab === "ALL"
-      ? orders
-      : orders.filter((o) => o.status === activeTab);
+    activeTab === "ALL" ? orders : orders.filter((o) => o.status === activeTab);
 
   return (
     <div className="flex-1 p-4 md:p-8 flex flex-col font-display bg-[#f8f6f5] min-h-full">
@@ -172,19 +176,24 @@ export default function BuyerOrdersPage() {
       {filteredOrders.length > 0 ? (
         <div className="bg-white border border-primary/10 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
                 <tr className="bg-primary/5 text-slate-500 text-[11px] font-bold uppercase tracking-widest border-b border-primary/10">
                   <th className="px-6 py-4 whitespace-nowrap">Order ID</th>
                   <th className="px-6 py-4 whitespace-nowrap">Date</th>
                   <th className="px-6 py-4 whitespace-nowrap">Total Amount</th>
                   <th className="px-6 py-4 whitespace-nowrap">Status</th>
-                  <th className="px-6 py-4 text-right whitespace-nowrap">Actions</th>
+                  <th className="px-6 py-4 text-right whitespace-nowrap">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-primary/10">
                 {filteredOrders.map((order: Order) => (
-                  <tr key={order.id} className="hover:bg-primary/5 transition-colors group">
+                  <tr
+                    key={order.id}
+                    className="hover:bg-primary/5 transition-colors group"
+                  >
                     <td className="px-6 py-4 font-mono text-sm text-slate-700 whitespace-nowrap">
                       #LAG-{order.id.slice(0, 8)}
                     </td>
@@ -192,7 +201,7 @@ export default function BuyerOrdersPage() {
                       {new Date(order.createdAt).toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
-                        year: "numeric"
+                        year: "numeric",
                       })}
                     </td>
                     <td className="px-6 py-4 font-bold text-slate-900 whitespace-nowrap">
@@ -201,7 +210,7 @@ export default function BuyerOrdersPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${getStatusBadgeClasses(
-                          order.status
+                          order.status,
                         )}`}
                       >
                         {order.status.replace("_", " ")}

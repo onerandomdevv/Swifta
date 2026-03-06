@@ -38,3 +38,11 @@ export async function reportIssue(id: string, reason: string): Promise<Order> {
 export async function getReceipt(id: string): Promise<Order> {
   return apiClient.get(`/orders/${id}/receipt`);
 }
+
+export async function createDirectOrder(payload: {
+  productId: string;
+  quantity: number;
+  deliveryAddress: string;
+}): Promise<{ order: Order; authorizationUrl: string }> {
+  return apiClient.post("/orders/direct", payload);
+}

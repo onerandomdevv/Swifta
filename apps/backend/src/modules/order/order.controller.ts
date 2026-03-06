@@ -17,6 +17,7 @@ import { Roles } from "../../common/decorators/roles.decorator";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { CurrentMerchant } from "../../common/decorators/current-merchant.decorator";
 import { UserRole, JwtPayload } from "@hardware-os/shared";
+import { CreateDirectOrderDto } from "./dto/create-direct-order.dto";
 
 @Controller("orders")
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -42,6 +43,15 @@ export class OrderController {
       throw new ForbiddenException("Merchant identity required");
     }
     return this.orderService.getMerchantSummary(merchantId);
+  }
+
+  @Post("direct")
+  @Roles(UserRole.BUYER)
+  createDirectOrder(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: CreateDirectOrderDto,
+  ) {
+    return this.orderService.createDirectOrder(user.sub, dto);
   }
 
   @Get(":id")

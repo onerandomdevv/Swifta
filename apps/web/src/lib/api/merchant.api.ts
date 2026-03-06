@@ -9,6 +9,13 @@ export async function getProfile(): Promise<MerchantProfile> {
   return apiClient.get("/merchants/me");
 }
 
+export async function updateBankAccount(dto: {
+  bankAccountNumber: string;
+  bankCode: string;
+}): Promise<MerchantProfile> {
+  return apiClient.patch("/merchants/bank-account", dto);
+}
+
 export async function updateProfile(
   dto: UpdateMerchantDto,
 ): Promise<MerchantProfile> {
@@ -32,7 +39,7 @@ export async function getMerchants(): Promise<any[]> {
 }
 
 export async function getBanks(): Promise<{ name: string; code: string }[]> {
-  return apiClient.get("/payments/banks");
+  return apiClient.get("/merchants/banks/list");
 }
 
 export async function resolveBankAccount(
@@ -40,7 +47,7 @@ export async function resolveBankAccount(
   bankCode: string,
 ): Promise<{ accountName: string; accountNumber: string; bankId: number }> {
   return apiClient.get(
-    `/payments/resolve-account?accountNumber=${accountNumber}&bankCode=${bankCode}`,
+    `/merchants/bank/resolve?accountNumber=${accountNumber}&bankCode=${bankCode}`,
   );
 }
 

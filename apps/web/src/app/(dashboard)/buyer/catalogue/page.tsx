@@ -75,7 +75,7 @@ export default function BuyerCataloguePage() {
   return (
     <div className="h-full flex flex-col bg-surface-light dark:bg-slate-900 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Header */}
-      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center px-8 py-4 justify-between shrink-0">
+      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center px-4 sm:px-8 py-4 justify-between shrink-0 gap-4">
         <div>
           <h1 className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white uppercase">
             Lagos Wholesale Hub
@@ -93,7 +93,7 @@ export default function BuyerCataloguePage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 w-80 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-0 text-sm outline-none transition-all text-slate-900 dark:text-white"
+              className="pl-10 pr-4 py-2 w-full sm:w-80 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-0 text-sm outline-none transition-all text-slate-900 dark:text-white"
               placeholder="Search industrial catalog..."
             />
           </div>
@@ -101,7 +101,7 @@ export default function BuyerCataloguePage() {
       </header>
 
       {/* Category Tabs */}
-      <nav className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex px-8 shrink-0">
+      <nav className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex px-8 shrink-0 overflow-x-auto whitespace-nowrap">
         {CATEGORIES.map((cat) => (
           <button
             key={cat.tag}
@@ -118,7 +118,7 @@ export default function BuyerCataloguePage() {
       </nav>
 
       {/* Filter Bar */}
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-8 py-3 flex gap-4 shrink-0">
+      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-8 py-3 flex flex-wrap gap-4 shrink-0">
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
             Filters:
