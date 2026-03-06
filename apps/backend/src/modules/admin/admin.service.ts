@@ -8,6 +8,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { VerificationStatus, OrderStatus, UserRole } from "@hardware-os/shared";
 import * as bcrypt from "bcrypt";
 import { RedisService } from "../../redis/redis.service";
+import { AuditLogService } from "./audit-log.service";
 
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
 
@@ -19,6 +20,7 @@ export class AdminService {
     private prisma: PrismaService,
     private redis: RedisService,
     private notifications: NotificationTriggerService,
+    private auditLog: AuditLogService,
   ) {}
 
   async getPlatformStats() {
@@ -57,7 +59,7 @@ export class AdminService {
     };
   }
 
-  async verifyMerchant(merchantId: string) {
+  async verifyMerchant(merchantId: string, adminId?: string) {
     const merchant = await this.prisma.merchantProfile.findUnique({
       where: { id: merchantId },
     });
@@ -73,10 +75,19 @@ export class AdminService {
 
     await this.notifications.triggerMerchantVerified(merchant.userId);
 
+    if (adminId) {
+      await this.auditLog.log(
+        adminId,
+        "VERIFY_MERCHANT",
+        "MerchantProfile",
+        merchantId,
+      );
+    }
+
     return updated;
   }
 
-  async rejectMerchant(merchantId: string, reason?: string) {
+  async rejectMerchant(merchantId: string, reason?: string, adminId?: string) {
     const merchant = await this.prisma.merchantProfile.findUnique({
       where: { id: merchantId },
     });
@@ -91,6 +102,16 @@ export class AdminService {
     });
 
     await this.notifications.triggerMerchantRejected(merchant.userId, reason);
+
+    if (adminId) {
+      await this.auditLog.log(
+        adminId,
+        "REJECT_MERCHANT",
+        "MerchantProfile",
+        merchantId,
+        { reason },
+      );
+    }
 
     return updated;
   }
@@ -695,6 +716,8 @@ export class AdminService {
       data: { approvalStatus: "APPROVED" },
     });
 
+    await this.auditLog.log(adminId, "APPROVE_STAFF", "AdminProfile", staffId);
+
     this.logger.log(`Staff ${staffId} approved by admin ${adminId}`);
     return { success: true, message: "Staff member approved successfully." };
   }
@@ -741,6 +764,13 @@ export class AdminService {
       );
     }
 
+    await this.auditLog.log(
+      adminUserId,
+      "PROCESS_PAYOUT",
+      "PayoutRequest",
+      payoutId,
+    );
+
     this.logger.log(
       `Payout request ${payoutId} manually marked as PROCESSED by admin ${adminUserId}`,
     );
@@ -759,6 +789,7 @@ export class AdminService {
     merchantId: string,
     flag: "cacVerified" | "addressVerified" | "bankVerified",
     value: boolean,
+    adminId?: string,
   ) {
     const merchant = await this.prisma.merchantProfile.findUnique({
       where: { id: merchantId },
@@ -768,9 +799,103 @@ export class AdminService {
       throw new NotFoundException("Merchant profile not found");
     }
 
-    return this.prisma.merchantProfile.update({
+    const updated = await this.prisma.merchantProfile.update({
       where: { id: merchantId },
       data: { [flag]: value },
     });
+
+    if (adminId) {
+      await this.auditLog.log(
+        adminId,
+        "TOGGLE_MERCHANT_FLAG",
+        "MerchantProfile",
+        merchantId,
+        { flag, value },
+      );
+    }
+
+    return updated;
+  }
+
+  // ─── Staff Suspend / Reactivate ───
+
+  async suspendStaff(staffId: string, adminId: string) {
+    // Prevent self-suspend
+    if (staffId === adminId) {
+      throw new BadRequestException("You cannot suspend your own account.");
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: staffId },
+      include: { adminProfile: true },
+    });
+
+    if (!user || !user.adminProfile) {
+      throw new NotFoundException("Staff profile not found.");
+    }
+
+    // Prevent suspending SUPER_ADMIN
+    if (user.role === "SUPER_ADMIN") {
+      throw new BadRequestException("Cannot suspend a Super Admin.");
+    }
+
+    // Only allow suspending APPROVED staff (prevents PENDING -> SUSPENDED -> APPROVED bypass)
+    if (user.adminProfile.approvalStatus !== "APPROVED") {
+      throw new BadRequestException(
+        `Staff status is ${user.adminProfile.approvalStatus}, only APPROVED staff can be suspended.`,
+      );
+    }
+
+    await this.prisma.adminProfile.update({
+      where: { userId: staffId },
+      data: { approvalStatus: "SUSPENDED" },
+    });
+
+    // Revoke refresh token so existing sessions are invalidated
+    try {
+      await this.redis.del(`refresh_token:${staffId}`);
+      this.logger.log(`Refresh token revoked for suspended staff ${staffId}`);
+    } catch (err) {
+      this.logger.error(
+        `Failed to revoke refresh token for ${staffId}: ${err}`,
+      );
+    }
+
+    await this.auditLog.log(adminId, "SUSPEND_STAFF", "AdminProfile", staffId);
+
+    this.logger.log(`Staff ${staffId} suspended by admin ${adminId}`);
+    return { success: true, message: "Staff member has been suspended." };
+  }
+
+  async reactivateStaff(staffId: string, adminId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: staffId },
+      include: { adminProfile: true },
+    });
+
+    if (!user || !user.adminProfile) {
+      throw new NotFoundException("Staff profile not found.");
+    }
+
+    if (user.adminProfile.approvalStatus !== "SUSPENDED") {
+      throw new BadRequestException(
+        `Staff status is ${user.adminProfile.approvalStatus}, only SUSPENDED can be reactivated.`,
+      );
+    }
+
+    await this.prisma.adminProfile.update({
+      where: { userId: staffId },
+      data: { approvalStatus: "APPROVED" },
+    });
+
+    await this.auditLog.log(
+      adminId,
+      "REACTIVATE_STAFF",
+      "AdminProfile",
+      staffId,
+    );
+
+    this.logger.log(`Staff ${staffId} reactivated by admin ${adminId}`);
+    return { success: true, message: "Staff member has been reactivated." };
   }
 }
