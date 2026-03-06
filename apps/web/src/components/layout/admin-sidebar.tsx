@@ -31,6 +31,7 @@ export function AdminSidebar() {
         (stats?.pendingMerchants ?? 0) > 0 ? stats?.pendingMerchants : null,
     },
     { name: "Users", href: "/admin/users", icon: "group" },
+    { name: "Staff", href: "/admin/staff", icon: "badge" },
     { name: "Orders", href: "/admin/orders", icon: "local_shipping" },
     { name: "Payouts", href: "/admin/payouts", icon: "payments" },
     { name: "Catalogue", href: "/admin/inventory", icon: "inventory_2" },
