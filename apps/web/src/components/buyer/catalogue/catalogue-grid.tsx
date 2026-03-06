@@ -86,6 +86,12 @@ export function CatalogueGrid({
                 className="flex items-center gap-1.5 mt-3 group/m hover:opacity-80 transition-opacity"
               >
                 <VerificationBadge tier={p.merchantProfile.verificationTier as any} />
+                {(p.merchantProfile.verificationTier === "VERIFIED" ||
+                  p.merchantProfile.verificationTier === "TRUSTED") && (
+                  <span className="text-[8px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-bold uppercase tracking-wide">
+                    Direct Pay
+                  </span>
+                )}
                 <span className="text-[11px] font-bold text-primary dark:text-primary-light truncate group-hover/m:underline decoration-1 underline-offset-2">
                   {p.merchantProfile.businessName}
                 </span>

@@ -43,6 +43,7 @@ export async function createDirectOrder(payload: {
   productId: string;
   quantity: number;
   deliveryAddress: string;
-}): Promise<{ order: Order; authorizationUrl: string }> {
+  paymentMethod?: "ESCROW" | "DIRECT";
+}): Promise<{ orderId: string; authorizationUrl: string; totalAmountKobo: number; platformFeeKobo: number; paymentMethod: string }> {
   return apiClient.post("/orders/direct", payload);
 }

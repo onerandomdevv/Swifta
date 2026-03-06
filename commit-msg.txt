@@ -1,0 +1,17 @@
+feat(v3): dual payment options - escrow vs direct
+
+Backend:
+- Add paymentMethod to CreateDirectOrderDto (ESCROW | DIRECT, default ESCROW)
+- createDirectOrder: verify merchant tier, dynamic fee (1% DIRECT / 2% ESCROW)
+- Store paymentMethod on Order row
+- confirmDelivery: skip payout queue for DIRECT orders (already paid out)
+- processSuccessfulPayment: queue immediate payout for DIRECT orders on webhook
+- PaymentService: inject payout queue, register in payment module
+- PayoutService: dynamic platform fee based on order.paymentMethod
+
+Frontend:
+- Checkout page: payment method radio selector for VERIFIED/TRUSTED merchants
+- Dynamic fee display (1% or 2%) updates on toggle
+- Pass paymentMethod in createDirectOrder API payload
+- Catalogue grid: "Direct Pay" badge for verified merchants
+- Order API client: updated payload and response types
