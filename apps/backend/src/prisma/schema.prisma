@@ -48,6 +48,8 @@ model MerchantProfile {
   settlementAccountName String?            @map("settlement_account_name")
   paystackRecipientCode String?            @map("paystack_recipient_code")
   verification       VerificationStatus @default(UNVERIFIED)
+  verificationTier   VerificationTier   @default(UNVERIFIED) @map("verification_tier")
+  verifiedAt         DateTime?          @map("verified_at")
   onboardingStep     Int                @default(1) @map("onboarding_step")
   createdAt          DateTime           @default(now()) @map("created_at")
   updatedAt          DateTime           @default(now()) @updatedAt @map("updated_at")
@@ -75,6 +77,7 @@ model MerchantProfile {
   payoutRequests     PayoutRequest[]
   payouts            Payout[]
   whatsappLink       WhatsAppLink?
+  verificationRequests VerificationRequest[]
 
   @@map("merchant_profiles")
 }
@@ -125,6 +128,7 @@ model Order {
   deliveryFeeKobo BigInt            @map("delivery_fee_kobo")
   currency        String            @default("NGN")
   status          OrderStatus       @default(PENDING_PAYMENT)
+  paymentMethod   PaymentMethod     @default(ESCROW) @map("payment_method")
   deliveryOtp     String?           @map("delivery_otp")
   disputeStatus   OrderDisputeStatus @default(NONE) @map("dispute_status")
   disputeReason   String?           @map("dispute_reason")
@@ -140,6 +144,8 @@ model Order {
   payments        Payment[]
   reorderReminder ReorderReminder?
   payout          Payout?
+  trackingEvents  OrderTracking[]
+  creditApplication CreditApplication?
 
   @@index([buyerId])
   @@index([merchantId])
@@ -329,30 +335,31 @@ model StaffAccessToken {
 }
 
 model User {
-  id                String             @id @default(uuid()) @db.Uuid
-  email             String             @unique
-  phone             String             @unique
-  passwordHash      String             @map("password_hash")
-  role              UserRole
-  emailVerified     Boolean            @default(false) @map("email_verified")
-  phoneVerified     Boolean            @default(false) @map("phone_verified")
-  createdAt         DateTime           @default(now()) @map("created_at")
-  updatedAt         DateTime           @default(now()) @updatedAt @map("updated_at")
-  deletedAt         DateTime?          @map("deleted_at")
-  resetToken        String?            @map("reset_token")
-  resetTokenExpiry  DateTime?          @map("reset_token_expiry")
-  firstName         String             @map("first_name")
-  middleName        String?            @map("middle_name")
-  lastName          String             @map("last_name")
-  adminProfile      AdminProfile?
-  merchantProfile   MerchantProfile?
-  notifications     Notification[]
-  orderEvents       OrderEvent[]
-  orders            Order[]
-  rfqs              Rfq[]
-  staffAccessTokens StaffAccessToken[]
-  reorderReminders  ReorderReminder[]
-  cartItems         CartItem[]         @relation("UserCartItems")
+  id                  String             @id @default(uuid()) @db.Uuid
+  email               String             @unique
+  phone               String             @unique
+  passwordHash        String             @map("password_hash")
+  role                UserRole
+  emailVerified       Boolean            @default(false) @map("email_verified")
+  phoneVerified       Boolean            @default(false) @map("phone_verified")
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @default(now()) @updatedAt @map("updated_at")
+  deletedAt           DateTime?          @map("deleted_at")
+  resetToken          String?            @map("reset_token")
+  resetTokenExpiry    DateTime?          @map("reset_token_expiry")
+  firstName           String             @map("first_name")
+  middleName          String?            @map("middle_name")
+  lastName            String             @map("last_name")
+  adminProfile        AdminProfile?
+  merchantProfile     MerchantProfile?
+  notifications       Notification[]
+  orderEvents         OrderEvent[]
+  orders              Order[]
+  rfqs                Rfq[]
+  staffAccessTokens   StaffAccessToken[]
+  reorderReminders    ReorderReminder[]
+  cartItems           CartItem[]         @relation("UserCartItems")
+  creditApplications  CreditApplication[]
 
   @@map("users")
 }
@@ -379,6 +386,8 @@ enum NotificationChannel {
 enum OrderStatus {
   PENDING_PAYMENT
   PAID
+  PREPARING
+  IN_TRANSIT
   DISPATCHED
   DELIVERED
   COMPLETED
@@ -534,4 +543,77 @@ model WhatsAppLink {
   merchant    MerchantProfile @relation(fields: [merchantId], references: [id])
 
   @@map("whatsapp_links")
+}
+
+// ─── V3 Enums ────────────────────────────────────────────────────────────────
+
+enum VerificationTier {
+  UNVERIFIED
+  BASIC
+  VERIFIED
+  TRUSTED
+}
+
+enum PaymentMethod {
+  ESCROW
+  DIRECT
+}
+
+enum CreditStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  DISBURSED
+  REPAYING
+  COMPLETED
+  DEFAULTED
+}
+
+// ─── V3 Models ───────────────────────────────────────────────────────────────
+
+model VerificationRequest {
+  id              String          @id @default(uuid()) @db.Uuid
+  merchantId      String          @map("merchant_id") @db.Uuid
+  governmentIdUrl String?         @map("government_id_url")
+  cacCertUrl      String?         @map("cac_cert_url")
+  idType          String?         @map("id_type") // "NIN", "VOTERS_CARD", "PASSPORT"
+  status          String          @default("PENDING") // PENDING, APPROVED, REJECTED
+  reviewedBy      String?         @map("reviewed_by") @db.Uuid
+  reviewedAt      DateTime?       @map("reviewed_at")
+  rejectionReason String?         @map("rejection_reason")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  merchant        MerchantProfile @relation(fields: [merchantId], references: [id])
+
+  @@index([merchantId])
+  @@map("verification_requests")
+}
+
+model OrderTracking {
+  id        String   @id @default(uuid()) @db.Uuid
+  orderId   String   @map("order_id") @db.Uuid
+  status    String
+  note      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  order     Order    @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  @@map("order_tracking")
+}
+
+model CreditApplication {
+  id              String       @id @default(uuid()) @db.Uuid
+  buyerId         String       @map("buyer_id") @db.Uuid
+  orderId         String       @unique @map("order_id") @db.Uuid
+  requestedAmount BigInt       @map("requested_amount_kobo")
+  tenure          Int
+  status          CreditStatus @default(PENDING)
+  partnerRef      String?      @map("partner_ref")
+  approvedAmount  BigInt?      @map("approved_amount_kobo")
+  interestRate    Float?       @map("interest_rate")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  buyer           User         @relation(fields: [buyerId], references: [id])
+  order           Order        @relation(fields: [orderId], references: [id])
+
+  @@index([buyerId])
+  @@map("credit_applications")
 }
