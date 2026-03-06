@@ -53,7 +53,7 @@ export function RegistrationSuccessStep({
               onClick={() =>
                 router.push(
                   role === UserRole.MERCHANT
-                    ? "/merchant/onboarding"
+                    ? "/merchant/dashboard"
                     : "/buyer/dashboard",
                 )
               }

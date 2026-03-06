@@ -123,7 +123,7 @@ export default function MerchantVerificationPage() {
             </p>
           </div>
           <Link
-            href="/merchant/onboarding"
+            href="/merchant/dashboard"
             className="inline-block px-8 py-4 bg-navy-dark dark:bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:-translate-y-1 transition-all active:scale-95"
           >
             Complete Onboarding Now
@@ -253,7 +253,7 @@ export default function MerchantVerificationPage() {
         </div>
         <div className="flex gap-4 relative z-10 w-full md:w-auto">
           <Link
-            href="/merchant/onboarding"
+            href="/merchant/dashboard"
             className="flex-1 md:flex-none px-10 py-4 bg-white text-navy-dark rounded-xl text-[10px] font-black uppercase tracking-widest shadow-2xl hover:-translate-y-1 transition-all active:scale-95 text-center"
           >
             Update Details

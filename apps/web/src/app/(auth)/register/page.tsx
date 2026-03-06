@@ -127,9 +127,7 @@ export default function RegisterPage() {
       toast.success("Email verified successfully!");
 
       const dashboardPath =
-        role === UserRole.MERCHANT
-          ? "/merchant/onboarding"
-          : "/buyer/dashboard";
+        role === UserRole.MERCHANT ? "/merchant/dashboard" : "/buyer/dashboard";
       setTimeout(() => {
         router.push(dashboardPath);
       }, 2000);
