@@ -1,4 +1,5 @@
 import { VerificationStatus } from "../enums/verification-status.enum";
+import { VerificationTier } from "../enums/verification-tier.enum";
 
 export interface MerchantProfile {
   id: string;
@@ -18,6 +19,8 @@ export interface MerchantProfile {
   bankAccountNo?: string;
   bankAccountName?: string;
   verification: VerificationStatus;
+  verificationTier: VerificationTier;
+  verifiedAt?: Date;
   onboardingStep: number;
   createdAt: Date;
   dealsClosed?: number;

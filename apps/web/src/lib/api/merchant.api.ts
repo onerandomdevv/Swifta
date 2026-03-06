@@ -60,3 +60,19 @@ export async function requestPayout(dto: {
 export async function submitVerification(): Promise<MerchantProfile> {
   return apiClient.post("/merchants/me/submit");
 }
+
+export async function submitVerificationRequest(dto: {
+  governmentIdUrl: string;
+  idType: string;
+  cacCertUrl?: string;
+}): Promise<any> {
+  return apiClient.post("/verification/request", dto);
+}
+
+export async function getVerificationStatus(): Promise<{
+  tier: string;
+  verifiedAt?: string;
+  pendingRequest?: any;
+}> {
+  return apiClient.get("/verification/status");
+}
