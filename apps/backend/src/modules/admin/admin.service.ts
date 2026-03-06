@@ -33,10 +33,12 @@ export class AdminService {
     ] = await Promise.all([
       this.prisma.merchantProfile.count(),
       this.prisma.merchantProfile.count({
-        where: { verification: VerificationStatus.VERIFIED },
+        where: { verificationTier: "VERIFIED" },
       }),
       this.prisma.merchantProfile.count({
-        where: { verification: VerificationStatus.PENDING },
+        where: {
+          verificationRequests: { some: { status: "PENDING" } },
+        },
       }),
       this.prisma.user.count({ where: { role: "BUYER" } }),
       this.prisma.order.count(),
@@ -68,7 +70,7 @@ export class AdminService {
 
     const updated = await this.prisma.merchantProfile.update({
       where: { id: merchantId },
-      data: { verification: VerificationStatus.VERIFIED },
+      data: { verificationTier: "VERIFIED", verifiedAt: new Date() },
     });
 
     await this.notifications.triggerMerchantVerified(merchant.userId);
@@ -87,7 +89,7 @@ export class AdminService {
 
     const updated = await this.prisma.merchantProfile.update({
       where: { id: merchantId },
-      data: { verification: VerificationStatus.REJECTED },
+      data: { updatedAt: new Date() },
     });
 
     await this.notifications.triggerMerchantRejected(merchant.userId, reason);
@@ -98,8 +100,10 @@ export class AdminService {
   async getPendingMerchants() {
     return this.prisma.merchantProfile.findMany({
       where: {
-        verification: {
-          in: [VerificationStatus.PENDING, VerificationStatus.REJECTED],
+        verificationRequests: {
+          some: {
+            status: { in: ["PENDING", "REJECTED"] }
+          }
         },
       },
       include: {
@@ -291,7 +295,7 @@ export class AdminService {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const chokeSize = await this.prisma.merchantProfile.count({
       where: {
-        verification: VerificationStatus.UNVERIFIED,
+        verificationTier: "UNVERIFIED",
         updatedAt: { lt: twentyFourHoursAgo },
       },
     });
@@ -374,7 +378,7 @@ export class AdminService {
 
   async broadcastMessage(message: string) {
     const verifiedMerchants = await this.prisma.merchantProfile.findMany({
-      where: { verification: VerificationStatus.VERIFIED },
+      where: { verificationTier: "VERIFIED" },
       include: { user: true },
     });
 
@@ -409,7 +413,7 @@ export class AdminService {
         emailVerified: true,
         createdAt: true,
         merchantProfile: {
-          select: { verification: true },
+          select: { verificationTier: true },
         },
         adminProfile: {
           select: { approvalStatus: true },

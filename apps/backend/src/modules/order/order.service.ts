@@ -664,7 +664,7 @@ export class OrderService {
 
     orders.forEach((o) => {
       const amount =
-        Number(o.totalAmountKobo || 0) + Number(o.deliveryFeeKobo || 0);
+        Number((o.totalAmountKobo || 0n) + (o.deliveryFeeKobo || 0n));
       switch (o.status) {
         case OrderStatus.PAID:
         case OrderStatus.DISPATCHED:

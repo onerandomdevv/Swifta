@@ -149,7 +149,11 @@ export default function AdminVerificationQueuePage() {
                     <td className="p-4 text-right">
                       <Button
                         size="sm"
-                        onClick={() => setSelectedRequest(req)}
+                        onClick={() => {
+                          setSelectedRequest(req);
+                          setDecision(null);
+                          setRejectionReason("");
+                        }}
                         className="text-[10px] uppercase font-black tracking-widest bg-navy-dark text-white hover:bg-navy"
                       >
                         Review
@@ -172,7 +176,11 @@ export default function AdminVerificationQueuePage() {
                 Review Verification Request
               </h2>
               <button
-                onClick={() => setSelectedRequest(null)}
+                onClick={() => {
+                  setSelectedRequest(null);
+                  setDecision(null);
+                  setRejectionReason("");
+                }}
                 className="size-8 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 <span className="material-symbols-outlined text-sm">close</span>
@@ -223,14 +231,18 @@ export default function AdminVerificationQueuePage() {
                         <p className="text-[10px] text-slate-500 font-medium uppercase">{selectedRequest.idType}</p>
                       </div>
                     </div>
-                    <a
-                      href={selectedRequest.governmentIdUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs font-black text-primary hover:underline uppercase tracking-widest"
-                    >
-                      View Document
-                    </a>
+                    {selectedRequest.governmentIdUrl?.startsWith('http') ? (
+                      <a
+                        href={selectedRequest.governmentIdUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-black text-primary hover:underline uppercase tracking-widest"
+                      >
+                        View Document
+                      </a>
+                    ) : (
+                      <span className="text-[10px] text-red-500 font-bold uppercase tracking-widest">Invalid URL</span>
+                    )}
                   </div>
 
                   {selectedRequest.cacCertUrl && (
@@ -242,14 +254,18 @@ export default function AdminVerificationQueuePage() {
                            <p className="text-[10px] text-slate-500 font-medium uppercase">Optional but recommended</p>
                         </div>
                       </div>
-                      <a
-                        href={selectedRequest.cacCertUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs font-black text-primary hover:underline uppercase tracking-widest"
-                      >
-                        View Document
-                      </a>
+                      {selectedRequest.cacCertUrl?.startsWith('http') ? (
+                        <a
+                          href={selectedRequest.cacCertUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-black text-primary hover:underline uppercase tracking-widest"
+                        >
+                          View Document
+                        </a>
+                      ) : (
+                        <span className="text-[10px] text-red-500 font-bold uppercase tracking-widest">Invalid URL</span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -306,7 +322,11 @@ export default function AdminVerificationQueuePage() {
             <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-end gap-3">
               <Button
                 variant="outline"
-                onClick={() => setSelectedRequest(null)}
+                onClick={() => {
+                  setSelectedRequest(null);
+                  setDecision(null);
+                  setRejectionReason("");
+                }}
                 className="text-xs font-black uppercase tracking-widest"
               >
                 Cancel

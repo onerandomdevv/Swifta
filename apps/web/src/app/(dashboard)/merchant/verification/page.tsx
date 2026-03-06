@@ -25,12 +25,12 @@ export default function MerchantVerificationPage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [profRes, verRes] = await Promise.all([
+        const [profRes, verRes] = await Promise.allSettled([
           getProfile(),
           getVerificationStatus(),
         ]);
-        setProfile(profRes);
-        setVerificationData(verRes);
+        if (profRes.status === "fulfilled") setProfile(profRes.value);
+        if (verRes.status === "fulfilled") setVerificationData(verRes.value);
       } catch (err) {
         console.error("Failed to load verification data", err);
       } finally {
@@ -55,10 +55,11 @@ export default function MerchantVerificationPage() {
         governmentIdUrl: idUrl,
         cacCertUrl: cacUrl || undefined,
       });
-      // Reload page immediately
-      window.location.reload();
+      const newStatus = await getVerificationStatus();
+      setVerificationData(newStatus);
+      setSubmitting(false);
     } catch (err: any) {
-      setError(err?.error || "Failed to submit verification request");
+      setError(err?.error || err?.message || "Failed to submit verification request");
       setSubmitting(false);
     }
   };

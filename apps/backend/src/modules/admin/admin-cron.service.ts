@@ -35,7 +35,7 @@ export class AdminCronService {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const chokeSize = await this.prisma.merchantProfile.count({
       where: {
-        verification: VerificationStatus.UNVERIFIED,
+        verificationTier: "UNVERIFIED",
         updatedAt: {
           lt: twentyFourHoursAgo
         }

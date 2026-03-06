@@ -22,7 +22,7 @@ export class MerchantVerifiedGuard implements CanActivate {
       where: { id: merchantId },
     });
 
-    if (!merchant || merchant.verification !== VerificationStatus.VERIFIED) {
+    if (!merchant || merchant.verificationTier !== "VERIFIED") {
         throw new ForbiddenException('Merchant account not verified');
     }
 

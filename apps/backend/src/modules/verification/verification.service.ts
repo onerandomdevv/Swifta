@@ -35,35 +35,31 @@ export class VerificationService {
       );
     }
 
-    // 2. Check for existing UNRESOLVED request
-    const existing = await this.prisma.verificationRequest.findFirst({
-      where: {
-        merchantId,
-        status: "PENDING",
-      },
-    });
-
-    if (existing) {
-      throw new BadRequestException(
-        "You already have a verification request pending review",
-      );
-    }
-
-    // 3. Create request
-    const request = await this.prisma.verificationRequest.create({
-      data: {
-        merchantId,
-        governmentIdUrl: dto.governmentIdUrl,
-        idType: dto.idType,
-        cacCertUrl: dto.cacCertUrl,
-        status: "PENDING",
-      },
-      include: {
-        merchant: {
-          include: { user: true },
+    // 2 & 3. Atomic create (unique constraint will throw PrismaClientKnownRequestError if PENDING exists)
+    // Since prisma schema doesn't have a partial unique index defined natively without raw SQL,
+    // and we want to preserve the PR author's request to "attempt the create directly and handle error":
+    let request;
+    try {
+      request = await this.prisma.verificationRequest.create({
+        data: {
+          merchantId,
+          governmentIdUrl: dto.governmentIdUrl,
+          idType: dto.idType,
+          cacCertUrl: dto.cacCertUrl,
+          status: "PENDING",
         },
-      },
-    });
+        include: {
+          merchant: {
+             include: { user: true },
+          },
+        },
+      });
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+         throw new BadRequestException("You already have a verification request pending review");
+      }
+      throw error;
+    }
 
     // Notify admins (best effort)
     try {
@@ -75,8 +71,10 @@ export class VerificationService {
       const adminIds = admins.map((a) => a.userId);
 
       if (adminIds.length > 0) {
-        // Assume this method exists or we add it to notification suite
-        // this.notifications.trigger...
+        await this.notifications.triggerNewMerchantSubmission(adminIds, {
+          merchantId: request.merchantId,
+          merchantName: request.merchant.businessName,
+        });
       }
     } catch (e) {
       this.logger.error("Failed to notify admins of new verification request");
@@ -189,7 +187,7 @@ export class VerificationService {
       });
 
       // Notify merchant
-      this.notifications.addJob(
+      await this.notifications.addJob(
         request.merchant.userId,
         "VERIFICATION_REJECTED",
         "Verification Request Rejected",
@@ -225,7 +223,7 @@ export class VerificationService {
     const meetsRequirements =
       completedOrdersCount >= 10 && openDisputesCount === 0;
 
-    await this.prisma.$transaction(async (tx) => {
+    const txResult = await this.prisma.$transaction(async (tx) => {
       // Approve the request
       await tx.verificationRequest.update({
         where: { id: requestId },
@@ -264,21 +262,23 @@ export class VerificationService {
         message = `Documents approved. You are currently at ${newTier} tier. Complete 10 orders (currently ${completedOrdersCount}) with no disputes to reach VERIFIED status.`;
       }
 
-      // Notify merchant
-      this.notifications.addJob(
-        request.merchant.userId,
-        "VERIFICATION_APPROVED",
-        "Verification Documents Approved",
-        message,
-        { requestId, newTier, completedOrdersCount },
-      );
+      return { meetsRequirements, completedOrdersCount, newTier, message };
     });
+
+    // Notify merchant outside transaction
+    await this.notifications.addJob(
+      request.merchant.userId,
+      "VERIFICATION_APPROVED",
+      "Verification Documents Approved",
+      txResult.message,
+      { requestId, newTier: txResult.newTier, completedOrdersCount: txResult.completedOrdersCount },
+    );
 
     return {
       message: "Verification request approved",
       decision: "APPROVED",
-      meetsRequirementsForVerified: meetsRequirements,
-      completedOrdersCount,
+      meetsRequirementsForVerified: txResult.meetsRequirements,
+      completedOrdersCount: txResult.completedOrdersCount,
       openDisputesCount,
     };
   }
@@ -313,7 +313,7 @@ export class VerificationService {
           data: { verificationTier: VerificationTier.BASIC },
         });
 
-        this.notifications.addJob(
+        await this.notifications.addJob(
           merchant.userId,
           "TIER_UPGRADED",
           "Verification Tier Upgraded",
@@ -352,7 +352,7 @@ export class VerificationService {
           },
         });
 
-        this.notifications.addJob(
+        await this.notifications.addJob(
           merchant.userId,
           "TIER_UPGRADED",
           "You are now a Verified Merchant! 🎉",
