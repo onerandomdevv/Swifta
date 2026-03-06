@@ -360,6 +360,7 @@ model User {
   cartItems                    CartItem[]            @relation("UserCartItems")
   creditApplications           CreditApplication[]
   reviewedVerificationRequests VerificationRequest[] @relation("VerificationRequestsReviewed")
+  auditLogs                    AuditLog[]
 
   @@map("users")
 }
@@ -622,4 +623,19 @@ model CreditApplication {
 
   @@index([buyerId])
   @@map("credit_applications")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  action     String
+  targetType String   @map("target_type")
+  targetId   String   @map("target_id") @db.Uuid
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([targetType, targetId])
+  @@map("audit_logs")
 }

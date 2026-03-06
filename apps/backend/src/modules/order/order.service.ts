@@ -25,6 +25,7 @@ import { paginate } from "../../common/utils/pagination";
 import { validateTransition } from "./order-state-machine";
 import * as crypto from "crypto";
 import { VerificationService } from "../verification/verification.service";
+import { CreateDirectOrderDto } from "./dto/create-direct-order.dto";
 
 @Injectable()
 export class OrderService {
@@ -116,16 +117,16 @@ export class OrderService {
   //  CREATE DIRECT ORDER
   // ──────────────────────────────────────────────
 
-  async createDirectOrder(buyerId: string, dto: any) {
-    const { productId, quantity, deliveryAddress } = dto;
+  async createDirectOrder(buyerId: string, dto: CreateDirectOrderDto) {
+    const { productId, quantity, deliveryAddress, paymentMethod: requestedMethod } = dto;
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
-      include: { productStockCache: true },
+      include: { productStockCache: true, merchantProfile: true },
     });
 
     if (!product) throw new NotFoundException("Product not found");
     if (!product.isActive) throw new BadRequestException("Product is inactive");
-    if ((product as any).pricePerUnitKobo === null) {
+    if (product.pricePerUnitKobo === null) {
       throw new BadRequestException("Product requires an RFQ");
     }
 
@@ -136,10 +137,14 @@ export class OrderService {
       throw new BadRequestException("Insufficient stock");
     }
 
-    const subtotalKobo = Number((product as any).pricePerUnitKobo) * quantity;
-    const platformFeePercentage = Number(
-      process.env.PLATFORM_FEE_PERCENTAGE || "2",
-    );
+    // Determine payment method based on merchant verification tier
+    const merchantTier = product.merchantProfile?.verificationTier;
+    const isVerifiedMerchant = merchantTier === "VERIFIED" || merchantTier === "TRUSTED";
+    const paymentMethod = (requestedMethod === "DIRECT" && isVerifiedMerchant) ? "DIRECT" : "ESCROW";
+
+    // Dynamic platform fee: 1% for DIRECT, 2% for ESCROW
+    const platformFeePercentage = paymentMethod === "DIRECT" ? 1 : 2;
+    const subtotalKobo = Number(product.pricePerUnitKobo) * quantity;
     const platformFeeKobo = Math.floor(
       subtotalKobo * (platformFeePercentage / 100),
     );
@@ -153,14 +158,15 @@ export class OrderService {
         data: {
           buyerId,
           merchantId: product.merchantId,
-          productId: (product as any).id,
+          productId: product.id,
           quantity,
-          unitPriceKobo: (product as any).pricePerUnitKobo,
+          unitPriceKobo: product.pricePerUnitKobo,
           deliveryAddress,
           totalAmountKobo,
           deliveryFeeKobo: 0n,
           currency: "NGN",
           status: OrderStatus.PENDING_PAYMENT,
+          paymentMethod,
           quoteId: null,
           idempotencyKey,
           payoutStatus: "PENDING",
@@ -174,7 +180,7 @@ export class OrderService {
           fromStatus: null,
           toStatus: OrderStatus.PENDING_PAYMENT,
           triggeredBy: buyerId,
-          metadata: { action: "direct_purchase_created", productId, quantity },
+          metadata: { action: "direct_purchase_created", productId, quantity, paymentMethod },
         },
       });
 
@@ -182,7 +188,7 @@ export class OrderService {
     });
 
     this.logger.log(
-      `Direct order ${order.id} created for product ${productId}`,
+      `Direct order ${order.id} created for product ${productId} (method: ${paymentMethod})`,
     );
 
     // Call payment service to get the authorization URL dynamically
@@ -197,6 +203,7 @@ export class OrderService {
       authorizationUrl: paymentData.authorization_url,
       totalAmountKobo: Number(totalAmountKobo),
       platformFeeKobo,
+      paymentMethod,
     };
   }
 
@@ -451,18 +458,21 @@ export class OrderService {
       );
     }
 
-    // Trigger payout notification (PaymentService handles actual payout)
-    // AUTO-PAYOUT: Initiate payout now that order is COMPLETED
-    try {
-      this.logger.log(`Queueing auto-payout for order ${orderId}`);
-      await this.payoutQueue.add("process-payout", { orderId });
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : "Unknown error";
-      this.logger.error(
-        `Auto-payout failed for order ${orderId} (will need manual retry): ${msg}`,
-        error instanceof Error ? error.stack : undefined,
-      );
-      // Swallow error so we don't rollback the delivery confirmation
+    // AUTO-PAYOUT: Only queue payout for ESCROW orders.
+    // DIRECT orders are already paid out immediately on payment confirmation.
+    if (order.paymentMethod === "ESCROW") {
+      try {
+        this.logger.log(`Queueing auto-payout for ESCROW order ${orderId}`);
+        await this.payoutQueue.add("process-payout", { orderId });
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : "Unknown error";
+        this.logger.error(
+          `Auto-payout failed for order ${orderId} (will need manual retry): ${msg}`,
+          error instanceof Error ? error.stack : undefined,
+        );
+      }
+    } else {
+      this.logger.log(`Skipping payout queue for DIRECT order ${orderId} (already paid out)`);
     }
 
     // Create reorder reminder (best-effort)

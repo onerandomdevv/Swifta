@@ -270,13 +270,7 @@ export class AuthService {
       );
     }
 
-    // 3. Mark the token as inactive so it can't be reused
-    await this.prisma.staffAccessToken.update({
-      where: { id: matchedToken.id },
-      data: { isActive: false },
-    });
-
-    // 4. Create the new staff account
+    // 3. Create the new staff account
     const passwordHash = await bcrypt.hash(dto.password, SALT_ROUNDS);
 
     await this.prisma.$transaction(async (prisma) => {
