@@ -39,7 +39,7 @@ export class AuditLogService {
   /**
    * Get all audit entries for a specific entity.
    */
-  async getByTarget(targetType: string, targetId: string) {
+  async getByTarget(targetType: string, targetId: string, limit = 50) {
     return this.prisma.auditLog.findMany({
       where: { targetType, targetId },
       include: {
@@ -54,6 +54,7 @@ export class AuditLogService {
         },
       },
       orderBy: { createdAt: "desc" },
+      take: limit,
     });
   }
 
