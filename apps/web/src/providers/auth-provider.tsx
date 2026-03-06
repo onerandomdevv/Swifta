@@ -126,9 +126,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
     const fetchMe = async () => {
+      if (isLoggingOut.current) return;
       try {
         const response = await authApi.me();
-        if (mounted) {
+        if (mounted && !isLoggingOut.current) {
           setUser(response.user);
         }
       } catch (e) {
