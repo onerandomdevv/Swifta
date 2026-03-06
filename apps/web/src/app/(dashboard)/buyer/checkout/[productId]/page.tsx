@@ -8,6 +8,8 @@ import { getProduct } from "@/lib/api/product.api";
 import { createDirectOrder } from "@/lib/api/order.api";
 import type { Product } from "@hardware-os/shared";
 
+type PaymentMethod = "ESCROW" | "DIRECT";
+
 export default function CheckoutPage({
   params,
 }: {
@@ -20,6 +22,11 @@ export default function CheckoutPage({
 
   const [quantity, setQuantity] = useState(1);
   const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("ESCROW");
+
+  const merchantTier = (product as any)?.merchantProfile?.verificationTier;
+  const isVerifiedMerchant =
+    merchantTier === "VERIFIED" || merchantTier === "TRUSTED";
 
   useEffect(() => {
     async function fetchProduct() {
@@ -65,17 +72,19 @@ export default function CheckoutPage({
       productId: product.id,
       quantity,
       deliveryAddress,
+      paymentMethod: isVerifiedMerchant ? paymentMethod : "ESCROW",
     });
   };
 
   const isSubmitting = createOrderMutation.isPending;
 
-  // Calculate totals
+  // Calculate totals with dynamic fee
   const priceKobo = product?.pricePerUnitKobo
     ? Number(product.pricePerUnitKobo)
     : 0;
   const subtotalKobo = priceKobo * quantity;
-  const platformFeeKobo = Math.floor(subtotalKobo * 0.02); // 2% assumed config
+  const feePercentage = paymentMethod === "DIRECT" && isVerifiedMerchant ? 1 : 2;
+  const platformFeeKobo = Math.floor(subtotalKobo * (feePercentage / 100));
   const totalKobo = subtotalKobo + platformFeeKobo;
 
   const formatMoney = (kobo: number) =>
@@ -185,6 +194,72 @@ export default function CheckoutPage({
               </div>
             </div>
           </div>
+
+          {/* Payment Method Selector — only for verified merchants */}
+          {isVerifiedMerchant && (
+            <div className="bg-white border border-slate-200 rounded p-6 shadow-sm space-y-4">
+              <h2 className="text-sm font-black uppercase text-slate-800 tracking-widest border-b border-slate-100 pb-3">
+                Payment Method
+              </h2>
+
+              <label
+                className={`flex items-start gap-4 p-4 rounded border-2 cursor-pointer transition-all ${
+                  paymentMethod === "ESCROW"
+                    ? "border-primary bg-primary/5"
+                    : "border-slate-200 hover:border-slate-300"
+                }`}
+                onClick={() => setPaymentMethod("ESCROW")}
+              >
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="ESCROW"
+                  checked={paymentMethod === "ESCROW"}
+                  onChange={() => setPaymentMethod("ESCROW")}
+                  className="mt-1 accent-primary"
+                />
+                <div>
+                  <p className="text-sm font-black uppercase tracking-wide text-slate-900">
+                    Pay via Escrow (2% fee)
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    🔒 Your money is held securely until you confirm delivery.
+                    Full buyer protection.
+                  </p>
+                </div>
+              </label>
+
+              <label
+                className={`flex items-start gap-4 p-4 rounded border-2 cursor-pointer transition-all ${
+                  paymentMethod === "DIRECT"
+                    ? "border-emerald-500 bg-emerald-50"
+                    : "border-slate-200 hover:border-slate-300"
+                }`}
+                onClick={() => setPaymentMethod("DIRECT")}
+              >
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="DIRECT"
+                  checked={paymentMethod === "DIRECT"}
+                  onChange={() => setPaymentMethod("DIRECT")}
+                  className="mt-1 accent-emerald-500"
+                />
+                <div>
+                  <p className="text-sm font-black uppercase tracking-wide text-slate-900 flex items-center gap-2">
+                    Pay Direct (1% fee)
+                    <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-bold">
+                      ✅ VERIFIED MERCHANT
+                    </span>
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Money sent to merchant immediately. Lower fee for verified
+                    merchants you trust.
+                  </p>
+                </div>
+              </label>
+            </div>
+          )}
         </div>
 
         {/* Order Summary Sidebar */}
@@ -197,7 +272,7 @@ export default function CheckoutPage({
             <div>
               <p className="text-lg font-bold uppercase">{product.name}</p>
               <p className="text-xs text-primary font-bold uppercase tracking-wider mt-1">
-                {product.merchantProfile?.businessName || "Verified Merchant"}
+                {(product as any).merchantProfile?.businessName || "Verified Merchant"}
               </p>
             </div>
 
@@ -219,7 +294,7 @@ export default function CheckoutPage({
                 </span>
               </div>
               <div className="flex justify-between items-center text-slate-400 text-xs">
-                <span>Platform Fee (2%)</span>
+                <span>Platform Fee ({feePercentage}%)</span>
                 <span>{formatMoney(platformFeeKobo)}</span>
               </div>
             </div>
@@ -255,7 +330,9 @@ export default function CheckoutPage({
           </button>
 
           <p className="text-[10px] text-center text-slate-500 font-medium uppercase tracking-wider">
-            Payments securely processed by Paystack Escrow
+            {paymentMethod === "DIRECT" && isVerifiedMerchant
+              ? "Direct payment to verified merchant via Paystack"
+              : "Payments securely processed by Paystack Escrow"}
           </p>
         </div>
       </form>

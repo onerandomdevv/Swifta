@@ -8,6 +8,8 @@ import {
   forwardRef,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { InjectQueue } from "@nestjs/bullmq";
+import { Queue } from "bullmq";
 import { PrismaService } from "../../prisma/prisma.service";
 import { PaystackClient } from "./paystack.client";
 import { OrderService } from "../order/order.service";
@@ -21,6 +23,7 @@ import {
   UserRole,
 } from "@hardware-os/shared";
 import * as crypto from "crypto";
+import { PAYOUT_QUEUE } from "../../queue/queue.constants";
 
 @Injectable()
 export class PaymentService {
@@ -33,6 +36,7 @@ export class PaymentService {
     private orderService: OrderService,
     private notifications: NotificationTriggerService,
     private config: ConfigService,
+    @InjectQueue(PAYOUT_QUEUE) private payoutQueue: Queue,
   ) {}
 
   // ──────────────────────────────────────────────
@@ -456,6 +460,24 @@ export class PaymentService {
             deliveryAddress: orderData.deliveryAddress || undefined,
           },
         );
+
+        // DIRECT PAYMENT: Queue immediate payout (don't wait for OTP delivery confirmation)
+        if (orderData.paymentMethod === "DIRECT") {
+          try {
+            this.logger.log(
+              `DIRECT payment — queueing immediate payout for order ${orderData.id}`,
+            );
+            await this.payoutQueue.add("process-payout", {
+              orderId: orderData.id,
+            });
+          } catch (payoutErr) {
+            this.logger.error(
+              `Failed to queue immediate payout for DIRECT order ${orderData.id}: ${
+                payoutErr instanceof Error ? payoutErr.message : "Unknown"
+              }`,
+            );
+          }
+        }
       } else {
         // STANDARD RFQ QUOTE ACCEPTANCE LOGIC
         await this.notifications.triggerPaymentConfirmed(
