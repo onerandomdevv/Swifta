@@ -231,68 +231,70 @@ export class PaymentService {
   private async handleTransferEvent(payload: any) {
     const event = payload.event as string;
     const transferCode = payload.data?.transfer_code;
-    const reference = payload.data?.reference;
 
-    if (!transferCode && !reference) {
-      this.logger.warn(`Transfer webhook missing transfer_code and reference`);
+    if (!transferCode) {
+      this.logger.warn(`Transfer webhook missing transfer_code`);
       return { status: "missing_identifiers" };
     }
 
-    // Find the payout record by transfer code or reference
-    const payout = await this.prisma.payment.findFirst({
+    // Find the payout record by transfer code
+    const payout = await this.prisma.payout.findFirst({
       where: {
-        direction: PaymentDirection.PAYOUT,
-        OR: [
-          ...(transferCode ? [{ paystackTransferRef: transferCode }] : []),
-          ...(reference ? [{ paystackReference: reference }] : []),
-        ],
+        paystackTransferCode: transferCode,
+      },
+      include: {
+        order: {
+          select: { id: true },
+        },
+        merchant: {
+          select: { id: true, bankCode: true, bankAccountNumber: true },
+        },
       },
     });
 
     if (!payout) {
-      this.logger.warn(
-        `No payout found for transfer_code=${transferCode} / reference=${reference}`,
-      );
+      this.logger.warn(`No payout found for transfer_code=${transferCode}`);
       return { status: "unknown_transfer" };
     }
 
-    // Map Paystack event to our status
-    let newStatus: PaymentStatus;
-    let eventType: string;
-
     if (event === "transfer.success") {
-      newStatus = PaymentStatus.SUCCESS;
-      eventType = "PAYOUT_CONFIRMED";
-    } else if (event === "transfer.failed") {
-      newStatus = PaymentStatus.FAILED;
-      eventType = "PAYOUT_FAILED";
-    } else {
-      // transfer.reversed
-      newStatus = PaymentStatus.FAILED;
-      eventType = "PAYOUT_REVERSED";
-    }
-
-    // Update payout status + log event
-    await this.prisma.$transaction(async (tx) => {
-      await tx.payment.update({
+      await this.prisma.payout.update({
         where: { id: payout.id },
-        data: { status: newStatus },
-      });
-
-      await tx.paymentEvent.create({
         data: {
-          paymentId: payout.id,
-          eventType,
-          payload: {
-            paystackEvent: event,
-            transferCode,
-            reference,
-            amount: payload.data?.amount,
-            reason: payload.data?.reason,
-          },
+          status: "COMPLETED",
+          completedAt: new Date(),
         },
       });
-    });
+
+      await this.prisma.order.update({
+        where: { id: payout.orderId },
+        data: { payoutStatus: "COMPLETED" },
+      });
+
+      await this.notifications.triggerPayoutCompleted(payout.merchantId, {
+        amountKobo: payout.amountKobo.toString(),
+        orderRef: payout.orderId.slice(0, 8).toUpperCase(),
+        bankName: "Bank Account", // Can be dynamically expanded
+      });
+    } else {
+      // transfer.failed or transfer.reversed
+      await this.prisma.payout.update({
+        where: { id: payout.id },
+        data: {
+          status: "FAILED",
+          failureReason: payload.data?.reason || event,
+        },
+      });
+
+      await this.prisma.order.update({
+        where: { id: payout.orderId },
+        data: { payoutStatus: "FAILED" },
+      });
+
+      await this.notifications.triggerPayoutFailed(payout.merchantId, {
+        orderRef: payout.orderId.slice(0, 8).toUpperCase(),
+      });
+    }
 
     this.logger.log(
       `Transfer ${event} processed for payout ${payout.id} (order: ${payout.orderId})`,
@@ -396,16 +398,76 @@ export class PaymentService {
         );
       }
 
-      // Notifications
-      await this.notifications.triggerPaymentConfirmed(
-        payment.order.buyerId,
-        payment.order.merchantId,
-        {
-          orderId: payment.orderId,
-          reference: reference, // Paystack reference
-          amountKobo: payment.order.totalAmountKobo,
-        },
-      );
+      const orderData = await this.prisma.order.findUnique({
+        where: { id: payment.orderId },
+        include: { product: true, user: true },
+      });
+
+      if (
+        orderData &&
+        orderData.quoteId === null &&
+        orderData.productId !== null &&
+        orderData.quantity !== null
+      ) {
+        // DIRECT PURCHASE LOGIC
+        const deliveryOtp = crypto.randomInt(100000, 999999).toString();
+
+        await this.prisma.$transaction(async (tx) => {
+          // Reserve inventory
+          await tx.inventoryEvent.create({
+            data: {
+              productId: orderData.productId!,
+              merchantId: orderData.merchantId,
+              eventType: "ORDER_RESERVED",
+              quantity: -orderData.quantity!,
+              referenceId: orderData.id,
+              notes: "Direct order reservation",
+            },
+          });
+
+          await tx.productStockCache.upsert({
+            where: { productId: orderData.productId! },
+            create: {
+              productId: orderData.productId!,
+              stock: -orderData.quantity!,
+            },
+            update: { stock: { decrement: orderData.quantity! } },
+          });
+
+          // Save OTP on the Order
+          await tx.order.update({
+            where: { id: orderData.id },
+            data: { deliveryOtp },
+          });
+        });
+
+        // Notifications
+        await this.notifications.triggerDirectPurchaseConfirmed(
+          payment.order.buyerId,
+          payment.order.merchantId,
+          {
+            orderId: payment.orderId,
+            reference: reference,
+            productName: orderData.product?.name || "Product",
+            buyerName:
+              `${orderData.user?.firstName || "Buyer"} ${orderData.user?.lastName || ""}`.trim(),
+            quantity: orderData.quantity,
+            amountKobo: payment.order.totalAmountKobo,
+            deliveryAddress: orderData.deliveryAddress || undefined,
+          },
+        );
+      } else {
+        // STANDARD RFQ QUOTE ACCEPTANCE LOGIC
+        await this.notifications.triggerPaymentConfirmed(
+          payment.order.buyerId,
+          payment.order.merchantId,
+          {
+            orderId: payment.orderId,
+            reference: reference, // Paystack reference
+            amountKobo: payment.order.totalAmountKobo,
+          },
+        );
+      }
 
       this.logger.log(
         `Payment ${payment.id} SUCCESS for order ${payment.orderId}`,
@@ -438,101 +500,6 @@ export class PaymentService {
         `Payment ${payment.id} FAILED for order ${payment.orderId}`,
       );
     }
-  }
-
-  // ──────────────────────────────────────────────
-  //  INITIATE PAYOUT (Paystack Transfer API)
-  // ──────────────────────────────────────────────
-
-  async initiatePayout(orderId: string) {
-    const order = await this.prisma.order.findUnique({
-      where: { id: orderId },
-      include: { merchantProfile: true },
-    });
-    if (!order) throw new NotFoundException("Order not found");
-
-    if (order.status !== OrderStatus.COMPLETED) {
-      throw new BadRequestException("Payout only allowed for COMPLETED orders");
-    }
-
-    // Check if payout already exists (idempotency)
-    const existingPayout = await this.prisma.payment.findFirst({
-      where: {
-        orderId,
-        direction: PaymentDirection.PAYOUT,
-      },
-    });
-    if (existingPayout) {
-      this.logger.log(`Payout already exists for order ${orderId}`);
-      return existingPayout;
-    }
-
-    // Merchant must have bank details
-    const merchant = order.merchantProfile;
-    if (
-      !merchant.bankCode ||
-      !merchant.bankAccountNo ||
-      !merchant.bankAccountName
-    ) {
-      throw new BadRequestException(
-        "Merchant bank details incomplete — cannot process payout",
-      );
-    }
-
-    const payoutReference = `payout-${crypto.randomUUID()}`;
-    const payoutAmount = order.totalAmountKobo;
-
-    // Create transfer recipient
-    const recipient = await this.paystack.createTransferRecipient(
-      merchant.bankCode,
-      merchant.bankAccountNo,
-      merchant.bankAccountName,
-    );
-
-    // Initiate transfer
-    const transfer = await this.paystack.createTransfer(
-      recipient.recipient_code,
-      payoutAmount,
-      payoutReference,
-      `Payout for order ${orderId}`,
-    );
-
-    // Record payout Payment + event
-    const payout = await this.prisma.$transaction(async (tx) => {
-      const newPayout = await tx.payment.create({
-        data: {
-          orderId,
-          paystackReference: payoutReference,
-          paystackTransferRef: transfer.transfer_code,
-          amountKobo: payoutAmount,
-          currency: order.currency,
-          status: PaymentStatus.SUCCESS,
-          direction: PaymentDirection.PAYOUT,
-          idempotencyKey: `payout-${orderId}`,
-        },
-      });
-
-      await tx.paymentEvent.create({
-        data: {
-          paymentId: newPayout.id,
-          eventType: "PAYOUT_INITIATED",
-          payload: {
-            transferCode: transfer.transfer_code,
-            recipientCode: recipient.recipient_code,
-            amountKobo: Number(payoutAmount),
-            merchantId: merchant.id,
-          },
-        },
-      });
-
-      return newPayout;
-    });
-
-    // Notify merchant
-    await this.notifications.triggerPayoutInitiated(merchant.id, orderId);
-
-    this.logger.log(`Payout ${payout.id} for order ${orderId} initiated`);
-    return payout;
   }
 
   // ──────────────────────────────────────────────
@@ -576,7 +543,8 @@ export class PaymentService {
       throw new NotFoundException("Merchant profile not found");
     }
 
-    if (!merchantProfile.bankAccountNo || !merchantProfile.bankCode) {
+    // 4. Validate merchant has bank details
+    if (!merchantProfile.bankAccountNumber || !merchantProfile.bankCode) {
       throw new BadRequestException(
         "Please set your bank details in settings before requesting a payout.",
       );
@@ -588,9 +556,9 @@ export class PaymentService {
         merchantId,
         amountKobo: dto.amount,
         status: "PENDING",
-        bankName: merchantProfile.bankCode, // Store bank code or name based on your logic
-        accountNumber: merchantProfile.bankAccountNo,
-        accountName: merchantProfile.bankAccountName,
+        bankName: merchantProfile.bankCode, // Note: This might need resolving to real bank name
+        accountNumber: merchantProfile.bankAccountNumber,
+        accountName: merchantProfile.settlementAccountName,
       },
     });
 

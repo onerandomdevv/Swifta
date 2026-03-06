@@ -1,7 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Queue } from "bullmq";
-import { NOTIFICATION_QUEUE, WHATSAPP_QUEUE } from "../../queue/queue.constants";
+import {
+  NOTIFICATION_QUEUE,
+  WHATSAPP_QUEUE,
+} from "../../queue/queue.constants";
 import { NotificationType, NotificationChannel } from "@hardware-os/shared";
 
 @Injectable()
@@ -213,14 +216,92 @@ export class NotificationTriggerService {
     );
   }
 
-  async triggerPayoutInitiated(merchantId: string, orderId: string) {
+  async triggerPayoutInitiated(
+    merchantId: string,
+    metadata: {
+      orderId: string;
+      orderRef: string;
+      productName: string;
+      quantity: number;
+      payoutAmountKobo: string;
+      bankName: string;
+    },
+  ) {
     await this.addJob(
       merchantId,
       "PAYOUT_INITIATED",
       "Payout Initiated",
       "Payout for your order has been initiated.",
-      { orderId, isMerchantId: true },
+      { ...metadata, isMerchantId: true },
     );
+
+    // WhatsApp push to merchant
+    try {
+      await this.whatsappQueue.add(
+        "send-delivery-confirmed-notification",
+        {
+          merchantId,
+          payoutData: metadata,
+        },
+        {
+          attempts: 2,
+          backoff: { type: "exponential", delay: 3000 },
+          removeOnComplete: true,
+          removeOnFail: true,
+        },
+      );
+    } catch {
+      // Ignore Whatsapp failures to omit transaction rollbacks
+    }
+  }
+
+  async triggerPayoutCompleted(
+    merchantId: string,
+    metadata: {
+      amountKobo: string;
+      orderRef: string;
+      bankName: string;
+    },
+  ) {
+    await this.addJob(
+      merchantId,
+      "PAYOUT_COMPLETED",
+      "Payout Received",
+      `Payout of ₦${Number(metadata.amountKobo) / 100} has been sent to your ${metadata.bankName} account for Order #${metadata.orderRef}.`,
+      { ...metadata, isMerchantId: true },
+    );
+
+    try {
+      await this.whatsappQueue.add(
+        "send-payout-completed-notification",
+        { merchantId, payoutData: metadata },
+        { attempts: 2, removeOnComplete: true, removeOnFail: true },
+      );
+    } catch {}
+  }
+
+  async triggerPayoutFailed(
+    merchantId: string,
+    metadata: {
+      orderRef: string;
+      amountKobo?: string;
+    },
+  ) {
+    await this.addJob(
+      merchantId,
+      "PAYOUT_FAILED",
+      "Payout Delayed",
+      `Your payout for Order #${metadata.orderRef} is being reviewed.`,
+      { ...metadata, isMerchantId: true },
+    );
+
+    try {
+      await this.whatsappQueue.add(
+        "send-payout-failed-notification",
+        { merchantId, payoutData: metadata },
+        { attempts: 2, removeOnComplete: true, removeOnFail: true },
+      );
+    } catch {}
   }
 
   async triggerOrderCancelled(
@@ -286,6 +367,70 @@ export class NotificationTriggerService {
         isMerchantId: true,
       },
     );
+  }
+
+  async triggerDirectPurchaseConfirmed(
+    buyerId: string,
+    merchantId: string,
+    metadata: {
+      orderId: string;
+      reference: string;
+      productName: string;
+      buyerName: string;
+      quantity: number;
+      amountKobo: bigint;
+      deliveryAddress?: string;
+    },
+  ) {
+    // Notify buyer via Email / In-App
+    await this.addJob(
+      buyerId,
+      "DIRECT_PURCHASE_CONFIRMED",
+      "Payment confirmed!",
+      "Your order is being prepared. You will receive a delivery code when the merchant dispatches.",
+      { ...metadata, amountKobo: metadata.amountKobo.toString() },
+      [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+    );
+
+    // Notify merchant via Email / In-App
+    await this.addJob(
+      merchantId,
+      "DIRECT_PURCHASE_RECEIVED",
+      "New order received!",
+      `${metadata.productName} × ${metadata.quantity} — ₦${Number(metadata.amountKobo) / 100}. Check your dashboard to dispatch.`,
+      {
+        ...metadata,
+        amountKobo: metadata.amountKobo.toString(),
+        isMerchantId: true,
+      },
+      [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+    );
+
+    // WhatsApp push to merchant
+    try {
+      await this.whatsappQueue.add(
+        "send-direct-order-notification",
+        {
+          merchantId,
+          orderData: {
+            orderId: metadata.orderId,
+            buyerName: metadata.buyerName,
+            productName: metadata.productName,
+            quantity: metadata.quantity,
+            amountKobo: metadata.amountKobo.toString(),
+            deliveryAddress: metadata.deliveryAddress || "Not specified",
+          },
+        },
+        {
+          attempts: 2,
+          backoff: { type: "exponential", delay: 3000 },
+          removeOnComplete: true,
+          removeOnFail: true,
+        },
+      );
+    } catch {
+      // Ignore Whatsapp failures to omit transaction rollbacks
+    }
   }
 
   async triggerReorderReminder(

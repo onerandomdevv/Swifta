@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useMerchantInventory } from "@/hooks/use-merchant-data";
 import { InventoryRow } from "@/components/merchant/inventory/inventory-row";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
 
 export default function MerchantInventory() {
@@ -16,8 +17,16 @@ export default function MerchantInventory() {
 
   if (isLoading) {
     return (
-      <div className="h-full bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-8 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="h-full bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-8 flex flex-col space-y-6">
+        <Skeleton className="h-10 w-32 self-end rounded" />
+        <div className="grid grid-cols-4 gap-4">
+          <Skeleton className="h-24 rounded" />
+          <Skeleton className="h-24 rounded" />
+          <Skeleton className="h-24 rounded" />
+          <Skeleton className="h-24 rounded" />
+        </div>
+        <Skeleton className="h-10 w-full rounded" />
+        <Skeleton className="h-[400px] w-full rounded" />
       </div>
     );
   }
@@ -81,7 +90,7 @@ export default function MerchantInventory() {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-4 gap-4 px-8 pb-0 shrink-0">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 px-4 sm:px-8 pb-0 shrink-0">
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-lg">
           <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">
             Total SKUs
@@ -140,7 +149,7 @@ export default function MerchantInventory() {
       {/* Data Table Section */}
       <div className="flex-1 p-8 pt-4 overflow-hidden flex flex-col">
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-y-auto flex-1">
-          <table className="w-full text-left border-collapse relative">
+          <table className="w-full text-left border-collapse relative min-w-[800px]">
             <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-800/90 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800">
               <tr>
                 <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">

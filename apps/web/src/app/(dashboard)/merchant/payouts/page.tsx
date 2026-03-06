@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatKobo } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getOrders, getOrderSummary } from "@/lib/api/order.api";
 import {
   getProfile,
@@ -223,8 +224,20 @@ export default function MerchantPayoutsPage() {
 
   if (isLoading) {
     return (
-      <div className="h-full bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-8 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="h-full bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-6 lg:p-8 flex flex-col lg:flex-row gap-6 animate-in fade-in duration-500">
+        <div className="flex-1 space-y-8">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Skeleton className="h-32 w-full rounded" />
+            <Skeleton className="h-32 w-full rounded" />
+            <Skeleton className="h-32 w-full rounded" />
+            <Skeleton className="h-32 w-full rounded" />
+          </div>
+          <Skeleton className="h-[400px] w-full rounded" />
+        </div>
+        <aside className="w-full lg:w-96 shrink-0 space-y-6">
+          <Skeleton className="h-64 w-full rounded" />
+          <Skeleton className="h-48 w-full rounded" />
+        </aside>
       </div>
     );
   }
@@ -345,7 +358,7 @@ export default function MerchantPayoutsPage() {
           {ledgerOrders.length > 0 ? (
             <>
               <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-left">
+                <table className="w-full border-collapse text-left min-w-[800px]">
                   <thead>
                     <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50">
                       <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">

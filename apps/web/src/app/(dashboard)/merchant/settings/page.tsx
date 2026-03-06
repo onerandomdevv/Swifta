@@ -6,6 +6,7 @@ import { useAuth } from "@/providers/auth-provider";
 import {
   getProfile,
   updateProfile,
+  updateBankAccount,
   getBanks,
   resolveBankAccount,
 } from "@/lib/api/merchant.api";
@@ -117,11 +118,16 @@ export default function MerchantSettingsPage() {
         tasks.push(
           updateProfile({
             businessName: profile.businessName,
-            bankCode,
-            bankAccountNo,
-            bankAccountName,
           }).then((updated) => setProfile(updated)),
         );
+        if (bankCode && bankAccountNo && bankAccountName) {
+          tasks.push(
+            updateBankAccount({
+              bankCode,
+              bankAccountNumber: bankAccountNo,
+            }),
+          );
+        }
       }
       await Promise.all(tasks);
       setFeedback({ type: "success", msg: "Profile updated successfully." });

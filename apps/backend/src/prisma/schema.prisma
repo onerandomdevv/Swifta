@@ -43,9 +43,10 @@ model MerchantProfile {
   businessName       String             @map("business_name")
   businessAddress    String?            @map("business_address")
   cacNumber          String?            @map("cac_number")
-  bankCode           String?            @map("bank_code")
-  bankAccountNo      String?            @map("bank_account_no")
-  bankAccountName    String?            @map("bank_account_name")
+  bankAccountNumber     String?            @map("bank_account_number")
+  bankCode              String?            @map("bank_code")
+  settlementAccountName String?            @map("settlement_account_name")
+  paystackRecipientCode String?            @map("paystack_recipient_code")
   verification       VerificationStatus @default(UNVERIFIED)
   onboardingStep     Int                @default(1) @map("onboarding_step")
   createdAt          DateTime           @default(now()) @map("created_at")
@@ -72,6 +73,7 @@ model MerchantProfile {
   sharedQuotes       SharedQuote[]
   reorderReminders   ReorderReminder[]
   payoutRequests     PayoutRequest[]
+  payouts            Payout[]
   whatsappLink       WhatsAppLink?
 
   @@map("merchant_profiles")
@@ -112,7 +114,11 @@ model OrderEvent {
 
 model Order {
   id              String            @id @default(uuid()) @db.Uuid
-  quoteId         String            @unique @map("quote_id") @db.Uuid
+  quoteId         String?           @unique @map("quote_id") @db.Uuid
+  productId       String?           @map("product_id") @db.Uuid
+  quantity        Int?
+  unitPriceKobo   BigInt?           @map("unit_price_kobo")
+  deliveryAddress String?           @map("delivery_address")
   buyerId         String            @map("buyer_id") @db.Uuid
   merchantId      String            @map("merchant_id") @db.Uuid
   totalAmountKobo BigInt            @map("total_amount_kobo")
@@ -123,19 +129,56 @@ model Order {
   disputeStatus   OrderDisputeStatus @default(NONE) @map("dispute_status")
   disputeReason   String?           @map("dispute_reason")
   idempotencyKey  String            @unique @map("idempotency_key")
+  payoutStatus    PayoutStatus      @default(PENDING) @map("payout_status")
   createdAt       DateTime          @default(now()) @map("created_at")
   updatedAt       DateTime          @default(now()) @updatedAt @map("updated_at")
-  orderEvents      OrderEvent[]
-  user             User              @relation(fields: [buyerId], references: [id], onDelete: Cascade)
-  merchantProfile  MerchantProfile   @relation(fields: [merchantId], references: [id])
-  quote            Quote             @relation(fields: [quoteId], references: [id])
-  payments         Payment[]
-  reorderReminder  ReorderReminder?
+  orderEvents     OrderEvent[]
+  user            User              @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  merchantProfile MerchantProfile   @relation(fields: [merchantId], references: [id])
+  quote           Quote?            @relation(fields: [quoteId], references: [id])
+  product         Product?          @relation(fields: [productId], references: [id])
+  payments        Payment[]
+  reorderReminder ReorderReminder?
+  payout          Payout?
 
   @@index([buyerId])
   @@index([merchantId])
   @@index([status])
   @@map("orders")
+}
+
+model Payout {
+  id                    String       @id @default(uuid()) @db.Uuid
+  orderId               String       @unique @map("order_id") @db.Uuid
+  merchantId            String       @map("merchant_id") @db.Uuid
+  amountKobo            BigInt       @map("amount_kobo")
+  platformFeeKobo       BigInt       @map("platform_fee_kobo")
+  paystackTransferCode  String?      @map("paystack_transfer_code")
+  status                PayoutStatus @default(PENDING)
+  initiatedAt           DateTime?    @map("initiated_at")
+  completedAt           DateTime?    @map("completed_at")
+  failureReason         String?      @map("failure_reason")
+  createdAt             DateTime     @default(now()) @map("created_at")
+
+  order                 Order           @relation(fields: [orderId], references: [id])
+  merchant              MerchantProfile @relation(fields: [merchantId], references: [id])
+
+  @@map("payouts")
+}
+
+model CartItem {
+  id          String         @id @default(uuid()) @db.Uuid
+  buyerId     String         @map("buyer_id") @db.Uuid
+  productId   String         @map("product_id") @db.Uuid
+  quantity    Int
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  buyer       User           @relation("UserCartItems", fields: [buyerId], references: [id], onDelete: Cascade)
+  product     Product        @relation(fields: [productId], references: [id])
+
+  @@unique([buyerId, productId])
+  @@map("cart_items")
 }
 
 model PaymentEvent {
@@ -204,6 +247,7 @@ model Product {
   name              String
   description       String?
   unit              String
+  pricePerUnitKobo  BigInt?            @map("price_per_unit_kobo")
   categoryTag       String             @map("category_tag")
   minOrderQuantity  Int                @default(1) @map("min_order_quantity")
   isActive          Boolean            @default(true) @map("is_active")
@@ -216,6 +260,8 @@ model Product {
   productStockCache ProductStockCache?
   merchantProfile   MerchantProfile    @relation(fields: [merchantId], references: [id])
   rfqs              Rfq[]
+  orders            Order[]
+  cartItems         CartItem[]
 
   @@index([categoryTag])
   @@index([merchantId])
@@ -306,6 +352,7 @@ model User {
   rfqs              Rfq[]
   staffAccessTokens StaffAccessToken[]
   reorderReminders  ReorderReminder[]
+  cartItems         CartItem[]         @relation("UserCartItems")
 
   @@map("users")
 }
@@ -357,6 +404,13 @@ enum PayoutRequestStatus {
   PROCESSED
   FAILED
   REJECTED
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
 }
 
 enum QuoteStatus {

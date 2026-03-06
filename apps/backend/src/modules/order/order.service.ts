@@ -7,11 +7,14 @@ import {
   Inject,
   forwardRef,
 } from "@nestjs/common";
+import { InjectQueue } from "@nestjs/bullmq";
+import { Queue } from "bullmq";
 import { PrismaService } from "../../prisma/prisma.service";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
 import { InventoryService } from "../inventory/inventory.service";
 import { PaymentService } from "../payment/payment.service";
 import { ReorderService } from "../reorder/reorder.service";
+import { PAYOUT_QUEUE } from "../../queue/queue.constants";
 import {
   OrderStatus,
   OTP_LENGTH,
@@ -33,6 +36,7 @@ export class OrderService {
     @Inject(forwardRef(() => PaymentService))
     private paymentService: PaymentService,
     private reorderService: ReorderService,
+    @InjectQueue(PAYOUT_QUEUE) private payoutQueue: Queue,
   ) {}
 
   // ──────────────────────────────────────────────
@@ -104,6 +108,94 @@ export class OrderService {
 
     this.logger.log(`Order ${order.id} created from quote ${quoteId}`);
     return order;
+  }
+
+  // ──────────────────────────────────────────────
+  //  CREATE DIRECT ORDER
+  // ──────────────────────────────────────────────
+
+  async createDirectOrder(buyerId: string, dto: any) {
+    const { productId, quantity, deliveryAddress } = dto;
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      include: { productStockCache: true },
+    });
+
+    if (!product) throw new NotFoundException("Product not found");
+    if (!product.isActive) throw new BadRequestException("Product is inactive");
+    if (product.pricePerUnitKobo === null) {
+      throw new BadRequestException("Product requires an RFQ");
+    }
+
+    if (
+      !product.productStockCache ||
+      product.productStockCache.stock < quantity
+    ) {
+      throw new BadRequestException("Insufficient stock");
+    }
+
+    const subtotalKobo = Number(product.pricePerUnitKobo) * quantity;
+    const platformFeePercentage = Number(
+      process.env.PLATFORM_FEE_PERCENTAGE || "2",
+    );
+    const platformFeeKobo = Math.floor(
+      subtotalKobo * (platformFeePercentage / 100),
+    );
+    const totalAmountKobo = BigInt(subtotalKobo + platformFeeKobo);
+
+    const idempotencyKey = `direct-order-${productId}-${buyerId}-${Date.now()}`;
+
+    // Create the order
+    const order = await this.prisma.$transaction(async (tx) => {
+      const newOrder = await tx.order.create({
+        data: {
+          buyerId,
+          merchantId: product.merchantId,
+          productId,
+          quantity,
+          unitPriceKobo: product.pricePerUnitKobo,
+          deliveryAddress,
+          totalAmountKobo,
+          deliveryFeeKobo: 0n,
+          currency: "NGN",
+          status: OrderStatus.PENDING_PAYMENT,
+          quoteId: null,
+          idempotencyKey,
+          payoutStatus: "PENDING",
+        },
+      });
+
+      // Log initial OrderEvent
+      await tx.orderEvent.create({
+        data: {
+          orderId: newOrder.id,
+          fromStatus: null,
+          toStatus: OrderStatus.PENDING_PAYMENT,
+          triggeredBy: buyerId,
+          metadata: { action: "direct_purchase_created", productId, quantity },
+        },
+      });
+
+      return newOrder;
+    });
+
+    this.logger.log(
+      `Direct order ${order.id} created for product ${productId}`,
+    );
+
+    // Call payment service to get the authorization URL dynamically
+    const paymentData = await this.paymentService.initialize(
+      buyerId,
+      { orderId: order.id },
+      `init-direct-${order.id}`,
+    );
+
+    return {
+      orderId: order.id,
+      authorizationUrl: paymentData.authorization_url,
+      totalAmountKobo: Number(totalAmountKobo),
+      platformFeeKobo,
+    };
   }
 
   // ──────────────────────────────────────────────
@@ -350,8 +442,8 @@ export class OrderService {
     // Trigger payout notification (PaymentService handles actual payout)
     // AUTO-PAYOUT: Initiate payout now that order is COMPLETED
     try {
-      this.logger.log(`Initiating auto-payout for order ${orderId}`);
-      await this.paymentService.initiatePayout(orderId);
+      this.logger.log(`Queueing auto-payout for order ${orderId}`);
+      await this.payoutQueue.add("process-payout", { orderId });
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Unknown error";
       this.logger.error(
@@ -359,17 +451,6 @@ export class OrderService {
         error instanceof Error ? error.stack : undefined,
       );
       // Swallow error so we don't rollback the delivery confirmation
-    }
-
-    try {
-      await this.notifications.triggerPayoutInitiated(
-        order.merchantId,
-        orderId,
-      );
-    } catch (error) {
-      this.logger.error(
-        `Failed to send payout initiated notification (orderId=${orderId}, merchantId=${order.merchantId}): ${error instanceof Error ? error.message : error}`,
-      );
     }
 
     // Create reorder reminder (best-effort)

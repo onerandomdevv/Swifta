@@ -303,6 +303,60 @@ export function OrderDrawer({
                     </div>
                   </div>
                 )}
+
+                {/* Payout Status (if applicable) */}
+                {(order as any).payoutStatus &&
+                  ["PROCESSING", "COMPLETED", "FAILED", "PENDING"].includes(
+                    (order as any).payoutStatus,
+                  ) && (
+                    <div
+                      className={`border-2 p-5 mb-4 ${
+                        (order as any).payoutStatus === "COMPLETED"
+                          ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20"
+                          : (order as any).payoutStatus === "FAILED"
+                            ? "border-red-500 bg-red-50"
+                            : "border-amber-400 bg-amber-50 dark:bg-amber-900/20"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <span
+                          className={`material-symbols-outlined text-xl shrink-0 mt-0.5 ${
+                            (order as any).payoutStatus === "COMPLETED"
+                              ? "text-emerald-600"
+                              : (order as any).payoutStatus === "FAILED"
+                                ? "text-red-600"
+                                : "text-amber-600"
+                          }`}
+                        >
+                          account_balance
+                        </span>
+                        <div>
+                          <p
+                            className={`text-[10px] uppercase font-bold mb-1 ${
+                              (order as any).payoutStatus === "COMPLETED"
+                                ? "text-emerald-700"
+                                : (order as any).payoutStatus === "FAILED"
+                                  ? "text-red-700"
+                                  : "text-amber-700"
+                            }`}
+                          >
+                            Payout Status
+                          </p>
+                          <p
+                            className={`text-sm font-black tracking-widest uppercase ${
+                              (order as any).payoutStatus === "COMPLETED"
+                                ? "text-emerald-800 dark:text-emerald-400"
+                                : (order as any).payoutStatus === "FAILED"
+                                  ? "text-red-800 dark:text-red-400"
+                                  : "text-amber-800 dark:text-amber-400"
+                            }`}
+                          >
+                            {(order as any).payoutStatus.replace("_", " ")}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
               </div>
             </>
           ) : null}

@@ -231,7 +231,7 @@ export default function MerchantOrdersPage() {
         {/* Orders Table */}
         <div className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-auto">
           {filteredOrders.length > 0 ? (
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse min-w-[1000px]">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-950/50 border-b border-slate-200 dark:border-slate-800">
                   <th className="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">

@@ -29,4 +29,8 @@ export class CreateProductDto {
   @IsOptional()
   @IsString()
   warehouseLocation?: string;
+
+  @IsOptional()
+  @IsString()
+  pricePerUnitKobo?: string;
 }

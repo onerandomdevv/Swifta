@@ -21,10 +21,12 @@ export class ProductService {
   ) {}
 
   async create(merchantId: string, dto: CreateProductDto) {
+    const { pricePerUnitKobo, ...rest } = dto;
     const product = await this.prisma.product.create({
       data: {
         merchantId,
-        ...dto,
+        pricePerUnitKobo: pricePerUnitKobo ? BigInt(pricePerUnitKobo) : null,
+        ...rest,
       },
     });
     await this.invalidateCatalogueCache();
@@ -95,7 +97,7 @@ export class ProductService {
       ];
     }
 
-    return paginate(
+    const response = await paginate(
       this.prisma.product,
       { page, limit },
       {
@@ -108,9 +110,35 @@ export class ProductService {
               businessName: true,
             },
           },
+          productStockCache: true, // Needed to determine stockAvailability
         },
       },
     );
+
+    // Map the response to include string-serialized values + stockAvailability
+    response.data = response.data.map((product: any) => {
+      const { productStockCache, ...rest } = product;
+
+      let stockAvailability = "OUT_OF_STOCK";
+      if (productStockCache?.currentStock > 10) {
+        stockAvailability = "IN_STOCK";
+      } else if (
+        productStockCache?.currentStock > 0 &&
+        productStockCache?.currentStock <= 10
+      ) {
+        stockAvailability = "LOW_STOCK";
+      }
+
+      return {
+        ...rest,
+        pricePerUnitKobo: product.pricePerUnitKobo
+          ? product.pricePerUnitKobo.toString()
+          : null,
+        stockAvailability,
+      };
+    });
+
+    return response;
   }
 
   async getById(id: string) {
@@ -134,9 +162,15 @@ export class ProductService {
 
   async update(merchantId: string, productId: string, dto: UpdateProductDto) {
     await this.verifyProductOwnership(merchantId, productId);
+    const { pricePerUnitKobo, ...rest } = dto;
+    const updateData: any = { ...rest };
+    if (pricePerUnitKobo !== undefined) {
+      updateData.pricePerUnitKobo =
+        pricePerUnitKobo === null ? null : BigInt(pricePerUnitKobo);
+    }
     const updated = await this.prisma.product.update({
       where: { id: productId },
-      data: dto,
+      data: updateData,
     });
     await this.invalidateCatalogueCache();
     return updated;
