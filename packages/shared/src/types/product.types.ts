@@ -10,6 +10,7 @@ export interface Product {
   imageUrl?: string;
   minOrderQuantity: number;
   isActive: boolean;
+  pricePerUnitKobo?: string;
   warehouseLocation?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -26,6 +27,7 @@ export interface CreateProductDto {
   imageUrl?: string;
   minOrderQuantity?: number;
   warehouseLocation?: string;
+  pricePerUnitKobo?: string;
 }
 
 export type UpdateProductDto = Partial<CreateProductDto> & {

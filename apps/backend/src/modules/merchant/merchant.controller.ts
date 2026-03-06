@@ -11,6 +11,7 @@ import {
 } from "@nestjs/common";
 import { MerchantService } from "./merchant.service";
 import { UpdateMerchantDto } from "./dto/update-merchant.dto";
+import { UpdateBankAccountDto } from "./dto/update-bank-account.dto";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
@@ -56,6 +57,16 @@ export class MerchantController {
     @Query("bankCode") bankCode: string,
   ) {
     return this.merchantService.resolveBankAccount(accountNumber, bankCode);
+  }
+
+  @Patch("bank-account")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.MERCHANT)
+  async updateBankAccount(
+    @CurrentMerchant() merchantId: string,
+    @Body() dto: UpdateBankAccountDto,
+  ) {
+    return this.merchantService.updateBankAccount(merchantId, dto);
   }
 
   @Get("banks/list")

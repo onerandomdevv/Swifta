@@ -5,6 +5,7 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { UpdateMerchantDto } from "./dto/update-merchant.dto";
+import { UpdateBankAccountDto } from "./dto/update-bank-account.dto";
 import { UserRole, VerificationStatus } from "@hardware-os/shared";
 import { PaystackClient } from "../payment/paystack.client";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
@@ -169,12 +170,12 @@ export class MerchantService {
       newStep = 4;
     }
 
-    // Step 4 → 5: Bank details complete (bankCode, bankAccountNo, bankAccountName)
+    // Step 4 → 5: Bank details complete (bankCode, bankAccountNumber, settlementAccountName)
     if (
       newStep === 4 &&
       merged.bankCode &&
-      merged.bankAccountNo &&
-      merged.bankAccountName
+      merged.bankAccountNumber &&
+      merged.settlementAccountName
     ) {
       newStep = 5;
     }
@@ -202,6 +203,45 @@ export class MerchantService {
     });
 
     return updated;
+  }
+
+  async updateBankAccount(merchantId: string, dto: UpdateBankAccountDto) {
+    const existing = await this.prisma.merchantProfile.findUnique({
+      where: { id: merchantId },
+    });
+    if (!existing) throw new NotFoundException("Merchant profile not found");
+
+    // 1. Resolve account to verify and get the exact account name
+    const resolved = await this.resolveBankAccount(
+      dto.bankAccountNumber,
+      dto.bankCode,
+    );
+
+    // 2. Create Paystack Transfer Recipient for future payouts
+    const recipient = await this.paystack.createTransferRecipient(
+      dto.bankCode,
+      dto.bankAccountNumber,
+      resolved.accountName,
+    );
+
+    // 3. Prepare the data to update
+    const updateData: any = {
+      bankAccountNumber: dto.bankAccountNumber,
+      bankCode: dto.bankCode,
+      settlementAccountName: resolved.accountName,
+      paystackRecipientCode: recipient.recipient_code,
+    };
+
+    // Auto-advance step 4->5 if other fields are complete and we are at step 4
+    if (existing.onboardingStep === 4) {
+      updateData.onboardingStep = 5;
+      updateData.verification = VerificationStatus.PENDING;
+    }
+
+    return this.prisma.merchantProfile.update({
+      where: { id: merchantId },
+      data: updateData,
+    });
   }
 
   async submitForVerification(merchantId: string) {

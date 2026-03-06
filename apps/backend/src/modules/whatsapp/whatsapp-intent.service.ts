@@ -1,14 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import {
-  GoogleGenerativeAI,
-  SchemaType,
-} from '@google/generative-ai';
+import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import {
   NUMBER_INTENT_MAP,
   SYSTEM_PROMPT,
   GEMINI_FUNCTION_DECLARATIONS,
-} from './whatsapp.constants';
+} from "./whatsapp.constants";
 
 export interface ParsedIntent {
   functionName: string;
@@ -30,13 +27,13 @@ export class WhatsAppIntentService {
   private genAI: GoogleGenerativeAI | null = null;
 
   constructor(private configService: ConfigService) {
-    const apiKey = this.configService.get<string>('GEMINI_API_KEY');
-    if (apiKey && apiKey !== 'your_google_ai_studio_key_here') {
+    const apiKey = this.configService.get<string>("GEMINI_API_KEY");
+    if (apiKey && apiKey !== "your_google_ai_studio_key_here") {
       this.genAI = new GoogleGenerativeAI(apiKey);
-      this.logger.log('Gemini AI initialized for intent parsing');
+      this.logger.log("Gemini AI initialized for intent parsing");
     } else {
       this.logger.warn(
-        'GEMINI_API_KEY not configured — AI intent parsing disabled, number menu still works',
+        "GEMINI_API_KEY not configured — AI intent parsing disabled, number menu still works",
       );
     }
   }
@@ -49,15 +46,17 @@ export class WhatsAppIntentService {
 
     // 1. Direct number mapping (fastest path — no AI needed)
     if (NUMBER_INTENT_MAP[text]) {
-      this.logger.log(`Number shortcut: "${text}" → ${NUMBER_INTENT_MAP[text]}`);
+      this.logger.log(
+        `Number shortcut: "${text}" → ${NUMBER_INTENT_MAP[text]}`,
+      );
       return { functionName: NUMBER_INTENT_MAP[text], params: {} };
     }
 
     // 2. Explicit greetings / menu requests only (keep this list SHORT)
     const lower = text.toLowerCase();
-    if (['menu', 'help', 'start'].includes(lower)) {
+    if (["menu", "help", "start"].includes(lower)) {
       this.logger.log(`Keyword shortcut: "${text}" → show_menu`);
-      return { functionName: 'show_menu', params: {} };
+      return { functionName: "show_menu", params: {} };
     }
 
     // 3. EVERYTHING ELSE → send to Gemini AI for intent parsing
@@ -76,7 +75,7 @@ export class WhatsAppIntentService {
           `Gemini intent parsing failed: ${error instanceof Error ? error.message : error}`,
         );
         // AI failed — show friendly fallback, NOT the plain menu
-        return { functionName: 'friendly_fallback', params: {} };
+        return { functionName: "friendly_fallback", params: {} };
       }
     }
 
@@ -91,73 +90,99 @@ export class WhatsAppIntentService {
   private basicKeywordMatch(text: string): ParsedIntent {
     const lower = text.toLowerCase();
 
+    // Dispatch
+    if (lower.includes("dispatch")) {
+      const match = lower.match(/dispatch\s+([a-zA-Z0-9]+)/);
+      const orderReference = match ? match[1] : undefined;
+      return {
+        functionName: "dispatch_order",
+        params: orderReference ? { orderReference } : {},
+      };
+    }
+
+    // Orders
+    if (
+      lower.includes("my orders") ||
+      lower.includes("recent orders") ||
+      lower.includes("show my orders")
+    ) {
+      return { functionName: "get_recent_orders", params: {} };
+    }
+
+    // Update Price
+    if (lower.includes("update price") || lower.includes("change price")) {
+      return { functionName: "update_product_price", params: {} };
+    }
+
     // Sales-related
     if (
-      lower.includes('sales') ||
-      lower.includes('market') ||
-      lower.includes('revenue') ||
-      lower.includes('sell') ||
-      lower.includes('business')
+      lower.includes("sales") ||
+      lower.includes("market") ||
+      lower.includes("revenue") ||
+      lower.includes("sell") ||
+      lower.includes("business")
     ) {
-      let timeframe = 'today';
-      if (lower.includes('week')) timeframe = 'this_week';
-      if (lower.includes('month')) timeframe = 'this_month';
-      if (lower.includes('all')) timeframe = 'all_time';
-      return { functionName: 'get_sales_summary', params: { timeframe } };
+      let timeframe = "today";
+      if (lower.includes("week")) timeframe = "this_week";
+      if (lower.includes("month")) timeframe = "this_month";
+      if (lower.includes("all")) timeframe = "all_time";
+      return { functionName: "get_sales_summary", params: { timeframe } };
     }
 
     // RFQ queries
     if (
-      lower.includes('rfq') ||
-      lower.includes('order') ||
-      lower.includes('request') ||
-      lower.includes('buy') ||
-      lower.includes('pending')
+      lower.includes("rfq") ||
+      lower.includes("order") ||
+      lower.includes("request") ||
+      lower.includes("buy") ||
+      lower.includes("pending")
     ) {
-      return { functionName: 'get_pending_rfqs', params: {} };
+      return { functionName: "get_pending_rfqs", params: {} };
     }
 
     // Inventory / stock check
     if (
-      lower.includes('inventory') ||
-      lower.includes('stock') ||
-      lower.includes('store') ||
-      lower.includes('warehouse') ||
-      lower.includes('goods')
+      lower.includes("inventory") ||
+      lower.includes("stock") ||
+      lower.includes("store") ||
+      lower.includes("warehouse") ||
+      lower.includes("goods")
     ) {
-      return { functionName: 'get_inventory', params: {} };
+      return { functionName: "get_inventory", params: {} };
     }
 
     // Product listing
     if (
-      lower.includes('product') ||
-      lower.includes('listing') ||
-      lower.includes('sell')
+      lower.includes("product") ||
+      lower.includes("listing") ||
+      lower.includes("sell")
     ) {
-      return { functionName: 'get_products', params: {} };
+      return { functionName: "get_products", params: {} };
     }
 
     // Stock update
     if (
-      lower.includes('add') ||
-      lower.includes('remove') ||
-      lower.includes('restock') ||
-      lower.includes('receive')
+      lower.includes("add") ||
+      lower.includes("remove") ||
+      lower.includes("restock") ||
+      lower.includes("receive")
     ) {
-      return { functionName: 'update_stock', params: {} };
+      return { functionName: "update_stock", params: {} };
     }
 
     // Quote / price
-    if (lower.includes('quote') || lower.includes('price')) {
-      return { functionName: 'respond_to_rfq', params: {} };
+    if (lower.includes("quote") || lower.includes("price")) {
+      return { functionName: "respond_to_rfq", params: {} };
     }
 
     // Greetings
-    if (['hi', 'hello', 'hey', 'good morning', 'good evening'].includes(lower)) {
-      return { functionName: 'show_menu', params: {} };
+    if (
+      ["hi", "hello", "hey", "good morning", "good evening"].includes(lower)
+    ) {
+      return { functionName: "show_menu", params: {} };
     }
 
-    return { functionName: 'friendly_fallback', params: {} };
+    return { functionName: "friendly_fallback", params: {} };
   }
 
   // -----------------------------------------------------------------------
@@ -165,7 +190,7 @@ export class WhatsAppIntentService {
   // -----------------------------------------------------------------------
   private async parseWithGemini(messageText: string): Promise<ParsedIntent> {
     const model = this.genAI!.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: "gemini-2.0-flash",
       systemInstruction: SYSTEM_PROMPT,
       tools: [
         {
@@ -181,10 +206,10 @@ export class WhatsAppIntentService {
                         key,
                         {
                           type:
-                            val.type === 'number'
+                            val.type === "number"
                               ? SchemaType.NUMBER
                               : SchemaType.STRING,
-                          description: val.description || '',
+                          description: val.description || "",
                           ...(val.enum ? { enum: val.enum } : {}),
                         },
                       ],
@@ -203,8 +228,8 @@ export class WhatsAppIntentService {
     const candidate = response.candidates?.[0];
 
     if (!candidate?.content?.parts) {
-      this.logger.warn('Gemini returned no candidate parts');
-      return { functionName: 'friendly_fallback', params: {} };
+      this.logger.warn("Gemini returned no candidate parts");
+      return { functionName: "friendly_fallback", params: {} };
     }
 
     // Look for a function call in the response
@@ -220,10 +245,12 @@ export class WhatsAppIntentService {
     // Gemini returned text instead of a function call — check if it's a text response
     const textPart = candidate.content.parts.find((p) => p.text);
     if (textPart?.text) {
-      this.logger.log(`Gemini returned text instead of function call: "${textPart.text.substring(0, 100)}"`);
+      this.logger.log(
+        `Gemini returned text instead of function call: "${textPart.text.substring(0, 100)}"`,
+      );
     }
 
     // No function call found — friendly fallback
-    return { functionName: 'friendly_fallback', params: {} };
+    return { functionName: "friendly_fallback", params: {} };
   }
 }

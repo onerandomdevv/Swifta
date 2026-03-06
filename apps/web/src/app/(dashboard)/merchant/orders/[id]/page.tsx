@@ -14,6 +14,7 @@ import {
   MerchantOrderGuide,
   OrderReferenceSidebar,
 } from "@/components/merchant/orders";
+import { OrderTimeline } from "@/components/ui/order-timeline";
 
 export default function MerchantOrderDetailsPage() {
   const { id } = useParams();
@@ -185,6 +186,7 @@ export default function MerchantOrderDetailsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         {" "}
         <div className="lg:col-span-8 space-y-8">
+          <OrderTimeline status={order.status} createdAt={order.createdAt} />
           <FulfillmentDetails order={order} />
           <MerchantOrderGuide order={order} />
         </div>

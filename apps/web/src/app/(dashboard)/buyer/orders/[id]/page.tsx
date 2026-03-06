@@ -16,6 +16,7 @@ import {
   BuyerOrderActions,
   OrderInfoSidebar,
 } from "@/components/buyer/orders";
+import { OrderTimeline } from "@/components/ui/order-timeline";
 import { useAuth } from "@/providers/auth-provider";
 
 export default function BuyerOrderDetailsPage() {
@@ -210,6 +211,7 @@ export default function BuyerOrderDetailsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div className="lg:col-span-8 space-y-8">
+          <OrderTimeline status={order.status} createdAt={order.createdAt} />
           <BuyerOrderSummary order={order} />
         </div>
 

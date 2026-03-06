@@ -1,8 +1,8 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
-import { Job } from 'bullmq';
-import { WhatsAppService } from './whatsapp.service';
-import { WHATSAPP_QUEUE } from '../../queue/queue.constants';
+import { Processor, WorkerHost } from "@nestjs/bullmq";
+import { Logger } from "@nestjs/common";
+import { Job } from "bullmq";
+import { WhatsAppService } from "./whatsapp.service";
+import { WHATSAPP_QUEUE } from "../../queue/queue.constants";
 
 /**
  * BullMQ processor for the WhatsApp queue.
@@ -22,15 +22,58 @@ export class WhatsAppProcessor extends WorkerHost {
   async process(job: Job): Promise<void> {
     try {
       switch (job.name) {
-        case 'process-message': {
+        case "process-message": {
           const { phone, messageText, messageId } = job.data;
-          await this.whatsAppService.processMessage(phone, messageText, messageId);
+          await this.whatsAppService.processMessage(
+            phone,
+            messageText,
+            messageId,
+          );
           break;
         }
 
-        case 'send-rfq-notification': {
+        case "send-rfq-notification": {
           const { merchantId, rfqData } = job.data;
-          await this.whatsAppService.sendRfqPushNotification(merchantId, rfqData);
+          await this.whatsAppService.sendRfqPushNotification(
+            merchantId,
+            rfqData,
+          );
+          break;
+        }
+
+        case "send-direct-order-notification": {
+          const { merchantId, orderData } = job.data;
+          await this.whatsAppService.sendDirectOrderNotification(
+            merchantId,
+            orderData,
+          );
+          break;
+        }
+
+        case "send-delivery-confirmed-notification": {
+          const { merchantId, payoutData } = job.data;
+          await this.whatsAppService.sendDeliveryConfirmedNotification(
+            merchantId,
+            payoutData,
+          );
+          break;
+        }
+
+        case "send-payout-completed-notification": {
+          const { merchantId, payoutData } = job.data;
+          await this.whatsAppService.sendPayoutCompletedNotification(
+            merchantId,
+            payoutData,
+          );
+          break;
+        }
+
+        case "send-payout-failed-notification": {
+          const { merchantId, payoutData } = job.data;
+          await this.whatsAppService.sendPayoutFailedNotification(
+            merchantId,
+            payoutData,
+          );
           break;
         }
 

@@ -31,6 +31,7 @@ import { EmailModule } from "./modules/email/email.module";
 import { UploadModule } from "./modules/upload/upload.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { WhatsAppModule } from "./modules/whatsapp/whatsapp.module";
+import { PayoutModule } from "./modules/payout/payout.module";
 
 import { LoggerModule } from "./common/logger/logger.module";
 
@@ -104,6 +105,7 @@ import { APP_GUARD } from "@nestjs/core";
     UploadModule,
     AdminModule,
     WhatsAppModule,
+    PayoutModule,
   ],
   controllers: [],
   providers: [
