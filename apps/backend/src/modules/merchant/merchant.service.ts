@@ -6,7 +6,7 @@ import {
 import { PrismaService } from "../../prisma/prisma.service";
 import { UpdateMerchantDto } from "./dto/update-merchant.dto";
 import { UpdateBankAccountDto } from "./dto/update-bank-account.dto";
-import { UserRole, VerificationStatus } from "@hardware-os/shared";
+import { UserRole } from "@hardware-os/shared";
 import { PaystackClient } from "../payment/paystack.client";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
 
@@ -89,7 +89,7 @@ export class MerchantService {
     if (!merchant) throw new NotFoundException("Merchant not found");
 
     // We only expose contact info if the merchant is VERIFIED
-    const isVerified = merchant.verification === VerificationStatus.VERIFIED;
+    const isVerified = merchant.verificationTier === "VERIFIED";
 
     return {
       id: merchant.id,
@@ -101,7 +101,7 @@ export class MerchantService {
       warehouseLocation: merchant.warehouseLocation,
       distributionCenter: merchant.distributionCenter,
       warehouseCapacity: merchant.warehouseCapacity,
-      verification: merchant.verification,
+      verificationTier: merchant.verificationTier,
       createdAt: merchant.createdAt,
       dealsClosed: merchant._count.orders,
       contact: isVerified
@@ -116,12 +116,12 @@ export class MerchantService {
   async getAllMerchants() {
     return this.prisma.merchantProfile.findMany({
       where: {
-        verification: "VERIFIED",
+        verificationTier: "VERIFIED",
       },
       select: {
         id: true,
         businessName: true,
-        verification: true,
+        verificationTier: true,
       },
       orderBy: {
         businessName: "asc",
@@ -181,9 +181,7 @@ export class MerchantService {
     }
 
     // Step 5 reached: Set verification = PENDING (review & submit step)
-    if (newStep === 5 && existing.onboardingStep < 5) {
-      updateData.verification = VerificationStatus.PENDING;
-    }
+
 
     if (newStep !== existing.onboardingStep) {
       updateData.onboardingStep = newStep;
@@ -235,7 +233,7 @@ export class MerchantService {
     // Auto-advance step 4->5 if other fields are complete and we are at step 4
     if (existing.onboardingStep === 4) {
       updateData.onboardingStep = 5;
-      updateData.verification = VerificationStatus.PENDING;
+
     }
 
     return this.prisma.merchantProfile.update({
@@ -261,7 +259,6 @@ export class MerchantService {
     const updated = await this.prisma.merchantProfile.update({
       where: { id: merchantId },
       data: {
-        verification: VerificationStatus.PENDING,
         onboardingStep: Math.max(merchant.onboardingStep, 5),
       },
     });

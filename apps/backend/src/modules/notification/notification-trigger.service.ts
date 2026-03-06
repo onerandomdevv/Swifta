@@ -16,7 +16,7 @@ export class NotificationTriggerService {
 
   public async addJob(
     userId: string,
-    type: string,
+    type: NotificationType,
     title: string,
     body: string,
     metadata?: any,

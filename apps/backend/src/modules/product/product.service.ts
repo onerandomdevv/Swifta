@@ -149,7 +149,7 @@ export class ProductService {
           select: {
             id: true,
             businessName: true,
-            verification: true,
+            verificationTier: true,
           },
         },
       },

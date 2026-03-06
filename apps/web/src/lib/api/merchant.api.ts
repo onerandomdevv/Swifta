@@ -34,7 +34,7 @@ export async function uploadDocument(
   return apiClient.post("/upload/document", formData);
 }
 
-export async function getMerchants(): Promise<any[]> {
+export async function getMerchants(): Promise<MerchantProfile[]> {
   return apiClient.get("/merchants");
 }
 
@@ -65,14 +65,14 @@ export async function submitVerificationRequest(dto: {
   governmentIdUrl: string;
   idType: string;
   cacCertUrl?: string;
-}): Promise<any> {
+}): Promise<{ id: string; status: string; createdAt: string }> {
   return apiClient.post("/verification/request", dto);
 }
 
 export async function getVerificationStatus(): Promise<{
   tier: string;
   verifiedAt?: string;
-  pendingRequest?: any;
+  pendingRequest?: { id: string; status: string; rejectionReason?: string; createdAt: string };
 }> {
   return apiClient.get("/verification/status");
 }

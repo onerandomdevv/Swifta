@@ -12,8 +12,8 @@ import {
 
 export default function MerchantVerificationPage() {
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<any>(null);
-  const [verificationData, setVerificationData] = useState<any>(null);
+  const [profile, setProfile] = useState<Awaited<ReturnType<typeof getProfile>> | null>(null);
+  const [verificationData, setVerificationData] = useState<Awaited<ReturnType<typeof getVerificationStatus>> | null>(null);
 
   // Form State
   const [idType, setIdType] = useState("NIN");
@@ -24,18 +24,15 @@ export default function MerchantVerificationPage() {
 
   useEffect(() => {
     async function loadData() {
-      try {
-        const [profRes, verRes] = await Promise.all([
-          getProfile(),
-          getVerificationStatus(),
-        ]);
-        setProfile(profRes);
-        setVerificationData(verRes);
-      } catch (err) {
-        console.error("Failed to load verification data", err);
-      } finally {
-        setLoading(false);
-      }
+      const [profRes, verRes] = await Promise.allSettled([
+        getProfile(),
+        getVerificationStatus(),
+      ]);
+      if (profRes.status === "fulfilled") setProfile(profRes.value);
+      else console.error("Failed to load profile", profRes.reason);
+      if (verRes.status === "fulfilled") setVerificationData(verRes.value);
+      else console.error("Failed to load verification data", verRes.reason);
+      setLoading(false);
     }
     loadData();
   }, []);
@@ -55,10 +52,11 @@ export default function MerchantVerificationPage() {
         governmentIdUrl: idUrl,
         cacCertUrl: cacUrl || undefined,
       });
-      // Reload page immediately
-      window.location.reload();
+      const newStatus = await getVerificationStatus();
+      setVerificationData(newStatus);
+      setSubmitting(false);
     } catch (err: any) {
-      setError(err?.error || "Failed to submit verification request");
+      setError(err?.error || err?.message || "Failed to submit verification request");
       setSubmitting(false);
     }
   };
@@ -88,7 +86,7 @@ export default function MerchantVerificationPage() {
   const pendingRequest = verificationData?.pendingRequest;
 
   const isIncomplete =
-    !profile || onboardingStep < 5 || !cacNumber || !bankAccountNo;
+    !profile || (onboardingStep ?? 0) < 5 || !cacNumber || !bankAccountNo;
 
   const getTierColor = (t: string) => {
     switch (t) {

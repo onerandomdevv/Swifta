@@ -35,34 +35,32 @@ export class VerificationService {
       );
     }
 
-    // 2. Check for existing UNRESOLVED request
-    const existing = await this.prisma.verificationRequest.findFirst({
-      where: {
-        merchantId,
-        status: "PENDING",
-      },
-    });
+    // 2 & 3. Atomically check for existing PENDING request and create if none exists
+    const request = await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.verificationRequest.findFirst({
+        where: { merchantId, status: "PENDING" },
+      });
 
-    if (existing) {
-      throw new BadRequestException(
-        "You already have a verification request pending review",
-      );
-    }
+      if (existing) {
+        throw new BadRequestException(
+          "You already have a verification request pending review",
+        );
+      }
 
-    // 3. Create request
-    const request = await this.prisma.verificationRequest.create({
-      data: {
-        merchantId,
-        governmentIdUrl: dto.governmentIdUrl,
-        idType: dto.idType,
-        cacCertUrl: dto.cacCertUrl,
-        status: "PENDING",
-      },
-      include: {
-        merchant: {
-          include: { user: true },
+      return tx.verificationRequest.create({
+        data: {
+          merchantId,
+          governmentIdUrl: dto.governmentIdUrl,
+          idType: dto.idType,
+          cacCertUrl: dto.cacCertUrl,
+          status: "PENDING",
         },
-      },
+        include: {
+          merchant: {
+            include: { user: true },
+          },
+        },
+      });
     });
 
     // Notify admins (best effort)
@@ -75,8 +73,10 @@ export class VerificationService {
       const adminIds = admins.map((a) => a.userId);
 
       if (adminIds.length > 0) {
-        // Assume this method exists or we add it to notification suite
-        // this.notifications.trigger...
+        await this.notifications.triggerNewMerchantSubmission(adminIds, {
+          merchantId: request.merchantId,
+          merchantName: request.merchant.businessName,
+        });
       }
     } catch (e) {
       this.logger.error("Failed to notify admins of new verification request");
@@ -188,14 +188,14 @@ export class VerificationService {
         },
       });
 
-      // Notify merchant
+      // Notify merchant (fire-and-forget — enqueue failure must not affect the response)
       this.notifications.addJob(
         request.merchant.userId,
         "VERIFICATION_REJECTED",
         "Verification Request Rejected",
         `Your verification request was rejected. Reason: ${dto.rejectionReason}`,
         { requestId },
-      );
+      ).catch((err) => this.logger.error(`Failed to enqueue rejection notification for request ${requestId}`, err));
 
       return {
         message: "Verification request rejected",
@@ -225,7 +225,7 @@ export class VerificationService {
     const meetsRequirements =
       completedOrdersCount >= 10 && openDisputesCount === 0;
 
-    await this.prisma.$transaction(async (tx) => {
+    const txResult = await this.prisma.$transaction(async (tx) => {
       // Approve the request
       await tx.verificationRequest.update({
         where: { id: requestId },
@@ -264,21 +264,23 @@ export class VerificationService {
         message = `Documents approved. You are currently at ${newTier} tier. Complete 10 orders (currently ${completedOrdersCount}) with no disputes to reach VERIFIED status.`;
       }
 
-      // Notify merchant
-      this.notifications.addJob(
-        request.merchant.userId,
-        "VERIFICATION_APPROVED",
-        "Verification Documents Approved",
-        message,
-        { requestId, newTier, completedOrdersCount },
-      );
+      return { meetsRequirements, completedOrdersCount, newTier, message };
     });
+
+    // Notify merchant outside transaction (fire-and-forget)
+    this.notifications.addJob(
+      request.merchant.userId,
+      "VERIFICATION_APPROVED",
+      "Verification Documents Approved",
+      txResult.message,
+      { requestId, newTier: txResult.newTier, completedOrdersCount: txResult.completedOrdersCount },
+    ).catch((err) => this.logger.error(`Failed to enqueue approval notification for request ${requestId}`, err));
 
     return {
       message: "Verification request approved",
       decision: "APPROVED",
-      meetsRequirementsForVerified: meetsRequirements,
-      completedOrdersCount,
+      meetsRequirementsForVerified: txResult.meetsRequirements,
+      completedOrdersCount: txResult.completedOrdersCount,
       openDisputesCount,
     };
   }
@@ -318,7 +320,7 @@ export class VerificationService {
           "TIER_UPGRADED",
           "Verification Tier Upgraded",
           "You have been upgraded to the BASIC verification tier! Submit your identity documents to unlock VERIFIED status and Direct Payments.",
-        );
+        ).catch((err) => this.logger.error(`Failed to enqueue BASIC tier upgrade notification for merchant ${merchantId}`, err));
         return; // Upgraded to BASIC, return for now. Next order can trigger the verified check.
       }
     }
@@ -357,7 +359,7 @@ export class VerificationService {
           "TIER_UPGRADED",
           "You are now a Verified Merchant! 🎉",
           "Congratulations! Because you've maintained a perfect track record of 10+ completed orders, you have been upgraded to VERIFIED status. You can now offer Direct Payments to your buyers.",
-        );
+        ).catch((err) => this.logger.error(`Failed to enqueue VERIFIED tier upgrade notification for merchant ${merchantId}`, err));
         this.logger.log(`Auto-upgraded merchant ${merchantId} to VERIFIED`);
       }
     }

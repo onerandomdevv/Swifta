@@ -35,10 +35,12 @@ export class AdminService {
     ] = await Promise.all([
       this.prisma.merchantProfile.count(),
       this.prisma.merchantProfile.count({
-        where: { verification: VerificationStatus.VERIFIED },
+        where: { verificationTier: "VERIFIED" },
       }),
       this.prisma.merchantProfile.count({
-        where: { verification: VerificationStatus.PENDING },
+        where: {
+          verificationRequests: { some: { status: "PENDING" } },
+        },
       }),
       this.prisma.user.count({ where: { role: "BUYER" } }),
       this.prisma.order.count(),
@@ -70,7 +72,7 @@ export class AdminService {
 
     const updated = await this.prisma.merchantProfile.update({
       where: { id: merchantId },
-      data: { verification: VerificationStatus.VERIFIED },
+      data: { verificationTier: "VERIFIED", verifiedAt: new Date() },
     });
 
     await this.notifications.triggerMerchantVerified(merchant.userId);
@@ -98,7 +100,7 @@ export class AdminService {
 
     const updated = await this.prisma.merchantProfile.update({
       where: { id: merchantId },
-      data: { verification: VerificationStatus.REJECTED },
+      data: { updatedAt: new Date() },
     });
 
     await this.notifications.triggerMerchantRejected(merchant.userId, reason);
@@ -117,10 +119,11 @@ export class AdminService {
   }
 
   async getPendingMerchants() {
-    return this.prisma.merchantProfile.findMany({
+    // Fetch all merchants who have at least one verification request
+    const merchants = await this.prisma.merchantProfile.findMany({
       where: {
-        verification: {
-          in: [VerificationStatus.PENDING, VerificationStatus.REJECTED],
+        verificationRequests: {
+          some: {},
         },
       },
       include: {
@@ -132,10 +135,20 @@ export class AdminService {
             phone: true,
           },
         },
+        verificationRequests: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
       },
       orderBy: {
         createdAt: "asc",
       },
+    });
+
+    // Filter to only merchants whose LATEST request is PENDING or REJECTED
+    return merchants.filter((m) => {
+      const latest = m.verificationRequests[0];
+      return latest && (latest.status === "PENDING" || latest.status === "REJECTED");
     });
   }
 
@@ -312,8 +325,12 @@ export class AdminService {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const chokeSize = await this.prisma.merchantProfile.count({
       where: {
-        verification: VerificationStatus.UNVERIFIED,
-        updatedAt: { lt: twentyFourHoursAgo },
+        verificationRequests: {
+          some: {
+            status: "PENDING",
+            createdAt: { lt: twentyFourHoursAgo },
+          },
+        },
       },
     });
 
@@ -395,7 +412,7 @@ export class AdminService {
 
   async broadcastMessage(message: string) {
     const verifiedMerchants = await this.prisma.merchantProfile.findMany({
-      where: { verification: VerificationStatus.VERIFIED },
+      where: { verificationTier: "VERIFIED" },
       include: { user: true },
     });
 
@@ -430,7 +447,7 @@ export class AdminService {
         emailVerified: true,
         createdAt: true,
         merchantProfile: {
-          select: { verification: true },
+          select: { verificationTier: true },
         },
         adminProfile: {
           select: { approvalStatus: true },

@@ -99,7 +99,7 @@ export default function BuyerMerchantProfilePage() {
                       {profile.businessName}
                     </h1>
                     {profile.verificationTier && (
-                      <VerificationBadge tier={profile.verificationTier as any} className="ml-2 scale-125 origin-left" />
+                      <VerificationBadge tier={profile.verificationTier} className="ml-2 scale-125 origin-left" />
                     )}
                   </div>
                   <p className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] mt-1">
@@ -201,7 +201,7 @@ export default function BuyerMerchantProfilePage() {
                     Trust Status
                   </p>
                   <div className="flex items-center gap-2">
-                    <VerificationBadge tier={profile.verificationTier as any} />
+                    <VerificationBadge tier={profile.verificationTier} />
                     {(!profile.verificationTier || profile.verificationTier === "UNVERIFIED" || profile.verificationTier === "BASIC") && (
                       <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600">
                         {profile.verificationTier || "UNVERIFIED"}
