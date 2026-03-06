@@ -6,6 +6,7 @@ import React, {
   useState,
   useCallback,
   useEffect,
+  useRef,
   ReactNode,
 } from "react";
 import { useRouter, usePathname } from "next/navigation";
@@ -46,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+  const isLoggingOut = useRef(false);
 
   // Routes where we should NOT redirect to /login on auth failure
   const isPublicAuthRoute =
@@ -58,6 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const handleRefresh = useCallback(async (): Promise<boolean> => {
+    // Don't attempt refresh if we're intentionally logging out
+    if (isLoggingOut.current) return false;
     try {
       await authApi.refresh(); // The HttpOnly cookie is securely attached automatically
       return true;
@@ -109,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logoutFn = useCallback(async () => {
+    isLoggingOut.current = true;
     try {
       await authApi.logout();
     } finally {
