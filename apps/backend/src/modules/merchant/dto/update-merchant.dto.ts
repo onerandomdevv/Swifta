@@ -1,4 +1,4 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString } from "class-validator";
 
 export class UpdateMerchantDto {
   @IsOptional()
@@ -51,9 +51,9 @@ export class UpdateMerchantDto {
 
   @IsOptional()
   @IsString()
-  bankAccountNo?: string;
+  bankAccountNumber?: string;
 
   @IsOptional()
   @IsString()
-  bankAccountName?: string;
+  settlementAccountName?: string;
 }

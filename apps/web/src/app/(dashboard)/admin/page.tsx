@@ -29,6 +29,11 @@ export default function AdminDashboardPage() {
     queryFn: () => apiClient.get("/admin/stats"),
   });
 
+  const { data: payouts } = useQuery<any[]>({
+    queryKey: ["admin", "payouts", "pending"],
+    queryFn: () => apiClient.get("/admin/payouts"),
+  });
+
   const { data: alerts, isLoading: isLoadingAlerts } = useQuery<SystemAlert[]>({
     queryKey: ["admin", "alerts"],
     queryFn: () => apiClient.get("/admin/alerts"),
@@ -174,18 +179,65 @@ export default function AdminDashboardPage() {
         </div>
       </section>
 
-      {/* Placeholder for Quick Actions */}
+      {/* Action Center */}
       <section className="bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-sm p-8">
         <h3 className="text-xs font-black uppercase text-slate-400 tracking-widest mb-6">
           Action Center
         </h3>
-        <div className="flex flex-col items-center justify-center py-12 text-center text-slate-400">
-          <span className="material-symbols-outlined text-6xl mb-4 opacity-50">
-            build
-          </span>
-          <p className="font-bold text-sm uppercase tracking-wider">
-            Merchant Approval Queue Under Construction
-          </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Link
+            href="/admin/merchants"
+            className="flex items-center justify-between p-6 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/10 transition-colors group"
+          >
+            <div className="flex items-center gap-4">
+              <span className="material-symbols-outlined text-orange-500 bg-orange-100 dark:bg-orange-900/30 p-3 rounded-xl group-hover:scale-110 transition-transform">
+                how_to_reg
+              </span>
+              <div>
+                <h4 className="font-bold text-navy-dark dark:text-white">
+                  Verification Approvals
+                </h4>
+                <p className="text-sm font-medium text-slate-500 mt-1">
+                  Merchants pending KYC via staff portal
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                {stats?.pendingMerchants || 0}
+              </span>
+              <span className="material-symbols-outlined text-slate-400 group-hover:text-orange-500 transition-colors">
+                chevron_right
+              </span>
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/payouts"
+            className="flex items-center justify-between p-6 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-neon-cyan hover:bg-neon-cyan/5 dark:hover:bg-neon-cyan/10 transition-colors group"
+          >
+            <div className="flex items-center gap-4">
+              <span className="material-symbols-outlined text-neon-cyan bg-neon-cyan/10 p-3 rounded-xl group-hover:scale-110 transition-transform">
+                account_balance
+              </span>
+              <div>
+                <h4 className="font-bold text-navy-dark dark:text-white">
+                  Payouts Processing
+                </h4>
+                <p className="text-sm font-medium text-slate-500 mt-1">
+                  Immediate payout requests
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="bg-neon-cyan text-deep-blue text-xs font-bold px-3 py-1 rounded-full">
+                {payouts?.length || 0}
+              </span>
+              <span className="material-symbols-outlined text-slate-400 group-hover:text-neon-cyan transition-colors">
+                chevron_right
+              </span>
+            </div>
+          </Link>
         </div>
       </section>
     </div>

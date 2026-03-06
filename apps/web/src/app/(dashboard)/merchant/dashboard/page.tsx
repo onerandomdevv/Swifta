@@ -1,24 +1,31 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
 import { useMerchantDashboard } from "@/hooks/use-merchant-data";
-import { useAuth } from "@/providers/auth-provider";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { dispatchOrder } from "@/lib/api/order.api";
 import { DashboardSkeleton } from "@/components/merchant/dashboard/dashboard-skeleton";
-import { MerchantKpiGrid } from "@/components/merchant/dashboard/merchant-kpi-grid";
-import { IncomingRfqs } from "@/components/merchant/dashboard/incoming-rfqs";
-import { MerchantQuickActions } from "@/components/merchant/dashboard/quick-actions";
+import { KanbanColumn } from "@/components/merchant/dashboard/kanban-column";
+import { KanbanRfqCard } from "@/components/merchant/dashboard/kanban-rfq-card";
+import { KanbanOrderCard } from "@/components/merchant/dashboard/kanban-order-card";
 
 export default function MerchantDashboard() {
   const { rfqs, orders, isLoading, isError, error } = useMerchantDashboard();
-  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 18) return "Good afternoon";
-    return "Good evening";
-  };
+  const dispatchMutation = useMutation({
+    mutationFn: dispatchOrder,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["merchant", "orders", "all"],
+      });
+    },
+    onError: (err) => {
+      console.error("Dispatch order failed:", err);
+      // Optional: Add toast notification error here
+      alert("Failed to generate OTP. Please try again.");
+    },
+  });
 
   if (isLoading) return <DashboardSkeleton />;
 
@@ -33,97 +40,123 @@ export default function MerchantDashboard() {
     );
   }
 
-  // --- KPI Computation ---
-  const activeOrders = orders.filter(
-    (o) => o.status !== "CANCELLED" && o.status !== "DISPUTE",
-  );
-  const pipelineValue = activeOrders.reduce(
-    (sum, o) => sum + BigInt(o.totalAmountKobo || 0),
-    0n,
-  );
-  const activeRfqCount = rfqs.filter(
-    (r) => r.status === "OPEN" || r.status === "QUOTED",
-  ).length;
-  const incompleteOrders = orders.filter(
-    (o) => o.status !== "COMPLETED" && o.status !== "CANCELLED",
-  ).length;
+  // --- Handlers ---
+  const handleReviewQuote = (id: string) => {
+    // Navigate straight to the RFQ details page
+    window.location.href = `/merchant/rfqs/${id}`;
+  };
 
-  const stats = [
-    {
-      label: "Pipeline Value",
-      value: pipelineValue,
-      isMoney: true,
-      trend: `${activeOrders.length} orders`,
-      trendType:
-        activeOrders.length > 0 ? ("up" as const) : ("neutral" as const),
-      icon: "account_balance_wallet",
-      sub: `Calculated from ${activeOrders.length} active orders`,
-      href: "/merchant/orders"
-    },
-    {
-      label: "Active RFQs",
-      value: String(activeRfqCount),
-      isMoney: false,
-      trend: `${rfqs.length} total`,
-      trendType: activeRfqCount > 0 ? ("up" as const) : ("neutral" as const),
-      icon: "description",
-      sub: "Requires immediate response",
-      href: "/merchant/rfqs"
-    },
-    {
-      label: "Incomplete Orders",
-      value: String(incompleteOrders),
-      isMoney: false,
-      badge: incompleteOrders > 5 ? `${incompleteOrders} PENDING` : undefined,
-      icon: "inventory_2",
-      sub: "Awaiting dispatch or payment",
-      href: "/merchant/orders"
-    },
-    {
-      label: "Total Orders",
-      value: String(orders.length),
-      isMoney: false,
-      trend: "All time",
-      trendType: orders.length > 0 ? ("up" as const) : ("neutral" as const),
-      icon: "speed",
-      sub: "Completed + in-progress",
-      href: "/merchant/orders"
-    },
-  ];
+  const handleOrderAction = (id: string) => {
+    const order = orders.find((o) => o.id === id);
+    if (order?.status === "PAID") {
+      // Trigger the backend dispatch API immediately
+      dispatchMutation.mutate(id);
+    } else {
+      // For all other statuses, click the card to view the deeper Escrow/Logistics order tracking screen
+      window.location.href = `/merchant/orders/${id}`;
+    }
+  };
 
-  // --- Recent RFQs Computation ---
-  const recentRfqs = rfqs.slice(0, 3);
+  // --- Filtered Arrays ---
+  const pendingRfqs = rfqs.filter((r) => r.status === "OPEN");
+  const awaitingOrders = orders.filter((o) => o.status === "PAID");
+  const transitOrders = orders.filter((o) => o.status === "DISPATCHED");
+  const completedOrders = orders.filter(
+    (o) => o.status === "DELIVERED" || o.status === "COMPLETED",
+  );
 
   return (
-    <div className="space-y-10 py-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div className="space-y-1">
-          <h1 className="text-4xl font-black text-navy-dark dark:text-white tracking-tight uppercase leading-none font-display flex items-baseline gap-3">
-            <span className="font-handwriting capitalize text-6xl font-medium tracking-normal text-primary lowercase">{getGreeting()},</span>
-            <span>Merchant <span className="font-handwriting capitalize text-6xl font-medium tracking-normal text-primary lowercase">{user?.fullName || user?.email?.split("@")[0] || ""}</span></span>
-          </h1>
-          <p className="text-slate-500 font-bold text-sm tracking-wide mt-2">
-            Enterprise Trading Hub
-          </p>
-        </div>
-        <div className="flex gap-4">
-          <Link
-            href="/merchant/products/new"
-            className="flex items-center gap-2 px-8 py-3 bg-navy-dark text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-navy-dark/20 transition-all active:scale-95"
+    <div className="h-full bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-8 overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="flex-1 overflow-x-auto">
+        <div className="flex gap-6 h-full min-w-max pb-4">
+          {/* Column 1: Pending Quotes */}
+          <KanbanColumn
+            title="Pending Quotes"
+            count={pendingRfqs.length}
+            colorClass="bg-amber-400"
           >
-            <span className="material-symbols-outlined text-lg">add_box</span>
-            Add Product
-          </Link>
+            {pendingRfqs.map((rfq) => (
+              <KanbanRfqCard
+                key={rfq.id}
+                rfq={rfq}
+                onReview={handleReviewQuote}
+              />
+            ))}
+            {pendingRfqs.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-32 text-slate-400 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg">
+                <span className="text-[10px] font-bold uppercase tracking-widest">
+                  Inbox Zero
+                </span>
+              </div>
+            )}
+          </KanbanColumn>
+
+          {/* Column 2: Awaiting Dispatch */}
+          <KanbanColumn
+            title="Awaiting Dispatch"
+            count={awaitingOrders.length}
+            colorClass="bg-blue-500"
+          >
+            {awaitingOrders.map((order) => (
+              <KanbanOrderCard
+                key={order.id}
+                order={order}
+                onAction={handleOrderAction}
+              />
+            ))}
+            {awaitingOrders.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-32 text-slate-400 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg">
+                <span className="text-[10px] font-bold uppercase tracking-widest">
+                  No pending orders
+                </span>
+              </div>
+            )}
+          </KanbanColumn>
+
+          {/* Column 3: In Transit */}
+          <KanbanColumn
+            title="In Transit"
+            count={transitOrders.length}
+            colorClass="bg-primary"
+          >
+            {transitOrders.map((order) => (
+              <KanbanOrderCard
+                key={order.id}
+                order={order}
+                onAction={handleOrderAction}
+              />
+            ))}
+            {transitOrders.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-32 text-slate-400 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg">
+                <span className="text-[10px] font-bold uppercase tracking-widest">
+                  Nothing on road
+                </span>
+              </div>
+            )}
+          </KanbanColumn>
+
+          {/* Column 4: Payout Completed */}
+          <KanbanColumn
+            title="Payout Completed"
+            count={completedOrders.length}
+            colorClass="bg-emerald-500"
+          >
+            {completedOrders.map((order) => (
+              <KanbanOrderCard
+                key={order.id}
+                order={order}
+                onAction={handleOrderAction}
+              />
+            ))}
+            {completedOrders.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-32 text-slate-400 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg">
+                <span className="text-[10px] font-bold uppercase tracking-widest">
+                  No history
+                </span>
+              </div>
+            )}
+          </KanbanColumn>
         </div>
-      </div>
-
-      <MerchantKpiGrid stats={stats} />
-
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        <IncomingRfqs recentRfqs={recentRfqs} />
-        <MerchantQuickActions />
       </div>
     </div>
   );

@@ -1,7 +1,13 @@
 import { Module, Global } from "@nestjs/common";
 import { BullModule } from "@nestjs/bullmq";
 import { ConfigService } from "@nestjs/config";
-import { NOTIFICATION_QUEUE, RFQ_EXPIRY_QUEUE } from "./queue.constants";
+import {
+  NOTIFICATION_QUEUE,
+  RFQ_EXPIRY_QUEUE,
+  REORDER_REMINDER_QUEUE,
+  WHATSAPP_QUEUE,
+  PAYOUT_QUEUE,
+} from "./queue.constants";
 
 @Global()
 @Module({
@@ -17,7 +23,11 @@ import { NOTIFICATION_QUEUE, RFQ_EXPIRY_QUEUE } from "./queue.constants";
             port: parseInt(redisUrl.port, 10) || 6379,
             password: redisUrl.password || undefined,
             username: redisUrl.username || undefined,
-            tls: redisUrl.protocol === "rediss:" ? {} : undefined,
+            tls:
+              redisUrl.protocol === "rediss:"
+                ? { rejectUnauthorized: false }
+                : undefined,
+            family: 0,
           },
         };
       },
@@ -26,6 +36,9 @@ import { NOTIFICATION_QUEUE, RFQ_EXPIRY_QUEUE } from "./queue.constants";
     BullModule.registerQueue(
       { name: NOTIFICATION_QUEUE },
       { name: RFQ_EXPIRY_QUEUE },
+      { name: REORDER_REMINDER_QUEUE },
+      { name: WHATSAPP_QUEUE },
+      { name: PAYOUT_QUEUE },
     ),
   ],
   exports: [BullModule],

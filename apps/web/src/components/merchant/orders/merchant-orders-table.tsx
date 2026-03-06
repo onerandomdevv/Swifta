@@ -29,70 +29,73 @@ export function MerchantOrdersTable({ orders }: Props) {
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-2xl shadow-navy-dark/5 overflow-hidden">
+    <div className="bg-white dark:bg-slate-900 border-2 border-slate-900 dark:border-slate-100 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] w-full overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-left">
+        <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
-              <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+            <tr className="bg-slate-900 dark:bg-slate-100">
+              <th className="px-6 py-4 text-[10px] font-bold text-white dark:text-slate-900 uppercase tracking-widest border-r border-slate-800 dark:border-slate-200">
                 Order ID
               </th>
-              <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+              <th className="px-6 py-4 text-[10px] font-bold text-white dark:text-slate-900 uppercase tracking-widest border-r border-slate-800 dark:border-slate-200">
                 Order Date
               </th>
-              <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+              <th className="px-6 py-4 text-[10px] font-bold text-white dark:text-slate-900 uppercase tracking-widest border-r border-slate-800 dark:border-slate-200">
                 Amount
               </th>
-              <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+              <th className="px-6 py-4 text-[10px] font-bold text-white dark:text-slate-900 uppercase tracking-widest border-r border-slate-800 dark:border-slate-200">
                 Status
               </th>
-              <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">
+              <th className="px-6 py-4 text-[10px] font-bold text-white dark:text-slate-900 uppercase tracking-widest text-right">
                 Action
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+          <tbody className="divide-y-2 divide-slate-100 dark:divide-slate-800">
             {orders?.map((order) => (
               <tr
                 key={order.id}
-                className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-all duration-300"
+                className="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
               >
-                <td className="px-8 py-8">
-                  <p className="text-sm font-black text-navy-dark dark:text-white uppercase leading-tight">
-                    #{order.id.slice(0, 8)}
+                <td className="px-6 py-5 border-r border-slate-100 dark:border-slate-800">
+                  <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                    ORD-{order.id.slice(0, 6)}
                   </p>
                 </td>
-                <td className="px-8 py-8">
-                  <p className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-tight">
+                <td className="px-6 py-5 border-r border-slate-100 dark:border-slate-800">
+                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                     {new Date(order.createdAt).toLocaleDateString()}
                   </p>
                 </td>
-                <td className="px-8 py-8">
-                  <div className="text-sm font-black text-navy-dark dark:text-white tracking-tight">
+                <td className="px-6 py-5 border-r border-slate-100 dark:border-slate-800">
+                  <div className="text-sm font-black text-slate-900 dark:text-white tracking-tight tabular-nums">
                     <Money amount={BigInt(order.totalAmountKobo)} />
                   </div>
                 </td>
-                <td className="px-8 py-8">
+                <td className="px-6 py-5 border-r border-slate-100 dark:border-slate-800">
                   <span
-                    className={`inline-flex items-center px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border h-7 ${
+                    className={`inline-block px-2 py-1 text-[9px] font-black uppercase tracking-widest border ${
                       order.status === "PENDING_PAYMENT"
-                        ? "bg-amber-50 text-amber-700 border-amber-100"
+                        ? "bg-amber-50 text-amber-700 border-amber-200"
                         : order.status === "PAID"
-                          ? "bg-blue-50 text-blue-700 border-blue-100"
+                          ? "bg-blue-50 text-blue-700 border-blue-200"
                           : order.status === "DISPATCHED"
-                            ? "bg-purple-50 text-purple-700 border-purple-100"
-                            : "bg-emerald-50 text-emerald-700 border-emerald-100"
+                            ? "bg-purple-50 text-purple-700 border-purple-200"
+                            : "bg-emerald-50 text-emerald-700 border-emerald-200"
                     }`}
                   >
                     {order.status.replace("_", " ")}
                   </span>
                 </td>
-                <td className="px-8 py-8 text-right">
+                <td className="px-6 py-5 text-right">
                   <Link
                     href={`/merchant/orders/${order.id}`}
-                    className="px-6 py-2.5 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 text-navy-dark dark:text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-white dark:hover:bg-slate-700 transition-all active:scale-95 inline-block"
+                    className="px-4 py-2 bg-slate-100 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-[10px] font-black uppercase tracking-widest hover:border-slate-900 dark:hover:border-slate-100 transition-colors inline-flex items-center gap-2"
                   >
-                    View Details
+                    <span>View</span>
+                    <span className="material-symbols-outlined text-sm leading-none">
+                      arrow_forward
+                    </span>
                   </Link>
                 </td>
               </tr>

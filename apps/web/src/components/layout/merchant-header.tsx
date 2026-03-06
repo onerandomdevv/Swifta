@@ -6,6 +6,8 @@ import { useAuth } from "@/providers/auth-provider";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useQuery } from "@tanstack/react-query";
 import { getProfile } from "@/lib/api/merchant.api";
+import { useMerchantDashboard } from "@/hooks/use-merchant-data";
+import { formatKobo } from "@hardware-os/shared";
 
 export function MerchantHeader({
   onOpenNotifications,
@@ -22,43 +24,58 @@ export function MerchantHeader({
     enabled: !!user?.merchantId,
   });
 
+  const { orders } = useMerchantDashboard();
+
+  const escrowBalance = orders
+    .filter((o) => o.status === "PAID" || o.status === "DISPATCHED")
+    .reduce((sum, o) => sum + BigInt(o.totalAmountKobo || 0), 0n);
+
   const verificationStatus = profile?.verification || "UNVERIFIED";
 
-
   return (
-    <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 flex-shrink-0">
-      <div className="flex-1"></div>
+    <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-6 shrink-0">
+      <div className="flex items-center gap-4 flex-1 max-w-xl">
+        <div className="relative w-full">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">
+            search
+          </span>
+          <input
+            className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded text-sm pl-10 focus:ring-1 focus:ring-primary h-9 outline-none text-slate-900 dark:text-white placeholder:text-slate-500"
+            placeholder="Search orders, SKU, or merchant ID..."
+            type="text"
+          />
+        </div>
+      </div>
 
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-4">
+        <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 px-4 h-10 flex items-center gap-3 rounded">
+          <span className="text-[10px] uppercase font-bold text-slate-500 tracking-tight">
+            Escrow Balance
+          </span>
+          <span className="text-primary font-bold text-base leading-none tabular-nums">
+            {formatKobo(escrowBalance)}
+          </span>
+        </div>
+
         <button
           onClick={onOpenNotifications}
-          className="relative text-slate-500 hover:text-primary transition-colors"
+          className="relative size-10 flex items-center justify-center rounded border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
         >
-          <span className="material-symbols-outlined">notifications</span>
+          <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">
+            notifications
+          </span>
           {unreadCount > 0 && (
-            <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900 animate-pulse"></span>
+            <span className="absolute top-2 right-2 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-white dark:border-slate-900 animate-pulse"></span>
           )}
         </button>
-        <div className="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
-        <div className="flex items-center gap-3 cursor-pointer group">
-          <div className="text-right hidden sm:block">
-            <p className="text-sm font-semibold text-slate-900 dark:text-white leading-none group-hover:text-primary transition-colors">
-              {user?.fullName || user?.email?.split("@")[0] || "Merchant"}
-            </p>
-            <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider mt-1">
-              {verificationStatus === "VERIFIED" 
-                ? "Verified Merchant" 
-                : `Status: ${verificationStatus}`}
-            </p>
-          </div>
-          <div className="h-10 w-10 rounded-full overflow-hidden ring-2 ring-transparent group-hover:ring-primary/20 transition-all shadow-sm flex items-center justify-center bg-gradient-to-br from-primary to-blue-600 text-white font-bold text-lg">
-            {user?.fullName
-              ? user.fullName[0].toUpperCase()
-              : user?.email
-                ? user.email[0].toUpperCase()
-                : "M"}
-          </div>
-        </div>
+
+        <button
+          onClick={() => router.push("/merchant/inventory/new")}
+          className="bg-primary text-white h-10 px-4 rounded text-sm font-bold flex items-center gap-2 hover:bg-primary/90 transition-colors"
+        >
+          <span className="material-symbols-outlined text-lg">add</span>
+          New Listing
+        </button>
       </div>
     </header>
   );

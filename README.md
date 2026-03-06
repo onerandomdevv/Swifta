@@ -1,183 +1,132 @@
-# HARDWARE OS
+# SwiftTrade / HARDWARE OS
 
 **The Operating System for Lagos Hardware Trade**
 
-HARDWARE OS is a production-grade B2B trade platform that digitizes the hardware materials supply chain in Lagos, Nigeria. It handles the complete transaction lifecycle — from product listing to merchant payout — while preserving the trust, negotiation dynamics, and relationships that define Lagos hardware trade.
-
-> This is not a marketplace clone. It's trade infrastructure.
+How HARDWARE OS digitizes Africa's largest informal hardware trade network without breaking the trust, negotiation, and relationships that make it work.
 
 ---
 
-## What It Does
+## 🚀 The Vision: Beyond a Marketplace
 
-1. **Merchant** registers and lists products (cement, rods, plumbing, etc.) — no public prices
-2. **Buyer** browses the catalogue and sends a Request for Quote (RFQ)
-3. **Merchant** responds with a private quote (unit price, delivery fee, validity period)
-4. **Buyer** accepts the quote → order is created, stock is reserved
-5. **Buyer** pays securely via Paystack → money is held
-6. **Merchant** dispatches and generates a 6-digit delivery OTP
-7. **Buyer** enters OTP to confirm receipt → merchant gets paid out automatically
+SwiftTrade is not your typical B2B e-commerce platform. It is a purpose-built trade infrastructure designed specifically for the realities of the Lagos hardware market (cement, iron rods, plumbing, electrical, etc.).
+
+Generic platforms fail because they don't understand how this billion-naira industry operates. We don't force generic e-commerce models onto a relationship-driven industry. Instead, we digitize the transaction lifecycle while empowering merchants to maintain their pricing strategies and customer relationships.
+
+**Why SwiftTrade Works:**
+
+- **Price Opacity by Design:** Prices are negotiated privately via an RFQ (Request for Quote) model.
+- **Embedded Trust:** Buyer's payment is held in escrow until delivery is confirmed via OTP. The merchant is guaranteed payment; the buyer is guaranteed delivery.
+- **Data Privacy:** Merchant inventory, pricing, and sales data are siloed and strictly confidential.
+- **Behavioral Trade History:** Every successful transaction builds a verifiable trade profile, laying the groundwork for future credit scoring and working capital (BNPL).
+
+## 💡 Core Features (V1)
+
+### 1. Unified Trade Lifecycle
+
+- **Merchant Onboarding & Verification:** Merchants register and undergo verification (CAC, Bank, Address) for a secure ecosystem.
+- **Private Product Catalogue:** Merchants list their products without prices. Buyers browse the unified platform catalogue to discover suppliers.
+- **RFQ Flow & Negotiation:** Buyers request quotes for specific volumes and locations. Merchants respond with private unit pricing and delivery fees. You can seamlessly transition to WhatsApp to close deals.
+- **Secure Escrow Payments:** Integrated with **Paystack** for seamless cards and bank transfers. Funds are securely held.
+- **OTP-Secured Delivery Confirmation:** The merchant generates a 6-digit OTP given to the driver. The buyer must provide this OTP to confirm receipt, releasing funds to the merchant automatically.
+
+### 2. Comprehensive Dashboards
+
+- **Merchant Portal:** A command center for managing product listings, responding to RFQs, tracking orders, managing inventory, and requesting payouts.
+- **Buyer Portal:** An intuitive interface to discover products, send RFQs, track order status, and view trusted merchant profiles.
+- **Super Admin Platform:** A robust backend for operational oversight. Features include:
+  - System-wide analytics and market intelligence (GMV, funnel metrics).
+  - Escrow and payout management.
+  - Merchant verification queues and manual flags (e.g., CAC, Address).
+  - Staff user management with secure **Access Token Generation** for `OPERATOR` and `SUPPORT` roles.
+
+### 4. WhatsApp AI Assistant
+
+- **Conversational RFQs:** Merchants interact with a natural language AI assistant on WhatsApp to seamlessly receive and respond to quotes without opening the app.
+- **Automated Alerts:** Stock alerts and order updates pushed directly to the merchant's WhatsApp.
+
+### 3. Trust Profiles & Issue Resolution
+
+- **Merchant Trust Profiles:** Buyers see delivery velocity, response rates, and verification status before initiating trade.
+- **Dispute & Issue Reporting:** Built-in safeguards allow buyers to flag issues, managed directly by the Admin Operations team.
 
 ---
 
-## Architecture
+## 🏗️ Technical Architecture
 
-```
+SwiftTrade is a modular monolith/monorepo architecture optimized for scalability, security, and developer velocity.
+
+```text
 hardware-os/
 ├── apps/
-│   ├── backend/          → NestJS modular monolith (API server)
-│   └── web/              → Next.js 14 App Router (frontend)
+│   ├── backend/          → NestJS modular API server
+│   └── web/              → Next.js 14 App Router (Frontend)
 ├── packages/
-│   └── shared/           → Shared types, enums, constants, utilities
-├── docker-compose.yml    → Local Postgres + Redis
-├── pnpm-workspace.yaml   → Monorepo workspace config
-└── turbo.json            → Build orchestration
+│   └── shared/           → Shared Typescript definitions, DTOs, Enums
+├── docker-compose.yml    → Local Postgres & Redis
+└── pnpm-workspace.yaml   → Monorepo workspace config
 ```
 
-| Layer       | Technology                       | Purpose                                           |
-| ----------- | -------------------------------- | ------------------------------------------------- |
-| Frontend    | Next.js 14, TypeScript, Tailwind | Web app for merchants and buyers                  |
-| Backend     | NestJS, Prisma, TypeScript       | API server with 8 domain modules                  |
-| Database    | PostgreSQL 16                    | Primary data store (Supabase-managed in prod)     |
-| Cache/Queue | Redis 7 + BullMQ                 | Sessions, background jobs, notification queue     |
-| Payments    | Paystack                         | Card/bank payments, webhook verification, payouts |
-| Monorepo    | pnpm + Turborepo                 | Workspace management, parallel builds             |
+### Technology Stack
+
+- **Frontend:** Next.js 14, React, Tailwind CSS, React Query, React Hook Form + Zod, Framer Motion.
+- **Backend:** NestJS, Prisma ORM, TypeScript.
+- **Database:** PostgreSQL 16 (Relational state, structured data - Supabase managed).
+- **Cache / Background Jobs:** Redis 7 (OTP limits, rate-limiting, session management, job queuing).
+- **Payments:** Paystack API & Webhooks.
+- **Notifications & Comm:** Resend (Email), Africa's Talking (SMS OTPs), Meta WhatsApp Business Cloud API.
 
 ---
 
-## Quick Start
+## 🛠️ Quick Start Guide
 
 ### Prerequisites
 
 - Node.js >= 20
 - pnpm >= 8 (`npm install -g pnpm`)
-- Docker + Docker Compose
+- Docker Desktop (for local DB/Redis)
 
-### Setup
+### Setup & Run
 
 ```bash
-# 1. Clone
-git clone <repo-url>
+# 1. Clone the repository
+git clone <repository_url>
 cd hardware-os
 
-# 2. Install
+# 2. Install Dependencies
 pnpm install
 
-# 3. Start databases
+# 3. Start Database & Cache
 docker-compose up -d
 
-# 4. Configure environment
-cp .env.example apps/backend/.env
-# Edit apps/backend/.env with your Paystack test keys
+# 4. Environment Variables
+# Copy the `.env.example` file to `.env` in both `apps/web` and `apps/backend` and update the necessary keys (e.g., Paystack, DB URLs).
 
-# 5. Database setup
+# 5. Database Schema & Seeding
 cd apps/backend
 npx prisma migrate dev
 npx prisma db seed
 cd ../..
 
-# 6. Run (two terminals)
-pnpm --filter @hardware-os/backend dev    # http://localhost:4000
-pnpm --filter @hardware-os/web dev        # http://localhost:3000
-
-# 7. Verify
-curl http://localhost:4000/health
+# 6. Run the Application
+pnpm --filter @hardware-os/backend dev    # Starts backend on http://localhost:4000
+pnpm --filter @hardware-os/web dev        # Starts frontend on http://localhost:3000
 ```
 
 ---
 
-## Project Documentation
+## 🔒 Security & Access
 
-| Document              | Location                                               | Audience                       |
-| --------------------- | ------------------------------------------------------ | ------------------------------ |
-| Backend README        | [apps/backend/README.md](apps/backend/README.md)       | Backend & fullstack developers |
-| Frontend README       | [apps/web/README.md](apps/web/README.md)               | Frontend developers            |
-| Shared Package README | [packages/shared/README.md](packages/shared/README.md) | All developers                 |
+- **Role-Based Access Control:** Distinct experiences for `BUYER`, `MERCHANT`, `SUPER_ADMIN`, `OPERATOR`, and `SUPPORT`.
+- **JWT Authentication:** Secure auth flow utilizing HttpOnly cookies for session persistence and refresh token rotation.
+- **Database Isolation:** Enforced data siloing where merchants can only access their individual inventory and sales records.
 
 ---
 
-## Environment Variables
+## 🚀 The Future Roadmap
 
-### Backend (`apps/backend/.env`)
+V1 establishes the core transaction loop and foundational WhatsApp integrations. The data generated actively paves the way for advanced phases:
 
-```env
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/hardware_os
-REDIS_URL=redis://localhost:6379
-JWT_ACCESS_SECRET=<random-64-chars>
-JWT_REFRESH_SECRET=<random-64-chars>
-JWT_ACCESS_TTL=15m
-JWT_REFRESH_TTL=7d
-PAYSTACK_SECRET_KEY=sk_test_xxxxx
-PAYSTACK_PUBLIC_KEY=pk_test_xxxxx
-PAYSTACK_WEBHOOK_SECRET=whsec_xxxxx
-PAYSTACK_BASE_URL=https://api.paystack.co
-EMAIL_PROVIDER=resend
-RESEND_API_KEY=re_xxxxx
-EMAIL_FROM=noreply@hardwareos.ng
-NODE_ENV=development
-PORT=4000
-FRONTEND_URL=http://localhost:3000
-CORS_ORIGINS=http://localhost:3000
-```
+- **Phase 2 (Credit):** Behavioral Credit Scoring (TradeScore) leading to embedded BNPL and Trade Credit financing.
+- **Phase 3 (Market Intelligence):** AI-driven demand forecasting and the creation of a Lagos Hardware Price Index.
 
-### Frontend (`apps/web/.env.local`)
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:4000
-NEXT_PUBLIC_PAYSTACK_KEY=pk_test_xxxxx
-```
-
-> ⚠️ Never commit `.env` files. Only `.env.example` is tracked.
-
----
-
-## V1 Scope
-
-### Included
-
-- ✅ Merchant onboarding + product listing (no public prices)
-- ✅ RFQ → Quote → Order lifecycle
-- ✅ Paystack payments with webhook verification
-- ✅ OTP delivery confirmation + automated merchant payout
-- ✅ Event-based inventory tracking
-- ✅ JWT auth with refresh token rotation
-- ✅ In-app + email notifications
-
-### Not Included (Future Phases)
-
-- ❌ WhatsApp / SMS / USSD
-- ❌ Product images
-- ❌ BNPL / trade credit
-- ❌ AI forecasting
-- ❌ Logistics tracking
-- ❌ Admin panel
-
----
-
-## Commands
-
-| Command                                   | What It Does              |
-| ----------------------------------------- | ------------------------- |
-| `pnpm install`                            | Install all dependencies  |
-| `pnpm build`                              | Build all packages        |
-| `pnpm --filter @hardware-os/backend dev`  | Start backend dev server  |
-| `pnpm --filter @hardware-os/web dev`      | Start frontend dev server |
-| `pnpm --filter @hardware-os/backend test` | Run backend tests         |
-| `docker-compose up -d`                    | Start Postgres + Redis    |
-| `docker-compose down`                     | Stop databases            |
-
----
-
-## Team
-
-| Developer | Role          | Owns                                                   |
-| --------- | ------------- | ------------------------------------------------------ |
-| Dev A     | Backend Lead  | Auth, Order, Payment, Infrastructure                   |
-| Dev B     | Fullstack     | Merchant, Product, RFQ, Quote, Inventory, Notification |
-| Dev C     | Frontend Lead | All pages, components, API integration                 |
-
----
-
-## License
-
-Proprietary. All rights reserved.
+Looking ahead, SwiftTrade isn't just about software; it's about providing the market infrastructure that scales Africa's largest informal trade network.

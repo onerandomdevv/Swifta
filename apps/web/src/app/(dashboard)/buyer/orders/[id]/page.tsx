@@ -5,9 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getOrder, confirmDelivery } from "@/lib/api/order.api";
+import { getOrder, confirmDelivery, reportIssue } from "@/lib/api/order.api";
 import { initializePayment } from "@/lib/api/payment.api";
 import type { Order } from "@hardware-os/shared";
+import { Modal } from "@/components/ui/modal";
 
 // Extracted Components
 import {
@@ -15,6 +16,8 @@ import {
   BuyerOrderActions,
   OrderInfoSidebar,
 } from "@/components/buyer/orders";
+import { OrderTimeline } from "@/components/ui/order-timeline";
+import { useAuth } from "@/providers/auth-provider";
 
 export default function BuyerOrderDetailsPage() {
   const { id } = useParams();
@@ -25,6 +28,10 @@ export default function BuyerOrderDetailsPage() {
   const [paying, setPaying] = useState(false);
   const [confirmingOtp, setConfirmingOtp] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [disputeReason, setDisputeReason] = useState("");
+  const [reporting, setReporting] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     async function fetchOrder() {
@@ -50,25 +57,26 @@ export default function BuyerOrderDetailsPage() {
     try {
       const result = await initializePayment({ orderId: order.id });
       const paymentData = result as any;
-      
+
       if (paymentData.access_code) {
         // Use Paystack Inline instead of redirecting so React state isn't lost
         const handler = (window as any).PaystackPop.setup({
-          key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "pk_test_x", // In production this must be set
-          email: "buyer@hardwareos.com", // Paystack requires email, ideally we would pass the actual user email from AuthContext, but this is a fallback
+          key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "pk_test_x",
           access_code: paymentData.access_code,
           onClose: () => {
             setPaying(false);
           },
           callback: (response: any) => {
             // Paystack verified client side. We redirect to our callback page to await backend webhook sync.
-            router.push(`/buyer/orders/payment/callback?reference=${response.reference}`);
-          }
+            router.push(
+              `/buyer/orders/payment/callback?reference=${response.reference}`,
+            );
+          },
         });
         handler.openIframe();
       } else if (paymentData.authorization_url) {
-         // Fallback to redirect if no access_code
-         window.location.href = paymentData.authorization_url;
+        // Fallback to redirect if no access_code
+        window.location.href = paymentData.authorization_url;
       }
     } catch (err: any) {
       setError(err?.message || "Failed to initialize payment");
@@ -87,6 +95,22 @@ export default function BuyerOrderDetailsPage() {
       setError(err?.message || "Failed to confirm delivery");
     } finally {
       setConfirming(false);
+    }
+  };
+
+  const handleReportIssue = async () => {
+    if (!order || !disputeReason.trim()) return;
+    setReporting(true);
+    setError(null);
+    try {
+      const updated = await reportIssue(order.id, disputeReason);
+      setOrder((updated as any).data || updated);
+      setShowDisputeModal(false);
+      setDisputeReason("");
+    } catch (err: any) {
+      setError(err?.message || "Failed to report issue");
+    } finally {
+      setReporting(false);
     }
   };
 
@@ -153,17 +177,22 @@ export default function BuyerOrderDetailsPage() {
           </p>
         </div>
         <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-          {order && ["PAID", "DISPATCHED", "DELIVERED", "COMPLETED"].includes(order.status) && (
-            <Link
-              href={`/buyer/orders/${order.id}/receipt`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-6 py-3 bg-slate-50 dark:bg-slate-800 text-navy-dark dark:text-white rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-200 dark:border-slate-700 hover:scale-105 active:scale-95 transition-all"
-            >
-              <span className="material-symbols-outlined text-lg">receipt_long</span>
-              View Receipt
-            </Link>
-          )}
+          {order &&
+            ["PAID", "DISPATCHED", "DELIVERED", "COMPLETED"].includes(
+              order.status,
+            ) && (
+              <Link
+                href={`/buyer/orders/${order.id}/receipt`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-6 py-3 bg-slate-50 dark:bg-slate-800 text-navy-dark dark:text-white rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-200 dark:border-slate-700 hover:scale-105 active:scale-95 transition-all"
+              >
+                <span className="material-symbols-outlined text-lg">
+                  receipt_long
+                </span>
+                View Receipt
+              </Link>
+            )}
           <StatusBadge
             status={order.status}
             className="px-6 py-3 text-[10px] tracking-[0.2em]"
@@ -182,6 +211,7 @@ export default function BuyerOrderDetailsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div className="lg:col-span-8 space-y-8">
+          <OrderTimeline status={order.status} createdAt={order.createdAt} />
           <BuyerOrderSummary order={order} />
         </div>
 
@@ -194,11 +224,46 @@ export default function BuyerOrderDetailsPage() {
             confirmingOtp={confirmingOtp}
             setConfirmingOtp={setConfirmingOtp}
             onConfirmDelivery={handleConfirmDelivery}
+            onReportIssue={() => setShowDisputeModal(true)}
           />
 
           <OrderInfoSidebar order={order} />
         </div>
       </div>
+
+      <Modal
+        isOpen={showDisputeModal}
+        onClose={() => setShowDisputeModal(false)}
+        title="Report an Issue"
+      >
+        <div className="space-y-6">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest leading-relaxed">
+            Please describe the issue you're having with this order. Our admin
+            team will be notified to mediate.
+          </p>
+          <textarea
+            value={disputeReason}
+            onChange={(e) => setDisputeReason(e.target.value)}
+            placeholder="E.g. I received fewer bags than ordered, or the quality is not as described..."
+            className="w-full h-40 bg-slate-50 dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-2xl p-6 text-sm outline-none focus:border-navy-dark dark:focus:border-white transition-all resize-none"
+          />
+          <div className="flex gap-4">
+            <button
+              onClick={() => setShowDisputeModal(false)}
+              className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleReportIssue}
+              disabled={reporting || !disputeReason.trim()}
+              className="flex-1 py-4 bg-navy-dark text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 disabled:opacity-50 transition-all"
+            >
+              {reporting ? "Reporting..." : "Submit Report"}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

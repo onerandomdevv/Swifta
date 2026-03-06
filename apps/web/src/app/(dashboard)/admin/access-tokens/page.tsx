@@ -14,7 +14,7 @@ interface AccessToken {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
-  creator: { fullName: string | null; email: string };
+  user: { firstName: string; lastName: string; email: string };
 }
 
 function generateToken(): string {
@@ -156,7 +156,10 @@ export default function AccessTokensPage() {
             })}
           </p>
           <p className="text-xs text-slate-500">
-            <strong>By:</strong> {token.creator.fullName || token.creator.email}
+            <strong>By:</strong>{" "}
+            {token.user.firstName || token.user.lastName
+              ? `${token.user.firstName} ${token.user.lastName}`
+              : token.user.email}
           </p>
         </div>
       )}
@@ -317,7 +320,9 @@ export default function AccessTokensPage() {
                 {/* Created By */}
                 <div className="md:col-span-3">
                   <p className="text-xs text-slate-600 dark:text-slate-400 truncate">
-                    {t.creator.fullName || t.creator.email}
+                    {t.user.firstName || t.user.lastName
+                      ? `${t.user.firstName} ${t.user.lastName}`
+                      : t.user.email}
                   </p>
                 </div>
 

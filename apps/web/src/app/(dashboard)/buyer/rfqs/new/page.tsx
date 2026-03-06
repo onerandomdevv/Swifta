@@ -95,47 +95,45 @@ export default function CreateRFQPage() {
 
   if (loading) {
     return (
-      <div className="space-y-10 py-4 animate-in fade-in duration-500">
-        <Skeleton className="size-12 rounded-full" />
-        <div className="space-y-4">
-          <Skeleton className="h-10 w-64 rounded-xl" />
-          <Skeleton className="h-4 w-96" />
+      <div className="space-y-8 py-4 animate-in fade-in duration-500">
+        <Skeleton className="size-10 rounded" />
+        <div className="space-y-2">
+          <Skeleton className="h-10 w-64 rounded-sm" />
+          <Skeleton className="h-4 w-96 rounded-sm" />
         </div>
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-10 space-y-8">
-          <Skeleton className="h-12 w-full rounded-2xl" />
-          <Skeleton className="h-48 w-full rounded-2xl" />
-          <Skeleton className="h-12 w-full rounded-2xl" />
+        <div className="bg-white border border-slate-200 rounded p-10 space-y-8">
+          <Skeleton className="h-12 w-full rounded-sm" />
+          <Skeleton className="h-48 w-full rounded-sm" />
+          <Skeleton className="h-12 w-full rounded-sm" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-10 py-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="flex items-center gap-6">
+    <div className="space-y-8 py-4 animate-in fade-in duration-500">
+      <div className="flex items-center gap-4">
         <button
           onClick={() => router.back()}
-          className="size-12 rounded-full border border-slate-100 dark:border-slate-800 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
+          className="size-10 rounded border border-slate-300 flex items-center justify-center hover:bg-slate-50 transition-colors"
         >
-          <span className="material-symbols-outlined">arrow_back</span>
+          <span className="material-symbols-outlined text-xl">arrow_back</span>
         </button>
-        <div className="space-y-1">
-          <h1 className="text-4xl font-black text-navy-dark dark:text-white tracking-tight uppercase leading-none font-display">
-            New Material RFQ
+        <div className="space-y-0.5">
+          <h1 className="text-[28px] font-bold uppercase tracking-tight leading-tight">
+            NEW MATERIAL RFQ
           </h1>
-          <p className="text-slate-500 font-bold text-sm tracking-wide mt-2">
-            Request a quote from a verified Lagos merchant
+          <p className="text-primary text-xs font-bold tracking-widest uppercase">
+            PROCUREMENT • VERIFIED LAGOS MERCHANTS
           </p>
         </div>
       </div>
 
       <div className="max-w-4xl">
         {error && (
-          <div className="mb-8 p-6 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded-2xl flex gap-4">
-            <span className="material-symbols-outlined text-red-500">
-              error
-            </span>
-            <p className="text-xs font-bold text-red-700 dark:text-red-400 uppercase tracking-wide">
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded flex gap-3">
+            <span className="material-symbols-outlined text-red-600">error</span>
+            <p className="text-xs font-bold text-red-700 uppercase tracking-wide flex items-center">
               {error}
             </p>
           </div>
@@ -143,42 +141,47 @@ export default function CreateRFQPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-10 shadow-xl shadow-navy-dark/5 space-y-10"
+          className="bg-white border border-slate-200 rounded p-8 shadow-sm space-y-8"
         >
-          <div className="space-y-8">
-            <div className="space-y-3">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                Select Product
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                SELECT PRODUCT
               </label>
-              <select
-                required
-                value={formData.productId}
-                onChange={(e) => {
-                  const newProductId = e.target.value;
-                  const prod = products.find((p) => p.id === newProductId);
-                  const minQ = prod?.minOrderQuantity || 1;
-                  setFormData({ 
-                    ...formData, 
-                    productId: newProductId,
-                    quantity: Math.max(formData.quantity, minQ)
-                  });
-                }}
-                className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl py-5 px-6 text-sm font-black text-navy-dark dark:text-white outline-none focus:border-navy-dark dark:focus:border-white transition-all appearance-none"
-              >
-                <option value="">Choose a product...</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.categoryTag}) — Min: {p.minOrderQuantity}{" "}
-                    {p.unit}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  required
+                  value={formData.productId}
+                  onChange={(e) => {
+                    const newProductId = e.target.value;
+                    const prod = products.find((p) => p.id === newProductId);
+                    const minQ = prod?.minOrderQuantity || 1;
+                    setFormData({ 
+                      ...formData, 
+                      productId: newProductId,
+                      quantity: Math.max(formData.quantity, minQ)
+                    });
+                  }}
+                  className="w-full bg-white border border-slate-300 rounded py-3 px-4 text-sm font-bold text-slate-900 outline-none focus:border-primary transition-all appearance-none"
+                >
+                  <option value="">Choose a product...</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.categoryTag}) — Min: {p.minOrderQuantity}{" "}
+                      {p.unit}
+                    </option>
+                  ))}
+                </select>
+                <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                  expand_more
+                </span>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                  Quantity Required
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-100">
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  QUANTITY REQUIRED
                 </label>
                 <input
                   type="number"
@@ -191,22 +194,22 @@ export default function CreateRFQPage() {
                       quantity: parseInt(e.target.value) || 1,
                     })
                   }
-                  className={`w-full bg-slate-50 dark:bg-slate-800 border-2 rounded-2xl py-5 px-6 text-sm font-black text-navy-dark dark:text-white outline-none transition-all ${
+                  className={`w-full bg-white border rounded py-3 px-4 text-sm font-mono font-medium text-slate-900 outline-none transition-all ${
                     isBelowMin
-                      ? "border-red-400 focus:border-red-500 bg-red-50/50 dark:bg-red-900/10"
-                      : "border-slate-100 dark:border-slate-700 focus:border-navy-dark dark:focus:border-white"
+                      ? "border-red-400 bg-red-50"
+                      : "border-slate-300 focus:border-primary"
                   }`}
                   placeholder={`Min: ${minQuantity}`}
                 />
                 {isBelowMin && (
-                  <p className="text-xs font-bold text-red-500 mt-1 ml-2">
+                  <p className="text-[10px] font-bold text-red-600 uppercase tracking-tight mt-1 ml-1">
                     Minimum order requirement is {minQuantity}.
                   </p>
                 )}
               </div>
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                  Delivery Address
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  DELIVERY ADDRESS
                 </label>
                 <input
                   type="text"
@@ -218,48 +221,48 @@ export default function CreateRFQPage() {
                       deliveryAddress: e.target.value,
                     })
                   }
-                  className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl py-5 px-6 text-sm font-black text-navy-dark dark:text-white outline-none focus:border-navy-dark dark:focus:border-white transition-all"
+                  className="w-full bg-white border border-slate-300 rounded py-3 px-4 text-sm font-bold text-slate-900 outline-none focus:border-primary transition-all"
                   placeholder="Full delivery address in Lagos"
                 />
               </div>
             </div>
 
-            <div className="space-y-3">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                Additional Notes (Optional)
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                ADDITIONAL NOTES (OPTIONAL)
               </label>
               <textarea
                 value={formData.notes}
                 onChange={(e) =>
                   setFormData({ ...formData, notes: e.target.value })
                 }
-                className="w-full h-48 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-3xl py-5 px-6 text-sm font-bold text-navy-dark dark:text-white outline-none focus:border-navy-dark dark:focus:border-white transition-all resize-none"
+                className="w-full h-40 bg-white border border-slate-300 rounded py-3 px-4 text-sm font-medium text-slate-900 outline-none focus:border-primary transition-all resize-none"
                 placeholder="Specific brand requirements, delivery time preferences, etc..."
               />
             </div>
           </div>
 
-          <div className="pt-8 border-t border-slate-50 dark:border-slate-800 flex justify-end">
+          <div className="pt-8 border-t border-slate-100 flex justify-end">
             <button
               type="submit"
               disabled={isSubmitting || isBelowMin}
-              className="px-12 py-5 bg-navy-dark text-white rounded-2xl text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-navy-dark/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-80 flex items-center gap-3"
+              className="px-8 py-4 bg-primary text-white rounded text-xs font-bold uppercase tracking-widest hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center gap-2"
             >
-              {isSubmitting ? "Processing..." : "Submit RFQ"}
               <span className="material-symbols-outlined text-lg">
-                rocket_launch
+                {isSubmitting ? "sync" : "send"}
               </span>
+              {isSubmitting ? "PROCESSING..." : "SUBMIT MATERIAL RFQ"}
             </button>
           </div>
         </form>
 
-        <div className="mt-10 p-8 bg-blue-50/50 dark:bg-blue-900/10 rounded-[2.5rem] border border-dashed border-blue-200 dark:border-blue-900/30 flex items-start gap-6">
-          <span className="material-symbols-outlined text-blue-500 font-black">
+        <div className="mt-8 p-6 bg-slate-50 rounded border border-slate-200 border-dashed flex items-start gap-4">
+          <span className="material-symbols-outlined text-primary font-bold">
             gavel
           </span>
-          <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 leading-relaxed uppercase tracking-tight">
+          <p className="text-[12px] font-medium text-slate-600 leading-relaxed uppercase tracking-tight">
             Your RFQ will be sent to the{" "}
-            <span className="text-navy-dark dark:text-white font-black">
+            <span className="text-slate-900 font-bold underline decoration-primary decoration-2 underline-offset-2">
               merchant who listed this product
             </span>
             . You will receive quotes directly in your dashboard for comparison.

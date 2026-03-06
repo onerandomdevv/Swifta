@@ -14,6 +14,7 @@ import {
   MerchantOrderGuide,
   OrderReferenceSidebar,
 } from "@/components/merchant/orders";
+import { OrderTimeline } from "@/components/ui/order-timeline";
 
 export default function MerchantOrderDetailsPage() {
   const { id } = useParams();
@@ -41,10 +42,10 @@ export default function MerchantOrderDetailsPage() {
     mutationFn: () => dispatchOrder(order?.id as string),
     onMutate: async () => {
       // Optimistic update
-      await queryClient.cancelQueries({ queryKey: ['merchant', 'orders'] });
-      
+      await queryClient.cancelQueries({ queryKey: ["merchant", "orders"] });
+
       const previousOrder = { ...order };
-      
+
       if (order) {
         setOrder({ ...order, status: "DISPATCHED" as any });
       }
@@ -58,11 +59,11 @@ export default function MerchantOrderDetailsPage() {
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['merchant', 'orders'] });
+      queryClient.invalidateQueries({ queryKey: ["merchant", "orders"] });
     },
     onSuccess: (updated) => {
       setOrder(updated as any as Order);
-    }
+    },
   });
 
   const handleDispatch = () => {
@@ -165,12 +166,30 @@ export default function MerchantOrderDetailsPage() {
         </div>
       )}
 
+      {order.status === "DISPUTE" && (
+        <div className="p-6 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900/50 rounded-2xl flex gap-4 items-start shadow-sm mb-6">
+          <span className="material-symbols-outlined text-orange-500 text-2xl">
+            report_problem
+          </span>
+          <div>
+            <h3 className="text-sm font-black text-orange-700 dark:text-orange-400 uppercase tracking-widest mb-2">
+              Buyer Reported an Issue
+            </h3>
+            <p className="text-xs font-semibold text-orange-800/80 dark:text-orange-300/80 leading-relaxed max-w-2xl">
+              {order.disputeReason ||
+                "The buyer has reported an issue with this order. Our admin team will contact both parties to mediate shortly."}
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        {" "}
         <div className="lg:col-span-8 space-y-8">
+          <OrderTimeline status={order.status} createdAt={order.createdAt} />
           <FulfillmentDetails order={order} />
           <MerchantOrderGuide order={order} />
         </div>
-
         <OrderReferenceSidebar order={order} />
       </div>
     </div>

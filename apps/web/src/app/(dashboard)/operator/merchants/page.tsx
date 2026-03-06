@@ -14,7 +14,7 @@ interface PendingMerchant {
   businessAddress: string | null;
   cacNumber: string | null;
   createdAt: string;
-  user: { email: string; fullName: string | null; phone: string };
+  user: { email: string; firstName: string; lastName: string; phone: string };
 }
 
 export default function OperatorMerchantsPage() {
@@ -93,7 +93,7 @@ export default function OperatorMerchantsPage() {
                     {m.businessName}
                   </h3>
                   <p className="text-sm text-slate-500 mt-1">
-                    {m.user.fullName} • {m.user.email}
+                    {m.user.firstName} {m.user.lastName} • {m.user.email}
                   </p>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {m.category && (

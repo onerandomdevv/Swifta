@@ -82,7 +82,7 @@ export function RfqSummary({ rfq }: Props) {
           </p>
         </div>
         <p className="text-xs font-bold text-slate-500 leading-relaxed italic">
-          Quotes submitted on Hardware OS are binding for 48 hours. Ensure your
+          Quotes submitted on SwiftTrade are binding for 48 hours. Ensure your
           logistics capacity is verified before finalizing your bid. Settlement
           occurs via escrow upon delivery confirmation.
         </p>

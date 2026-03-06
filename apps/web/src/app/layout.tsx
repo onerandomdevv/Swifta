@@ -1,10 +1,17 @@
 import type { Metadata } from "next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import Providers from "@/providers/providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Hardware OS",
+  title: "SwiftTrade",
   description: "B2B Trade Platform for Construction Materials",
+  manifest: "/manifest.json",
+  openGraph: {
+    title: "SwiftTrade",
+    siteName: "SwiftTrade",
+    description: "B2B Trade Platform for Construction Materials",
+  },
 };
 
 export default function RootLayout({
@@ -16,7 +23,7 @@ export default function RootLayout({
     <html lang="en" className="light">
       <head>
         <link
-          href="https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Inter:wght@400;500;600;700;800;900&display=swap"
+          href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=Caveat:wght@400..700&family=Inter:wght@400;500;600;700;800;900&display=swap"
           rel="stylesheet"
         />
         <link
@@ -26,6 +33,7 @@ export default function RootLayout({
       </head>
       <body className="font-display">
         <Providers>{children}</Providers>
+        <SpeedInsights />
       </body>
     </html>
   );

@@ -17,6 +17,7 @@ export default function NewProductPage() {
     categoryTag: "Building Materials",
     minOrderQuantity: 1,
     imageUrl: "",
+    pricePerUnit: "",
   });
 
   const getWordCount = (text: string) => {
@@ -29,8 +30,8 @@ export default function NewProductPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      setError("Image must be under 5MB");
+    if (file.size > 2 * 1024 * 1024) {
+      setError("Image must be under 2MB");
       return;
     }
 
@@ -59,6 +60,9 @@ export default function NewProductPage() {
         categoryTag: formData.categoryTag,
         minOrderQuantity: formData.minOrderQuantity,
         imageUrl: formData.imageUrl || undefined,
+        pricePerUnitKobo: formData.pricePerUnit
+          ? (Number(formData.pricePerUnit) * 100).toString()
+          : undefined,
       });
       router.push("/merchant/products");
     } catch (err: any) {
@@ -133,7 +137,7 @@ export default function NewProductPage() {
                   Click to Upload Photo
                 </span>
                 <span className="text-[10px] tracking-widest font-bold opacity-60 mt-1">
-                  MAX 5MB (JPG, PNG)
+                  MAX 2MB (JPG, PNG)
                 </span>
               </div>
             )}
@@ -157,6 +161,27 @@ export default function NewProductPage() {
             className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white"
             placeholder="e.g. Elephant Cement (50kg)"
           />
+        </div>
+
+        <div className="space-y-3">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+            Price per unit (₦)
+          </label>
+          <input
+            type="number"
+            min={0}
+            step={1}
+            value={formData.pricePerUnit}
+            onChange={(e) =>
+              setFormData({ ...formData, pricePerUnit: e.target.value })
+            }
+            className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white"
+            placeholder="e.g. 8500"
+          />
+          <p className="text-[10px] text-slate-500 font-bold ml-2">
+            Leave blank if you prefer buyers to request quotes instead of buying
+            directly
+          </p>
         </div>
 
         <div className="space-y-3">
@@ -201,14 +226,14 @@ export default function NewProductPage() {
               }
               className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all text-slate-400 appearance-none bg-transparent"
             >
-              <option value="bag">Bag</option>
-              <option value="ton">Ton</option>
-              <option value="piece">Piece</option>
-              <option value="bundle">Bundle</option>
-              <option value="roll">Roll</option>
-              <option value="length">Length</option>
-              <option value="kg">Kilogram</option>
-              <option value="sqm">Square Meter</option>
+              <option value="BAGS">Bag</option>
+              <option value="TONNES">Ton</option>
+              <option value="PIECES">Piece</option>
+              <option value="BUNDLES">Bundle</option>
+              <option value="ROLLS">Roll</option>
+              <option value="LENGTHS">Length</option>
+              <option value="KG">Kilogram</option>
+              <option value="SQM">Square Meter</option>
             </select>
           </div>
 
@@ -223,14 +248,7 @@ export default function NewProductPage() {
               }
               className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all text-slate-400 appearance-none bg-transparent"
             >
-              <option>Building Materials</option>
-              <option>Metal & Steel</option>
-              <option>Power Tools</option>
-              <option>Heavy Machinery</option>
-              <option>Safety Gear</option>
-              <option>Plumbing</option>
-              <option>Electrical</option>
-              <option>Painting</option>
+              categoryTag: "BUILDING_MATERIALS",
             </select>
           </div>
         </div>

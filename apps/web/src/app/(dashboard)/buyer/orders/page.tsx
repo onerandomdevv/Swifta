@@ -1,45 +1,93 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { formatKobo } from "@hardware-os/shared";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBuyerOrders } from "@/hooks/use-buyer-orders";
+import type { Order } from "@hardware-os/shared";
+
+const STATUS_TABS = [
+  { label: "All", value: "ALL" },
+  { label: "Pending Payment", value: "PENDING_PAYMENT" },
+  { label: "Paid", value: "PAID" },
+  { label: "Dispatched", value: "DISPATCHED" },
+  { label: "Delivered", value: "DELIVERED" },
+  { label: "Completed", value: "COMPLETED" },
+  { label: "Cancelled", value: "CANCELLED" },
+];
+
+function getStatusBadgeClasses(status: string) {
+  switch (status) {
+    case "PENDING_PAYMENT":
+      return "bg-amber-100 text-amber-800";
+    case "PAID":
+      return "bg-blue-100 text-blue-800";
+    case "DISPATCHED":
+      return "bg-indigo-100 text-indigo-800";
+    case "DELIVERED":
+    case "COMPLETED":
+      return "bg-green-100 text-green-800";
+    case "CANCELLED":
+      return "bg-red-100 text-red-800";
+    case "DISPUTE":
+      return "bg-red-100 text-red-800";
+    default:
+      return "bg-slate-100 text-slate-800";
+  }
+}
+
+function OrdersPageSkeleton() {
+  return (
+    <div className="p-4 md:p-8 space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-64" />
+          <Skeleton className="h-10 w-48" />
+        </div>
+        <Skeleton className="h-12 w-48 rounded" />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-28 w-full rounded" />
+        ))}
+      </div>
+
+      <div className="flex gap-4 border-b border-primary/10 pb-2">
+        {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+          <Skeleton key={i} className="h-8 w-24" />
+        ))}
+      </div>
+
+      <div className="space-y-1 border border-primary/10 rounded overflow-hidden">
+        <Skeleton className="h-12 w-full rounded-none" />
+        {[1, 2, 3, 4, 5].map((i) => (
+          <Skeleton key={i} className="h-16 w-full rounded-none" />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function BuyerOrdersPage() {
   const { orders, loading, error } = useBuyerOrders();
+  const [activeTab, setActiveTab] = useState("ALL");
 
-  if (loading) {
-    return (
-      <div className="space-y-10 py-4 animate-in fade-in duration-500">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-4">
-            <Skeleton className="h-10 w-64 rounded-xl" />
-            <Skeleton className="h-4 w-96" />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-32 w-full rounded-[2rem]" />
-          ))}
-        </div>
-        <Skeleton className="h-96 w-full rounded-[2.5rem]" />
-      </div>
-    );
-  }
+  if (loading) return <OrdersPageSkeleton />;
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center py-32 text-center space-y-6">
+      <div className="flex flex-col items-center justify-center py-32 text-center space-y-4">
         <span className="material-symbols-outlined text-5xl text-red-400">
           error
         </span>
-        <p className="text-sm font-bold text-red-600 dark:text-red-400 uppercase tracking-wide">
+        <p className="text-sm font-bold text-red-600 uppercase tracking-wide">
           {error}
         </p>
         <button
           onClick={() => window.location.reload()}
-          className="px-6 py-3 bg-navy-dark text-white rounded-2xl text-[10px] font-black uppercase tracking-widest"
+          className="px-6 py-3 bg-primary text-white rounded font-bold uppercase tracking-wide"
         >
           Retry
         </button>
@@ -54,128 +102,126 @@ export default function BuyerOrdersPage() {
     (o) => o.status === "COMPLETED" || o.status === "DELIVERED",
   ).length;
 
+  const filteredOrders =
+    activeTab === "ALL" ? orders : orders.filter((o) => o.status === activeTab);
+
   return (
-    <div className="space-y-10 py-4">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div className="space-y-1">
-          <h1 className="text-4xl font-black text-navy-dark dark:text-white tracking-tight uppercase leading-none font-display">
-            Order History
-          </h1>
-          <p className="text-slate-500 font-bold text-sm tracking-wide mt-2">
-            Manage your hardware procurement across all merchants in Lagos.
+    <div className="flex-1 p-4 md:p-8 flex flex-col font-display bg-[#f8f6f5] min-h-full">
+      {/* Header Section */}
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+          <p className="text-primary text-xs font-bold tracking-widest uppercase mb-1">
+            PROCUREMENT PIPELINE • ORDER TRACKING
           </p>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight uppercase">
+            ACTIVE ORDERS
+          </h1>
         </div>
         <Link
           href="/buyer/catalogue"
-          className="flex items-center gap-2 px-6 py-3 bg-navy-dark text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-navy-dark/20 hover:-translate-y-0.5 transition-all active:scale-95"
+          className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded font-bold flex items-center justify-center gap-2 transition-colors uppercase text-sm tracking-wide"
         >
-          <span className="material-symbols-outlined text-lg">add</span>
-          New Procurement
+          <span className="material-symbols-outlined text-sm">add</span>
+          NEW PROCUREMENT
         </Link>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-8 border border-slate-100 dark:border-slate-800 shadow-sm">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">
-            Total Orders
+      {/* Summary Stats Bar */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="bg-white border border-primary/10 p-6 flex flex-col gap-1">
+          <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">
+            TOTAL ORDERS
           </p>
-          <h3 className="text-3xl font-black text-navy-dark dark:text-white tracking-tighter uppercase leading-none">
-            {orders.length}
-          </h3>
+          <p className="text-4xl font-bold text-slate-900">{orders.length}</p>
         </div>
-        <div
-          className={`bg-white dark:bg-slate-900 rounded-[2rem] p-8 border shadow-sm ${pendingCount > 0 ? "border-amber-200 dark:border-amber-900/40 border-l-4" : "border-slate-100 dark:border-slate-800"}`}
-        >
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">
-            Pending Payment
+        <div className="bg-white border border-primary/20 p-6 flex flex-col gap-1 relative">
+          <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">
+            PENDING PAYMENT
           </p>
-          <h3 className="text-3xl font-black text-navy-dark dark:text-white tracking-tighter uppercase leading-none">
-            {pendingCount}
-          </h3>
+          <p className="text-4xl font-bold text-slate-900">{pendingCount}</p>
           {pendingCount > 0 && (
-            <span className="mt-4 inline-flex px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border bg-amber-50 text-amber-600 border-amber-100">
-              Action required
+            <span className="absolute top-4 right-4 bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-full font-bold">
+              ACTION REQUIRED
             </span>
           )}
         </div>
-        <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-8 border border-slate-100 dark:border-slate-800 shadow-sm">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">
-            Completed
+        <div className="bg-white border border-primary/10 p-6 flex flex-col gap-1">
+          <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">
+            COMPLETED
           </p>
-          <h3 className="text-3xl font-black text-navy-dark dark:text-white tracking-tighter uppercase leading-none">
-            {completedCount}
-          </h3>
+          <p className="text-4xl font-bold text-slate-900">{completedCount}</p>
         </div>
       </div>
 
-      {orders.length > 0 ? (
-        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-2xl shadow-navy-dark/5 overflow-hidden">
+      {/* Tabs Section */}
+      <div className="mb-6 overflow-x-auto">
+        <div className="flex border-b border-primary/10 min-w-max">
+          {STATUS_TABS.map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => setActiveTab(tab.value)}
+              className={`px-4 py-2 text-sm transition-colors ${
+                activeTab === tab.value
+                  ? "border-b-2 border-primary text-primary font-bold"
+                  : "text-slate-500 font-medium hover:text-primary"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Orders Table Container */}
+      {filteredOrders.length > 0 ? (
+        <div className="bg-white border border-primary/10 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full text-left">
+            <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
-                <tr className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                    Order ID
-                  </th>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                    Date
-                  </th>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                    Total Amount
-                  </th>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                    Status
-                  </th>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">
+                <tr className="bg-primary/5 text-slate-500 text-[11px] font-bold uppercase tracking-widest border-b border-primary/10">
+                  <th className="px-6 py-4 whitespace-nowrap">Order ID</th>
+                  <th className="px-6 py-4 whitespace-nowrap">Date</th>
+                  <th className="px-6 py-4 whitespace-nowrap">Total Amount</th>
+                  <th className="px-6 py-4 whitespace-nowrap">Status</th>
+                  <th className="px-6 py-4 text-right whitespace-nowrap">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                {orders.map((order) => (
+              <tbody className="divide-y divide-primary/10">
+                {filteredOrders.map((order: Order) => (
                   <tr
                     key={order.id}
-                    className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-all duration-300"
+                    className="hover:bg-primary/5 transition-colors group"
                   >
-                    <td className="px-8 py-7">
-                      <p className="text-sm font-black text-navy-dark dark:text-white leading-tight">
-                        #{order.id.slice(0, 8)}
-                      </p>
+                    <td className="px-6 py-4 font-mono text-sm text-slate-700 whitespace-nowrap">
+                      #LAG-{order.id.slice(0, 8)}
                     </td>
-                    <td className="px-8 py-7">
-                      <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight">
-                        {new Date(order.createdAt).toLocaleDateString()}
-                      </p>
+                    <td className="px-6 py-4 font-mono text-sm text-slate-700 whitespace-nowrap">
+                      {new Date(order.createdAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
                     </td>
-                    <td className="px-8 py-7">
-                      <p className="text-sm font-black text-navy-dark dark:text-white tracking-tight">
-                        {formatKobo(BigInt(order.totalAmountKobo))}
-                      </p>
+                    <td className="px-6 py-4 font-bold text-slate-900 whitespace-nowrap">
+                      {formatKobo(BigInt(order.totalAmountKobo))}
                     </td>
-                    <td className="px-8 py-7">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`inline-flex items-center px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${
-                          order.status === "PENDING_PAYMENT"
-                            ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/10"
-                            : order.status === "PAID"
-                              ? "bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/10"
-                              : order.status === "DISPATCHED"
-                                ? "bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-900/10"
-                                : order.status === "COMPLETED" ||
-                                    order.status === "DELIVERED"
-                                  ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/10"
-                                  : "bg-slate-50 text-slate-600 border-slate-100"
-                        }`}
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${getStatusBadgeClasses(
+                          order.status,
+                        )}`}
                       >
                         {order.status.replace("_", " ")}
                       </span>
                     </td>
-                    <td className="px-8 py-7 text-right">
+                    <td className="px-6 py-4 text-right whitespace-nowrap">
                       <Link
                         href={`/buyer/orders/${order.id}`}
-                        className="px-6 py-2 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 text-navy-dark dark:text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-white transition-all active:scale-95 inline-block"
+                        className="text-primary font-bold text-xs uppercase tracking-widest hover:underline decoration-1 underline-offset-4"
                       >
-                        View
+                        VIEW
                       </Link>
                     </td>
                   </tr>
@@ -185,17 +231,16 @@ export default function BuyerOrdersPage() {
           </div>
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-32 text-center space-y-8 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[3rem] shadow-sm">
-          <div className="size-24 rounded-[2rem] bg-slate-50 dark:bg-slate-800 flex items-center justify-center border border-slate-100 dark:border-slate-700">
-            <span className="material-symbols-outlined text-4xl text-slate-200">
-              shopping_cart
-            </span>
-          </div>
+        /* Empty State */
+        <div className="flex flex-col items-center justify-center py-24 text-center space-y-6 bg-white border border-primary/10 rounded shadow-sm">
+          <span className="material-symbols-outlined text-6xl text-slate-300">
+            shopping_cart
+          </span>
           <div className="space-y-2">
-            <h3 className="text-xl font-black text-navy-dark dark:text-white uppercase tracking-tight">
+            <h3 className="text-xl font-bold text-slate-900 tracking-tight uppercase">
               No Orders Yet
             </h3>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            <p className="text-sm text-slate-500 font-medium">
               Your order history will appear here after accepting a quote.
             </p>
           </div>

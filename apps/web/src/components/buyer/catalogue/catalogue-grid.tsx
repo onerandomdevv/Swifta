@@ -8,14 +8,6 @@ interface Props {
   setActiveCategory: (val: string) => void;
 }
 
-const categoryIcons: Record<string, string> = {
-  "Building Materials": "construction",
-  Electrical: "electrical_services",
-  Plumbing: "plumbing",
-  Tools: "hardware",
-  Safety: "health_and_safety",
-};
-
 export function CatalogueGrid({
   products,
   setSearchQuery,
@@ -30,7 +22,7 @@ export function CatalogueGrid({
           </span>
         </div>
         <div>
-          <h4 className="text-2xl font-black text-navy-dark dark:text-white uppercase tracking-tight">
+          <h4 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
             No materials found
           </h4>
           <p className="text-slate-500 font-bold text-sm tracking-wide mt-2">
@@ -42,7 +34,7 @@ export function CatalogueGrid({
             setSearchQuery("");
             setActiveCategory("All");
           }}
-          className="text-accent-orange font-black text-xs uppercase tracking-[0.2em] hover:underline decoration-2 underline-offset-8"
+          className="text-primary font-black text-xs uppercase tracking-[0.2em] hover:underline decoration-2 underline-offset-8"
         >
           Clear All Search Filters
         </button>
@@ -51,75 +43,130 @@ export function CatalogueGrid({
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-      {products?.map((p) => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {products.map((p) => (
         <div
           key={p.id}
-          className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 flex flex-col group"
+          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col group hover:shadow-md transition-shadow"
         >
-          <div className="aspect-square bg-slate-50 dark:bg-slate-900/50 relative overflow-hidden flex items-center justify-center p-8">
+          {/* Product Image */}
+          <div className="relative aspect-square overflow-hidden bg-slate-100 dark:bg-slate-800">
             {p.imageUrl ? (
-              <img
-                src={p.imageUrl}
-                alt={p.name}
-                className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+              <div
+                className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
+                style={{ backgroundImage: `url("${p.imageUrl}")` }}
               />
             ) : (
-              <span className="material-symbols-outlined text-slate-200 dark:text-slate-700 text-[120px] group-hover:scale-110 transition-transform duration-700 leading-none">
-                {categoryIcons[p.categoryTag] || "inventory_2"}
-              </span>
-            )}
-            {/* Overlay on hover */}
-            <div className="absolute inset-0 bg-navy-dark/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
-              <Link
-                href={`/buyer/rfqs/new?productId=${p.id}`}
-                className="size-14 bg-white text-navy-dark rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-90 transition-all"
-              >
-                <span className="material-symbols-outlined font-black">
-                  add_shopping_cart
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="material-symbols-outlined text-slate-300 dark:text-slate-600 text-[80px] group-hover:scale-105 transition-transform duration-500">
+                  inventory_2
                 </span>
-              </Link>
-            </div>
+              </div>
+            )}
+            {/* Category Badge */}
+            <span className="absolute top-3 right-3 bg-slate-900 text-white text-[10px] font-black uppercase px-2 py-1 tracking-wider">
+              {p.categoryTag}
+            </span>
           </div>
 
-          <div className="p-8 flex flex-col flex-1">
-            <div className="flex items-center justify-between mb-3 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">
-              <span>{p.categoryTag}</span>
-              <span className="text-slate-200">•</span>
-              <span>{p.unit}</span>
-            </div>
+          {/* Product Details */}
+          <div className="p-4 flex flex-col flex-1">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase">
+              {p.name}
+            </h3>
+            <p className="text-xs font-medium text-primary mt-1">
+              {p.description || p.categoryTag}
+            </p>
 
-            {p.merchant && (
+            {/* Merchant Info */}
+            {p.merchantProfile && (
               <Link
-                href={`/merchants/${p.merchant.id}`}
-                className="mt-1 mb-2 text-[10px] font-black text-accent-orange hover:underline decoration-2 underline-offset-4 uppercase tracking-widest block truncate"
+                href={`/buyer/merchants/${p.merchantProfile.id}`}
+                className="flex items-center gap-1.5 mt-3 group/m hover:opacity-80 transition-opacity"
               >
-                By {p.merchant.businessName}
+                {p.merchantProfile.verification === "VERIFIED" && (
+                  <span className="material-symbols-outlined text-green-500 text-sm">
+                    verified
+                  </span>
+                )}
+                <span className="text-[11px] font-bold text-primary dark:text-primary-light truncate group-hover/m:underline decoration-1 underline-offset-2">
+                  {p.merchantProfile.businessName}
+                </span>
               </Link>
             )}
 
-            <h3 className="font-black text-navy-dark dark:text-white text-lg leading-tight mb-4 line-clamp-2 min-h-[3.5rem] uppercase tracking-tight">
-              {p.name}
-            </h3>
-
-            <div className="mt-auto mb-8 p-3 rounded-xl flex items-center gap-3 bg-slate-50 text-slate-500 dark:bg-slate-800/50 transition-colors">
-              <span className="material-symbols-outlined text-xl">
-                inventory_2
+            {/* Stock Availability Badge */}
+            {(p as any).stockAvailability &&
+              (p as any).stockAvailability !== "OUT_OF_STOCK" && (
+                <span
+                  className={`inline-block mt-2 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider w-fit ${
+                    (p as any).stockAvailability === "IN_STOCK"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-yellow-100 text-yellow-700"
+                  }`}
+                >
+                  {(p as any).stockAvailability === "IN_STOCK"
+                    ? "In Stock"
+                    : "Low Stock"}
+                </span>
+              )}
+            {(p as any).stockAvailability === "OUT_OF_STOCK" && (
+              <span className="inline-block mt-2 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider w-fit bg-red-100 text-red-700">
+                Out of Stock
               </span>
-              <p className="text-[10px] font-black uppercase tracking-widest">
-                Min Order: {p.minOrderQuantity} {p.unit}
-              </p>
+            )}
+
+            {/* Price Details */}
+            {p.pricePerUnitKobo ? (
+              <div className="mt-3">
+                <span className="text-lg font-black text-navy-dark dark:text-emerald-400">
+                  {(Number(p.pricePerUnitKobo) / 100).toLocaleString("en-NG", {
+                    style: "currency",
+                    currency: "NGN",
+                  })}
+                </span>
+                <span className="text-[10px] text-slate-500 font-bold ml-1 uppercase tracking-widest">
+                  / {p.unit}
+                </span>
+              </div>
+            ) : (
+              <div className="mt-3 text-xs font-bold text-slate-400 italic">
+                Request Quote for Price
+              </div>
+            )}
+
+            {/* Specs Table */}
+            <div className="mt-4 mb-6 border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+              <div className="grid grid-cols-2 text-[10px] p-2 border-b border-slate-100 dark:border-slate-800">
+                <span className="text-slate-500 uppercase font-bold tracking-tighter">
+                  Min. Order
+                </span>
+                <span className="text-right font-black text-slate-900 dark:text-white">
+                  {p.minOrderQuantity} {p.unit.toUpperCase()}
+                </span>
+              </div>
             </div>
 
-            <Link
-              href={`/buyer/rfqs/new?productId=${p.id}`}
-              className="w-full bg-accent-orange text-white font-black py-4 rounded-2xl text-[10px] tracking-[0.2em] uppercase transition-all flex items-center justify-center gap-3 shadow-xl shadow-accent-orange/20 hover:bg-orange-600 active:scale-95"
-            >
-              <span className="material-symbols-outlined text-lg">
-                request_quote
-              </span>
-              Request Quotation
-            </Link>
+            {/* CTA */}
+            {p.pricePerUnitKobo ? (
+              <Link
+                href={`/buyer/checkout/${p.id}`}
+                className={`mt-auto w-full text-white text-xs font-black py-3 uppercase tracking-widest text-center block transition-colors ${
+                  (p as any).stockAvailability === "OUT_OF_STOCK"
+                    ? "bg-slate-300 cursor-not-allowed pointer-events-none"
+                    : "bg-navy-dark hover:bg-navy"
+                }`}
+              >
+                Buy Now
+              </Link>
+            ) : (
+              <Link
+                href={`/buyer/rfqs/new?productId=${p.id}`}
+                className="mt-auto w-full bg-primary text-white text-xs font-bold py-3 uppercase tracking-widest hover:bg-orange-600 transition-colors text-center block"
+              >
+                Request Quote
+              </Link>
+            )}
           </div>
         </div>
       ))}

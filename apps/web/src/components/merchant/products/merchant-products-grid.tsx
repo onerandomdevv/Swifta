@@ -104,6 +104,26 @@ export function MerchantProductsGrid({ products, onDelist }: Props) {
                 </div>
               </div>
 
+              {/* Price Details */}
+              <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-4">
+                <div className="space-y-1">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">
+                    Unit Price
+                  </p>
+                  <p className="text-sm font-black text-navy-dark dark:text-emerald-500">
+                    {product.pricePerUnitKobo
+                      ? (Number(product.pricePerUnitKobo) / 100).toLocaleString(
+                          "en-NG",
+                          {
+                            style: "currency",
+                            currency: "NGN",
+                          },
+                        )
+                      : "No price (RFQ only)"}
+                  </p>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <button
                   onClick={() =>

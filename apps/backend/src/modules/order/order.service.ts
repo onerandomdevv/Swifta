@@ -6,15 +6,24 @@ import {
   ForbiddenException,
   Inject,
   forwardRef,
-} from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { NotificationTriggerService } from '../notification/notification-trigger.service';
-import { InventoryService } from '../inventory/inventory.service';
-import { PaymentService } from '../payment/payment.service';
-import { OrderStatus, OTP_LENGTH, PaginatedResponse, Order } from '@hardware-os/shared';
-import { paginate } from '../../common/utils/pagination';
-import { validateTransition } from './order-state-machine';
-import * as crypto from 'crypto';
+} from "@nestjs/common";
+import { InjectQueue } from "@nestjs/bullmq";
+import { Queue } from "bullmq";
+import { PrismaService } from "../../prisma/prisma.service";
+import { NotificationTriggerService } from "../notification/notification-trigger.service";
+import { InventoryService } from "../inventory/inventory.service";
+import { PaymentService } from "../payment/payment.service";
+import { ReorderService } from "../reorder/reorder.service";
+import { PAYOUT_QUEUE } from "../../queue/queue.constants";
+import {
+  OrderStatus,
+  OTP_LENGTH,
+  PaginatedResponse,
+  Order,
+} from "@hardware-os/shared";
+import { paginate } from "../../common/utils/pagination";
+import { validateTransition } from "./order-state-machine";
+import * as crypto from "crypto";
 
 @Injectable()
 export class OrderService {
@@ -26,6 +35,8 @@ export class OrderService {
     private inventoryService: InventoryService,
     @Inject(forwardRef(() => PaymentService))
     private paymentService: PaymentService,
+    private reorderService: ReorderService,
+    @InjectQueue(PAYOUT_QUEUE) private payoutQueue: Queue,
   ) {}
 
   // ──────────────────────────────────────────────
@@ -37,8 +48,8 @@ export class OrderService {
       where: { id: quoteId },
       include: { rfq: true },
     });
-    if (!quote) throw new NotFoundException('Quote not found');
-    if (!quote.rfq) throw new NotFoundException('RFQ not found for this quote');
+    if (!quote) throw new NotFoundException("Quote not found");
+    if (!quote.rfq) throw new NotFoundException("RFQ not found for this quote");
 
     const idempotencyKey = `order-create-${quoteId}`;
 
@@ -70,7 +81,7 @@ export class OrderService {
           fromStatus: null,
           toStatus: OrderStatus.PENDING_PAYMENT,
           triggeredBy: buyerId,
-          metadata: { action: 'order_created_from_quote', quoteId },
+          metadata: { action: "order_created_from_quote", quoteId },
         },
       });
 
@@ -79,10 +90,10 @@ export class OrderService {
         data: {
           productId: quote.rfq.productId,
           merchantId: quote.merchantId,
-          eventType: 'ORDER_RESERVED',
+          eventType: "ORDER_RESERVED",
           quantity: -quote.rfq.quantity,
           referenceId: newOrder.id,
-          notes: 'Order reservation',
+          notes: "Order reservation",
         },
       });
 
@@ -97,6 +108,94 @@ export class OrderService {
 
     this.logger.log(`Order ${order.id} created from quote ${quoteId}`);
     return order;
+  }
+
+  // ──────────────────────────────────────────────
+  //  CREATE DIRECT ORDER
+  // ──────────────────────────────────────────────
+
+  async createDirectOrder(buyerId: string, dto: any) {
+    const { productId, quantity, deliveryAddress } = dto;
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      include: { productStockCache: true },
+    });
+
+    if (!product) throw new NotFoundException("Product not found");
+    if (!product.isActive) throw new BadRequestException("Product is inactive");
+    if (product.pricePerUnitKobo === null) {
+      throw new BadRequestException("Product requires an RFQ");
+    }
+
+    if (
+      !product.productStockCache ||
+      product.productStockCache.stock < quantity
+    ) {
+      throw new BadRequestException("Insufficient stock");
+    }
+
+    const subtotalKobo = Number(product.pricePerUnitKobo) * quantity;
+    const platformFeePercentage = Number(
+      process.env.PLATFORM_FEE_PERCENTAGE || "2",
+    );
+    const platformFeeKobo = Math.floor(
+      subtotalKobo * (platformFeePercentage / 100),
+    );
+    const totalAmountKobo = BigInt(subtotalKobo + platformFeeKobo);
+
+    const idempotencyKey = `direct-order-${productId}-${buyerId}-${Date.now()}`;
+
+    // Create the order
+    const order = await this.prisma.$transaction(async (tx) => {
+      const newOrder = await tx.order.create({
+        data: {
+          buyerId,
+          merchantId: product.merchantId,
+          productId,
+          quantity,
+          unitPriceKobo: product.pricePerUnitKobo,
+          deliveryAddress,
+          totalAmountKobo,
+          deliveryFeeKobo: 0n,
+          currency: "NGN",
+          status: OrderStatus.PENDING_PAYMENT,
+          quoteId: null,
+          idempotencyKey,
+          payoutStatus: "PENDING",
+        },
+      });
+
+      // Log initial OrderEvent
+      await tx.orderEvent.create({
+        data: {
+          orderId: newOrder.id,
+          fromStatus: null,
+          toStatus: OrderStatus.PENDING_PAYMENT,
+          triggeredBy: buyerId,
+          metadata: { action: "direct_purchase_created", productId, quantity },
+        },
+      });
+
+      return newOrder;
+    });
+
+    this.logger.log(
+      `Direct order ${order.id} created for product ${productId}`,
+    );
+
+    // Call payment service to get the authorization URL dynamically
+    const paymentData = await this.paymentService.initialize(
+      buyerId,
+      { orderId: order.id },
+      `init-direct-${order.id}`,
+    );
+
+    return {
+      orderId: order.id,
+      authorizationUrl: paymentData.authorization_url,
+      totalAmountKobo: Number(totalAmountKobo),
+      platformFeeKobo,
+    };
   }
 
   // ──────────────────────────────────────────────
@@ -148,7 +247,7 @@ export class OrderService {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
     });
-    if (!order) throw new NotFoundException('Order not found');
+    if (!order) throw new NotFoundException("Order not found");
 
     if (!validateTransition(fromStatus, toStatus)) {
       throw new BadRequestException(
@@ -184,16 +283,16 @@ export class OrderService {
       where: { id },
       include: {
         quote: { include: { rfq: { include: { product: true } } } },
-        events: { orderBy: { createdAt: 'asc' } },
+        orderEvents: { orderBy: { createdAt: "asc" } },
       },
     });
-    if (!order) throw new NotFoundException('Order not found');
+    if (!order) throw new NotFoundException("Order not found");
 
     // Ownership check: must be the buyer OR the merchant
     const isBuyer = order.buyerId === userId;
     const isMerchant = merchantId && order.merchantId === merchantId;
     if (!isBuyer && !isMerchant) {
-      throw new ForbiddenException('Access denied');
+      throw new ForbiddenException("Access denied");
     }
 
     return order;
@@ -203,20 +302,36 @@ export class OrderService {
   //  LIST ORDERS
   // ──────────────────────────────────────────────
 
-  async listByBuyer(buyerId: string, page: number, limit: number): Promise<PaginatedResponse<Order>> {
-    return paginate(this.prisma.order, { page, limit }, {
-      where: { buyerId },
-      orderBy: { createdAt: 'desc' },
-      include: { merchant: { select: { businessName: true } } },
-    });
+  async listByBuyer(
+    buyerId: string,
+    page: number,
+    limit: number,
+  ): Promise<PaginatedResponse<Order>> {
+    return paginate(
+      this.prisma.order,
+      { page, limit },
+      {
+        where: { buyerId },
+        orderBy: { createdAt: "desc" },
+        include: { merchantProfile: { select: { businessName: true } } },
+      },
+    );
   }
 
-  async listByMerchant(merchantId: string, page: number, limit: number): Promise<PaginatedResponse<Order>> {
-    return paginate(this.prisma.order, { page, limit }, {
-      where: { merchantId },
-      orderBy: { createdAt: 'desc' },
-      include: { buyer: { select: { email: true, phone: true } } },
-    });
+  async listByMerchant(
+    merchantId: string,
+    page: number,
+    limit: number,
+  ): Promise<PaginatedResponse<Order>> {
+    return paginate(
+      this.prisma.order,
+      { page, limit },
+      {
+        where: { merchantId },
+        orderBy: { createdAt: "desc" },
+        include: { user: { select: { email: true, phone: true } } },
+      },
+    );
   }
 
   // ──────────────────────────────────────────────
@@ -227,14 +342,12 @@ export class OrderService {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
     });
-    if (!order) throw new NotFoundException('Order not found');
+    if (!order) throw new NotFoundException("Order not found");
     if (order.merchantId !== merchantId)
-      throw new ForbiddenException('Access denied');
+      throw new ForbiddenException("Access denied");
 
     if (order.status !== OrderStatus.PAID) {
-      throw new BadRequestException(
-        'Order must be in PAID status to dispatch',
-      );
+      throw new BadRequestException("Order must be in PAID status to dispatch");
     }
 
     // Crypto-secure 6-digit OTP
@@ -254,11 +367,15 @@ export class OrderService {
       order.status as OrderStatus,
       OrderStatus.DISPATCHED,
       triggeredBy,
-      { action: 'dispatched' },
+      { action: "dispatched" },
     );
 
     // Notification (async, best-effort)
-    await this.notifications.triggerOrderDispatched(order.buyerId, orderId);
+    await this.notifications.triggerOrderDispatched(order.buyerId, {
+      orderId,
+      reference: orderId.slice(0, 8).toUpperCase(),
+      otp: deliveryOtp,
+    });
 
     this.logger.log(`Order ${orderId} dispatched, OTP generated`);
     return updatedOrder;
@@ -272,19 +389,19 @@ export class OrderService {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
     });
-    if (!order) throw new NotFoundException('Order not found');
+    if (!order) throw new NotFoundException("Order not found");
     if (order.buyerId !== buyerId)
-      throw new ForbiddenException('Access denied');
+      throw new ForbiddenException("Access denied");
 
     // Explicit status check before OTP validation
     if (order.status !== OrderStatus.DISPATCHED) {
       throw new BadRequestException(
-        'Order must be in DISPATCHED status to confirm delivery',
+        "Order must be in DISPATCHED status to confirm delivery",
       );
     }
 
     if (order.deliveryOtp !== otp) {
-      throw new BadRequestException('Invalid OTP');
+      throw new BadRequestException("Invalid OTP");
     }
 
     // Transition: DISPATCHED → DELIVERED
@@ -293,14 +410,25 @@ export class OrderService {
       OrderStatus.DISPATCHED,
       OrderStatus.DELIVERED,
       buyerId,
-      { action: 'delivery_confirmed' },
+      { action: "delivery_confirmed" },
     );
 
-    // Notify merchant
-    await this.notifications.triggerDeliveryConfirmed(
-      order.merchantId,
-      orderId,
-    );
+    // Notify both merchant and buyer (best-effort, must not block state transition)
+    try {
+      await this.notifications.triggerDeliveryConfirmed(
+        order.merchantId,
+        order.buyerId,
+        {
+          orderId,
+          reference: orderId.slice(0, 8).toUpperCase(),
+          amountKobo: order.totalAmountKobo,
+        },
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to send delivery confirmed notification (orderId=${orderId}, merchantId=${order.merchantId}): ${error instanceof Error ? error.message : error}`,
+      );
+    }
 
     // Auto-transition: DELIVERED → COMPLETED
     await this.transition(
@@ -308,16 +436,16 @@ export class OrderService {
       OrderStatus.DELIVERED,
       OrderStatus.COMPLETED,
       buyerId,
-      { action: 'auto_completed' },
+      { action: "auto_completed" },
     );
 
     // Trigger payout notification (PaymentService handles actual payout)
     // AUTO-PAYOUT: Initiate payout now that order is COMPLETED
     try {
-      this.logger.log(`Initiating auto-payout for order ${orderId}`);
-      await this.paymentService.initiatePayout(orderId);
+      this.logger.log(`Queueing auto-payout for order ${orderId}`);
+      await this.payoutQueue.add("process-payout", { orderId });
     } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Unknown error';
+      const msg = error instanceof Error ? error.message : "Unknown error";
       this.logger.error(
         `Auto-payout failed for order ${orderId} (will need manual retry): ${msg}`,
         error instanceof Error ? error.stack : undefined,
@@ -325,12 +453,16 @@ export class OrderService {
       // Swallow error so we don't rollback the delivery confirmation
     }
 
-    await this.notifications.triggerPayoutInitiated(
-      order.merchantId,
-      orderId,
-    );
+    // Create reorder reminder (best-effort)
+    try {
+      await this.reorderService.createReminder(orderId);
+    } catch (error) {
+      this.logger.error(
+        `Failed to create reorder reminder for order ${orderId}: ${error instanceof Error ? error.message : error}`,
+      );
+    }
 
-    return { message: 'Delivery confirmed' };
+    return { message: "Delivery confirmed" };
   }
 
   // ──────────────────────────────────────────────
@@ -341,13 +473,13 @@ export class OrderService {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
     });
-    if (!order) throw new NotFoundException('Order not found');
+    if (!order) throw new NotFoundException("Order not found");
 
     const isBuyer = order.buyerId === userId;
     const isMerchant = merchantId && order.merchantId === merchantId;
 
     if (!isBuyer && !isMerchant) {
-      throw new ForbiddenException('Access denied');
+      throw new ForbiddenException("Access denied");
     }
 
     // Role-based cancellation rules per guide:
@@ -355,12 +487,12 @@ export class OrderService {
     // - Merchant can cancel if PAID (auto-refund triggered)
     if (isBuyer && order.status !== OrderStatus.PENDING_PAYMENT) {
       throw new BadRequestException(
-        'Buyer can only cancel orders in PENDING_PAYMENT status',
+        "Buyer can only cancel orders in PENDING_PAYMENT status",
       );
     }
     if (isMerchant && order.status !== OrderStatus.PAID) {
       throw new BadRequestException(
-        'Merchant can only cancel orders in PAID status',
+        "Merchant can only cancel orders in PAID status",
       );
     }
 
@@ -370,7 +502,7 @@ export class OrderService {
       order.status as OrderStatus,
       OrderStatus.CANCELLED,
       userId,
-      { cancelledBy: isBuyer ? 'buyer' : 'merchant' },
+      { cancelledBy: isBuyer ? "buyer" : "merchant" },
     );
 
     // Release reserved stock
@@ -394,36 +526,64 @@ export class OrderService {
       orderId,
     );
 
-    return { message: 'Order cancelled' };
+    return { message: "Order cancelled" };
   }
 
   // ──────────────────────────────────────────────
   //  DISPUTE (buyer only, DISPATCHED only)
   // ──────────────────────────────────────────────
 
-  async dispute(buyerId: string, orderId: string) {
+  async reportIssue(buyerId: string, orderId: string, reason: string) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
     });
-    if (!order) throw new NotFoundException('Order not found');
+    if (!order) throw new NotFoundException("Order not found");
     if (order.buyerId !== buyerId)
-      throw new ForbiddenException('Access denied');
+      throw new ForbiddenException("Access denied");
 
-    if (order.status !== OrderStatus.DISPATCHED) {
+    // Issues can be raised for PAID or DISPATCHED orders
+    if (
+      order.status !== OrderStatus.DISPATCHED &&
+      order.status !== OrderStatus.PAID
+    ) {
       throw new BadRequestException(
-        'Disputes can only be raised for DISPATCHED orders',
+        "Issues can only be raised for PAID or DISPATCHED orders",
       );
     }
 
-    await this.transition(
-      orderId,
-      OrderStatus.DISPATCHED,
-      OrderStatus.DISPUTE,
-      buyerId,
-      { action: 'dispute_raised' },
-    );
+    const updatedOrder = await this.prisma.order.update({
+      where: { id: orderId },
+      data: {
+        status: OrderStatus.DISPUTE,
+        disputeStatus: "PENDING",
+        disputeReason: reason,
+      },
+    });
 
-    return { message: 'Order dispute raised' };
+    await this.prisma.orderEvent.create({
+      data: {
+        orderId,
+        fromStatus: order.status as OrderStatus,
+        toStatus: OrderStatus.DISPUTE,
+        triggeredBy: buyerId,
+        metadata: { action: "issue_reported", reason },
+      },
+    });
+
+    // Notify merchant and admin
+    try {
+      await this.notifications.triggerOrderDisputed(
+        order.merchantId,
+        orderId,
+        reason,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to send dispute notification: ${error instanceof Error ? error.message : error}`,
+      );
+    }
+
+    return updatedOrder;
   }
 
   // ──────────────────────────────────────────────
@@ -434,35 +594,35 @@ export class OrderService {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: {
-        merchant: {
+        merchantProfile: {
           select: {
             businessName: true,
             businessAddress: true,
             user: { select: { phone: true, email: true } },
-          }
+          },
         },
-        buyer: { select: { email: true, phone: true } },
+        user: { select: { email: true, phone: true } },
         quote: {
           include: {
             rfq: {
-              include: { product: true }
-            }
-          }
+              include: { product: true },
+            },
+          },
         },
         payments: {
-          where: { status: 'SUCCESS' },
-          orderBy: { createdAt: 'desc' },
-          take: 1
-        }
-      }
+          where: { status: "SUCCESS" },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
+      },
     });
 
     if (!order) {
-      throw new NotFoundException('Order not found');
+      throw new NotFoundException("Order not found");
     }
 
     if (order.buyerId !== userId) {
-      throw new ForbiddenException('Only the buyer can access their receipt');
+      throw new ForbiddenException("Only the buyer can access their receipt");
     }
 
     return order;
@@ -472,11 +632,54 @@ export class OrderService {
   //  HELPERS
   // ──────────────────────────────────────────────
 
+  async getMerchantSummary(merchantId: string) {
+    const orders = await this.prisma.order.findMany({
+      where: { merchantId },
+      select: {
+        totalAmountKobo: true,
+        deliveryFeeKobo: true,
+        status: true,
+      },
+    });
+
+    const summary = {
+      escrow: 0,
+      paidOut: 0,
+      pending: 0,
+      failed: 0,
+      orderCount: orders.length,
+    };
+
+    orders.forEach((o) => {
+      const amount =
+        Number(o.totalAmountKobo || 0) + Number(o.deliveryFeeKobo || 0);
+      switch (o.status) {
+        case OrderStatus.PAID:
+        case OrderStatus.DISPATCHED:
+          summary.escrow += amount;
+          break;
+        case OrderStatus.DELIVERED:
+        case OrderStatus.COMPLETED:
+          summary.paidOut += amount;
+          break;
+        case OrderStatus.PENDING_PAYMENT:
+          summary.pending += amount;
+          break;
+        case OrderStatus.CANCELLED:
+        case OrderStatus.DISPUTE:
+          summary.failed += amount;
+          break;
+      }
+    });
+
+    return summary;
+  }
+
   private async getUserIdFromMerchant(merchantId: string): Promise<string> {
     const merchant = await this.prisma.merchantProfile.findUnique({
       where: { id: merchantId },
     });
-    if (!merchant) throw new NotFoundException('Merchant not found');
+    if (!merchant) throw new NotFoundException("Merchant not found");
     return merchant.userId;
   }
 }
