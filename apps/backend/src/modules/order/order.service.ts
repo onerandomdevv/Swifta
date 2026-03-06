@@ -24,6 +24,7 @@ import {
 import { paginate } from "../../common/utils/pagination";
 import { validateTransition } from "./order-state-machine";
 import * as crypto from "crypto";
+import { VerificationService } from "../verification/verification.service";
 
 @Injectable()
 export class OrderService {
@@ -37,6 +38,7 @@ export class OrderService {
     private paymentService: PaymentService,
     private reorderService: ReorderService,
     @InjectQueue(PAYOUT_QUEUE) private payoutQueue: Queue,
+    private verificationService: VerificationService,
   ) {}
 
   // ──────────────────────────────────────────────
@@ -123,7 +125,7 @@ export class OrderService {
 
     if (!product) throw new NotFoundException("Product not found");
     if (!product.isActive) throw new BadRequestException("Product is inactive");
-    if (product.pricePerUnitKobo === null) {
+    if ((product as any).pricePerUnitKobo === null) {
       throw new BadRequestException("Product requires an RFQ");
     }
 
@@ -134,7 +136,7 @@ export class OrderService {
       throw new BadRequestException("Insufficient stock");
     }
 
-    const subtotalKobo = Number(product.pricePerUnitKobo) * quantity;
+    const subtotalKobo = Number((product as any).pricePerUnitKobo) * quantity;
     const platformFeePercentage = Number(
       process.env.PLATFORM_FEE_PERCENTAGE || "2",
     );
@@ -151,9 +153,9 @@ export class OrderService {
         data: {
           buyerId,
           merchantId: product.merchantId,
-          productId,
+          productId: (product as any).id,
           quantity,
-          unitPriceKobo: product.pricePerUnitKobo,
+          unitPriceKobo: (product as any).pricePerUnitKobo,
           deliveryAddress,
           totalAmountKobo,
           deliveryFeeKobo: 0n,
@@ -438,6 +440,16 @@ export class OrderService {
       buyerId,
       { action: "auto_completed" },
     );
+
+    // Call VerificationService to trigger check on merchant's verification tier
+    try {
+      this.logger.log(`Evaluating tier upgrade for merchant ${order.merchantId}`);
+      await this.verificationService.checkAndUpgradeTier(order.merchantId);
+    } catch (error) {
+      this.logger.error(
+        `Failed to evaluate tier upgrade for merchant ${order.merchantId}: ${error instanceof Error ? error.message : error}`,
+      );
+    }
 
     // Trigger payout notification (PaymentService handles actual payout)
     // AUTO-PAYOUT: Initiate payout now that order is COMPLETED
