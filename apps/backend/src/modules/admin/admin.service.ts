@@ -820,6 +820,11 @@ export class AdminService {
   // ─── Staff Suspend / Reactivate ───
 
   async suspendStaff(staffId: string, adminId: string) {
+    // Prevent self-suspend
+    if (staffId === adminId) {
+      throw new BadRequestException("You cannot suspend your own account.");
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id: staffId },
       include: { adminProfile: true },
@@ -829,14 +834,32 @@ export class AdminService {
       throw new NotFoundException("Staff profile not found.");
     }
 
-    if (user.adminProfile.approvalStatus === "SUSPENDED") {
-      throw new BadRequestException("Staff member is already suspended.");
+    // Prevent suspending SUPER_ADMIN
+    if (user.role === "SUPER_ADMIN") {
+      throw new BadRequestException("Cannot suspend a Super Admin.");
+    }
+
+    // Only allow suspending APPROVED staff (prevents PENDING -> SUSPENDED -> APPROVED bypass)
+    if (user.adminProfile.approvalStatus !== "APPROVED") {
+      throw new BadRequestException(
+        `Staff status is ${user.adminProfile.approvalStatus}, only APPROVED staff can be suspended.`,
+      );
     }
 
     await this.prisma.adminProfile.update({
       where: { userId: staffId },
       data: { approvalStatus: "SUSPENDED" },
     });
+
+    // Revoke refresh token so existing sessions are invalidated
+    try {
+      await this.redis.del(`refresh_token:${staffId}`);
+      this.logger.log(`Refresh token revoked for suspended staff ${staffId}`);
+    } catch (err) {
+      this.logger.error(
+        `Failed to revoke refresh token for ${staffId}: ${err}`,
+      );
+    }
 
     await this.auditLog.log(adminId, "SUSPEND_STAFF", "AdminProfile", staffId);
 

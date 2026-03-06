@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { useToast } from "@/providers/toast-provider";
@@ -139,22 +139,40 @@ export default function AdminStaffPage() {
     user: StaffUser;
   } | null>(null);
 
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
   // Fetch pending staff
-  const { data: pendingStaff, isLoading: isPendingLoading } = useQuery<
-    StaffUser[]
-  >({
+  const {
+    data: pendingStaffRaw,
+    isLoading: isPendingLoading,
+    isError: isPendingError,
+  } = useQuery<StaffUser[]>({
     queryKey: ["admin", "staff", "pending"],
     queryFn: () => apiClient.get("/admin/users/pending"),
   });
 
+  // Filter pending to only OPERATOR / SUPPORT roles
+  const pendingStaff = pendingStaffRaw?.filter((u) =>
+    ["OPERATOR", "SUPPORT"].includes(u.role),
+  );
+
   // Fetch all users, filter to staff roles client-side
-  const { data: allUsers, isLoading: isUsersLoading } = useQuery<StaffUser[]>({
+  const {
+    data: allUsers,
+    isLoading: isUsersLoading,
+    isError: isUsersError,
+  } = useQuery<StaffUser[]>({
     queryKey: ["admin", "users"],
     queryFn: () => apiClient.get("/admin/users"),
   });
 
   // Fetch recent audit logs
-  const { data: auditLogs } = useQuery<AuditEntry[]>({
+  const {
+    data: auditLogs,
+    isLoading: isAuditLoading,
+    isError: isAuditError,
+  } = useQuery<AuditEntry[]>({
     queryKey: ["admin", "audit-logs"],
     queryFn: () => apiClient.get("/admin/audit-logs?limit=20"),
   });
@@ -234,6 +252,59 @@ export default function AdminStaffPage() {
   });
 
   const isLoading = isPendingLoading || isUsersLoading;
+  const isError = isPendingError || isUsersError;
+
+  // Dialog focus trap + Escape handling
+  const openDialog = useCallback(
+    (
+      type: "suspend" | "reactivate" | "remove",
+      user: StaffUser,
+      trigger: HTMLButtonElement,
+    ) => {
+      triggerRef.current = trigger;
+      setConfirmAction({ type, user });
+    },
+    [],
+  );
+
+  const closeDialog = useCallback(() => {
+    setConfirmAction(null);
+    // Restore focus to the button that opened the dialog
+    setTimeout(() => triggerRef.current?.focus(), 0);
+  }, []);
+
+  useEffect(() => {
+    if (!confirmAction) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        closeDialog();
+        return;
+      }
+      // Focus trap
+      if (e.key === "Tab" && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    // Auto-focus the dialog on open
+    setTimeout(() => {
+      const btn = dialogRef.current?.querySelector<HTMLElement>("button");
+      btn?.focus();
+    }, 50);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [confirmAction, closeDialog]);
 
   if (isLoading) {
     return (
@@ -241,6 +312,22 @@ export default function AdminStaffPage() {
         <span className="material-symbols-outlined animate-spin text-4xl text-neon-cyan">
           progress_activity
         </span>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-3">
+        <span className="material-symbols-outlined text-5xl text-red-400">
+          error
+        </span>
+        <p className="text-sm font-bold text-red-500 uppercase tracking-wider">
+          Failed to load staff data
+        </p>
+        <p className="text-xs text-slate-400">
+          Please check your connection and try again.
+        </p>
       </div>
     );
   }
@@ -356,7 +443,7 @@ export default function AdminStaffPage() {
                       size="sm"
                       variant="outline"
                       className="text-red-500 border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 font-black tracking-widest uppercase text-xs"
-                      onClick={() =>
+                      onClick={(e) =>
                         setConfirmAction({ type: "remove", user: staff })
                       }
                     >
@@ -490,7 +577,7 @@ export default function AdminStaffPage() {
                             size="sm"
                             variant="ghost"
                             className="text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 font-bold tracking-wider uppercase text-xs"
-                            onClick={() =>
+                            onClick={(e) =>
                               setConfirmAction({ type: "suspend", user: staff })
                             }
                           >
@@ -503,7 +590,7 @@ export default function AdminStaffPage() {
                             size="sm"
                             variant="ghost"
                             className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 font-bold tracking-wider uppercase text-xs"
-                            onClick={() =>
+                            onClick={(e) =>
                               setConfirmAction({ type: "remove", user: staff })
                             }
                           >
@@ -583,7 +670,7 @@ export default function AdminStaffPage() {
                       size="sm"
                       variant="ghost"
                       className="text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 font-bold tracking-wider uppercase text-xs"
-                      onClick={() =>
+                      onClick={(e) =>
                         setConfirmAction({ type: "reactivate", user: staff })
                       }
                     >
@@ -596,7 +683,7 @@ export default function AdminStaffPage() {
                       size="sm"
                       variant="ghost"
                       className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 font-bold tracking-wider uppercase text-xs"
-                      onClick={() =>
+                      onClick={(e) =>
                         setConfirmAction({ type: "remove", user: staff })
                       }
                     >
@@ -701,7 +788,13 @@ export default function AdminStaffPage() {
 
       {/* ──── Confirmation Modal ──── */}
       {confirmAction && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-dialog-title"
+          ref={dialogRef}
+        >
           <div className="bg-white dark:bg-slate-900 rounded-[2rem] w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800 p-6 md:p-8 animate-in slide-in-from-bottom-8">
             <div className="flex justify-between items-start mb-6">
               <div className="flex items-center gap-3">
@@ -723,7 +816,10 @@ export default function AdminStaffPage() {
                   </span>
                 </div>
                 <div>
-                  <h2 className="text-lg font-black text-navy-dark dark:text-white uppercase tracking-widest">
+                  <h2
+                    id="confirm-dialog-title"
+                    className="text-lg font-black text-navy-dark dark:text-white uppercase tracking-widest"
+                  >
                     {confirmAction.type === "reactivate"
                       ? "Reactivate Staff"
                       : confirmAction.type === "suspend"
@@ -736,8 +832,9 @@ export default function AdminStaffPage() {
                 </div>
               </div>
               <button
-                onClick={() => setConfirmAction(null)}
+                onClick={closeDialog}
                 className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                aria-label="Close dialog"
                 disabled={
                   suspendMutation.isPending ||
                   reactivateMutation.isPending ||
@@ -788,7 +885,7 @@ export default function AdminStaffPage() {
               <Button
                 variant="ghost"
                 className="font-bold tracking-widest uppercase hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"
-                onClick={() => setConfirmAction(null)}
+                onClick={closeDialog}
                 disabled={
                   suspendMutation.isPending ||
                   reactivateMutation.isPending ||
