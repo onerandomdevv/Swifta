@@ -48,14 +48,18 @@ export class AdminController {
 
   @Patch("merchants/:id/verify")
   @Roles(UserRole.SUPER_ADMIN, UserRole.OPERATOR)
-  verifyMerchantProfile(@Param("id") merchantId: string) {
-    return this.adminService.verifyMerchant(merchantId);
+  verifyMerchantProfile(@Param("id") merchantId: string, @Req() req: any) {
+    return this.adminService.verifyMerchant(merchantId, req.user.sub);
   }
 
   @Patch("merchants/:id/reject")
   @Roles(UserRole.SUPER_ADMIN, UserRole.OPERATOR)
-  rejectMerchantProfile(@Param("id") merchantId: string) {
-    return this.adminService.rejectMerchant(merchantId);
+  rejectMerchantProfile(@Param("id") merchantId: string, @Req() req: any) {
+    return this.adminService.rejectMerchant(
+      merchantId,
+      undefined,
+      req.user.sub,
+    );
   }
 
   @Patch("merchants/:id/flags")
@@ -63,11 +67,13 @@ export class AdminController {
   toggleMerchantFlag(
     @Param("id") merchantId: string,
     @Body() dto: ToggleMerchantFlagDto,
+    @Req() req: any,
   ) {
     return this.adminService.toggleMerchantFlag(
       merchantId,
       dto.flag,
       dto.value,
+      req.user.sub,
     );
   }
 
@@ -157,6 +163,18 @@ export class AdminController {
   @Roles(UserRole.SUPER_ADMIN)
   deleteUser(@Param("id") userId: string, @Req() req: any) {
     return this.adminService.deleteUser(userId, req.user.sub);
+  }
+
+  @Patch("staff/:id/suspend")
+  @Roles(UserRole.SUPER_ADMIN)
+  suspendStaff(@Param("id") staffId: string, @Req() req: any) {
+    return this.adminService.suspendStaff(staffId, req.user.sub);
+  }
+
+  @Patch("staff/:id/reactivate")
+  @Roles(UserRole.SUPER_ADMIN)
+  reactivateStaff(@Param("id") staffId: string, @Req() req: any) {
+    return this.adminService.reactivateStaff(staffId, req.user.sub);
   }
 
   @Patch("change-password")

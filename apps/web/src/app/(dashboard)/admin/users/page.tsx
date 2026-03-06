@@ -53,32 +53,14 @@ export default function AdminUsersPage() {
   const [selectedRole, setSelectedRole] = useState<
     "SUPER_ADMIN" | "OPERATOR" | "SUPPORT"
   >("OPERATOR");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState<
+    "ALL" | "MERCHANT" | "BUYER" | "STAFF"
+  >("ALL");
 
   const { data: users, isLoading } = useQuery<PlatformUser[]>({
     queryKey: ["admin", "users"],
     queryFn: () => apiClient.get("/admin/users"),
-  });
-
-  const { data: pendingStaff, isLoading: isPendingLoading } = useQuery<
-    PlatformUser[]
-  >({
-    queryKey: ["admin", "users", "pending"],
-    queryFn: () => apiClient.get("/admin/users/pending"),
-  });
-
-  const approveMutation = useMutation({
-    mutationFn: (userId: string) =>
-      apiClient.patch(`/admin/staff/${userId}/approve`),
-    onSuccess: () => {
-      toast.success("Staff profile approved. User can now log in.");
-      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
-      queryClient.invalidateQueries({
-        queryKey: ["admin", "users", "pending"],
-      });
-    },
-    onError: (error: any) => {
-      toast.error(error?.message || "Failed to approve staff.");
-    },
   });
 
   const promoteMutation = useMutation({
@@ -121,8 +103,39 @@ export default function AdminUsersPage() {
   }
 
   const adminCount = users?.filter((u) => u.role === "SUPER_ADMIN").length || 0;
+  const staffCount =
+    users?.filter((u) => ["OPERATOR", "SUPPORT"].includes(u.role)).length || 0;
   const merchantCount = users?.filter((u) => u.role === "MERCHANT").length || 0;
   const buyerCount = users?.filter((u) => u.role === "BUYER").length || 0;
+
+  // Apply filters
+  const filteredUsers = (users || []).filter((user) => {
+    // Search filter
+    const query = searchQuery.toLowerCase();
+    const matchesSearch =
+      !query ||
+      `${user.firstName} ${user.lastName}`.toLowerCase().includes(query) ||
+      user.email.toLowerCase().includes(query) ||
+      user.phone?.includes(query);
+
+    // Tab filter
+    let matchesFilter = true;
+    if (activeFilter === "MERCHANT") matchesFilter = user.role === "MERCHANT";
+    else if (activeFilter === "BUYER") matchesFilter = user.role === "BUYER";
+    else if (activeFilter === "STAFF")
+      matchesFilter = ["SUPER_ADMIN", "OPERATOR", "SUPPORT"].includes(
+        user.role,
+      );
+
+    return matchesSearch && matchesFilter;
+  });
+
+  const filterTabs = [
+    { key: "ALL" as const, label: "All", count: users?.length || 0 },
+    { key: "MERCHANT" as const, label: "Merchants", count: merchantCount },
+    { key: "BUYER" as const, label: "Buyers", count: buyerCount },
+    { key: "STAFF" as const, label: "Staff", count: adminCount + staffCount },
+  ];
 
   return (
     <div className="space-y-8 animate-in mt-4 fade-in slide-in-from-bottom-4">
@@ -148,62 +161,62 @@ export default function AdminUsersPage() {
         </div>
       </header>
 
-      {/* Pending Staff Approvals */}
-      {pendingStaff && pendingStaff.length > 0 && (
-        <section className="bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-200 dark:border-amber-900/50 rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center gap-3 mb-4">
-            <span className="material-symbols-outlined text-amber-500 text-2xl animate-pulse">
-              admin_panel_settings
-            </span>
-            <div>
-              <h2 className="text-lg font-black text-amber-900 dark:text-amber-500 uppercase tracking-widest">
-                Pending Staff Approvals
-              </h2>
-              <p className="text-xs font-bold text-amber-700/70 dark:text-amber-400/70 uppercase tracking-wider mt-0.5">
-                {pendingStaff.length} user{pendingStaff.length !== 1 ? "s" : ""}{" "}
-                awaiting access
-              </p>
-            </div>
-          </div>
+      {/* Search + Filter Bar */}
+      <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
+        {/* Search Input */}
+        <div className="relative flex-1 max-w-md">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
+            search
+          </span>
+          <input
+            type="text"
+            placeholder="Search by name, email, or phone…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-medium text-navy-dark dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-colors"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full"
+            >
+              <span className="material-symbols-outlined text-slate-400 text-lg">
+                close
+              </span>
+            </button>
+          )}
+        </div>
 
-          <div className="space-y-3">
-            {pendingStaff.map((staff) => (
-              <div
-                key={staff.id}
-                className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-amber-100 dark:border-amber-800/50"
+        {/* Filter Tabs */}
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+          {filterTabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveFilter(tab.key)}
+              className={`px-3 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${
+                activeFilter === tab.key
+                  ? "bg-white dark:bg-slate-900 text-navy-dark dark:text-white shadow-sm"
+                  : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              }`}
+            >
+              {tab.label}
+              <span
+                className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] ${
+                  activeFilter === tab.key
+                    ? "bg-brand/10 text-brand"
+                    : "bg-slate-200 dark:bg-slate-700 text-slate-400"
+                }`}
               >
-                <div>
-                  <p className="font-bold text-navy-dark dark:text-white flex items-center gap-2">
-                    {staff.firstName} {staff.lastName}
-                    <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${ROLE_STYLES[staff.role]}`}
-                    >
-                      {staff.role}
-                    </span>
-                  </p>
-                  <p className="text-xs text-slate-500 mt-1">{staff.email}</p>
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 font-black tracking-widest uppercase text-xs"
-                  onClick={() => approveMutation.mutate(staff.id)}
-                  disabled={approveMutation.isPending}
-                >
-                  <span className="material-symbols-outlined text-[16px] mr-1.5">
-                    check_circle
-                  </span>
-                  Approve Staff
-                </Button>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+                {tab.count}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Users Table */}
       <section className="bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-sm overflow-hidden">
-        {users && users.length > 0 ? (
+        {filteredUsers.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -226,7 +239,7 @@ export default function AdminUsersPage() {
                 </tr>
               </thead>
               <tbody>
-                {users.map((user) => (
+                {filteredUsers.map((user) => (
                   <tr
                     key={user.id}
                     className="border-b border-slate-50 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors"
