@@ -42,18 +42,27 @@ export class AuthController {
       secure: isProd,
       sameSite: isProd ? "none" : "lax",
       maxAge: 15 * 60 * 1000,
+      path: "/",
     });
     res.cookie("hwos_refresh_token", tokens.refreshToken, {
       httpOnly: true,
       secure: isProd,
       sameSite: isProd ? "none" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: "/",
     });
   }
 
   private clearCookies(res: Response) {
-    res.clearCookie("hwos_access_token");
-    res.clearCookie("hwos_refresh_token");
+    const isProd = process.env.NODE_ENV === "production";
+    const cookieOptions = {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? ("none" as const) : ("lax" as const),
+      path: "/",
+    };
+    res.clearCookie("hwos_access_token", cookieOptions);
+    res.clearCookie("hwos_refresh_token", cookieOptions);
   }
 
   @Throttle({ default: { limit: 5, ttl: 60000 } })
