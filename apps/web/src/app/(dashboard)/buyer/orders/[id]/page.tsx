@@ -39,7 +39,10 @@ export default function BuyerOrderDetailsPage() {
       try {
         const [data, trackingData] = await Promise.all([
           getOrder(id as string),
-          getTracking(id as string).catch(() => []),
+          getTracking(id as string).catch((err) => {
+            if (err?.status === 404 || err?.statusCode === 404 || err?.message?.includes("404")) return [];
+            throw err;
+          }),
         ]);
         // The backend `ResponseTransformInterceptor` wraps everything in `{ data: ... }`.
         // If ApiClient unwraps it once, it might still have a nested `.data` depending on the controller return.

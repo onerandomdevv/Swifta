@@ -18,6 +18,7 @@ export default function BuyerCataloguePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All Categories");
   const [products, setProducts] = useState<Product[]>([]);
+  const isInitialMount = useRef(true);
 
   const fetchProducts = useCallback(async (search: string, category: string) => {
     try {
@@ -32,15 +33,7 @@ export default function BuyerCataloguePage() {
     }
   }, []);
 
-  const isInitialMount = useRef(true);
-
-  useEffect(() => {
-    if (isInitialMount.current) {
-      fetchProducts("", "All Categories");
-    }
-  }, [fetchProducts]);
-
-  // Debounced search + Category change
+  // Debounced search will handle the initial fetch since searchQuery defaults to ""
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;

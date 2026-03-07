@@ -20,6 +20,19 @@ function CheckoutBnplSection() {
     checkBnplEligibility().then(setEligibility).catch(console.error);
   }, []);
 
+  const handleJoinWaitlist = async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    setWaitlistStatus("loading");
+    try {
+      const res = await joinBnplWaitlist();
+      setWaitlistStatus("success");
+      setMessage(res.message);
+    } catch (err: any) {
+      setWaitlistStatus("error");
+      setMessage(err?.message || String(err) || "Failed to join waitlist");
+    }
+  };
+
   if (!eligibility) return null;
 
   return (
@@ -39,26 +52,23 @@ function CheckoutBnplSection() {
              <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-3 py-2 rounded text-center">
                {message}
              </p>
+          ) : waitlistStatus === "error" ? (
+             <div className="space-y-2">
+               <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest bg-red-500/10 px-3 py-2 rounded text-center break-words">
+                 {message}
+               </p>
+               <button
+                 type="button"
+                 onClick={handleJoinWaitlist}
+                 className="w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-50 text-slate-300"
+               >
+                 Try Again
+               </button>
+             </div>
           ) : (
             <button
               type="button"
-              onClick={async (e) => {
-                e.preventDefault();
-                if (!user?.email) {
-                  setWaitlistStatus("error");
-                  setMessage("User email not found");
-                  return;
-                }
-                setWaitlistStatus("loading");
-                try {
-                  const res = await joinBnplWaitlist({ email: user.email });
-                  setWaitlistStatus("success");
-                  setMessage(res.message);
-                } catch (err: any) {
-                  setWaitlistStatus("error");
-                  setMessage(err?.message || String(err) || "Failed to join waitlist");
-                }
-              }}
+              onClick={handleJoinWaitlist}
               disabled={waitlistStatus === "loading"}
               className="w-full py-3 bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600/30 border border-indigo-500/30 rounded text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-50"
             >

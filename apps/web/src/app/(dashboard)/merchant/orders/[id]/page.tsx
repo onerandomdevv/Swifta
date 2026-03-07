@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getOrder, addTracking, getTracking } from "@/lib/api/order.api";
-import type { Order } from "@hardware-os/shared";
+import { type Order, OrderStatus } from "@hardware-os/shared";
 
 // Extracted Components
 import {
@@ -48,7 +48,7 @@ export default function MerchantOrderDetailsPage() {
 
   const trackingMutation = useMutation({
     mutationFn: ({ status, note }: { status: string; note?: string }) =>
-      addTracking(order?.id as string, status, note),
+      addTracking(order?.id as string, status as OrderStatus, note),
     onMutate: async ({ status }) => {
       // Optimistic update
       await queryClient.cancelQueries({ queryKey: ["merchant", "orders"] });

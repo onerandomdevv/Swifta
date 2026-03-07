@@ -29,7 +29,7 @@ export function BnplEligibilityCard() {
       // Basic waitlist join, the backend uses user.id from token and we can pass dummy/empty email until we fetch it from context if needed.
       // But the endpoint requires email in the body. For now we will use a dummy string since the backend saves it.
       // Ideally we'd have the user's email from an auth context.
-      const res = await joinBnplWaitlist({ email: "buyer@example.com" });
+      const res = await joinBnplWaitlist();
       setWaitlistStatus("success");
       setMessage(res.message);
     } catch (err: any) {

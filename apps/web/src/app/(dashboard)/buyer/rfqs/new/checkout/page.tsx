@@ -55,7 +55,7 @@ function CheckoutBnplSection() {
                 }
                 setWaitlistStatus("loading");
                 try {
-                  const res = await joinBnplWaitlist({ email: user.email });
+                  const res = await joinBnplWaitlist();
                   setWaitlistStatus("success");
                   setMessage(res.message);
                 } catch (err: any) {
