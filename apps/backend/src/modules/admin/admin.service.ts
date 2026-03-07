@@ -21,6 +21,7 @@ export class AdminService {
     private redis: RedisService,
     private notifications: NotificationTriggerService,
     private auditLog: AuditLogService,
+    private verificationService: VerificationService,
   ) {}
 
   async getPlatformStats() {
@@ -35,7 +36,7 @@ export class AdminService {
     ] = await Promise.all([
       this.prisma.merchantProfile.count(),
       this.prisma.merchantProfile.count({
-        where: { verificationTier: "VERIFIED" },
+        where: { verificationTier: { in: ["VERIFIED", "TRUSTED"] } },
       }),
       this.prisma.merchantProfile.count({
         where: {
@@ -61,32 +62,37 @@ export class AdminService {
     };
   }
 
-  async verifyMerchant(merchantId: string, adminId?: string) {
+  async verifyMerchant(merchantId: string, adminId: string) {
+    // 1. Find the merchant
     const merchant = await this.prisma.merchantProfile.findUnique({
       where: { id: merchantId },
+      include: {
+        verificationRequests: {
+          where: { status: "PENDING" },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
+      },
     });
 
     if (!merchant) {
       throw new NotFoundException("Merchant profile not found");
     }
 
-    const updated = await this.prisma.merchantProfile.update({
-      where: { id: merchantId },
-      data: { verificationTier: "VERIFIED", verifiedAt: new Date() },
-    });
-
-    await this.notifications.triggerMerchantVerified(merchant.userId);
-
-    if (adminId) {
-      await this.auditLog.log(
-        adminId,
-        "VERIFY_MERCHANT",
-        "MerchantProfile",
-        merchantId,
-      );
+    // 2. Locate the pending request
+    const pendingRequest = merchant.verificationRequests[0];
+    if (!pendingRequest) {
+      // Fallback: If no pending request, just update the tier directly (legacy/manual flow)
+      return this.prisma.merchantProfile.update({
+        where: { id: merchantId },
+        data: { verificationTier: "VERIFIED", verifiedAt: new Date() },
+      });
     }
 
-    return updated;
+    // 3. Use VerificationService to perform atomic transition
+    return this.verificationService.reviewRequest(pendingRequest.id, adminId, {
+      decision: "APPROVED",
+    });
   }
 
   async rejectMerchant(merchantId: string, reason?: string, adminId?: string) {
@@ -412,7 +418,7 @@ export class AdminService {
 
   async broadcastMessage(message: string) {
     const verifiedMerchants = await this.prisma.merchantProfile.findMany({
-      where: { verificationTier: "VERIFIED" },
+      where: { verificationTier: { in: ["VERIFIED", "TRUSTED"] } },
       include: { user: true },
     });
 

@@ -49,7 +49,7 @@ export class NotificationTriggerService {
   async triggerWelcome(userId: string) {
     await this.addJob(
       userId,
-      "WELCOME",
+      NotificationType.WELCOME,
       "Welcome to SwiftTrade",
       "Welcome to Africa's hardware trade network.",
     );
@@ -58,7 +58,7 @@ export class NotificationTriggerService {
   async triggerEmailVerification(userId: string, otp: string) {
     await this.addJob(
       userId,
-      "EMAIL_VERIFICATION",
+      NotificationType.EMAIL_VERIFICATION,
       "Verify your account",
       `Your code is ${otp}`,
       { otp },
@@ -80,7 +80,7 @@ export class NotificationTriggerService {
     // Standard in-app + email notification
     await this.addJob(
       merchantId,
-      "NEW_RFQ",
+      NotificationType.NEW_RFQ,
       "New RFQ Received",
       "You have a new request for quote.",
       { ...metadata, isMerchantId: true },
@@ -123,7 +123,7 @@ export class NotificationTriggerService {
   ) {
     await this.addJob(
       buyerId,
-      "QUOTE_RECEIVED",
+      NotificationType.QUOTE_RECEIVED,
       "Quote Received",
       "You have received a new quote.",
       { ...metadata, totalPriceKobo: metadata.totalPriceKobo.toString() }, // Pass as string for BullMQ JSON
@@ -142,7 +142,7 @@ export class NotificationTriggerService {
   ) {
     await this.addJob(
       merchantId,
-      "QUOTE_ACCEPTED",
+      NotificationType.QUOTE_ACCEPTED,
       "Quote Accepted",
       "Your quote has been accepted.",
       {
@@ -156,7 +156,7 @@ export class NotificationTriggerService {
   async triggerQuoteDeclined(merchantId: string, quoteId: string) {
     await this.addJob(
       merchantId,
-      "QUOTE_DECLINED",
+      NotificationType.QUOTE_DECLINED,
       "Quote Declined",
       "Your quote has been declined.",
       { quoteId, isMerchantId: true },
@@ -166,7 +166,7 @@ export class NotificationTriggerService {
   async triggerRFQExpired(buyerId: string, rfqId: string) {
     await this.addJob(
       buyerId,
-      "RFQ_EXPIRED",
+      NotificationType.RFQ_EXPIRED,
       "RFQ Expired",
       "Your request for quote has expired without receiving a response.",
       { rfqId },
@@ -224,7 +224,7 @@ export class NotificationTriggerService {
     // Notify merchant
     await this.addJob(
       merchantId,
-      "DELIVERY_CONFIRMED",
+      NotificationType.DELIVERY_CONFIRMED,
       "Delivery Confirmed",
       `Order #${metadata.reference.slice(0, 8)} delivery has been confirmed.`,
       {
@@ -237,7 +237,7 @@ export class NotificationTriggerService {
     // Notify buyer
     await this.addJob(
       buyerId,
-      "DELIVERY_CONFIRMED",
+      NotificationType.DELIVERY_CONFIRMED,
       "Delivery Confirmed",
       `Order #${metadata.reference.slice(0, 8)} delivery has been confirmed.`,
       { ...metadata, amountKobo: metadata.amountKobo.toString() },
@@ -258,7 +258,7 @@ export class NotificationTriggerService {
   ) {
     await this.addJob(
       merchantId,
-      "PAYOUT_INITIATED",
+      NotificationType.PAYOUT_INITIATED,
       "Payout Initiated",
       "Payout for your order has been initiated.",
       { ...metadata, isMerchantId: true },
@@ -294,7 +294,7 @@ export class NotificationTriggerService {
   ) {
     await this.addJob(
       merchantId,
-      "PAYOUT_COMPLETED",
+      NotificationType.PAYOUT_COMPLETED,
       "Payout Received",
       `Payout of ₦${Number(metadata.amountKobo) / 100} has been sent to your ${metadata.bankName} account for Order #${metadata.orderRef}.`,
       { ...metadata, isMerchantId: true },
@@ -318,7 +318,7 @@ export class NotificationTriggerService {
   ) {
     await this.addJob(
       merchantId,
-      "PAYOUT_FAILED",
+      NotificationType.PAYOUT_FAILED,
       "Payout Delayed",
       `Your payout for Order #${metadata.orderRef} is being reviewed.`,
       { ...metadata, isMerchantId: true },
@@ -340,14 +340,14 @@ export class NotificationTriggerService {
   ) {
     await this.addJob(
       buyerId,
-      "ORDER_CANCELLED",
+      NotificationType.ORDER_CANCELLED,
       "Order Cancelled",
       "Order has been cancelled.",
       { orderId },
     );
     await this.addJob(
       merchantId,
-      "ORDER_CANCELLED",
+      NotificationType.ORDER_CANCELLED,
       "Order Cancelled",
       "Order has been cancelled.",
       { orderId, isMerchantId: true },

@@ -578,6 +578,8 @@ enum VerificationRequestStatus {
   REJECTED
 }
 
+// NOTE: A partial unique index should be created manually via migration:
+// "CREATE UNIQUE INDEX verification_requests_pending_unique ON verification_requests(merchant_id) WHERE status = 'PENDING'"
 model VerificationRequest {
   id              String                    @id @default(uuid()) @db.Uuid
   merchantId      String                    @map("merchant_id") @db.Uuid

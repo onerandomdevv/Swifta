@@ -14,7 +14,7 @@ export class BnplController {
   @Get('eligibility')
   @Roles(UserRole.BUYER)
   async getEligibility(@CurrentUser() user: any) {
-    const result = await this.bnplService.checkEligibility(user.id);
+    const result = await this.bnplService.checkEligibility(user.sub);
     return result;
   }
 
@@ -25,6 +25,6 @@ export class BnplController {
     @Body() body: { phone?: string }
   ) {
     // Email is resolved server-side from the auth token — never trust client input
-    return this.bnplService.joinWaitlist(user.id, user.email, body.phone);
+    return this.bnplService.joinWaitlist(user.sub, user.email, body.phone);
   }
 }

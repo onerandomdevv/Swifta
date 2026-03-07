@@ -19,81 +19,76 @@ async function main() {
     },
   });
 
+  let bootstrapPerformed = false;
+
   if (existingAdmin) {
     console.log(`✅ Super Admin already exists: ${existingAdmin.email}`);
   } else {
-    // Only validate password when we actually need to create/promote an admin
-    if (!DEFAULT_ADMIN_PASSWORD) {
-      throw new Error(
-        "ADMIN_BOOTSTRAP_PASSWORD environment variable is NOT SET.",
-      );
-    }
-
-    const SALT_ROUNDS = 10;
-    console.log(`🔒 Hashing master password...`);
-    const passwordHash = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, SALT_ROUNDS);
-
-    console.log(`🚀 Checking for existing user with bootstrap email...`);
-    const existingUser = await prisma.user.findFirst({
+    // Determine if we need to create/promote the bootstrap user
+    const existingUserByEmail = await prisma.user.findUnique({
       where: { email: BOOTSTRAP_ADMIN_EMAIL },
     });
 
-    if (existingUser) {
-      if (existingUser.role !== UserRole.SUPER_ADMIN) {
-        // Safety: require explicit opt-in to promote existing users
-        if (process.env.FORCE_BOOTSTRAP_PROMOTE === "true") {
-          console.log(
-            `⚠️ FORCE_BOOTSTRAP_PROMOTE is set. Promoting ${BOOTSTRAP_ADMIN_EMAIL} to SUPER_ADMIN...`,
-          );
-          await prisma.user.update({
-            where: { id: existingUser.id },
-            data: {
-              role: UserRole.SUPER_ADMIN,
-              passwordHash: passwordHash,
-              adminProfile: {
-                upsert: {
-                  create: { approvalStatus: "APPROVED" },
-                  update: { approvalStatus: "APPROVED" },
-                },
+    const needsWrite = !existingUserByEmail || 
+                      (existingUserByEmail.role !== UserRole.SUPER_ADMIN && process.env.FORCE_BOOTSTRAP_PROMOTE === "true");
+
+    if (needsWrite) {
+      if (!DEFAULT_ADMIN_PASSWORD) {
+        throw new Error(
+          "ADMIN_BOOTSTRAP_PASSWORD environment variable is NOT SET. Required for initial admin creation/promotion.",
+        );
+      }
+
+      const SALT_ROUNDS = 10;
+      console.log(`🔒 Hashing master password...`);
+      const passwordHash = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, SALT_ROUNDS);
+
+      if (existingUserByEmail) {
+        console.log(`⚠️ Promoting ${BOOTSTRAP_ADMIN_EMAIL} to SUPER_ADMIN...`);
+        await prisma.user.update({
+          where: { id: existingUserByEmail.id },
+          data: {
+            role: UserRole.SUPER_ADMIN,
+            passwordHash: passwordHash,
+            adminProfile: {
+              upsert: {
+                create: { approvalStatus: "APPROVED" },
+                update: { approvalStatus: "APPROVED" },
               },
             },
-          });
-          console.log(`✨ Existing user upgraded to Super Admin successfully!`);
-        } else {
-          console.log(
-            `⚠️ User ${BOOTSTRAP_ADMIN_EMAIL} exists but is not a SUPER_ADMIN. Set FORCE_BOOTSTRAP_PROMOTE=true to promote.`,
-          );
-        }
+          },
+        });
+        bootstrapPerformed = true;
       } else {
-        console.log(`✅ User ${BOOTSTRAP_ADMIN_EMAIL} is already a Super Admin.`);
-      }
-    } else {
-      console.log(`🚀 Creating new Super Admin account...`);
-      await prisma.user.create({
-        data: {
-          email: BOOTSTRAP_ADMIN_EMAIL,
-          phone: "+234000000000",
-          firstName: "HARDWARE",
-          lastName: "Admin",
-          passwordHash: passwordHash,
-          role: UserRole.SUPER_ADMIN,
-          adminProfile: {
-            create: {
-              approvalStatus: "APPROVED",
+        console.log(`🚀 Creating new Super Admin account...`);
+        await prisma.user.create({
+          data: {
+            email: BOOTSTRAP_ADMIN_EMAIL,
+            phone: "+234000000000",
+            firstName: "HARDWARE",
+            lastName: "Admin",
+            passwordHash: passwordHash,
+            role: UserRole.SUPER_ADMIN,
+            adminProfile: {
+              create: {
+                approvalStatus: "APPROVED",
+              },
             },
           },
-        },
-      });
-      console.log(`✨ Super Admin created successfully!`);
+        });
+        bootstrapPerformed = true;
+      }
+    } else if (existingUserByEmail && existingUserByEmail.role !== UserRole.SUPER_ADMIN) {
+      console.log(
+        `⚠️ User ${BOOTSTRAP_ADMIN_EMAIL} exists but is not a SUPER_ADMIN. Set FORCE_BOOTSTRAP_PROMOTE=true to promote.`,
+      );
     }
+  }
 
+  if (bootstrapPerformed) {
+    console.log(`✨ Bootstrap successful!`);
     console.log(`📧 Email: ${BOOTSTRAP_ADMIN_EMAIL}`);
-    console.log(
-      `🔑 Password: [HIDDEN] (Use ADMIN_BOOTSTRAP_PASSWORD environment variable)`,
-    );
-    console.log(
-      `Important: Remember to change your password immediately upon logging in.`,
-    );
+    console.log(`🔑 Password: [HIDDEN] (Use ADMIN_BOOTSTRAP_PASSWORD)`);
   }
 
   // 2. Seed Product Associations (Cross-Selling)
@@ -233,12 +228,12 @@ async function main() {
   // 3. Seed Sample Building Materials Catalogue
   console.log(`\n🏪 Seeding Sample Merchant & Products...`);
   const DEMO_MERCHANT_EMAIL = "merchant@demo.swifttrade.ng";
-  const DEMO_PASSWORD = "DemoMerchant123!";
-  const demoPasswordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
-
+  const DEMO_PASSWORD = process.env.DEV_DEMO_MERCHANT_PASSWORD;
+  
   let merchantUser = await prisma.user.findUnique({ where: { email: DEMO_MERCHANT_EMAIL } });
   
-  if (!merchantUser) {
+  if (!merchantUser && DEMO_PASSWORD) {
+    const demoPasswordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
     merchantUser = await prisma.user.create({
       data: {
         email: DEMO_MERCHANT_EMAIL,
@@ -251,7 +246,7 @@ async function main() {
           create: {
             businessName: "Demo Building Materials Ltd",
             businessAddress: "123 Trade Way, Lagos",
-            verificationTier: "VERIFIED",
+            verificationTier: "BASIC",
           }
         }
       }
@@ -261,14 +256,9 @@ async function main() {
 
   const merchantProfile = await prisma.merchantProfile.findFirst({ where: { userId: merchantUser.id } });
   
-  if (merchantProfile) {
-    // Check if products exist for this merchant
-    const productCount = await prisma.product.count({ where: { merchantId: merchantProfile.id } });
-    
-    if (productCount === 0) {
-      console.log(`📦 Creating sample building materials for Demo Merchant...`);
-      
-      // categoryTag values match the PRODUCT_CATEGORIES constant from shared package
+    if (merchantProfile) {
+      console.log(`📦 Checking sample building materials for Demo Merchant...`);
+
       const sampleProducts = [
         {
           name: "Dangote Cement 3X (50kg Bag)",
@@ -320,30 +310,46 @@ async function main() {
         },
       ];
 
-      let seededCount = 0;
       for (const prod of sampleProducts) {
         await prisma.$transaction(async (tx) => {
-          const product = await tx.product.create({
-            data: {
+          // Check for existence by merchantId + name
+          const existing = await tx.product.findFirst({
+            where: {
               merchantId: merchantProfile.id,
-              ...prod,
-            }
+              name: prod.name,
+            },
           });
-          
-          await tx.productStockCache.create({
-            data: {
-              productId: product.id,
+
+          let productId: string;
+
+          if (existing) {
+            await tx.product.update({
+              where: { id: existing.id },
+              data: prod,
+            });
+            productId = existing.id;
+          } else {
+            const newProd = await tx.product.create({
+              data: {
+                merchantId: merchantProfile.id,
+                ...prod,
+              },
+            });
+            productId = newProd.id;
+          }
+
+          await tx.productStockCache.upsert({
+            where: { productId },
+            create: {
+              productId,
               stock: 1000,
-            }
+            },
+            update: {},
           });
         });
-        seededCount++;
       }
-      console.log(`✅ Seeded ${seededCount} sample products for the Demo Merchant.`);
-    } else {
-      console.log(`✅ Demo merchant already has ${productCount} products.`);
+      console.log(`✅ Sample products verified/seeded for Demo Merchant.`);
     }
-  }
 }
 
 main()
