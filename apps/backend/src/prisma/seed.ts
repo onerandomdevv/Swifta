@@ -235,7 +235,7 @@ async function main() {
         phone: "+2348000000001",
         firstName: "Demo",
         lastName: "Merchant",
-        passwordHash: passwordHash,
+        passwordHash: await bcrypt.hash("Password123!", 10),
         role: UserRole.MERCHANT,
         merchantProfile: {
           create: {
