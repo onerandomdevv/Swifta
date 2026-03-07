@@ -295,7 +295,10 @@ export default function EditProductPage() {
                   <select
                     value={formData.categoryTag as any}
                     onChange={(e) =>
-                      setFormData({ ...formData, categoryTag: e.target.value as any })
+                      setFormData({
+                        ...formData,
+                        categoryTag: e.target.value as any,
+                      })
                     }
                     className="w-full px-5 py-4 text-sm font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-slate-700 dark:text-slate-300 appearance-none"
                   >
@@ -304,7 +307,9 @@ export default function EditProductPage() {
                         {cat}
                       </option>
                     ))}
-                    {!PRODUCT_CATEGORIES.includes(formData.categoryTag) && (
+                    {!PRODUCT_CATEGORIES.includes(
+                      formData.categoryTag as any,
+                    ) && (
                       <option value={formData.categoryTag}>
                         {formData.categoryTag} (Legacy)
                       </option>

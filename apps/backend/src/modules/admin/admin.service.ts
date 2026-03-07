@@ -9,6 +9,7 @@ import { VerificationStatus, OrderStatus, UserRole } from "@hardware-os/shared";
 import * as bcrypt from "bcrypt";
 import { RedisService } from "../../redis/redis.service";
 import { AuditLogService } from "./audit-log.service";
+import { VerificationService } from "../verification/verification.service";
 
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
 
@@ -154,7 +155,9 @@ export class AdminService {
     // Filter to only merchants whose LATEST request is PENDING or REJECTED
     return merchants.filter((m) => {
       const latest = m.verificationRequests[0];
-      return latest && (latest.status === "PENDING" || latest.status === "REJECTED");
+      return (
+        latest && (latest.status === "PENDING" || latest.status === "REJECTED")
+      );
     });
   }
 
