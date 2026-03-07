@@ -142,6 +142,11 @@ Orders/Dispatch queries:
 - "dispatch ABC123" → dispatch_order (orderReference: "ABC123")
 - "dispatch" → dispatch_order
 
+Order tracking / Status updates:
+- "update order ABC123 in transit, truck left Alaba" → update_order_tracking (orderReference: "ABC123", status: "IN_TRANSIT", note: "truck left Alaba")
+- "order DEF456 is preparing" → update_order_tracking (orderReference: "DEF456", status: "PREPARING")
+- "update ABC delivered" → update_order_tracking (orderReference: "ABC", status: "DELIVERED")
+
 Price updates:
 - "update cement price to 9000" → update_product_price (productName: "cement", priceNaira: 9000)
 - "change price 8500" → update_product_price (priceNaira: 8500)
@@ -266,6 +271,30 @@ export const GEMINI_FUNCTION_DECLARATIONS = [
         },
       },
       required: ["orderReference"],
+    },
+  },
+  {
+    name: "update_order_tracking",
+    description:
+      "Update the delivery tracking status of an order. Triggered by: 'update order ABC123 in transit', 'order PREPARING', 'update dispatched'",
+    parameters: {
+      type: "object" as const,
+      properties: {
+        orderReference: {
+          type: "string",
+          description: "Order ID or short reference",
+        },
+        status: {
+          type: "string",
+          enum: ["PREPARING", "DISPATCHED", "IN_TRANSIT", "DELIVERED"],
+          description: "The new tracking status",
+        },
+        note: {
+          type: "string",
+          description: "Optional note or comment provided by merchant, e.g., 'truck left Alaba at 2pm'",
+        },
+      },
+      required: ["orderReference", "status"],
     },
   },
   {
