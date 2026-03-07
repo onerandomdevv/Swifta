@@ -6,9 +6,10 @@ import { AdminCronService } from "./admin-cron.service";
 import { AuditLogService } from "./audit-log.service";
 import { AuditLogController } from "./audit-log.controller";
 import { AuthModule } from "../auth/auth.module";
+import { VerificationModule } from "../verification/verification.module";
 
 @Module({
-  imports: [PrismaModule, forwardRef(() => AuthModule)],
+  imports: [PrismaModule, forwardRef(() => AuthModule), VerificationModule],
   controllers: [AdminController, AuditLogController],
   providers: [AdminService, AdminCronService, AuditLogService],
   exports: [AdminService, AuditLogService],
