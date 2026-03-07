@@ -448,23 +448,30 @@ export class OrderService {
     );
 
     // Send relevant notification
-    if (dto.status === OrderStatus.PREPARING) {
-      await this.notifications.triggerOrderPreparing(order.buyerId, {
-        orderId,
-        reference: orderId.slice(0, 8).toUpperCase(),
-      });
-    } else if (dto.status === OrderStatus.DISPATCHED) {
-      await this.notifications.triggerOrderDispatched(order.buyerId, {
-        orderId,
-        reference: orderId.slice(0, 8).toUpperCase(),
-        otp: deliveryOtp as string,
-      });
-    } else if (dto.status === OrderStatus.IN_TRANSIT) {
-      await this.notifications.triggerOrderInTransit(order.buyerId, {
-        orderId,
-        reference: orderId.slice(0, 8).toUpperCase(),
-        note: dto.note,
-      });
+    try {
+      if (dto.status === OrderStatus.PREPARING) {
+        await this.notifications.triggerOrderPreparing(order.buyerId, {
+          orderId,
+          reference: orderId.slice(0, 8).toUpperCase(),
+        });
+      } else if (dto.status === OrderStatus.DISPATCHED) {
+        await this.notifications.triggerOrderDispatched(order.buyerId, {
+          orderId,
+          reference: orderId.slice(0, 8).toUpperCase(),
+          otp: deliveryOtp as string,
+        });
+      } else if (dto.status === OrderStatus.IN_TRANSIT) {
+        await this.notifications.triggerOrderInTransit(order.buyerId, {
+          orderId,
+          reference: orderId.slice(0, 8).toUpperCase(),
+          note: dto.note,
+        });
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to send tracking notification for order ${orderId} (buyer ${order.buyerId})`,
+        error instanceof Error ? error.stack : 'Unknown error',
+      );
     }
 
     return updatedOrder;
