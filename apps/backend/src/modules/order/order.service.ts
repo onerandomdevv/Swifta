@@ -168,7 +168,7 @@ export class OrderService {
       // Estimate weight roughly, e.g., 50kg per unit if Cement, or fallback to 1kg
       const estimatedWeightKg =
         product.unit.toLowerCase() === "bag" ? 50 * quantity : 1 * quantity;
-      const quote = await this.logisticsService.getDeliveryQuote(
+      const quote = await this.logisticsService.getQuote(
         product.merchantProfile.businessAddress,
         deliveryAddress,
         estimatedWeightKg,

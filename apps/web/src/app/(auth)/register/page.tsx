@@ -50,6 +50,9 @@ export default function RegisterPage() {
       middleName: "",
       lastName: "",
       businessName: "",
+      companyName: "",
+      companyAddress: "",
+      cacNumber: "",
       email: "",
       phone: "",
       password: "",
@@ -99,6 +102,9 @@ export default function RegisterPage() {
         lastName: data.lastName,
         password: data.password,
         businessName: data.businessName,
+        companyName: data.companyName,
+        companyAddress: data.companyAddress,
+        cacNumber: data.cacNumber,
         role: data.role,
       } as RegisterDto);
 
@@ -151,7 +157,11 @@ export default function RegisterPage() {
       toast.success("Email verified successfully!");
 
       const dashboardPath =
-        role === UserRole.MERCHANT ? "/merchant/dashboard" : "/buyer/dashboard";
+        role === UserRole.MERCHANT
+          ? "/merchant/dashboard"
+          : role === UserRole.SUPPLIER
+            ? "/supplier/dashboard"
+            : "/buyer/dashboard";
       setTimeout(() => {
         router.push(dashboardPath);
       }, 2000);

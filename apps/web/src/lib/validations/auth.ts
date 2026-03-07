@@ -30,6 +30,9 @@ export const baseRegistrationSchema = z.object({
         "Name can only contain letters, spaces, hyphens, and apostrophes.",
     }),
   businessName: z.string().trim().optional().or(z.literal("")),
+  companyName: z.string().trim().optional().or(z.literal("")),
+  companyAddress: z.string().trim().optional().or(z.literal("")),
+  cacNumber: z.string().trim().optional().or(z.literal("")),
   email: z
     .string()
     .trim()

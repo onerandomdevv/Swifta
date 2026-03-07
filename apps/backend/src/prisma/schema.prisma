@@ -118,11 +118,13 @@ model Order {
   id                String             @id @default(uuid()) @db.Uuid
   quoteId           String?            @unique @map("quote_id") @db.Uuid
   productId         String?            @map("product_id") @db.Uuid
+  supplierProductId String?            @map("supplier_product_id") @db.Uuid
   quantity          Int?
   unitPriceKobo     BigInt?            @map("unit_price_kobo")
   deliveryAddress   String?            @map("delivery_address")
   buyerId           String             @map("buyer_id") @db.Uuid
-  merchantId        String             @map("merchant_id") @db.Uuid
+  merchantId        String?            @map("merchant_id") @db.Uuid
+  supplierId        String?            @map("supplier_id") @db.Uuid
   totalAmountKobo   BigInt             @map("total_amount_kobo")
   deliveryFeeKobo   BigInt             @map("delivery_fee_kobo")
   currency          String             @default("NGN")
@@ -138,9 +140,11 @@ model Order {
   updatedAt         DateTime           @default(now()) @updatedAt @map("updated_at")
   orderEvents       OrderEvent[]
   user              User               @relation(fields: [buyerId], references: [id], onDelete: Cascade)
-  merchantProfile   MerchantProfile    @relation(fields: [merchantId], references: [id])
+  merchantProfile   MerchantProfile?   @relation(fields: [merchantId], references: [id])
+  supplierProfile   SupplierProfile?   @relation(fields: [supplierId], references: [id])
   quote             Quote?             @relation(fields: [quoteId], references: [id])
   product           Product?           @relation(fields: [productId], references: [id])
+  supplierProduct   SupplierProduct?   @relation(fields: [supplierProductId], references: [id])
   payments          Payment[]
   reorderReminder   ReorderReminder?
   payout            Payout?
@@ -709,6 +713,7 @@ model SupplierProfile {
   createdAt       DateTime          @default(now()) @map("created_at")
   user            User              @relation(fields: [userId], references: [id])
   products        SupplierProduct[]
+  orders          Order[]
   @@map("supplier_profiles")
 }
 
@@ -724,6 +729,7 @@ model SupplierProduct {
   isActive           Boolean         @default(true)
   createdAt          DateTime        @default(now()) @map("created_at")
   supplier           SupplierProfile @relation(fields: [supplierId], references: [id])
+  orders             Order[]
   @@map("supplier_products")
 }
 

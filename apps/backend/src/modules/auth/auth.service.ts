@@ -114,8 +114,19 @@ export class AuthService {
               },
             }
           : {}),
+        ...(dto.role === "SUPPLIER" && dto.companyName && dto.companyAddress
+          ? {
+              supplierProfile: {
+                create: {
+                  companyName: dto.companyName,
+                  companyAddress: dto.companyAddress,
+                  cacNumber: dto.cacNumber,
+                },
+              },
+            }
+          : {}),
       },
-      include: { merchantProfile: true },
+      include: { merchantProfile: true, supplierProfile: true },
     });
 
     // Generate and store OTP for email verification

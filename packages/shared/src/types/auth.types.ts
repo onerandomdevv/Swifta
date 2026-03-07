@@ -8,6 +8,9 @@ export interface RegisterDto {
   lastName: string;
   password: string;
   businessName?: string;
+  companyName?: string;
+  companyAddress?: string;
+  cacNumber?: string;
   role: UserRole;
 }
 
@@ -26,6 +29,7 @@ export interface JwtPayload {
   email: string;
   role: UserRole;
   merchantId?: string;
+  supplierId?: string;
 }
 
 export interface AuthenticatedUser {
@@ -36,6 +40,7 @@ export interface AuthenticatedUser {
   lastName: string;
   role: UserRole;
   merchantId?: string;
+  supplierId?: string;
 }
 
 export interface AuthResponse extends TokenPair {

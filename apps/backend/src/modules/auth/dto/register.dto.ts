@@ -46,6 +46,18 @@ export class RegisterDto {
   @IsString()
   businessName?: string;
 
+  @IsOptional()
+  @IsString()
+  companyName?: string;
+
+  @IsOptional()
+  @IsString()
+  companyAddress?: string;
+
+  @IsOptional()
+  @IsString()
+  cacNumber?: string;
+
   @IsEnum(UserRole)
   role: UserRole;
 }

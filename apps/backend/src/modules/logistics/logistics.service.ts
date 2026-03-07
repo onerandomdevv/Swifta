@@ -41,7 +41,8 @@ export class LogisticsService {
       where: { id: orderId },
       include: {
         user: true, // buyer
-        merchantProfile: true, // seller
+        merchantProfile: true, // seller (merchant)
+        supplierProfile: true, // seller (supplier)
         deliveryBooking: true,
       },
     });
@@ -59,7 +60,10 @@ export class LogisticsService {
       // 1. Book with partner
       // Note: We need a reliable pickup address. In a real app we'd fetch the exact warehouse.
       // We fall back to merchant profile business address if warehouse isn't set.
-      const pickupAddress = order.merchantProfile.businessAddress;
+      // Support both merchants and suppliers as sellers
+      const pickupAddress =
+        order.merchantProfile?.businessAddress ||
+        order.supplierProfile?.companyAddress;
       const deliveryAddress = order.deliveryAddress;
       const contactPhone = order.user.phone;
 
@@ -108,7 +112,10 @@ export class LogisticsService {
         data: {
           orderId: order.id,
           method: "PLATFORM_LOGISTICS",
-          pickupAddress: order.merchantProfile?.businessAddress || "Unknown",
+          pickupAddress:
+            order.merchantProfile?.businessAddress ||
+            order.supplierProfile?.companyAddress ||
+            "Unknown",
           deliveryAddress: order.deliveryAddress || "Unknown",
           status: DeliveryStatus.FAILED,
           estimatedCostKobo: order.deliveryFeeKobo,
@@ -140,7 +147,11 @@ export class LogisticsService {
       where: { partnerRef },
       include: {
         order: {
-          include: { user: true, merchantProfile: true },
+          include: {
+            user: true,
+            merchantProfile: true,
+            supplierProfile: true,
+          },
         },
       },
     });
