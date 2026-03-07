@@ -82,6 +82,7 @@ export class ProductService {
 
   async catalogue(
     search: string = "",
+    category: string = "",
     page: number,
     limit: number,
   ): Promise<PaginatedResponse<Product>> {
@@ -90,10 +91,14 @@ export class ProductService {
       deletedAt: null,
     };
 
+    if (category) {
+      where.categoryTag = category;
+    }
+
     if (search) {
       where.OR = [
         { name: { contains: search, mode: "insensitive" } },
-        { categoryTag: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
       ];
     }
 

@@ -63,7 +63,7 @@ export class ProductController {
   @Get("catalogue")
   @UseInterceptors(CacheInterceptor)
   findAllCatalogue(@Query() query: CatalogueQueryDto) {
-    return this.productService.catalogue(query.search, query.page, query.limit);
+    return this.productService.catalogue(query.search, query.category, query.page, query.limit);
   }
 
   @Get(":id")

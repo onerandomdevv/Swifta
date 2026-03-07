@@ -2,34 +2,27 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { getCatalogue } from "@/lib/api/product.api";
-import type { Product } from "@hardware-os/shared";
+import { PRODUCT_CATEGORIES, type Product } from "@hardware-os/shared";
 
 import { CatalogueGrid } from "@/components/buyer/catalogue/catalogue-grid";
 import { CatalogueSkeleton } from "@/components/buyer/catalogue/catalogue-skeleton";
 
 const CATEGORIES = [
-  { label: "All Materials", tag: "All" },
-  { label: "Building Materials", tag: "BUILDING_MATERIALS" },
-  { label: "Metal & Steel", tag: "METAL_STEEL" },
-  { label: "Plumbing", tag: "PLUMBING" },
-  { label: "Electrical", tag: "ELECTRICAL" },
-  { label: "Power Tools", tag: "POWER_TOOLS" },
-  { label: "Safety Gear", tag: "SAFETY_GEAR" },
-  { label: "Heavy Machinery", tag: "HEAVY_MACHINERY" },
-  { label: "Painting", tag: "PAINTING" },
+  { label: "All Categories", tag: "All Categories" },
+  ...PRODUCT_CATEGORIES.map(cat => ({ label: cat, tag: cat }))
 ];
 
 export default function BuyerCataloguePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState("All");
+  const [activeCategory, setActiveCategory] = useState("All Categories");
   const [products, setProducts] = useState<Product[]>([]);
 
-  const fetchProducts = useCallback(async (search: string) => {
+  const fetchProducts = useCallback(async (search: string, category: string) => {
     try {
       setLoading(true);
-      const response = await getCatalogue(search, 1, 50);
+      const response = await getCatalogue(search, category, 1, 50);
       setProducts(response);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load catalogue");
@@ -39,23 +32,19 @@ export default function BuyerCataloguePage() {
   }, []);
 
   useEffect(() => {
-    fetchProducts("");
+      fetchProducts("", "All Categories");
   }, [fetchProducts]);
 
-  // Debounced search
+  // Debounced search + Category change
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchProducts(searchQuery);
+      fetchProducts(searchQuery, activeCategory);
     }, 400);
     return () => clearTimeout(timer);
-  }, [searchQuery, fetchProducts]);
+  }, [searchQuery, activeCategory, fetchProducts]);
 
-  const filteredProducts =
-    activeCategory === "All"
-      ? products
-      : products.filter((p) =>
-          p.categoryTag?.toUpperCase().includes(activeCategory.toUpperCase()),
-        );
+  // Since filtering happens on the backend now, filteredProducts = products.
+  const filteredProducts = products;
 
   if (loading && products.length === 0) {
     return <CatalogueSkeleton />;
