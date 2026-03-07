@@ -5,15 +5,22 @@ import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getProduct } from "@/lib/api/product.api";
-import { createDirectOrder } from "@/lib/api/order.api";
-import { checkBnplEligibility, joinBnplWaitlist, type BnplEligibilityResponse } from "@/lib/api/bnpl.api";
+import { createDirectOrder, getDeliveryQuote } from "@/lib/api/order.api";
+import {
+  checkBnplEligibility,
+  joinBnplWaitlist,
+  type BnplEligibilityResponse,
+} from "@/lib/api/bnpl.api";
 import { useAuth } from "@/providers/auth-provider";
 import type { Product } from "@hardware-os/shared";
 
 function CheckoutBnplSection() {
   const { user } = useAuth();
-  const [eligibility, setEligibility] = useState<BnplEligibilityResponse | null>(null);
-  const [waitlistStatus, setWaitlistStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [eligibility, setEligibility] =
+    useState<BnplEligibilityResponse | null>(null);
+  const [waitlistStatus, setWaitlistStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -38,33 +45,40 @@ function CheckoutBnplSection() {
   return (
     <div className="mt-8 pt-6 border-t border-slate-800 space-y-4">
       <div className="flex items-center gap-2">
-        <span className="material-symbols-outlined text-indigo-400">payments</span>
-        <h3 className="text-xs font-black uppercase text-slate-300 tracking-widest">Pay Later</h3>
-        <span className="text-[9px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Coming Soon</span>
+        <span className="material-symbols-outlined text-indigo-400">
+          payments
+        </span>
+        <h3 className="text-xs font-black uppercase text-slate-300 tracking-widest">
+          Pay Later
+        </h3>
+        <span className="text-[9px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
+          Coming Soon
+        </span>
       </div>
 
       {eligibility.eligible ? (
         <div className="space-y-3">
           <p className="text-[11px] font-medium text-slate-400 leading-relaxed">
-            💳 Pay Later — Coming Soon! You're pre-approved based on your order history.
+            💳 Pay Later — Coming Soon! You're pre-approved based on your order
+            history.
           </p>
           {waitlistStatus === "success" ? (
-             <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-3 py-2 rounded text-center">
-               {message}
-             </p>
+            <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-3 py-2 rounded text-center">
+              {message}
+            </p>
           ) : waitlistStatus === "error" ? (
-             <div className="space-y-2">
-               <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest bg-red-500/10 px-3 py-2 rounded text-center break-words">
-                 {message}
-               </p>
-               <button
-                 type="button"
-                 onClick={handleJoinWaitlist}
-                 className="w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-50 text-slate-300"
-               >
-                 Try Again
-               </button>
-             </div>
+            <div className="space-y-2">
+              <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest bg-red-500/10 px-3 py-2 rounded text-center break-words">
+                {message}
+              </p>
+              <button
+                type="button"
+                onClick={handleJoinWaitlist}
+                className="w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-50 text-slate-300"
+              >
+                Try Again
+              </button>
+            </div>
           ) : (
             <button
               type="button"
@@ -79,7 +93,8 @@ function CheckoutBnplSection() {
       ) : (
         <div className="p-3 bg-slate-800/50 border border-slate-700 rounded opacity-60">
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">
-            💳 Pay Later — Complete {eligibility.ordersNeeded} more orders to unlock
+            💳 Pay Later — Complete {eligibility.ordersNeeded} more orders to
+            unlock
           </p>
         </div>
       )}
@@ -102,6 +117,13 @@ export default function CheckoutPage({
   const [quantity, setQuantity] = useState(1);
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("ESCROW");
+  const [deliveryMethod, setDeliveryMethod] = useState<
+    "MERCHANT_DELIVERY" | "PLATFORM_LOGISTICS"
+  >("MERCHANT_DELIVERY");
+  const [deliveryQuoteKobo, setDeliveryQuoteKobo] = useState<number | null>(
+    null,
+  );
+  const [isQuoting, setIsQuoting] = useState(false);
 
   const merchantTier = (product as any)?.merchantProfile?.verificationTier;
   const isVerifiedMerchant =
@@ -143,6 +165,43 @@ export default function CheckoutPage({
     },
   });
 
+  // Fetch Delivery Quote when address & product are available and PLATFORM_LOGISTICS is selected
+  useEffect(() => {
+    const fetchQuote = async () => {
+      if (
+        deliveryMethod !== "PLATFORM_LOGISTICS" ||
+        deliveryAddress.length < 5 ||
+        !product
+      ) {
+        setDeliveryQuoteKobo(null);
+        return;
+      }
+
+      const pickupAddress = (product as any)?.merchantProfile?.businessAddress;
+      if (!pickupAddress) return;
+
+      setIsQuoting(true);
+      try {
+        const estimatedWeightKg =
+          product.unit.toLowerCase() === "bag" ? 50 * quantity : 1 * quantity;
+        const quote = await getDeliveryQuote(
+          pickupAddress,
+          deliveryAddress,
+          estimatedWeightKg,
+        );
+        setDeliveryQuoteKobo(Number(quote.costKobo));
+      } catch (err) {
+        setDeliveryQuoteKobo(null);
+        console.error("Failed to fetch delivery quote", err);
+      } finally {
+        setIsQuoting(false);
+      }
+    };
+
+    const delayDebounceFn = setTimeout(() => fetchQuote(), 800);
+    return () => clearTimeout(delayDebounceFn);
+  }, [deliveryMethod, deliveryAddress, quantity, product]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!product) return;
@@ -152,19 +211,22 @@ export default function CheckoutPage({
       quantity,
       deliveryAddress,
       paymentMethod: isVerifiedMerchant ? paymentMethod : "ESCROW",
+      deliveryMethod,
     });
   };
 
   const isSubmitting = createOrderMutation.isPending;
 
-  // Calculate totals with dynamic fee
   const priceKobo = product?.pricePerUnitKobo
     ? Number(product.pricePerUnitKobo)
     : 0;
   const subtotalKobo = priceKobo * quantity;
-  const feePercentage = paymentMethod === "DIRECT" && isVerifiedMerchant ? 1 : 2;
+  const feePercentage =
+    paymentMethod === "DIRECT" && isVerifiedMerchant ? 1 : 2;
   const platformFeeKobo = Math.floor(subtotalKobo * (feePercentage / 100));
-  const totalKobo = subtotalKobo + platformFeeKobo;
+  const activeDeliveryFeeKobo =
+    deliveryMethod === "PLATFORM_LOGISTICS" ? deliveryQuoteKobo || 0 : 0;
+  const totalKobo = subtotalKobo + platformFeeKobo + activeDeliveryFeeKobo;
 
   const formatMoney = (kobo: number) =>
     (kobo / 100).toLocaleString("en-NG", {
@@ -274,6 +336,78 @@ export default function CheckoutPage({
             </div>
           </div>
 
+          <div className="bg-white border border-slate-200 rounded p-6 shadow-sm space-y-4">
+            <h2 className="text-sm font-black uppercase text-slate-800 tracking-widest border-b border-slate-100 pb-3">
+              Delivery Method
+            </h2>
+
+            <label
+              className={`flex items-start gap-4 p-4 rounded border-2 cursor-pointer transition-all ${
+                deliveryMethod === "MERCHANT_DELIVERY"
+                  ? "border-primary bg-primary/5"
+                  : "border-slate-200 hover:border-slate-300"
+              }`}
+              onClick={() => setDeliveryMethod("MERCHANT_DELIVERY")}
+            >
+              <input
+                type="radio"
+                name="deliveryMethod"
+                value="MERCHANT_DELIVERY"
+                checked={deliveryMethod === "MERCHANT_DELIVERY"}
+                onChange={() => setDeliveryMethod("MERCHANT_DELIVERY")}
+                className="mt-1 accent-primary"
+              />
+              <div className="flex-1">
+                <p className="text-sm font-black uppercase tracking-wide text-slate-900">
+                  Merchant Delivery
+                </p>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Merchant handles shipping. Tracking is updated manually. Free
+                  or merchant-specified.
+                </p>
+              </div>
+            </label>
+
+            <label
+              className={`flex items-start gap-4 p-4 rounded border-2 cursor-pointer transition-all ${
+                deliveryMethod === "PLATFORM_LOGISTICS"
+                  ? "border-indigo-500 bg-indigo-50"
+                  : "border-slate-200 hover:border-slate-300"
+              }`}
+              onClick={() => setDeliveryMethod("PLATFORM_LOGISTICS")}
+            >
+              <input
+                type="radio"
+                name="deliveryMethod"
+                value="PLATFORM_LOGISTICS"
+                checked={deliveryMethod === "PLATFORM_LOGISTICS"}
+                onChange={() => setDeliveryMethod("PLATFORM_LOGISTICS")}
+                className="mt-1 accent-indigo-500"
+              />
+              <div className="flex-1">
+                <div className="flex justify-between items-start">
+                  <p className="text-sm font-black uppercase tracking-wide text-slate-900 flex items-center gap-2">
+                    SwiftTrade Delivery
+                    <span className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-bold">
+                      📍 GPS TRACKED
+                    </span>
+                  </p>
+                  <p className="text-sm font-black text-indigo-600">
+                    {isQuoting
+                      ? "..."
+                      : deliveryQuoteKobo
+                        ? formatMoney(deliveryQuoteKobo)
+                        : ""}
+                  </p>
+                </div>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Professional tracked delivery. Requires a full delivery
+                  address.
+                </p>
+              </div>
+            </label>
+          </div>
+
           {/* Payment Method Selector — only for verified merchants */}
           {isVerifiedMerchant && (
             <div className="bg-white border border-slate-200 rounded p-6 shadow-sm space-y-4">
@@ -351,7 +485,8 @@ export default function CheckoutPage({
             <div>
               <p className="text-lg font-bold uppercase">{product.name}</p>
               <p className="text-xs text-primary font-bold uppercase tracking-wider mt-1">
-                {(product as any).merchantProfile?.businessName || "Verified Merchant"}
+                {(product as any).merchantProfile?.businessName ||
+                  "Verified Merchant"}
               </p>
             </div>
 
@@ -376,6 +511,20 @@ export default function CheckoutPage({
                 <span>Platform Fee ({feePercentage}%)</span>
                 <span>{formatMoney(platformFeeKobo)}</span>
               </div>
+              {deliveryMethod === "PLATFORM_LOGISTICS" && (
+                <div className="flex justify-between items-center text-indigo-300">
+                  <span>SwiftTrade Delivery</span>
+                  <span className="font-bold flex items-center gap-2">
+                    {isQuoting ? (
+                      <span className="material-symbols-outlined text-xs animate-spin">
+                        sync
+                      </span>
+                    ) : (
+                      formatMoney(activeDeliveryFeeKobo)
+                    )}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="pt-4 border-t border-slate-800 flex justify-between items-center text-lg">
