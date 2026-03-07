@@ -1,4 +1,5 @@
-import { IsOptional, IsString, IsInt, Min, IsBoolean } from "class-validator";
+import { IsOptional, IsString, IsInt, Min, IsBoolean, IsIn } from "class-validator";
+import { PRODUCT_CATEGORIES } from "@hardware-os/shared";
 
 export class UpdateProductDto {
   @IsOptional()
@@ -15,6 +16,7 @@ export class UpdateProductDto {
 
   @IsOptional()
   @IsString()
+  @IsIn(PRODUCT_CATEGORIES, { message: "Invalid category" })
   categoryTag?: string;
 
   @IsOptional()

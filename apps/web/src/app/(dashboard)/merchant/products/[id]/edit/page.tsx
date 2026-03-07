@@ -9,7 +9,7 @@ import {
   uploadProductImage,
 } from "@/lib/api/product.api";
 import { getStock, adjustStock } from "@/lib/api/inventory.api";
-import type { Product } from "@hardware-os/shared";
+import { PRODUCT_CATEGORIES, type Product } from "@hardware-os/shared";
 
 export default function EditProductPage() {
   const router = useRouter();
@@ -299,16 +299,11 @@ export default function EditProductPage() {
                     }
                     className="w-full px-5 py-4 text-sm font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-slate-700 dark:text-slate-300 appearance-none"
                   >
-                    <option value="BUILDING_MATERIALS">
-                      Building Materials
-                    </option>
-                    <option value="METAL_STEEL">Metal &amp; Steel</option>
-                    <option value="POWER_TOOLS">Power Tools</option>
-                    <option value="HEAVY_MACHINERY">Heavy Machinery</option>
-                    <option value="SAFETY_GEAR">Safety Gear</option>
-                    <option value="PLUMBING">Plumbing</option>
-                    <option value="ELECTRICAL">Electrical</option>
-                    <option value="PAINTING">Painting</option>
+                    {PRODUCT_CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
                   </select>
                   <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
                     expand_more
