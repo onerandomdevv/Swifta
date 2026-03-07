@@ -22,10 +22,11 @@ import {
   Order,
 } from "@hardware-os/shared";
 import { paginate } from "../../common/utils/pagination";
-import { validateTransition } from "./order-state-machine";
+import { validateTransition, getNextStates } from "./order-state-machine";
 import * as crypto from "crypto";
 import { VerificationService } from "../verification/verification.service";
 import { CreateDirectOrderDto } from "./dto/create-direct-order.dto";
+import { CreateTrackingDto } from "./dto/create-tracking.dto";
 
 @Injectable()
 export class OrderService {
@@ -355,21 +356,29 @@ export class OrderService {
     if (order.merchantId !== merchantId)
       throw new ForbiddenException("Access denied");
 
-    if (order.status !== OrderStatus.PAID) {
-      throw new BadRequestException("Order must be in PAID status to dispatch");
+    if (order.status !== OrderStatus.PAID && order.status !== OrderStatus.PREPARING) {
+      throw new BadRequestException("Order must be in PAID or PREPARING status to dispatch");
     }
 
     // Crypto-secure 6-digit OTP
-    const deliveryOtp = crypto.randomInt(100000, 999999).toString();
+    const deliveryOtp = order.deliveryOtp || crypto.randomInt(100000, 999999).toString();
 
     // Resolve triggeredBy (userId from merchantId)
     const triggeredBy = await this.getUserIdFromMerchant(merchantId);
 
-    // Save OTP + transition atomically
-    await this.prisma.order.update({
-      where: { id: orderId },
-      data: { deliveryOtp },
-    });
+    // Save OTP + tracking record atomically
+    await this.prisma.$transaction([
+      this.prisma.order.update({
+        where: { id: orderId },
+        data: { deliveryOtp },
+      }),
+      this.prisma.orderTracking.create({
+        data: {
+          orderId,
+          status: OrderStatus.DISPATCHED,
+        },
+      }),
+    ]);
 
     const updatedOrder = await this.transition(
       orderId,
@@ -391,6 +400,94 @@ export class OrderService {
   }
 
   // ──────────────────────────────────────────────
+  //  TRACKING (merchant)
+  // ──────────────────────────────────────────────
+
+  async addTracking(merchantId: string, orderId: string, dto: CreateTrackingDto) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
+    if (!order) throw new NotFoundException("Order not found");
+    if (order.merchantId !== merchantId)
+      throw new ForbiddenException("Access denied");
+
+    // Check valid next states via state machine
+    const allowedNext = getNextStates(order.status as OrderStatus);
+    if (!allowedNext.includes(dto.status)) {
+      throw new BadRequestException(`Cannot transition from ${order.status} to ${dto.status}`);
+    }
+
+    // Handle OTP generation if transitioning to DISPATCHED
+    let deliveryOtp = order.deliveryOtp;
+    if (dto.status === OrderStatus.DISPATCHED && !deliveryOtp) {
+      deliveryOtp = crypto.randomInt(100000, 999999).toString();
+      await this.prisma.order.update({
+        where: { id: orderId },
+        data: { deliveryOtp },
+      });
+    }
+
+    // Resolve triggeredBy
+    const triggeredBy = await this.getUserIdFromMerchant(merchantId);
+
+    // Create tracking record
+    await this.prisma.orderTracking.create({
+      data: {
+        orderId,
+        status: dto.status,
+        note: dto.note,
+      },
+    });
+
+    const updatedOrder = await this.transition(
+      orderId,
+      order.status as OrderStatus,
+      dto.status,
+      triggeredBy,
+      { action: "tracking_update", note: dto.note },
+    );
+
+    // Send relevant notification
+    if (dto.status === OrderStatus.PREPARING) {
+      await this.notifications.triggerOrderPreparing(order.buyerId, {
+        orderId,
+        reference: orderId.slice(0, 8).toUpperCase(),
+      });
+    } else if (dto.status === OrderStatus.DISPATCHED) {
+      await this.notifications.triggerOrderDispatched(order.buyerId, {
+        orderId,
+        reference: orderId.slice(0, 8).toUpperCase(),
+        otp: deliveryOtp as string,
+      });
+    } else if (dto.status === OrderStatus.IN_TRANSIT) {
+      await this.notifications.triggerOrderInTransit(order.buyerId, {
+        orderId,
+        reference: orderId.slice(0, 8).toUpperCase(),
+        note: dto.note,
+      });
+    }
+
+    return updatedOrder;
+  }
+
+  async getTracking(orderId: string, userId: string, merchantId?: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
+    if (!order) throw new NotFoundException("Order not found");
+    
+    // Ensure permission
+    if (order.buyerId !== userId && order.merchantId !== merchantId) {
+      throw new ForbiddenException("Access denied");
+    }
+
+    return this.prisma.orderTracking.findMany({
+      where: { orderId },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  // ──────────────────────────────────────────────
   //  CONFIRM DELIVERY (buyer only, verifies OTP)
   // ──────────────────────────────────────────────
 
@@ -403,9 +500,9 @@ export class OrderService {
       throw new ForbiddenException("Access denied");
 
     // Explicit status check before OTP validation
-    if (order.status !== OrderStatus.DISPATCHED) {
+    if (order.status !== OrderStatus.DISPATCHED && order.status !== OrderStatus.IN_TRANSIT) {
       throw new BadRequestException(
-        "Order must be in DISPATCHED status to confirm delivery",
+        "Order must be in DISPATCHED or IN_TRANSIT status to confirm delivery",
       );
     }
 
@@ -413,10 +510,10 @@ export class OrderService {
       throw new BadRequestException("Invalid OTP");
     }
 
-    // Transition: DISPATCHED → DELIVERED
+    // Transition: CURRENT_STATUS → DELIVERED
     await this.transition(
       orderId,
-      OrderStatus.DISPATCHED,
+      order.status as OrderStatus,
       OrderStatus.DELIVERED,
       buyerId,
       { action: "delivery_confirmed" },

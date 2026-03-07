@@ -127,6 +127,13 @@ export class WhatsAppService {
           );
         case "get_products":
           return this.handleGetProducts(merchantId);
+        case "update_order_tracking":
+          return this.handleUpdateOrderTracking(
+            merchantId,
+            intent.params.orderReference,
+            intent.params.status,
+            intent.params.note,
+          );
         case "friendly_fallback":
           return FRIENDLY_FALLBACK;
         case "show_menu":
@@ -547,6 +554,57 @@ export class WhatsAppService {
       return `✅ Order #${orderReference.toUpperCase()} dispatched successfully!\n\nOTP Code don go to the buyer. Dem go give you when dem receive am.`;
     } catch (error: any) {
       return `❌ Couldn't dispatch: ${error.message}`;
+    }
+  }
+
+  /**
+   * 🚚 Update Order Tracking
+   */
+  private async handleUpdateOrderTracking(
+    merchantId: string,
+    orderReference?: string,
+    status?: string,
+    note?: string,
+  ): Promise<string> {
+    if (!orderReference || !status) {
+      return `Please provide the order reference and the new status.\n\nE.g. *"update order ABC123 in transit"*`;
+    }
+
+    // Fetch active orders to find matching short ID
+    const activeOrders = await this.prisma.order.findMany({
+      where: {
+        merchantId,
+        status: { notIn: ["CANCELLED", "COMPLETED", "DISPUTE"] },
+      },
+      select: { id: true },
+    });
+
+    const targetOrder = activeOrders.find((o) =>
+      o.id.toLowerCase().startsWith(orderReference.toLowerCase()),
+    );
+
+    if (!targetOrder) {
+      return `❌ I no see any active order with ID "${orderReference}". Check your spelling!`;
+    }
+
+    // Must map string status back to OrderStatus enum based on what Gemini outputs
+    const validStatuses = ["PREPARING", "DISPATCHED", "IN_TRANSIT", "DELIVERED"];
+    if (!validStatuses.includes(status)) {
+       return `❌ Invalid status. Must be PREPARING, DISPATCHED, IN_TRANSIT, or DELIVERED.`;
+    }
+
+    try {
+      await this.orderService.addTracking(merchantId, targetOrder.id, {
+        status: status as OrderStatus,
+        note,
+      });
+
+      let msg = `✅ Order #${orderReference.toUpperCase()} status updated to *${status}*.\n`;
+      if (note) msg += `Note: "${note}"\n`;
+      msg += `\nThe buyer don get the notification! 🚀`;
+      return msg;
+    } catch (error: any) {
+      return `❌ Couldn't update tracking: ${error.message}`;
     }
   }
 

@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getOrder, dispatchOrder } from "@/lib/api/order.api";
+import { getOrder, addTracking, getTracking } from "@/lib/api/order.api";
 import type { Order } from "@hardware-os/shared";
 
 // Extracted Components
@@ -23,12 +23,20 @@ export default function MerchantOrderDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<Order | null>(null);
+  const [trackingEvents, setTrackingEvents] = useState<any[]>([]);
+  const [transitNote, setTransitNote] = useState("");
 
   useEffect(() => {
     async function fetchOrder() {
       try {
-        const data = await getOrder(id as string);
-        setOrder(data as any as Order);
+        const [data, trackingData] = await Promise.all([
+          getOrder(id as string),
+          getTracking(id as string).catch(() => []),
+        ]);
+        const orderData = (data as any).data || data;
+        const trackingList = (trackingData as any).data || trackingData;
+        setOrder(orderData as Order);
+        setTrackingEvents(Array.isArray(trackingList) ? trackingList : []);
       } catch (err: any) {
         setError(err?.message || "Failed to load order");
       } finally {
@@ -38,22 +46,23 @@ export default function MerchantOrderDetailsPage() {
     fetchOrder();
   }, [id]);
 
-  const dispatchMutation = useMutation({
-    mutationFn: () => dispatchOrder(order?.id as string),
-    onMutate: async () => {
+  const trackingMutation = useMutation({
+    mutationFn: ({ status, note }: { status: string; note?: string }) =>
+      addTracking(order?.id as string, status, note),
+    onMutate: async ({ status }) => {
       // Optimistic update
       await queryClient.cancelQueries({ queryKey: ["merchant", "orders"] });
 
       const previousOrder = { ...order };
 
       if (order) {
-        setOrder({ ...order, status: "DISPATCHED" as any });
+        setOrder({ ...order, status: status as any });
       }
 
       return { previousOrder };
     },
     onError: (err: any, _, context) => {
-      setError(err?.message || "Failed to dispatch order");
+      setError(err?.message || `Failed to update status`);
       if (context?.previousOrder) {
         setOrder(context.previousOrder as Order);
       }
@@ -62,17 +71,26 @@ export default function MerchantOrderDetailsPage() {
       queryClient.invalidateQueries({ queryKey: ["merchant", "orders"] });
     },
     onSuccess: (updated) => {
-      setOrder(updated as any as Order);
+      const updatedOrder = (updated as any).data || updated;
+      setOrder(updatedOrder as Order);
+      // Re-fetch tracking to get latest notes
+      getTracking(order?.id as string)
+        .then((res) => {
+          const list = (res as any).data || res;
+          if (Array.isArray(list)) setTrackingEvents(list);
+        })
+        .catch(console.error);
+      setTransitNote("");
     },
   });
 
-  const handleDispatch = () => {
+  const handleUpdateStatus = (status: string, note?: string) => {
     if (!order) return;
     setError(null);
-    dispatchMutation.mutate();
+    trackingMutation.mutate({ status, note });
   };
 
-  const dispatching = dispatchMutation.isPending;
+  const isUpdating = trackingMutation.isPending;
 
   if (loading) {
     return (
@@ -137,22 +155,58 @@ export default function MerchantOrderDetailsPage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-4">
+        <div className="flex flex-col gap-4 items-end">
           <StatusBadge
             status={order.status}
-            className="px-6 py-3 text-[10px] tracking-[0.2em]"
+            className="px-6 py-3 text-[10px] tracking-[0.2em] w-fit"
           />
           {order.status === "PAID" && (
             <button
-              onClick={handleDispatch}
-              disabled={dispatching}
+              onClick={() => handleUpdateStatus("PREPARING")}
+              disabled={isUpdating}
+              className="flex items-center gap-2 px-8 py-3 bg-navy-dark text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-navy-dark/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-lg">
+                inventory
+              </span>
+              {isUpdating ? "Updating..." : "Mark as Preparing"}
+            </button>
+          )}
+
+          {order.status === "PREPARING" && (
+            <button
+              onClick={() => handleUpdateStatus("DISPATCHED")}
+              disabled={isUpdating}
               className="flex items-center gap-2 px-8 py-3 bg-navy-dark text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-navy-dark/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
             >
               <span className="material-symbols-outlined text-lg">
                 local_shipping
               </span>
-              {dispatching ? "Dispatching..." : "Mark as Dispatched"}
+              {isUpdating ? "Dispatching..." : "Mark as Dispatched"}
             </button>
+          )}
+
+          {order.status === "DISPATCHED" && (
+            <div className="flex items-center gap-2 w-full max-w-sm">
+              <input
+                type="text"
+                placeholder="e.g. Truck left Alaba heading to Lekki"
+                value={transitNote}
+                onChange={(e) => setTransitNote(e.target.value)}
+                className="flex-1 px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl text-xs dark:bg-slate-900 outline-none focus:border-primary transition-colors"
+                disabled={isUpdating}
+              />
+              <button
+                onClick={() => handleUpdateStatus("IN_TRANSIT", transitNote)}
+                disabled={isUpdating}
+                className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
+              >
+                <span className="material-symbols-outlined text-lg">
+                  directions_car
+                </span>
+                {isUpdating ? "..." : "In Transit"}
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -186,7 +240,7 @@ export default function MerchantOrderDetailsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         {" "}
         <div className="lg:col-span-8 space-y-8">
-          <OrderTimeline status={order.status} createdAt={order.createdAt} />
+          <OrderTimeline status={order.status} createdAt={order.createdAt} trackingEvents={trackingEvents} />
           <FulfillmentDetails order={order} />
           <MerchantOrderGuide order={order} />
         </div>

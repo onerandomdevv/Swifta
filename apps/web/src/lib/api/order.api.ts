@@ -23,6 +23,14 @@ export async function dispatchOrder(id: string): Promise<Order> {
   return apiClient.post(`/orders/${id}/dispatch`);
 }
 
+export async function addTracking(id: string, status: string, note?: string): Promise<Order> {
+  return apiClient.post(`/orders/${id}/tracking`, { status, note });
+}
+
+export async function getTracking(id: string): Promise<any[]> {
+  return apiClient.get(`/orders/${id}/tracking`);
+}
+
 export async function confirmDelivery(id: string, otp: string): Promise<Order> {
   return apiClient.post(`/orders/${id}/confirm-delivery`, { otp });
 }

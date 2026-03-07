@@ -18,6 +18,7 @@ import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { CurrentMerchant } from "../../common/decorators/current-merchant.decorator";
 import { UserRole, JwtPayload } from "@hardware-os/shared";
 import { CreateDirectOrderDto } from "./dto/create-direct-order.dto";
+import { CreateTrackingDto } from "./dto/create-tracking.dto";
 
 @Controller("orders")
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -57,6 +58,27 @@ export class OrderController {
   @Get(":id")
   findOne(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.orderService.getById(id, user.sub, user.merchantId);
+  }
+
+  @Post(":id/tracking")
+  @Roles(UserRole.MERCHANT)
+  addTracking(
+    @CurrentMerchant() merchantId: string | undefined,
+    @Param("id") id: string,
+    @Body() dto: CreateTrackingDto,
+  ) {
+    if (!merchantId) {
+      throw new ForbiddenException("Merchant identity required");
+    }
+    return this.orderService.addTracking(merchantId, id, dto);
+  }
+
+  @Get(":id/tracking")
+  getTracking(
+    @CurrentUser() user: JwtPayload,
+    @Param("id") id: string,
+  ) {
+    return this.orderService.getTracking(id, user.sub, user.merchantId);
   }
 
   @Post(":id/dispatch")
