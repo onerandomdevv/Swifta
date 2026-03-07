@@ -22,14 +22,9 @@ function CheckoutBnplSection() {
 
   const handleJoinWaitlist = async (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
-    if (!user?.email) {
-      setWaitlistStatus("error");
-      setMessage("User email not found");
-      return;
-    }
     setWaitlistStatus("loading");
     try {
-      const res = await joinBnplWaitlist({ email: user.email });
+      const res = await joinBnplWaitlist();
       setWaitlistStatus("success");
       setMessage(res.message);
     } catch (err: any) {
