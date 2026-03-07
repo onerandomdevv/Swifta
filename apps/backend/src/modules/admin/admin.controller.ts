@@ -9,13 +9,22 @@ import {
   Req,
   Query,
   Post,
+  BadRequestException,
 } from "@nestjs/common";
 import { AdminService } from "./admin.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { UserRole, OrderStatus } from "@hardware-os/shared";
-import { IsEnum, IsString, IsNotEmpty, IsBoolean, IsIn } from "class-validator";
+import {
+  IsEmail,
+  IsEnum,
+  IsString,
+  IsNotEmpty,
+  IsBoolean,
+  IsIn,
+  MinLength,
+} from "class-validator";
 
 export class CreateAccessTokenDto {
   @IsEnum(UserRole)
@@ -226,5 +235,40 @@ export class AdminController {
   @Roles(UserRole.SUPER_ADMIN)
   revokeAccessToken(@Param("id") tokenId: string, @Req() req: any) {
     return this.adminService.revokeAccessToken(tokenId, req.user.sub);
+  }
+
+  // ─── Supplier Management (E: Admin creates supplier accounts) ───
+
+  @Post("suppliers/create")
+  @Roles(UserRole.SUPER_ADMIN, UserRole.OPERATOR)
+  async createSupplierAccount(
+    @Body()
+    dto: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone: string;
+      password: string;
+      companyName: string;
+      companyAddress: string;
+      cacNumber?: string;
+    },
+    @Req() req: any,
+  ) {
+    return this.adminService.createSupplierAccount(dto, req.user.sub);
+  }
+
+  @Get("suppliers")
+  @Roles(UserRole.SUPER_ADMIN, UserRole.OPERATOR)
+  listSuppliers(@Query("verified") verified?: string) {
+    const isVerified =
+      verified === "true" ? true : verified === "false" ? false : undefined;
+    return this.adminService.listSuppliers(isVerified);
+  }
+
+  @Patch("suppliers/:id/verify")
+  @Roles(UserRole.SUPER_ADMIN, UserRole.OPERATOR)
+  verifySupplier(@Param("id") supplierId: string, @Req() req: any) {
+    return this.adminService.verifySupplier(supplierId, req.user.sub);
   }
 }

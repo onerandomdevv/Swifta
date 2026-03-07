@@ -3,6 +3,7 @@ import {
   Inject,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
   Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
@@ -65,10 +66,14 @@ export class LogisticsService {
         order.merchantProfile?.businessAddress ||
         order.supplierProfile?.companyAddress;
       const deliveryAddress = order.deliveryAddress;
-      const contactPhone = order.user.phone;
+      const contactPhone = order.user?.phone;
 
       if (!pickupAddress || !deliveryAddress) {
         throw new Error("Missing addresses for logistics booking");
+      }
+
+      if (!contactPhone) {
+        throw new Error("Missing contact phone for logistics booking");
       }
 
       this.logger.log(
@@ -133,11 +138,24 @@ export class LogisticsService {
     // 1. For a real provider, extract bookingRef, status, etc.
     // Assuming simple mapping for our mock
     const partnerRef = payload.bookingRef;
-    const newStatus = payload.status as DeliveryStatus;
+    const rawStatus = payload.status;
 
-    if (!partnerRef || !newStatus) {
-      throw new BadRequestException("Invalid webhook payload");
+    if (!partnerRef || typeof partnerRef !== "string" || !partnerRef.trim()) {
+      throw new BadRequestException(
+        "Invalid webhook payload: missing bookingRef",
+      );
     }
+
+    if (
+      !rawStatus ||
+      !Object.values(DeliveryStatus).includes(rawStatus as DeliveryStatus)
+    ) {
+      throw new BadRequestException(
+        `Invalid webhook payload: unknown status "${rawStatus}". Valid values: ${Object.values(DeliveryStatus).join(", ")}`,
+      );
+    }
+
+    const newStatus = rawStatus as DeliveryStatus;
 
     this.logger.log(
       `Received webhook for booking ${partnerRef}: Status ${newStatus}`,
@@ -270,8 +288,8 @@ export class LogisticsService {
       role === UserRole.SUPPORT;
 
     if (!isBuyer && !isMerchant && !isAdmin) {
-      throw new BadRequestException(
-        "Unauthorized to view this tracking information",
+      throw new ForbiddenException(
+        "You do not have permission to view this tracking information",
       );
     }
 

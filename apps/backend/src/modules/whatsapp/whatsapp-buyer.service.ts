@@ -6,11 +6,26 @@ import { ProductService } from "../product/product.service";
 import { WhatsAppBuyerAuthService } from "./whatsapp-buyer-auth.service";
 import { WhatsAppBuyerIntentService } from "./whatsapp-buyer-intent.service";
 import { ParsedIntent } from "./whatsapp-intent.service";
+import { RedisService } from "../../redis/redis.service";
 import {
   BUYER_MAIN_MENU,
   BUYER_FRIENDLY_FALLBACK,
 } from "./whatsapp-buyer.constants";
 import { OrderStatus } from "@hardware-os/shared";
+
+const PENDING_OTP_PREFIX = "wa_pending_otp_";
+const PENDING_OTP_TTL = 600; // 10 minutes
+
+// Helper to mask phone numbers — only show last 4 digits
+function maskPhone(phone: string): string {
+  if (phone.length <= 4) return "****";
+  return `****${phone.slice(-4)}`;
+}
+
+// Helper to get order item name from either product or supplierProduct
+function getOrderItemName(order: any): string {
+  return order.product?.name ?? order.supplierProduct?.name ?? "Unknown Item";
+}
 
 @Injectable()
 export class WhatsAppBuyerService {
@@ -25,6 +40,7 @@ export class WhatsAppBuyerService {
     private productService: ProductService,
     private authService: WhatsAppBuyerAuthService,
     private intentService: WhatsAppBuyerIntentService,
+    private redisService: RedisService,
   ) {
     this.accessToken =
       this.configService.get<string>("WHATSAPP_ACCESS_TOKEN") || "";
@@ -52,16 +68,38 @@ export class WhatsAppBuyerService {
         return;
       }
 
+      // Check for pending OTP confirmation first
+      const pendingOtpKey = `${PENDING_OTP_PREFIX}${buyerId}`;
+      const pendingSession = await this.redisService.get(pendingOtpKey);
+      if (pendingSession) {
+        const pending = JSON.parse(pendingSession);
+        const text = messageText.trim().replace(/\s/g, "");
+        // If input looks like a 6-digit OTP, try to confirm delivery
+        if (/^\d{6}$/.test(text)) {
+          const response = await this.handleOtpConfirmation(
+            buyerId,
+            pending.orderId,
+            text,
+            pendingOtpKey,
+          );
+          await this.sendWhatsAppMessage(phone, response);
+          return;
+        }
+      }
+
       const intent = await this.intentService.parseIntent(messageText);
-      this.logger.log(
-        `Buyer Intent: ${intent.functionName} | Params: ${JSON.stringify(intent.params)} | Phone: ${phone}`,
+
+      // B1: Scrubbed log — mask phone, only log intent function name + param keys (not values)
+      this.logger.debug(
+        `Buyer intent parsed | phone=${maskPhone(phone)} | fn=${intent.functionName} | paramKeys=${Object.keys(intent.params ?? {}).join(",")}`,
       );
 
       const response = await this.executeCommand(buyerId, intent);
       await this.sendWhatsAppMessage(phone, response);
     } catch (error) {
+      // B1: Mask phone in error logs too
       this.logger.error(
-        `Error processing buyer message from ${phone}: ${error instanceof Error ? error.message : error}`,
+        `Error processing buyer message from ${maskPhone(phone)}: ${error instanceof Error ? error.message : error}`,
       );
       await this.sendWhatsAppMessage(
         phone,
@@ -131,10 +169,8 @@ export class WhatsAppBuyerService {
     if (!query)
       return "What kind of product are you looking for? e.g. 'I need 50 bags of Dangote Cement'";
 
-    // For safety, fallback quantity
     const quantity = rawQuantity || 1;
 
-    // Use Prisma full text search or simple 'contains' filter
     const products = await this.prisma.product.findMany({
       where: {
         isActive: true,
@@ -170,8 +206,7 @@ export class WhatsAppBuyerService {
   }
 
   /**
-   * 💸 Buy Product (Generate Paystack checkout link using direct order payload)
-   * Note: Resolves partial IDs from whatsapp search results
+   * 💸 Buy Product (Generate Paystack checkout link)
    */
   private async handleBuyProduct(
     buyerId: string,
@@ -183,10 +218,17 @@ export class WhatsAppBuyerService {
 
     const quantity = rawQuantity || 1;
 
-    // Find product matching full or starting-with ID string
+    // B2: Alias snake_case columns to camelCase explicitly
     const products = await this.prisma.$queryRaw<any[]>`
-      SELECT * FROM products 
-      WHERE id::text LIKE ${partialId + "%"} 
+      SELECT 
+        id, 
+        name, 
+        unit,
+        price_per_unit_kobo AS "pricePerUnitKobo",
+        COALESCE(price_per_unit_kobo, 0) AS "pricePerUnitKobo"
+      FROM products 
+      WHERE id::text LIKE ${partialId + "%"}
+        AND is_active = true
       LIMIT 1
     `;
     const product = products[0];
@@ -194,15 +236,7 @@ export class WhatsAppBuyerService {
     if (!product)
       return `❌ Couldn't find a product with ID starting with "${partialId}". Please check the ID and try again.`;
 
-    // To place an order, the user needs a delivery address.
-    // Given WhatsApp flows, we would typically collect deliveryAddress via state machine.
-    // For V4 MVP simplified flow, we'll generate the order directly with a placeholder,
-    // and rely on the frontend checkout screen via a shortlink.
-    // BUT since the goal is generating Paystack Links IN WhatsApp: we'll call createDirectOrder and link to it.
-
     try {
-      // In a pure WhatsApp flow, we intercept here and text them the Web UI Checkout Link.
-      // E.g 'Click here to fetch accurate delivery bounds and pay securely'
       const appUrl =
         this.configService.get("FRONTEND_URL") || "https://app.swifttrade.com";
       const checkoutLink = `${appUrl}/buyer/checkout/${product.id}`;
@@ -221,7 +255,7 @@ export class WhatsAppBuyerService {
   }
 
   /**
-   * 🚚 Get currently active orders
+   * 🚚 Get currently active orders — B3: include supplierProduct
    */
   private async handleGetActiveOrders(buyerId: string): Promise<string> {
     const orders = await this.prisma.order.findMany({
@@ -235,7 +269,7 @@ export class WhatsAppBuyerService {
           ],
         },
       },
-      include: { product: true },
+      include: { product: true, supplierProduct: true },
     });
 
     if (orders.length === 0)
@@ -244,7 +278,7 @@ export class WhatsAppBuyerService {
     let msg = `🚚 *Your Active Orders:*\n\n`;
     orders.forEach((o) => {
       msg += `*Order #${o.id.substring(0, 8)}*\n`;
-      msg += `📦 Item: ${o.product?.name}\n`;
+      msg += `📦 Item: ${getOrderItemName(o)}\n`;
       msg += `📊 Status: *${o.status.replace(/_/g, " ")}*\n`;
       msg += `💰 Total: ${this.formatNaira(Number(o.totalAmountKobo) + Number(o.deliveryFeeKobo))}\n`;
 
@@ -263,7 +297,7 @@ export class WhatsAppBuyerService {
         buyerId,
         status: { in: [OrderStatus.DELIVERED, OrderStatus.COMPLETED] },
       },
-      include: { product: true },
+      include: { product: true, supplierProduct: true },
       take: 5,
       orderBy: { createdAt: "desc" },
     });
@@ -272,13 +306,16 @@ export class WhatsAppBuyerService {
 
     let msg = `📜 *Your Last 5 Orders:*\n\n`;
     orders.forEach((o) => {
-      msg += `*#${o.id.substring(0, 8)}* — ${o.product?.name}\n`;
+      msg += `*#${o.id.substring(0, 8)}* — ${getOrderItemName(o)}\n`;
       msg += `Status: ${o.status} | Total: ${this.formatNaira(Number(o.totalAmountKobo))}\n\n`;
     });
 
     return msg;
   }
 
+  /**
+   * B4: Confirm Delivery — now persists pending OTP session, uses aliased SQL
+   */
   private async handleConfirmDelivery(
     buyerId: string,
     orderRef?: string,
@@ -286,8 +323,13 @@ export class WhatsAppBuyerService {
     if (!orderRef)
       return `To confirm an order, reply with "Confirm delivery for [Order ID]"`;
 
+    // B2: Alias snake_case columns to camelCase
     const orders = await this.prisma.$queryRaw<any[]>`
-      SELECT * FROM orders 
+      SELECT 
+        id, 
+        delivery_otp AS "deliveryOtp",
+        status
+      FROM orders 
       WHERE buyer_id = ${buyerId}::uuid 
         AND id::text LIKE ${orderRef + "%"} 
         AND status = 'DISPATCHED' 
@@ -298,7 +340,44 @@ export class WhatsAppBuyerService {
     if (!order)
       return `❌ I couldn't find a dispatched order matching "${orderRef}".`;
 
-    return `🚚 To confirm delivery for *${order.id.substring(0, 8)}*, please provide your 6-digit Delivery OTP (or enter it in your web dashboard).`;
+    // B4: Persist pending OTP session so subsequent 6-digit reply can be matched
+    const pendingOtpKey = `${PENDING_OTP_PREFIX}${buyerId}`;
+    await this.redisService.set(
+      pendingOtpKey,
+      JSON.stringify({ orderId: order.id, createdAt: Date.now() }),
+      PENDING_OTP_TTL,
+    );
+
+    return `🚚 To confirm delivery for *Order #${order.id.substring(0, 8)}*, please reply with your 6-digit Delivery OTP. This code was included in your order confirmation. It will expire in 10 minutes.`;
+  }
+
+  /**
+   * B4: Handle incoming OTP from buyer — called when a pending confirmation session exists
+   */
+  private async handleOtpConfirmation(
+    buyerId: string,
+    orderId: string,
+    otp: string,
+    pendingOtpKey: string,
+  ): Promise<string> {
+    try {
+      // Delegate to OrderService for actual OTP verification and status transition
+      await this.orderService.confirmDelivery(buyerId, orderId, otp);
+
+      // Clear session on success
+      await this.redisService.del(pendingOtpKey);
+
+      return `✅ *Delivery Confirmed!* Your order has been marked as delivered and the merchant will receive payment. Thank you for using SwiftTrade! 🎉`;
+    } catch (error: any) {
+      this.logger.warn(
+        `OTP confirmation failed for order ${orderId}: ${error.message}`,
+      );
+
+      // Clear session on failure to prevent replay
+      await this.redisService.del(pendingOtpKey);
+
+      return `❌ Invalid or expired OTP. Please check your code and try again. If you have issues, open a dispute via the web app or contact support.`;
+    }
   }
 
   // =======================================================================

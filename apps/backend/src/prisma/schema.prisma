@@ -134,10 +134,11 @@ model Order {
   deliveryOtp       String?            @map("delivery_otp")
   disputeStatus     OrderDisputeStatus @default(NONE) @map("dispute_status")
   disputeReason     String?            @map("dispute_reason")
-  idempotencyKey    String             @unique @map("idempotency_key")
-  payoutStatus      PayoutStatus       @default(PENDING) @map("payout_status")
-  createdAt         DateTime           @default(now()) @map("created_at")
-  updatedAt         DateTime           @default(now()) @updatedAt @map("updated_at")
+  idempotencyKey      String             @unique @map("idempotency_key")
+  payoutStatus        PayoutStatus       @default(PENDING) @map("payout_status")
+  disputeWindowEndsAt DateTime?          @map("dispute_window_ends_at")
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @default(now()) @updatedAt @map("updated_at")
   orderEvents       OrderEvent[]
   user              User               @relation(fields: [buyerId], references: [id], onDelete: Cascade)
   merchantProfile   MerchantProfile?   @relation(fields: [merchantId], references: [id])
@@ -709,7 +710,7 @@ model SupplierProfile {
   companyName     String            @map("company_name")
   companyAddress  String            @map("company_address")
   cacNumber       String?           @map("cac_number")
-  isVerified      Boolean           @default(false)
+  isVerified      Boolean           @default(false) @map("is_verified")
   createdAt       DateTime          @default(now()) @map("created_at")
   user            User              @relation(fields: [userId], references: [id])
   products        SupplierProduct[]
@@ -726,7 +727,7 @@ model SupplierProduct {
   wholesalePriceKobo BigInt          @map("wholesale_price_kobo")
   minOrderQty        Int             @map("min_order_qty")
   unit               String
-  isActive           Boolean         @default(true)
+  isActive           Boolean         @default(true) @map("is_active")
   createdAt          DateTime        @default(now()) @map("created_at")
   supplier           SupplierProfile @relation(fields: [supplierId], references: [id])
   orders             Order[]

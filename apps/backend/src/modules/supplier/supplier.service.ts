@@ -198,12 +198,21 @@ export class SupplierService {
       return newOrder;
     });
 
-    // Initialize payment for the wholesale order
-    const paymentData = await this.paymentService.initialize(
-      userId,
-      { orderId: order.id },
-      `init-wholesale-${order.id}`,
-    );
+    // Initialize payment — if this fails, compensate by deleting the orphan order
+    let paymentData: any;
+    try {
+      paymentData = await this.paymentService.initialize(
+        userId,
+        { orderId: order.id },
+        `init-wholesale-${order.id}`,
+      );
+    } catch (paymentError) {
+      // Compensate: remove the order so it doesn't sit in PENDING_PAYMENT forever
+      await this.prisma.order.delete({ where: { id: order.id } });
+      throw new BadRequestException(
+        "Payment initialization failed. Please try again.",
+      );
+    }
 
     return {
       orderId: order.id,

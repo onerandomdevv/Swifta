@@ -24,14 +24,14 @@ export class SupplierController {
 
   @Get("profile")
   @Roles(UserRole.SUPPLIER)
-  getProfile(@CurrentUser("id") userId: string) {
+  getProfile(@CurrentUser("sub") userId: string) {
     return this.supplierService.getProfile(userId);
   }
 
   @Post("products")
   @Roles(UserRole.SUPPLIER)
   createProduct(
-    @CurrentUser("id") userId: string,
+    @CurrentUser("sub") userId: string,
     @Body() dto: CreateSupplierProductDto,
   ) {
     return this.supplierService.createProduct(userId, dto);
@@ -39,14 +39,14 @@ export class SupplierController {
 
   @Get("products")
   @Roles(UserRole.SUPPLIER)
-  getMyProducts(@CurrentUser("id") userId: string) {
+  getMyProducts(@CurrentUser("sub") userId: string) {
     return this.supplierService.getMyProducts(userId);
   }
 
   @Put("products/:id")
   @Roles(UserRole.SUPPLIER)
   updateProduct(
-    @CurrentUser("id") userId: string,
+    @CurrentUser("sub") userId: string,
     @Param("id") id: string,
     @Body() dto: UpdateSupplierProductDto,
   ) {

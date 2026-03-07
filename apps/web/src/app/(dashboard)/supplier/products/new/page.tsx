@@ -26,7 +26,7 @@ export default function NewWholesaleProductPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<ProductFormValues>({
-    resolver: zodResolver(productSchema),
+    resolver: zodResolver(productSchema) as any,
     defaultValues: {
       name: "",
       category: "",
@@ -41,7 +41,7 @@ export default function NewWholesaleProductPage() {
     try {
       await createSupplierProduct({
         ...values,
-        wholesalePriceKobo: BigInt(values.wholesalePriceKobo),
+        wholesalePriceKobo: Number(values.wholesalePriceKobo),
       });
       toast.success("Wholesale product listed successfully!");
       router.push("/supplier/products");

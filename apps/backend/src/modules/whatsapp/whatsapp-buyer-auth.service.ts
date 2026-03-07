@@ -182,6 +182,19 @@ export class WhatsAppBuyerAuthService {
     }
 
     try {
+      // Check if this phone is already linked to a DIFFERENT buyer account
+      const existingLinkByPhone =
+        await this.prisma.whatsAppBuyerLink.findUnique({
+          where: { phone },
+        });
+      if (
+        existingLinkByPhone &&
+        existingLinkByPhone.buyerId !== session.data.buyerId
+      ) {
+        await this.redisService.del(sessionKey);
+        return "This phone number is already linked to another account. Please contact support if this is an error.";
+      }
+
       await this.prisma.whatsAppBuyerLink.upsert({
         where: { phone },
         update: {

@@ -124,6 +124,7 @@ export default function CheckoutPage({
     null,
   );
   const [isQuoting, setIsQuoting] = useState(false);
+  const [showMerchantDisclaimer, setShowMerchantDisclaimer] = useState(true);
 
   const merchantTier = (product as any)?.merchantProfile?.verificationTier;
   const isVerifiedMerchant =
@@ -406,6 +407,70 @@ export default function CheckoutPage({
                 </p>
               </div>
             </label>
+
+            {/* Merchant Delivery Disclaimer */}
+            {deliveryMethod === "MERCHANT_DELIVERY" &&
+              showMerchantDisclaimer && (
+                <div className="mt-2 p-4 bg-amber-50 border border-amber-200 rounded-lg space-y-3">
+                  <div className="flex items-start gap-2">
+                    <span className="material-symbols-outlined text-amber-500 mt-0.5 text-lg">
+                      info
+                    </span>
+                    <div className="flex-1">
+                      <p className="text-xs font-black text-amber-800 uppercase tracking-wide mb-2">
+                        📦 Merchant Delivery Selected
+                      </p>
+                      <ul className="space-y-1 text-[11px] text-amber-700 font-medium">
+                        <li>
+                          ✅ Your payment is still 100% protected by SwiftTrade
+                          escrow
+                        </li>
+                        <li>
+                          ✅ You confirm delivery with your OTP code before the
+                          merchant gets paid
+                        </li>
+                        <li>
+                          ⚠️ SwiftTrade does not control delivery timeline,
+                          method, or handling
+                        </li>
+                        <li>
+                          ⚠️ For tracked delivery with real-time updates, choose
+                          SwiftTrade Delivery
+                        </li>
+                      </ul>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowMerchantDisclaimer(false)}
+                      className="text-amber-400 hover:text-amber-600 transition-colors"
+                      aria-label="Dismiss notice"
+                    >
+                      <span className="material-symbols-outlined text-sm">
+                        close
+                      </span>
+                    </button>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDeliveryMethod("PLATFORM_LOGISTICS");
+                        setShowMerchantDisclaimer(true);
+                      }}
+                      className="flex-1 py-2 text-[10px] font-black uppercase tracking-widest bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
+                    >
+                      Switch to SwiftTrade Delivery
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowMerchantDisclaimer(false)}
+                      className="flex-1 py-2 text-[10px] font-black uppercase tracking-widest bg-white border border-amber-300 text-amber-700 rounded hover:bg-amber-50 transition-colors"
+                    >
+                      Continue with Merchant Delivery
+                    </button>
+                  </div>
+                </div>
+              )}
           </div>
 
           {/* Payment Method Selector — only for verified merchants */}
