@@ -1,0 +1,4 @@
+﻿src/modules/logistics/logistics.controller.ts(12,30): error TS2307: Cannot find module '../auth/guards/jwt-auth.guard' or its corresponding type declarations.
+src/modules/logistics/logistics.controller.ts(14,28): error TS2307: Cannot find module '../auth/guards/roles.guard' or its corresponding type declarations.
+src/modules/logistics/logistics.controller.ts(15,23): error TS2307: Cannot find module '../auth/decorators/roles.decorator' or its corresponding type declarations.
+src/modules/logistics/logistics.service.ts(103,15): error TS2339: Property 'stack' does not exist on type 'unknown'.

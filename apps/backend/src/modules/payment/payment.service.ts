@@ -23,7 +23,7 @@ import {
   UserRole,
 } from "@hardware-os/shared";
 import * as crypto from "crypto";
-import { PAYOUT_QUEUE } from "../../queue/queue.constants";
+import { PAYOUT_QUEUE, LOGISTICS_QUEUE } from "../../queue/queue.constants";
 
 @Injectable()
 export class PaymentService {
@@ -37,6 +37,7 @@ export class PaymentService {
     private notifications: NotificationTriggerService,
     private config: ConfigService,
     @InjectQueue(PAYOUT_QUEUE) private payoutQueue: Queue,
+    @InjectQueue(LOGISTICS_QUEUE) private logisticsQueue: Queue,
   ) {}
 
   // ──────────────────────────────────────────────
@@ -491,6 +492,25 @@ export class PaymentService {
             amountKobo: payment.order.totalAmountKobo,
           },
         );
+      }
+
+      // DISPATCH LOGISTICS IF PLATFORM LOGISTICS IS SELECTED
+      if (payment.order.deliveryMethod === "PLATFORM_LOGISTICS") {
+        this.logger.log(
+          `Order ${payment.orderId} uses platform logistics. Auto-queueing booking.`,
+        );
+        try {
+          await this.logisticsQueue.add(
+            "book-pickup",
+            { orderId: payment.orderId },
+            { jobId: `book-logistics-${payment.orderId}` },
+          );
+        } catch (queueErr) {
+          this.logger.error(
+            `Failed to queue logistics booking for order ${payment.orderId}`,
+            queueErr,
+          );
+        }
       }
 
       this.logger.log(

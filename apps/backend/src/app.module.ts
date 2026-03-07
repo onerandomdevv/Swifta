@@ -33,6 +33,7 @@ import { AdminModule } from "./modules/admin/admin.module";
 import { WhatsAppModule } from "./modules/whatsapp/whatsapp.module";
 import { PayoutModule } from "./modules/payout/payout.module";
 import { BnplModule } from "./modules/bnpl/bnpl.module";
+import { LogisticsModule } from "./modules/logistics/logistics.module";
 
 import { LoggerModule } from "./common/logger/logger.module";
 
@@ -108,6 +109,7 @@ import { APP_GUARD } from "@nestjs/core";
     WhatsAppModule,
     PayoutModule,
     BnplModule,
+    LogisticsModule,
   ],
   controllers: [],
   providers: [
