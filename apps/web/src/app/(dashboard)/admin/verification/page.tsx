@@ -238,8 +238,8 @@ export default function AdminVerificationQueuePage() {
                           const parsed = new URL(url);
                           return (
                             parsed.protocol === "https:" &&
-                            (parsed.hostname.endsWith("cloudinary.com") ||
-                              parsed.hostname.endsWith("res.cloudinary.com"))
+                            (parsed.hostname === "cloudinary.com" ||
+                              parsed.hostname.endsWith(".cloudinary.com"))
                           );
                         } catch {
                           return false;
@@ -269,7 +269,21 @@ export default function AdminVerificationQueuePage() {
                            <p className="text-[10px] text-slate-500 font-medium uppercase">Optional but recommended</p>
                         </div>
                       </div>
-                      {selectedRequest.cacCertUrl?.startsWith('http') ? (
+                      {(() => {
+                        const isValidDocumentUrl = (url?: string): boolean => {
+                          if (!url) return false;
+                          try {
+                            const parsed = new URL(url);
+                            return (
+                              parsed.protocol === "https:" &&
+                              (parsed.hostname === "cloudinary.com" ||
+                                parsed.hostname.endsWith(".cloudinary.com"))
+                            );
+                          } catch {
+                            return false;
+                          }
+                        };
+                        return isValidDocumentUrl(selectedRequest.cacCertUrl) ? (
                         <a
                           href={selectedRequest.cacCertUrl}
                           target="_blank"
@@ -280,7 +294,8 @@ export default function AdminVerificationQueuePage() {
                         </a>
                       ) : (
                         <span className="text-[10px] text-red-500 font-bold uppercase tracking-widest">Invalid URL</span>
-                      )}
+                      );
+                      })()}
                     </div>
                   )}
                 </div>

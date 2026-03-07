@@ -467,9 +467,11 @@ export class PaymentService {
             this.logger.log(
               `DIRECT payment — queueing immediate payout for order ${orderData.id}`,
             );
-            await this.payoutQueue.add("process-payout", {
-              orderId: orderData.id,
-            });
+            await this.payoutQueue.add(
+              "process-payout",
+              { orderId: orderData.id },
+              { jobId: `payout-${orderData.id}` },
+            );
           } catch (payoutErr) {
             this.logger.error(
               `Failed to queue immediate payout for DIRECT order ${orderData.id}: ${

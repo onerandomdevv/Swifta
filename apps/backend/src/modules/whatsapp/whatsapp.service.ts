@@ -581,13 +581,19 @@ export class WhatsAppService {
       select: { id: true },
     });
 
-    const targetOrder = activeOrders.find((o) =>
+    const matches = activeOrders.filter((o) =>
       o.id.toLowerCase().startsWith(orderReference.toLowerCase()),
     );
 
-    if (!targetOrder) {
-      return `❌ I no see any active order with ID "${orderReference}". Check your spelling!`;
+    if (matches.length === 0) {
+      return `❌ I no see any active order starting with "${orderReference}". Check your spelling!`;
     }
+
+    if (matches.length > 1) {
+      return `⚠️ I see ${matches.length} orders matching "${orderReference}". Please provide a longer reference so I know which one you mean!`;
+    }
+
+    const targetOrder = matches[0];
 
     // Normalize incoming status string
     const normalizedStatus = status.trim().toUpperCase().replace(/[\s-]/g, '_');

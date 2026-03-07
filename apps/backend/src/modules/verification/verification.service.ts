@@ -57,7 +57,7 @@ export class VerificationService {
         },
         include: {
           merchant: {
-            include: { user: true },
+            select: { id: true, businessName: true, userId: true },
           },
         },
       });
