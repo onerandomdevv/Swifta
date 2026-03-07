@@ -21,9 +21,10 @@ export async function getMyProducts(page = 1, limit = 20): Promise<Product[]> {
   return apiClient.get(`/products?page=${page}&limit=${limit}`);
 }
 
-export async function getCatalogue(search = '', page = 1, limit = 20): Promise<Product[]> {
+export async function getCatalogue(search = '', category = '', page = 1, limit = 20): Promise<Product[]> {
   const query = new URLSearchParams({ page: String(page), limit: String(limit) });
   if (search) query.append('search', search);
+  if (category && category !== 'All Categories') query.append('category', category);
   return apiClient.get(`/products/catalogue?${query.toString()}`);
 }
 

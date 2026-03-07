@@ -4,6 +4,10 @@ import { Type } from 'class-transformer';
 export class CatalogueQueryDto {
   @IsOptional()
   @IsString()
+  category?: string;
+
+  @IsOptional()
+  @IsString()
   search?: string;
 
   @IsOptional()

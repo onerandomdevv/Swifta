@@ -222,6 +222,116 @@ async function main() {
     });
   }
   console.log(`✅ ${associations.length} product associations seeded.`);
+
+  // 3. Seed Sample Building Materials Catalogue
+  console.log(`\n🏪 Seeding Sample Merchant & Products...`);
+  const DEMO_MERCHANT_EMAIL = "merchant@demo.swifttrade.ng";
+  let merchantUser = await prisma.user.findFirst({ where: { email: DEMO_MERCHANT_EMAIL } });
+  
+  if (!merchantUser) {
+    merchantUser = await prisma.user.create({
+      data: {
+        email: DEMO_MERCHANT_EMAIL,
+        phone: "+2348000000001",
+        firstName: "Demo",
+        lastName: "Merchant",
+        passwordHash: passwordHash,
+        role: UserRole.MERCHANT,
+        merchantProfile: {
+          create: {
+            businessName: "Demo Building Materials Ltd",
+            businessAddress: "123 Trade Way, Lagos",
+            verificationTier: "VERIFIED",
+          }
+        }
+      }
+    });
+    console.log(`✨ Demo merchant created: ${DEMO_MERCHANT_EMAIL}`);
+  }
+
+  const merchantProfile = await prisma.merchantProfile.findFirst({ where: { userId: merchantUser.id } });
+  
+  if (merchantProfile) {
+    // Check if products exist for this merchant
+    const productCount = await prisma.product.count({ where: { merchantId: merchantProfile.id } });
+    
+    if (productCount === 0) {
+      console.log(`📦 Creating sample building materials for Demo Merchant...`);
+      
+      const sampleProducts = [
+        {
+          name: "Dangote Cement 3X (50kg Bag)",
+          description: "High quality Portland limestone cement suitable for all general purpose construction projects.",
+          unit: "Bag",
+          pricePerUnitKobo: 950000n, // 9,500 NGN
+          categoryTag: "Cement",
+          minOrderQuantity: 50,
+        },
+        {
+          name: "12mm Iron Rods (TMT)",
+          description: "High-yield Thermo Mechanically Treated (TMT) steel reinforcement bars for structural concrete.",
+          unit: "Length",
+          pricePerUnitKobo: 1250000n,
+          categoryTag: "Iron Rods & Steel",
+          minOrderQuantity: 20,
+        },
+        {
+          name: "9-inch Hollow Concrete Block",
+          description: "Standard 9-inch load-bearing hollow sandcrete blocks, properly cured.",
+          unit: "Piece",
+          pricePerUnitKobo: 55000n, // 550 NGN
+          categoryTag: "Blocks",
+          minOrderQuantity: 500,
+        },
+        {
+          name: "Dulux Emulsion Paint (20 Litres)",
+          description: "Premium quality emulsion paint for interior and exterior walls. Brilliant White color.",
+          unit: "Bucket",
+          pricePerUnitKobo: 4500000n, // 45,000 NGN
+          categoryTag: "Paints & Coatings",
+          minOrderQuantity: 5,
+        },
+        {
+          name: "0.45mm Aluminum Roofing Sheet (Long Span)",
+          description: "Durable corrugated aluminum roofing sheets, available in various colors.",
+          unit: "Meter",
+          pricePerUnitKobo: 420000n, // 4,200 NGN
+          categoryTag: "Roofing Sheets",
+          minOrderQuantity: 100,
+        },
+        {
+          name: "60x60cm Vitrified Floor Tiles",
+          description: "High gloss, anti-slip vitrified ceramic tiles for living rooms and offices. (1 carton = 1.44 sqm)",
+          unit: "Carton",
+          pricePerUnitKobo: 750000n, // 7,500 NGN
+          categoryTag: "Tiles (Floor & Wall)",
+          minOrderQuantity: 20,
+        },
+      ];
+
+      let seededCount = 0;
+      for (const prod of sampleProducts) {
+        const product = await prisma.product.create({
+          data: {
+            merchantId: merchantProfile.id,
+            ...prod,
+          }
+        });
+        
+        // Add some stock
+        await prisma.productStockCache.create({
+          data: {
+            productId: product.id,
+            stock: 1000,
+          }
+        });
+        seededCount++;
+      }
+      console.log(`✅ Seeded ${seededCount} sample products for the Demo Merchant.`);
+    } else {
+      console.log(`✅ Demo merchant already has ${productCount} products.`);
+    }
+  }
 }
 
 main()
