@@ -3,6 +3,7 @@
 import React, { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createProduct, uploadProductImage } from "@/lib/api/product.api";
+import { PRODUCT_CATEGORIES } from "@hardware-os/shared";
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -13,8 +14,8 @@ export default function NewProductPage() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    unit: "bag",
-    categoryTag: "Building Materials",
+    unit: "BAGS",
+    categoryTag: "",
     minOrderQuantity: 1,
     imageUrl: "",
     pricePerUnit: "",
@@ -242,13 +243,19 @@ export default function NewProductPage() {
               Category
             </label>
             <select
+              required
               value={formData.categoryTag}
               onChange={(e) =>
                 setFormData({ ...formData, categoryTag: e.target.value })
               }
               className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all text-slate-400 appearance-none bg-transparent"
             >
-              categoryTag: "BUILDING_MATERIALS",
+              <option value="" disabled>Select Category</option>
+              {PRODUCT_CATEGORIES.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
             </select>
           </div>
         </div>

@@ -6,7 +6,80 @@ import { formatKobo } from '@hardware-os/shared';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getOrder } from '@/lib/api/order.api';
 import { initializePayment } from '@/lib/api/payment.api';
+import { checkBnplEligibility, joinBnplWaitlist, type BnplEligibilityResponse } from '@/lib/api/bnpl.api';
+import { useAuth } from '@/providers/auth-provider';
 import type { Order } from '@hardware-os/shared';
+
+function CheckoutBnplSection() {
+  const { user } = useAuth();
+  const [eligibility, setEligibility] = useState<BnplEligibilityResponse | null>(null);
+  const [waitlistStatus, setWaitlistStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    checkBnplEligibility().then(setEligibility).catch(console.error);
+  }, []);
+
+  if (!eligibility) return null;
+
+  return (
+    <div className="mt-8 pt-6 border-t border-slate-800 space-y-4">
+      <div className="flex items-center gap-2">
+        <span className="material-symbols-outlined text-indigo-400">payments</span>
+        <h3 className="text-xs font-black uppercase text-slate-300 tracking-widest">Pay Later</h3>
+        <span className="text-[9px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Coming Soon</span>
+      </div>
+
+      {eligibility.eligible ? (
+        <div className="space-y-3">
+          <p className="text-[11px] font-medium text-slate-400 leading-relaxed">
+            💳 Pay Later — Coming Soon! You're pre-approved based on your order history.
+          </p>
+          {waitlistStatus === "success" ? (
+             <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-3 py-2 rounded text-center">
+               {message}
+             </p>
+          ) : waitlistStatus === "error" ? (
+             <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest bg-red-500/10 px-3 py-2 rounded text-center">
+               {message}
+             </p>
+          ) : (
+            <button
+              type="button"
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!user?.email) {
+                  setWaitlistStatus("error");
+                  setMessage("User email not found");
+                  return;
+                }
+                setWaitlistStatus("loading");
+                try {
+                  const res = await joinBnplWaitlist();
+                  setWaitlistStatus("success");
+                  setMessage(res.message);
+                } catch (err: any) {
+                  setWaitlistStatus("error");
+                  setMessage(err?.message || String(err) || "Failed to join waitlist");
+                }
+              }}
+              disabled={waitlistStatus === "loading"}
+              className="w-full py-3 bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600/30 border border-indigo-500/30 rounded text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-50"
+            >
+              {waitlistStatus === "loading" ? "Processing..." : "Notify Me"}
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="p-3 bg-slate-800/50 border border-slate-700 rounded opacity-60">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">
+            💳 Pay Later — Complete {eligibility.ordersNeeded} more orders to unlock
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function RFQCheckoutPage() {
     const router = useRouter();
@@ -167,6 +240,8 @@ export default function RFQCheckoutPage() {
                         <p className="mt-8 text-center text-[9px] font-black uppercase tracking-widest text-slate-400 opacity-60 px-6 leading-relaxed">
                             By placing the order, you agree to our terms of escrow and hardware procurement standards.
                         </p>
+
+                        <CheckoutBnplSection />
                     </div>
                 </div>
             </div>

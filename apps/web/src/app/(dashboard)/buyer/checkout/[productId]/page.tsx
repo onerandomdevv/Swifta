@@ -6,7 +6,88 @@ import { useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getProduct } from "@/lib/api/product.api";
 import { createDirectOrder } from "@/lib/api/order.api";
+import { checkBnplEligibility, joinBnplWaitlist, type BnplEligibilityResponse } from "@/lib/api/bnpl.api";
+import { useAuth } from "@/providers/auth-provider";
 import type { Product } from "@hardware-os/shared";
+
+function CheckoutBnplSection() {
+  const { user } = useAuth();
+  const [eligibility, setEligibility] = useState<BnplEligibilityResponse | null>(null);
+  const [waitlistStatus, setWaitlistStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    checkBnplEligibility().then(setEligibility).catch(console.error);
+  }, []);
+
+  const handleJoinWaitlist = async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    setWaitlistStatus("loading");
+    try {
+      const res = await joinBnplWaitlist();
+      setWaitlistStatus("success");
+      setMessage(res.message);
+    } catch (err: any) {
+      setWaitlistStatus("error");
+      setMessage(err?.message || String(err) || "Failed to join waitlist");
+    }
+  };
+
+  if (!eligibility) return null;
+
+  return (
+    <div className="mt-8 pt-6 border-t border-slate-800 space-y-4">
+      <div className="flex items-center gap-2">
+        <span className="material-symbols-outlined text-indigo-400">payments</span>
+        <h3 className="text-xs font-black uppercase text-slate-300 tracking-widest">Pay Later</h3>
+        <span className="text-[9px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Coming Soon</span>
+      </div>
+
+      {eligibility.eligible ? (
+        <div className="space-y-3">
+          <p className="text-[11px] font-medium text-slate-400 leading-relaxed">
+            💳 Pay Later — Coming Soon! You're pre-approved based on your order history.
+          </p>
+          {waitlistStatus === "success" ? (
+             <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-3 py-2 rounded text-center">
+               {message}
+             </p>
+          ) : waitlistStatus === "error" ? (
+             <div className="space-y-2">
+               <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest bg-red-500/10 px-3 py-2 rounded text-center break-words">
+                 {message}
+               </p>
+               <button
+                 type="button"
+                 onClick={handleJoinWaitlist}
+                 className="w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-50 text-slate-300"
+               >
+                 Try Again
+               </button>
+             </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleJoinWaitlist}
+              disabled={waitlistStatus === "loading"}
+              className="w-full py-3 bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600/30 border border-indigo-500/30 rounded text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-50"
+            >
+              {waitlistStatus === "loading" ? "Processing..." : "Notify Me"}
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="p-3 bg-slate-800/50 border border-slate-700 rounded opacity-60">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">
+            💳 Pay Later — Complete {eligibility.ordersNeeded} more orders to unlock
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+type PaymentMethod = "ESCROW" | "DIRECT";
 
 export default function CheckoutPage({
   params,
@@ -20,6 +101,11 @@ export default function CheckoutPage({
 
   const [quantity, setQuantity] = useState(1);
   const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("ESCROW");
+
+  const merchantTier = (product as any)?.merchantProfile?.verificationTier;
+  const isVerifiedMerchant =
+    merchantTier === "VERIFIED" || merchantTier === "TRUSTED";
 
   useEffect(() => {
     async function fetchProduct() {
@@ -65,17 +151,19 @@ export default function CheckoutPage({
       productId: product.id,
       quantity,
       deliveryAddress,
+      paymentMethod: isVerifiedMerchant ? paymentMethod : "ESCROW",
     });
   };
 
   const isSubmitting = createOrderMutation.isPending;
 
-  // Calculate totals
+  // Calculate totals with dynamic fee
   const priceKobo = product?.pricePerUnitKobo
     ? Number(product.pricePerUnitKobo)
     : 0;
   const subtotalKobo = priceKobo * quantity;
-  const platformFeeKobo = Math.floor(subtotalKobo * 0.02); // 2% assumed config
+  const feePercentage = paymentMethod === "DIRECT" && isVerifiedMerchant ? 1 : 2;
+  const platformFeeKobo = Math.floor(subtotalKobo * (feePercentage / 100));
   const totalKobo = subtotalKobo + platformFeeKobo;
 
   const formatMoney = (kobo: number) =>
@@ -185,6 +273,72 @@ export default function CheckoutPage({
               </div>
             </div>
           </div>
+
+          {/* Payment Method Selector — only for verified merchants */}
+          {isVerifiedMerchant && (
+            <div className="bg-white border border-slate-200 rounded p-6 shadow-sm space-y-4">
+              <h2 className="text-sm font-black uppercase text-slate-800 tracking-widest border-b border-slate-100 pb-3">
+                Payment Method
+              </h2>
+
+              <label
+                className={`flex items-start gap-4 p-4 rounded border-2 cursor-pointer transition-all ${
+                  paymentMethod === "ESCROW"
+                    ? "border-primary bg-primary/5"
+                    : "border-slate-200 hover:border-slate-300"
+                }`}
+                onClick={() => setPaymentMethod("ESCROW")}
+              >
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="ESCROW"
+                  checked={paymentMethod === "ESCROW"}
+                  onChange={() => setPaymentMethod("ESCROW")}
+                  className="mt-1 accent-primary"
+                />
+                <div>
+                  <p className="text-sm font-black uppercase tracking-wide text-slate-900">
+                    Pay via Escrow (2% fee)
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    🔒 Your money is held securely until you confirm delivery.
+                    Full buyer protection.
+                  </p>
+                </div>
+              </label>
+
+              <label
+                className={`flex items-start gap-4 p-4 rounded border-2 cursor-pointer transition-all ${
+                  paymentMethod === "DIRECT"
+                    ? "border-emerald-500 bg-emerald-50"
+                    : "border-slate-200 hover:border-slate-300"
+                }`}
+                onClick={() => setPaymentMethod("DIRECT")}
+              >
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="DIRECT"
+                  checked={paymentMethod === "DIRECT"}
+                  onChange={() => setPaymentMethod("DIRECT")}
+                  className="mt-1 accent-emerald-500"
+                />
+                <div>
+                  <p className="text-sm font-black uppercase tracking-wide text-slate-900 flex items-center gap-2">
+                    Pay Direct (1% fee)
+                    <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-bold">
+                      ✅ VERIFIED MERCHANT
+                    </span>
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Money sent to merchant immediately. Lower fee for verified
+                    merchants you trust.
+                  </p>
+                </div>
+              </label>
+            </div>
+          )}
         </div>
 
         {/* Order Summary Sidebar */}
@@ -197,7 +351,7 @@ export default function CheckoutPage({
             <div>
               <p className="text-lg font-bold uppercase">{product.name}</p>
               <p className="text-xs text-primary font-bold uppercase tracking-wider mt-1">
-                {product.merchantProfile?.businessName || "Verified Merchant"}
+                {(product as any).merchantProfile?.businessName || "Verified Merchant"}
               </p>
             </div>
 
@@ -219,7 +373,7 @@ export default function CheckoutPage({
                 </span>
               </div>
               <div className="flex justify-between items-center text-slate-400 text-xs">
-                <span>Platform Fee (2%)</span>
+                <span>Platform Fee ({feePercentage}%)</span>
                 <span>{formatMoney(platformFeeKobo)}</span>
               </div>
             </div>
@@ -255,8 +409,12 @@ export default function CheckoutPage({
           </button>
 
           <p className="text-[10px] text-center text-slate-500 font-medium uppercase tracking-wider">
-            Payments securely processed by Paystack Escrow
+            {paymentMethod === "DIRECT" && isVerifiedMerchant
+              ? "Direct payment to verified merchant via Paystack"
+              : "Payments securely processed by Paystack Escrow"}
           </p>
+
+          <CheckoutBnplSection />
         </div>
       </form>
     </div>

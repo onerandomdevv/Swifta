@@ -12,12 +12,6 @@ async function main() {
     process.env.ADMIN_BOOTSTRAP_EMAIL || LEGACY_ADMIN_EMAIL;
   const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_BOOTSTRAP_PASSWORD;
 
-  if (!DEFAULT_ADMIN_PASSWORD) {
-    throw new Error(
-      "ADMIN_BOOTSTRAP_PASSWORD environment variable is NOT SET.",
-    );
-  }
-
   // 1. Check for ANY existing super-admin to prevent duplicates in existing DBs
   const existingAdmin = await prisma.user.findFirst({
     where: {
@@ -27,68 +21,80 @@ async function main() {
 
   if (existingAdmin) {
     console.log(`✅ Super Admin already exists: ${existingAdmin.email}`);
-    return;
-  }
-
-  const SALT_ROUNDS = 10;
-
-  console.log(`🔒 Hashing master password...`);
-  const passwordHash = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, SALT_ROUNDS);
-
-  console.log(`🚀 Checking for existing user with bootstrap email...`);
-  const existingUser = await prisma.user.findFirst({
-    where: { email: BOOTSTRAP_ADMIN_EMAIL },
-  });
-
-  if (existingUser) {
-    if (existingUser.role !== UserRole.SUPER_ADMIN) {
-      console.log(
-        `Updating existing user ${BOOTSTRAP_ADMIN_EMAIL} to SUPER_ADMIN...`,
+  } else {
+    // Only validate password when we actually need to create/promote an admin
+    if (!DEFAULT_ADMIN_PASSWORD) {
+      throw new Error(
+        "ADMIN_BOOTSTRAP_PASSWORD environment variable is NOT SET.",
       );
-      await prisma.user.update({
-        where: { id: existingUser.id },
+    }
+
+    const SALT_ROUNDS = 10;
+    console.log(`🔒 Hashing master password...`);
+    const passwordHash = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, SALT_ROUNDS);
+
+    console.log(`🚀 Checking for existing user with bootstrap email...`);
+    const existingUser = await prisma.user.findFirst({
+      where: { email: BOOTSTRAP_ADMIN_EMAIL },
+    });
+
+    if (existingUser) {
+      if (existingUser.role !== UserRole.SUPER_ADMIN) {
+        // Safety: require explicit opt-in to promote existing users
+        if (process.env.FORCE_BOOTSTRAP_PROMOTE === "true") {
+          console.log(
+            `⚠️ FORCE_BOOTSTRAP_PROMOTE is set. Promoting ${BOOTSTRAP_ADMIN_EMAIL} to SUPER_ADMIN...`,
+          );
+          await prisma.user.update({
+            where: { id: existingUser.id },
+            data: {
+              role: UserRole.SUPER_ADMIN,
+              passwordHash: passwordHash,
+              adminProfile: {
+                upsert: {
+                  create: { approvalStatus: "APPROVED" },
+                  update: { approvalStatus: "APPROVED" },
+                },
+              },
+            },
+          });
+          console.log(`✨ Existing user upgraded to Super Admin successfully!`);
+        } else {
+          console.log(
+            `⚠️ User ${BOOTSTRAP_ADMIN_EMAIL} exists but is not a SUPER_ADMIN. Set FORCE_BOOTSTRAP_PROMOTE=true to promote.`,
+          );
+        }
+      } else {
+        console.log(`✅ User ${BOOTSTRAP_ADMIN_EMAIL} is already a Super Admin.`);
+      }
+    } else {
+      console.log(`🚀 Creating new Super Admin account...`);
+      await prisma.user.create({
         data: {
-          role: UserRole.SUPER_ADMIN,
+          email: BOOTSTRAP_ADMIN_EMAIL,
+          phone: "+234000000000",
+          firstName: "HARDWARE",
+          lastName: "Admin",
           passwordHash: passwordHash,
+          role: UserRole.SUPER_ADMIN,
           adminProfile: {
-            upsert: {
-              create: { approvalStatus: "APPROVED" },
-              update: { approvalStatus: "APPROVED" },
+            create: {
+              approvalStatus: "APPROVED",
             },
           },
         },
       });
-      console.log(`✨ Existing user upgraded to Super Admin successfully!`);
-    } else {
-      console.log(`✅ User ${BOOTSTRAP_ADMIN_EMAIL} is already a Super Admin.`);
+      console.log(`✨ Super Admin created successfully!`);
     }
-  } else {
-    console.log(`🚀 Creating new Super Admin account...`);
-    await prisma.user.create({
-      data: {
-        email: BOOTSTRAP_ADMIN_EMAIL,
-        phone: "+234000000000",
-        firstName: "HARDWARE",
-        lastName: "Admin",
-        passwordHash: passwordHash,
-        role: UserRole.SUPER_ADMIN,
-        adminProfile: {
-          create: {
-            approvalStatus: "APPROVED",
-          },
-        },
-      },
-    });
-    console.log(`✨ Super Admin created successfully!`);
-  }
 
-  console.log(`📧 Email: ${BOOTSTRAP_ADMIN_EMAIL}`);
-  console.log(
-    `🔑 Password: [HIDDEN] (Use ADMIN_BOOTSTRAP_PASSWORD environment variable)`,
-  );
-  console.log(
-    `Important: Remember to change your password immediately upon logging in.`,
-  );
+    console.log(`📧 Email: ${BOOTSTRAP_ADMIN_EMAIL}`);
+    console.log(
+      `🔑 Password: [HIDDEN] (Use ADMIN_BOOTSTRAP_PASSWORD environment variable)`,
+    );
+    console.log(
+      `Important: Remember to change your password immediately upon logging in.`,
+    );
+  }
 
   // 2. Seed Product Associations (Cross-Selling)
   console.log(`\n📦 Seeding Product Associations...`);
@@ -223,6 +229,121 @@ async function main() {
     });
   }
   console.log(`✅ ${associations.length} product associations seeded.`);
+
+  // 3. Seed Sample Building Materials Catalogue
+  console.log(`\n🏪 Seeding Sample Merchant & Products...`);
+  const DEMO_MERCHANT_EMAIL = "merchant@demo.swifttrade.ng";
+  const DEMO_PASSWORD = "DemoMerchant123!";
+  const demoPasswordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
+
+  let merchantUser = await prisma.user.findUnique({ where: { email: DEMO_MERCHANT_EMAIL } });
+  
+  if (!merchantUser) {
+    merchantUser = await prisma.user.create({
+      data: {
+        email: DEMO_MERCHANT_EMAIL,
+        phone: "+2348000000001",
+        firstName: "Demo",
+        lastName: "Merchant",
+        passwordHash: demoPasswordHash,
+        role: UserRole.MERCHANT,
+        merchantProfile: {
+          create: {
+            businessName: "Demo Building Materials Ltd",
+            businessAddress: "123 Trade Way, Lagos",
+            verificationTier: "VERIFIED",
+          }
+        }
+      }
+    });
+    console.log(`✨ Demo merchant created: ${DEMO_MERCHANT_EMAIL}`);
+  }
+
+  const merchantProfile = await prisma.merchantProfile.findFirst({ where: { userId: merchantUser.id } });
+  
+  if (merchantProfile) {
+    // Check if products exist for this merchant
+    const productCount = await prisma.product.count({ where: { merchantId: merchantProfile.id } });
+    
+    if (productCount === 0) {
+      console.log(`📦 Creating sample building materials for Demo Merchant...`);
+      
+      // categoryTag values match the PRODUCT_CATEGORIES constant from shared package
+      const sampleProducts = [
+        {
+          name: "Dangote Cement 3X (50kg Bag)",
+          description: "High quality Portland limestone cement suitable for all general purpose construction projects.",
+          unit: "Bag",
+          pricePerUnitKobo: 950000n,
+          categoryTag: "Cement",
+          minOrderQuantity: 50,
+        },
+        {
+          name: "12mm Iron Rods (TMT)",
+          description: "High-yield Thermo Mechanically Treated (TMT) steel reinforcement bars for structural concrete.",
+          unit: "Length",
+          pricePerUnitKobo: 1250000n,
+          categoryTag: "Iron Rods & Steel",
+          minOrderQuantity: 20,
+        },
+        {
+          name: "9-inch Hollow Concrete Block",
+          description: "Standard 9-inch load-bearing hollow sandcrete blocks, properly cured.",
+          unit: "Piece",
+          pricePerUnitKobo: 55000n,
+          categoryTag: "Blocks",
+          minOrderQuantity: 500,
+        },
+        {
+          name: "Dulux Emulsion Paint (20 Litres)",
+          description: "Premium quality emulsion paint for interior and exterior walls. Brilliant White color.",
+          unit: "Bucket",
+          pricePerUnitKobo: 4500000n,
+          categoryTag: "Paints & Coatings",
+          minOrderQuantity: 5,
+        },
+        {
+          name: "0.45mm Aluminum Roofing Sheet (Long Span)",
+          description: "Durable corrugated aluminum roofing sheets, available in various colors.",
+          unit: "Meter",
+          pricePerUnitKobo: 420000n,
+          categoryTag: "Roofing Sheets",
+          minOrderQuantity: 100,
+        },
+        {
+          name: "60x60cm Vitrified Floor Tiles",
+          description: "High gloss, anti-slip vitrified ceramic tiles for living rooms and offices. (1 carton = 1.44 sqm)",
+          unit: "Carton",
+          pricePerUnitKobo: 750000n,
+          categoryTag: "Tiles (Floor & Wall)",
+          minOrderQuantity: 20,
+        },
+      ];
+
+      let seededCount = 0;
+      for (const prod of sampleProducts) {
+        await prisma.$transaction(async (tx) => {
+          const product = await tx.product.create({
+            data: {
+              merchantId: merchantProfile.id,
+              ...prod,
+            }
+          });
+          
+          await tx.productStockCache.create({
+            data: {
+              productId: product.id,
+              stock: 1000,
+            }
+          });
+        });
+        seededCount++;
+      }
+      console.log(`✅ Seeded ${seededCount} sample products for the Demo Merchant.`);
+    } else {
+      console.log(`✅ Demo merchant already has ${productCount} products.`);
+    }
+  }
 }
 
 main()

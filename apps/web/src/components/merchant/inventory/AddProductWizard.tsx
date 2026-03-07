@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { createProduct } from "@/lib/api/product.api";
+import { PRODUCT_CATEGORIES } from "@hardware-os/shared";
 // import { Step1BasicInfo } from "./steps/Step1BasicInfo";
 // import { Step2Inventory } from "./steps/Step2Inventory";
 // import { Step3Logistics } from "./steps/Step3Logistics";
@@ -24,7 +25,7 @@ export type ProductDraft = {
 
 const INITIAL_DRAFT: ProductDraft = {
   name: "",
-  categoryTag: "CEMENT",
+  categoryTag: "",
   unit: "BAGS",
   description: "",
   minOrderQuantity: 10,
@@ -178,16 +179,17 @@ export function AddProductWizard() {
                       Category <span className="text-red-500">*</span>
                     </label>
                     <select
+                      required
                       value={draft.categoryTag}
                       onChange={(e) =>
                         updateDraft({ categoryTag: e.target.value })
                       }
                       className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 appearance-none"
                     >
-                      <option value="CEMENT">Cement</option>
-                      <option value="STEEL">Steel & Iron</option>
-                      <option value="ROOFING">Roofing</option>
-                      <option value="PLUMBING">Plumbing</option>
+                      <option value="" disabled>Select Category</option>
+                      {PRODUCT_CATEGORIES.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -398,7 +400,8 @@ export function AddProductWizard() {
         {step < 3 ? (
           <button
             onClick={handleNext}
-            className="px-8 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-colors flex items-center gap-2"
+            disabled={step === 1 && (!draft.name?.trim() || !draft.categoryTag)}
+            className="px-8 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-colors flex items-center gap-2 disabled:opacity-50"
           >
             Continue to Step {step + 1}
             <span className="material-symbols-outlined text-[18px]">

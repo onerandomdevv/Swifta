@@ -16,7 +16,7 @@ export class NotificationTriggerService {
 
   public async addJob(
     userId: string,
-    type: string,
+    type: NotificationType,
     title: string,
     body: string,
     metadata?: any,
@@ -173,17 +173,46 @@ export class NotificationTriggerService {
     );
   }
 
+  async triggerOrderPreparing(
+    buyerId: string,
+    metadata: { orderId: string; reference: string },
+  ) {
+    await this.addJob(
+      buyerId,
+      NotificationType.ORDER_PREPARING,
+      "Order Preparing",
+      "📦 Your order is being prepared! The merchant is packing your goods.",
+      { ...metadata },
+      [NotificationChannel.IN_APP, NotificationChannel.EMAIL, NotificationChannel.WHATSAPP],
+    );
+  }
+
   async triggerOrderDispatched(
     buyerId: string,
     metadata: { orderId: string; reference: string; otp: string },
   ) {
     await this.addJob(
       buyerId,
-      "ORDER_DISPATCHED",
+      NotificationType.ORDER_DISPATCHED,
       "Order Dispatched",
-      `Your order #${metadata.reference.slice(0, 8)} has been dispatched.`,
+      `🚚 Your order has been dispatched! Your delivery code is: ${metadata.otp}`,
       { ...metadata },
-      [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+      [NotificationChannel.IN_APP, NotificationChannel.EMAIL, NotificationChannel.WHATSAPP],
+    );
+  }
+
+  async triggerOrderInTransit(
+    buyerId: string,
+    metadata: { orderId: string; reference: string; note?: string },
+  ) {
+    const noteText = metadata.note ? ` Merchant says: ${metadata.note}` : "";
+    await this.addJob(
+      buyerId,
+      NotificationType.ORDER_IN_TRANSIT,
+      "Order In Transit",
+      `📍 Your order is on the way!${noteText}`,
+      { ...metadata },
+      [NotificationChannel.IN_APP, NotificationChannel.EMAIL, NotificationChannel.WHATSAPP],
     );
   }
 

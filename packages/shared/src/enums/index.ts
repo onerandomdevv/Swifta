@@ -14,3 +14,5 @@ export * from "./order-dispute-status.enum";
 export * from "./verification-tier.enum";
 export * from "./payment-method.enum";
 export * from "./credit-status.enum";
+export * from "./verification-request-status.enum";
+export * from "./verification-id-type.enum";

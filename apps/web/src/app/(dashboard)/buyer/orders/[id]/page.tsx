@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getOrder, confirmDelivery, reportIssue } from "@/lib/api/order.api";
+import { getOrder, confirmDelivery, reportIssue, getTracking } from "@/lib/api/order.api";
 import { initializePayment } from "@/lib/api/payment.api";
 import type { Order } from "@hardware-os/shared";
 import { Modal } from "@/components/ui/modal";
@@ -25,6 +25,7 @@ export default function BuyerOrderDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<Order | null>(null);
+  const [trackingEvents, setTrackingEvents] = useState<any[]>([]);
   const [paying, setPaying] = useState(false);
   const [confirmingOtp, setConfirmingOtp] = useState("");
   const [confirming, setConfirming] = useState(false);
@@ -36,11 +37,19 @@ export default function BuyerOrderDetailsPage() {
   useEffect(() => {
     async function fetchOrder() {
       try {
-        const data = await getOrder(id as string);
+        const [data, trackingData] = await Promise.all([
+          getOrder(id as string),
+          getTracking(id as string).catch((err) => {
+            if (err?.status === 404 || err?.statusCode === 404 || err?.message?.includes("404")) return [];
+            throw err;
+          }),
+        ]);
         // The backend `ResponseTransformInterceptor` wraps everything in `{ data: ... }`.
         // If ApiClient unwraps it once, it might still have a nested `.data` depending on the controller return.
         const orderData = (data as any).data ? (data as any).data : data;
+        const trackingList = (trackingData as any).data ? (trackingData as any).data : trackingData;
         setOrder(orderData as Order);
+        setTrackingEvents(Array.isArray(trackingList) ? trackingList : []);
       } catch (err: any) {
         setError(err?.message || "Failed to load order");
       } finally {
@@ -211,7 +220,11 @@ export default function BuyerOrderDetailsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div className="lg:col-span-8 space-y-8">
-          <OrderTimeline status={order.status} createdAt={order.createdAt} />
+          <OrderTimeline
+            status={order.status}
+            createdAt={order.createdAt}
+            trackingEvents={trackingEvents}
+          />
           <BuyerOrderSummary order={order} />
         </div>
 

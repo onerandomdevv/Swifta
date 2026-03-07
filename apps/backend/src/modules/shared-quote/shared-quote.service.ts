@@ -90,7 +90,7 @@ export class SharedQuoteService {
       where: { slug },
       include: {
         merchantProfile: {
-          select: { businessName: true, verification: true },
+          select: { businessName: true, verificationTier: true },
         },
       },
     });

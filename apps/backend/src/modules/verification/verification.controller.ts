@@ -17,6 +17,7 @@ import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { UserRole } from "@hardware-os/shared";
+import { PaginationQueryDto } from "../../common/dto/pagination-query.dto";
 
 @Controller()
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -43,9 +44,10 @@ export class VerificationController {
   @Get("admin/verification/requests")
   @Roles(UserRole.SUPER_ADMIN, UserRole.OPERATOR)
   getPendingRequests(
-    @Query("page") page: number = 1,
-    @Query("limit") limit: number = 20,
+    @Query() query: PaginationQueryDto,
   ) {
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 20;
     return this.verificationService.getPendingRequests(page, limit);
   }
 

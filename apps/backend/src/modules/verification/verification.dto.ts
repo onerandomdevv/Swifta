@@ -1,21 +1,21 @@
-import { IsString, IsNotEmpty, IsOptional, IsEnum } from "class-validator";
+import { IsString, IsNotEmpty, IsOptional, IsEnum, IsUrl, IsIn } from "class-validator";
+import { VerificationIdType, VerificationRequestStatus } from "@hardware-os/shared";
 
 export class SubmitVerificationDto {
-  @IsString()
-  @IsNotEmpty()
+  @IsUrl({ protocols: ["https"], require_protocol: true })
   governmentIdUrl: string;
 
-  @IsString()
+  @IsEnum(VerificationIdType)
   @IsNotEmpty()
-  idType: string;
+  idType: VerificationIdType;
 
   @IsOptional()
-  @IsString()
+  @IsUrl({ protocols: ["https"], require_protocol: true })
   cacCertUrl?: string;
 }
 
 export class ReviewVerificationDto {
-  @IsEnum(["APPROVED", "REJECTED"])
+  @IsIn(["APPROVED", "REJECTED"], { message: "decision must be APPROVED or REJECTED" })
   decision: "APPROVED" | "REJECTED";
 
   @IsOptional()

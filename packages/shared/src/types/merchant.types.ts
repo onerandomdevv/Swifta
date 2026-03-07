@@ -18,7 +18,6 @@ export interface MerchantProfile {
   bankCode?: string;
   bankAccountNo?: string;
   bankAccountName?: string;
-  verification: VerificationStatus;
   verificationTier: VerificationTier;
   verifiedAt?: Date;
   onboardingStep: number;

@@ -16,10 +16,22 @@ const STEPS = [
     description: "Payment confirmed — in escrow",
   },
   {
+    key: "PREPARING",
+    label: "Preparing",
+    icon: "inventory",
+    description: "Merchant is packing your order",
+  },
+  {
     key: "DISPATCHED",
     label: "Dispatched",
     icon: "local_shipping",
     description: "Merchant has shipped the order",
+  },
+  {
+    key: "IN_TRANSIT",
+    label: "In Transit",
+    icon: "directions_car",
+    description: "Order is on the way",
   },
   {
     key: "DELIVERED",
@@ -44,12 +56,14 @@ function getStepIndex(status: string): number {
 interface OrderTimelineProps {
   status: string;
   createdAt?: string | Date;
+  trackingEvents?: any[];
   className?: string;
 }
 
 export function OrderTimeline({
   status,
   createdAt,
+  trackingEvents = [],
   className = "",
 }: OrderTimelineProps) {
   const activeIndex = getStepIndex(status);
@@ -118,6 +132,7 @@ export function OrderTimeline({
           const isActive = idx === activeIndex;
           const isCompleted = idx < activeIndex;
           const isPending = idx > activeIndex;
+          const stepEvents = trackingEvents.filter((e) => e.status === step.key);
 
           return (
             <div key={step.key} className="flex items-start gap-4 relative">
@@ -169,6 +184,33 @@ export function OrderTimeline({
                 >
                   {step.description}
                 </p>
+
+                {/* Tracking notes */}
+                {stepEvents.map((evt, eIdx) => (
+                  <div
+                    key={evt.id || eIdx}
+                    className="mt-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800"
+                  >
+                    <p className="text-xs text-slate-700 dark:text-slate-300 font-medium">
+                      {evt.note ? (
+                        <span className="flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[14px] text-primary">
+                            chat
+                          </span>
+                          Merchant says: {evt.note}
+                        </span>
+                      ) : (
+                        "Status updated"
+                      )}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-1.5 font-bold tracking-wider uppercase">
+                      {new Date(evt.createdAt).toLocaleString(undefined, {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                    </p>
+                  </div>
+                ))}
               </div>
             </div>
           );

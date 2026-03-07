@@ -12,6 +12,7 @@ export const MAIN_MENU = `Welcome back! 🤝 Here's what I fit help you with:
 5️⃣ Update Stock — "Add 50 bags cement"
 6️⃣ My Products — "Wetin I dey sell?"
 7️⃣ Update Price — "Update cement price to 8500"
+8️⃣ My Verification — "Am I verified?"
 
 Just type a number or tell me wetin you need! 🤝`;
 
@@ -25,6 +26,7 @@ export const FRIENDLY_FALLBACK = `I no too understand that one o 😅 But no wor
 5️⃣ Update Stock — "Add 50 bags cement"
 6️⃣ My Products — "Wetin I dey sell?"
 7️⃣ Update Price — "Update cement price to 8500"
+8️⃣ My Verification — "Am I verified?"
 
 Just tell me wetin you need! 🤝`;
 
@@ -85,6 +87,7 @@ export const NUMBER_INTENT_MAP: Record<string, string> = {
   "5": "update_stock",
   "6": "get_products",
   "7": "update_product_price",
+  "8": "get_verification_status",
 };
 
 // ---------------------------------------------------------------------------
@@ -141,6 +144,18 @@ Orders/Dispatch queries:
 - "my orders" → get_recent_orders
 - "dispatch ABC123" → dispatch_order (orderReference: "ABC123")
 - "dispatch" → dispatch_order
+
+Order tracking / Status updates:
+- "update order ABC123 in transit, truck left Alaba" → update_order_tracking (orderReference: "ABC123", status: "IN_TRANSIT", note: "truck left Alaba")
+- "order DEF456 is preparing" → update_order_tracking (orderReference: "DEF456", status: "PREPARING")
+- "update ABC dispatched" → update_order_tracking (orderReference: "ABC", status: "DISPATCHED")
+
+Verification queries:
+- "verify" → get_verification_status
+- "my verification" → get_verification_status
+- "am I verified" → get_verification_status
+- "verification status" → get_verification_status
+- "check my verification" → get_verification_status
 
 Price updates:
 - "update cement price to 9000" → update_product_price (productName: "cement", priceNaira: 9000)
@@ -269,6 +284,30 @@ export const GEMINI_FUNCTION_DECLARATIONS = [
     },
   },
   {
+    name: "update_order_tracking",
+    description:
+      "Update the delivery tracking status of an order. Triggered by: 'update order ABC123 in transit', 'order PREPARING', 'update dispatched'",
+    parameters: {
+      type: "object" as const,
+      properties: {
+        orderReference: {
+          type: "string",
+          description: "Order ID or short reference",
+        },
+        status: {
+          type: "string",
+          enum: ["PREPARING", "DISPATCHED", "IN_TRANSIT"],
+          description: "The new tracking status",
+        },
+        note: {
+          type: "string",
+          description: "Optional note or comment provided by merchant, e.g., 'truck left Alaba at 2pm'",
+        },
+      },
+      required: ["orderReference", "status"],
+    },
+  },
+  {
     name: "update_product_price",
     description:
       "Update the price of a product. Triggered by: 'update cement price to 9000', 'change price 8500'",
@@ -283,6 +322,12 @@ export const GEMINI_FUNCTION_DECLARATIONS = [
       },
       required: ["productName", "priceNaira"],
     },
+  },
+  {
+    name: "get_verification_status",
+    description:
+      "Get the merchant's current verification tier and status. Triggered by: 'verify', 'my verification', 'am I verified', 'verification status'",
+    parameters: { type: "object" as const, properties: {} },
   },
 ];
 
