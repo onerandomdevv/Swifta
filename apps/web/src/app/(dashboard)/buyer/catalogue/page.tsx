@@ -21,6 +21,7 @@ export default function BuyerCataloguePage() {
 
   const fetchProducts = useCallback(async (search: string, category: string) => {
     try {
+      setError("");
       setLoading(true);
       const response = await getCatalogue(search, category, 1, 50);
       setProducts(response);
@@ -31,11 +32,7 @@ export default function BuyerCataloguePage() {
     }
   }, []);
 
-  useEffect(() => {
-      fetchProducts("", "All Categories");
-  }, [fetchProducts]);
-
-  // Debounced search + Category change
+  // Debounced search will handle the initial fetch since searchQuery defaults to ""
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchProducts(searchQuery, activeCategory);

@@ -134,6 +134,8 @@ export class WhatsAppService {
             intent.params.status,
             intent.params.note,
           );
+        case "get_verification_status":
+          return this.handleGetVerificationStatus(merchantId);
         case "friendly_fallback":
           return FRIENDLY_FALLBACK;
         case "show_menu":
@@ -587,24 +589,76 @@ export class WhatsAppService {
       return `❌ I no see any active order with ID "${orderReference}". Check your spelling!`;
     }
 
+    // Normalize incoming status string
+    const normalizedStatus = status.trim().toUpperCase().replace(/[\s-]/g, '_');
+    
+    // Map common phrases to valid enum values
+    const statusMap: Record<string, string> = {
+      'ON_THE_WAY': 'IN_TRANSIT',
+      'IN_TRANSIT': 'IN_TRANSIT',
+      'DISPATCHED': 'DISPATCHED',
+      'PREPARING': 'PREPARING'
+    };
+    const mappedStatus = statusMap[normalizedStatus] || normalizedStatus;
+
     // Must map string status back to OrderStatus enum based on what Gemini outputs
-    const validStatuses = ["PREPARING", "DISPATCHED", "IN_TRANSIT", "DELIVERED"];
-    if (!validStatuses.includes(status)) {
-       return `❌ Invalid status. Must be PREPARING, DISPATCHED, IN_TRANSIT, or DELIVERED.`;
+    const validStatuses = ["PREPARING", "DISPATCHED", "IN_TRANSIT"];
+    if (!validStatuses.includes(mappedStatus)) {
+       return `❌ Invalid status. Must be PREPARING, DISPATCHED, or IN_TRANSIT. Use the dashboard to mark an order as DELIVERED after OTP confirmation.`;
     }
 
     try {
       await this.orderService.addTracking(merchantId, targetOrder.id, {
-        status: status as OrderStatus,
+        status: mappedStatus as OrderStatus,
         note,
       });
 
-      let msg = `✅ Order #${orderReference.toUpperCase()} status updated to *${status}*.\n`;
+      let msg = `✅ Order #${orderReference.toUpperCase()} status updated to *${mappedStatus}*.\n`;
       if (note) msg += `Note: "${note}"\n`;
       msg += `\nThe buyer don get the notification! 🚀`;
       return msg;
     } catch (error: any) {
       return `❌ Couldn't update tracking: ${error.message}`;
+    }
+  }
+
+  /**
+   * ✅ Get Verification Status
+   */
+  private async handleGetVerificationStatus(
+    merchantId: string,
+  ): Promise<string> {
+    try {
+      const merchant = await this.prisma.merchantProfile.findUnique({
+        where: { id: merchantId },
+        select: { verificationTier: true, businessName: true },
+      });
+
+      if (!merchant) {
+        return `❌ I no fit find your merchant profile. Contact support abeg.`;
+      }
+
+      const tier = (merchant as any).verificationTier || 'UNVERIFIED';
+      const name = merchant.businessName || 'Boss';
+
+      switch (tier) {
+        case 'UNVERIFIED':
+          return `Hey ${name}! 👋\n\nYour account is currently *unverified*.\n\nVisit your dashboard settings to upload your ID and get verified. Verified merchants get lower fees and buyers can pay you directly! 🚀\n\n🔗 Go to: Settings → Get Verified`;
+        case 'BASIC':
+          return `Hey ${name}! 👋\n\nYour account is *Basic* tier.\n\nUpload your government ID on the dashboard to apply for *Verified* status. Benefits include:\n• Lower platform fees (1% vs 2%)\n• Direct payments from buyers\n• Trust badge on your profile ✅`;
+        case 'VERIFIED':
+          return `✅ ${name}, you're a *Verified Merchant*!\n\nYou enjoy:\n• 1% platform fees (lowest tier)\n• Buyers can pay you directly\n• Verified badge on your profile\n\nKeep up the good work! 💪`;
+        case 'TRUSTED':
+          return `⭐ ${name}, you're a *Trusted Merchant*!\n\nHighest trust level with the lowest fees. You're featured in the catalogue and buyers see your ⭐ Trusted badge.\n\nYou don hammer! 🎉`;
+        default:
+          return `Your verification tier is: *${tier}*. Visit your dashboard for more details.`;
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch verification status for merchant ${merchantId}`,
+        error instanceof Error ? error.stack : 'Unknown error',
+      );
+      return `❌ Something went wrong checking your verification status. Try again later.`;
     }
   }
 

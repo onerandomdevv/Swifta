@@ -27,68 +27,67 @@ async function main() {
 
   if (existingAdmin) {
     console.log(`✅ Super Admin already exists: ${existingAdmin.email}`);
-    return;
-  }
+  } else {
+    const SALT_ROUNDS = 10;
 
-  const SALT_ROUNDS = 10;
+    console.log(`🔒 Hashing master password...`);
+    const passwordHash = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, SALT_ROUNDS);
 
-  console.log(`🔒 Hashing master password...`);
-  const passwordHash = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, SALT_ROUNDS);
+    console.log(`🚀 Checking for existing user with bootstrap email...`);
+    const existingUser = await prisma.user.findFirst({
+      where: { email: BOOTSTRAP_ADMIN_EMAIL },
+    });
 
-  console.log(`🚀 Checking for existing user with bootstrap email...`);
-  const existingUser = await prisma.user.findFirst({
-    where: { email: BOOTSTRAP_ADMIN_EMAIL },
-  });
-
-  if (existingUser) {
-    if (existingUser.role !== UserRole.SUPER_ADMIN) {
-      console.log(
-        `Updating existing user ${BOOTSTRAP_ADMIN_EMAIL} to SUPER_ADMIN...`,
-      );
-      await prisma.user.update({
-        where: { id: existingUser.id },
+    if (existingUser) {
+      if (existingUser.role !== UserRole.SUPER_ADMIN) {
+        console.log(
+          `Updating existing user ${BOOTSTRAP_ADMIN_EMAIL} to SUPER_ADMIN...`,
+        );
+        await prisma.user.update({
+          where: { id: existingUser.id },
+          data: {
+            role: UserRole.SUPER_ADMIN,
+            passwordHash: passwordHash,
+            adminProfile: {
+              upsert: {
+                create: { approvalStatus: "APPROVED" },
+                update: { approvalStatus: "APPROVED" },
+              },
+            },
+          },
+        });
+        console.log(`✨ Existing user upgraded to Super Admin successfully!`);
+      } else {
+        console.log(`✅ User ${BOOTSTRAP_ADMIN_EMAIL} is already a Super Admin.`);
+      }
+    } else {
+      console.log(`🚀 Creating new Super Admin account...`);
+      await prisma.user.create({
         data: {
-          role: UserRole.SUPER_ADMIN,
+          email: BOOTSTRAP_ADMIN_EMAIL,
+          phone: "+234000000000",
+          firstName: "HARDWARE",
+          lastName: "Admin",
           passwordHash: passwordHash,
+          role: UserRole.SUPER_ADMIN,
           adminProfile: {
-            upsert: {
-              create: { approvalStatus: "APPROVED" },
-              update: { approvalStatus: "APPROVED" },
+            create: {
+              approvalStatus: "APPROVED",
             },
           },
         },
       });
-      console.log(`✨ Existing user upgraded to Super Admin successfully!`);
-    } else {
-      console.log(`✅ User ${BOOTSTRAP_ADMIN_EMAIL} is already a Super Admin.`);
+      console.log(`✨ Super Admin created successfully!`);
     }
-  } else {
-    console.log(`🚀 Creating new Super Admin account...`);
-    await prisma.user.create({
-      data: {
-        email: BOOTSTRAP_ADMIN_EMAIL,
-        phone: "+234000000000",
-        firstName: "HARDWARE",
-        lastName: "Admin",
-        passwordHash: passwordHash,
-        role: UserRole.SUPER_ADMIN,
-        adminProfile: {
-          create: {
-            approvalStatus: "APPROVED",
-          },
-        },
-      },
-    });
-    console.log(`✨ Super Admin created successfully!`);
-  }
 
-  console.log(`📧 Email: ${BOOTSTRAP_ADMIN_EMAIL}`);
-  console.log(
-    `🔑 Password: [HIDDEN] (Use ADMIN_BOOTSTRAP_PASSWORD environment variable)`,
-  );
-  console.log(
-    `Important: Remember to change your password immediately upon logging in.`,
-  );
+    console.log(`📧 Email: ${BOOTSTRAP_ADMIN_EMAIL}`);
+    console.log(
+      `🔑 Password: [HIDDEN] (Use ADMIN_BOOTSTRAP_PASSWORD environment variable)`,
+    );
+    console.log(
+      `Important: Remember to change your password immediately upon logging in.`,
+    );
+  }
 
   // 2. Seed Product Associations (Cross-Selling)
   console.log(`\n📦 Seeding Product Associations...`);
@@ -236,7 +235,7 @@ async function main() {
         phone: "+2348000000001",
         firstName: "Demo",
         lastName: "Merchant",
-        passwordHash: passwordHash,
+        passwordHash: await bcrypt.hash("Password123!", 10),
         role: UserRole.MERCHANT,
         merchantProfile: {
           create: {

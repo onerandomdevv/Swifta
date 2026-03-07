@@ -1,5 +1,13 @@
 import { apiClient } from "../api-client";
-import type { Order } from "@hardware-os/shared";
+import type { Order, OrderStatus } from "@hardware-os/shared";
+
+export interface OrderTrackingEvent {
+  id: string;
+  orderId: string;
+  status: string;
+  note?: string | null;
+  createdAt: string;
+}
 
 export async function getOrders(page = 1, limit = 20): Promise<Order[]> {
   return apiClient.get(`/orders?page=${page}&limit=${limit}`);
@@ -23,11 +31,11 @@ export async function dispatchOrder(id: string): Promise<Order> {
   return apiClient.post(`/orders/${id}/dispatch`);
 }
 
-export async function addTracking(id: string, status: string, note?: string): Promise<Order> {
+export async function addTracking(id: string, status: OrderStatus, note?: string): Promise<Order> {
   return apiClient.post(`/orders/${id}/tracking`, { status, note });
 }
 
-export async function getTracking(id: string): Promise<any[]> {
+export async function getTracking(id: string): Promise<OrderTrackingEvent[]> {
   return apiClient.get(`/orders/${id}/tracking`);
 }
 

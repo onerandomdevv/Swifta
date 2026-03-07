@@ -175,6 +175,15 @@ export class WhatsAppIntentService {
       return { functionName: "respond_to_rfq", params: {} };
     }
 
+    // Verification status
+    if (
+      lower.includes("verify") ||
+      lower.includes("verification") ||
+      lower.includes("verified")
+    ) {
+      return { functionName: "get_verification_status", params: {} };
+    }
+
     // Greetings
     if (
       ["hi", "hello", "hey", "good morning", "good evening"].includes(lower)
