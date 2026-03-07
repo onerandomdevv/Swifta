@@ -28,6 +28,7 @@ export default function BuyerCataloguePage() {
 
   const fetchProducts = useCallback(async (search: string) => {
     try {
+      setError("");
       setLoading(true);
       const response = await getCatalogue(search, 1, 50);
       setProducts(response);
@@ -38,11 +39,7 @@ export default function BuyerCataloguePage() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchProducts("");
-  }, [fetchProducts]);
-
-  // Debounced search
+  // Debounced search will handle the initial fetch since searchQuery defaults to ""
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchProducts(searchQuery);
