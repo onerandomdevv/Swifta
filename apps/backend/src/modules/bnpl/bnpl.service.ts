@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
+/** Minimum completed orders required for BNPL eligibility */
+const MIN_COMPLETED_ORDERS = 5;
+/** Minimum total spend in kobo (₦500,000) for BNPL eligibility */
+const MIN_TOTAL_SPEND_KOBO = BigInt(50000000);
+
 @Injectable()
 export class BnplService {
   constructor(private readonly prisma: PrismaService) {}
@@ -21,8 +26,7 @@ export class BnplService {
       totalSpendKobo += order.totalAmountKobo;
     }
 
-    // Conditions: 5+ completed orders, 0 disputes, total spend > ₦500k (50,000,000 kobo)
-    if (completedOrdersCount >= 5 && disputes === 0 && totalSpendKobo >= BigInt(50000000)) {
+    if (completedOrdersCount >= MIN_COMPLETED_ORDERS && disputes === 0 && totalSpendKobo >= MIN_TOTAL_SPEND_KOBO) {
       return { 
         eligible: true, 
         maxAmountKobo: (totalSpendKobo / BigInt(2)).toString(), 
@@ -33,7 +37,7 @@ export class BnplService {
     return { 
       eligible: false, 
       reason: "Complete more orders to unlock Pay Later", 
-      ordersNeeded: Math.max(0, 5 - completedOrdersCount)
+      ordersNeeded: Math.max(0, MIN_COMPLETED_ORDERS - completedOrdersCount)
     };
   }
 
@@ -44,7 +48,7 @@ export class BnplService {
     });
     
     if (existing) {
-       return { message: "You've been added to the waitlist! You'll be notified when Pay Later launches." };
+       return { message: "You're already on the waitlist! We'll notify you when Pay Later launches." };
     }
 
     await this.prisma.bnplWaitlist.create({

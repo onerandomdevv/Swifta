@@ -15,7 +15,7 @@ export default function NewProductPage() {
     name: "",
     description: "",
     unit: "BAGS",
-    categoryTag: "Cement",
+    categoryTag: "",
     minOrderQuantity: 1,
     imageUrl: "",
     pricePerUnit: "",
@@ -243,12 +243,14 @@ export default function NewProductPage() {
               Category
             </label>
             <select
+              required
               value={formData.categoryTag}
               onChange={(e) =>
                 setFormData({ ...formData, categoryTag: e.target.value })
               }
               className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all text-slate-400 appearance-none bg-transparent"
             >
+              <option value="" disabled>Select Category</option>
               {PRODUCT_CATEGORIES.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat}

@@ -649,6 +649,6 @@ model BnplWaitlist {
   createdAt DateTime @default(now()) @map("created_at")
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
+  @@unique([userId])
   @@map("bnpl_waitlists")
 }

@@ -7,9 +7,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getProduct } from "@/lib/api/product.api";
 import { createDirectOrder } from "@/lib/api/order.api";
 import { checkBnplEligibility, joinBnplWaitlist, type BnplEligibilityResponse } from "@/lib/api/bnpl.api";
+import { useAuth } from "@/providers/auth-provider";
 import type { Product } from "@hardware-os/shared";
 
 function CheckoutBnplSection() {
+  const { user } = useAuth();
   const [eligibility, setEligibility] = useState<BnplEligibilityResponse | null>(null);
   const [waitlistStatus, setWaitlistStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -42,13 +44,19 @@ function CheckoutBnplSection() {
               type="button"
               onClick={async (e) => {
                 e.preventDefault();
+                if (!user?.email) {
+                  setWaitlistStatus("error");
+                  setMessage("User email not found");
+                  return;
+                }
                 setWaitlistStatus("loading");
                 try {
-                  const res = await joinBnplWaitlist({ email: "buyer@example.com" });
+                  const res = await joinBnplWaitlist({ email: user.email });
                   setWaitlistStatus("success");
                   setMessage(res.message);
                 } catch (err: any) {
                   setWaitlistStatus("error");
+                  setMessage(err?.message || String(err) || "Failed to join waitlist");
                 }
               }}
               disabled={waitlistStatus === "loading"}
