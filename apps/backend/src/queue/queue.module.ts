@@ -7,6 +7,7 @@ import {
   REORDER_REMINDER_QUEUE,
   WHATSAPP_QUEUE,
   PAYOUT_QUEUE,
+  LOGISTICS_QUEUE,
 } from "./queue.constants";
 
 @Global()
@@ -39,6 +40,7 @@ import {
       { name: REORDER_REMINDER_QUEUE },
       { name: WHATSAPP_QUEUE },
       { name: PAYOUT_QUEUE },
+      { name: LOGISTICS_QUEUE },
     ),
   ],
   exports: [BullModule],
