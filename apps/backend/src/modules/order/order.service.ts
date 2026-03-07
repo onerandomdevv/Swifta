@@ -572,7 +572,11 @@ export class OrderService {
     if (order.paymentMethod === "ESCROW") {
       try {
         this.logger.log(`Queueing auto-payout for ESCROW order ${orderId}`);
-        await this.payoutQueue.add("process-payout", { orderId });
+        await this.payoutQueue.add(
+          "process-payout",
+          { orderId },
+          { jobId: `payout-${orderId}` },
+        );
       } catch (error) {
         const msg = error instanceof Error ? error.message : "Unknown error";
         this.logger.error(

@@ -42,23 +42,44 @@ export class BnplService {
   }
 
   async joinWaitlist(buyerId: string, email: string, phone?: string) {
-    // Check if already in waitlist
-    const existing = await this.prisma.bnplWaitlist.findFirst({
-      where: { userId: buyerId }
-    });
-    
-    if (existing) {
-       return { message: "You're already on the waitlist! We'll notify you when Pay Later launches." };
-    }
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: buyerId },
+      });
 
-    await this.prisma.bnplWaitlist.create({
-      data: {
-        userId: buyerId,
-        email,
-        phone,
+      if (!user) {
+        throw new Error("User not found");
       }
-    });
-    
-    return { message: "You've been added to the waitlist! You'll be notified when Pay Later launches." };
+
+      const existing = await this.prisma.bnplWaitlist.findUnique({
+        where: { userId: buyerId },
+      });
+
+      if (existing) {
+        return {
+          message:
+            "You're already on the waitlist! We'll notify you when Pay Later launches.",
+        };
+      }
+
+      await this.prisma.bnplWaitlist.create({
+        data: {
+          userId: buyerId,
+          email,
+          phone,
+        },
+      });
+
+      return {
+        message:
+          "You've been added to the waitlist! You'll be notified when Pay Later launches.",
+      };
+    } catch (error) {
+      // In case of any race condition/error, return the standard message
+      return {
+        message:
+          "You're already on the waitlist! We'll notify you when Pay Later launches.",
+      };
+    }
   }
 }
