@@ -128,6 +128,7 @@ model Order {
   currency          String             @default("NGN")
   status            OrderStatus        @default(PENDING_PAYMENT)
   paymentMethod     PaymentMethod      @default(ESCROW) @map("payment_method")
+  deliveryMethod    DeliveryMethod?    @map("delivery_method")
   deliveryOtp       String?            @map("delivery_otp")
   disputeStatus     OrderDisputeStatus @default(NONE) @map("dispute_status")
   disputeReason     String?            @map("dispute_reason")
@@ -145,6 +146,7 @@ model Order {
   payout            Payout?
   trackingEvents    OrderTracking[]
   creditApplication CreditApplication?
+  deliveryBooking   DeliveryBooking?
 
   @@index([buyerId])
   @@index([merchantId])
@@ -362,6 +364,8 @@ model User {
   reviewedVerificationRequests VerificationRequest[] @relation("VerificationRequestsReviewed")
   auditLogs                    AuditLog[]
   bnplWaitlist                 BnplWaitlist[]
+  supplierProfile              SupplierProfile?
+  whatsappBuyerLink            WhatsAppBuyerLink?
 
   @@map("users")
 }
@@ -447,6 +451,7 @@ enum UserRole {
   SUPER_ADMIN
   OPERATOR
   SUPPORT
+  SUPPLIER
 }
 
 enum SharedQuoteStatus {
@@ -654,3 +659,81 @@ model BnplWaitlist {
   @@unique([userId])
   @@map("bnpl_waitlists")
 }
+
+// ─── V4 Enums ────────────────────────────────────────────────────────────────
+
+enum DeliveryMethod {
+  MERCHANT_DELIVERY
+  PLATFORM_LOGISTICS
+}
+
+enum DeliveryStatus {
+  PENDING
+  PICKUP_SCHEDULED
+  PICKED_UP
+  IN_TRANSIT
+  ARRIVING
+  DELIVERED
+  FAILED
+}
+
+// ─── V4 Models ───────────────────────────────────────────────────────────────
+
+model DeliveryBooking {
+  id                String         @id @default(uuid()) @db.Uuid
+  orderId           String         @unique @map("order_id") @db.Uuid
+  method            DeliveryMethod
+  partnerName       String?        @map("partner_name")
+  partnerRef        String?        @map("partner_ref")
+  trackingUrl       String?        @map("tracking_url")
+  pickupAddress     String         @map("pickup_address")
+  deliveryAddress   String         @map("delivery_address")
+  estimatedCostKobo BigInt?        @map("estimated_cost_kobo")
+  actualCostKobo    BigInt?        @map("actual_cost_kobo")
+  status            DeliveryStatus @default(PENDING)
+  estimatedArrival  DateTime?      @map("estimated_arrival")
+  pickedUpAt        DateTime?      @map("picked_up_at")
+  deliveredAt       DateTime?      @map("delivered_at")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  order             Order          @relation(fields: [orderId], references: [id])
+  @@map("delivery_bookings")
+}
+
+model SupplierProfile {
+  id              String            @id @default(uuid()) @db.Uuid
+  userId          String            @unique @map("user_id") @db.Uuid
+  companyName     String            @map("company_name")
+  companyAddress  String            @map("company_address")
+  cacNumber       String?           @map("cac_number")
+  isVerified      Boolean           @default(false)
+  createdAt       DateTime          @default(now()) @map("created_at")
+  user            User              @relation(fields: [userId], references: [id])
+  products        SupplierProduct[]
+  @@map("supplier_profiles")
+}
+
+model SupplierProduct {
+  id                 String          @id @default(uuid()) @db.Uuid
+  supplierId         String          @map("supplier_id") @db.Uuid
+  name               String
+  category           String
+  description        String?
+  wholesalePriceKobo BigInt          @map("wholesale_price_kobo")
+  minOrderQty        Int             @map("min_order_qty")
+  unit               String
+  isActive           Boolean         @default(true)
+  createdAt          DateTime        @default(now()) @map("created_at")
+  supplier           SupplierProfile @relation(fields: [supplierId], references: [id])
+  @@map("supplier_products")
+}
+
+model WhatsAppBuyerLink {
+  id        String   @id @default(uuid()) @db.Uuid
+  phone     String   @unique
+  buyerId   String   @unique @map("buyer_id") @db.Uuid
+  linkedAt  DateTime @default(now()) @map("linked_at")
+  isActive  Boolean  @default(true) @map("is_active")
+  buyer     User     @relation(fields: [buyerId], references: [id])
+  @@map("whatsapp_buyer_links")
+}
+
