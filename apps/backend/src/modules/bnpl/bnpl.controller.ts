@@ -22,8 +22,9 @@ export class BnplController {
   @Roles(UserRole.BUYER)
   async joinWaitlist(
     @CurrentUser() user: any,
-    @Body() body: { email: string; phone?: string }
+    @Body() body: { phone?: string }
   ) {
-    return this.bnplService.joinWaitlist(user.id, body.email, body.phone);
+    // Email is resolved server-side from the auth token — never trust client input
+    return this.bnplService.joinWaitlist(user.id, user.email, body.phone);
   }
 }

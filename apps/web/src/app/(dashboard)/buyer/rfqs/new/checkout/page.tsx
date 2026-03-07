@@ -7,9 +7,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { getOrder } from '@/lib/api/order.api';
 import { initializePayment } from '@/lib/api/payment.api';
 import { checkBnplEligibility, joinBnplWaitlist, type BnplEligibilityResponse } from '@/lib/api/bnpl.api';
+import { useAuth } from '@/providers/auth-provider';
 import type { Order } from '@hardware-os/shared';
 
 function CheckoutBnplSection() {
+  const { user } = useAuth();
   const [eligibility, setEligibility] = useState<BnplEligibilityResponse | null>(null);
   const [waitlistStatus, setWaitlistStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -37,11 +39,20 @@ function CheckoutBnplSection() {
              <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-3 py-2 rounded text-center">
                {message}
              </p>
+          ) : waitlistStatus === "error" ? (
+             <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest bg-red-500/10 px-3 py-2 rounded text-center">
+               {message}
+             </p>
           ) : (
             <button
               type="button"
               onClick={async (e) => {
                 e.preventDefault();
+                if (!user?.email) {
+                  setWaitlistStatus("error");
+                  setMessage("User email not found");
+                  return;
+                }
                 setWaitlistStatus("loading");
                 try {
                   const res = await joinBnplWaitlist();
@@ -49,6 +60,7 @@ function CheckoutBnplSection() {
                   setMessage(res.message);
                 } catch (err: any) {
                   setWaitlistStatus("error");
+                  setMessage(err?.message || String(err) || "Failed to join waitlist");
                 }
               }}
               disabled={waitlistStatus === "loading"}

@@ -12,12 +12,6 @@ async function main() {
     process.env.ADMIN_BOOTSTRAP_EMAIL || LEGACY_ADMIN_EMAIL;
   const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_BOOTSTRAP_PASSWORD;
 
-  if (!DEFAULT_ADMIN_PASSWORD) {
-    throw new Error(
-      "ADMIN_BOOTSTRAP_PASSWORD environment variable is NOT SET.",
-    );
-  }
-
   // 1. Check for ANY existing super-admin to prevent duplicates in existing DBs
   const existingAdmin = await prisma.user.findFirst({
     where: {
@@ -28,8 +22,14 @@ async function main() {
   if (existingAdmin) {
     console.log(`✅ Super Admin already exists: ${existingAdmin.email}`);
   } else {
-    const SALT_ROUNDS = 10;
+    // Only validate password when we actually need to create/promote an admin
+    if (!DEFAULT_ADMIN_PASSWORD) {
+      throw new Error(
+        "ADMIN_BOOTSTRAP_PASSWORD environment variable is NOT SET.",
+      );
+    }
 
+    const SALT_ROUNDS = 10;
     console.log(`🔒 Hashing master password...`);
     const passwordHash = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, SALT_ROUNDS);
 
@@ -40,23 +40,30 @@ async function main() {
 
     if (existingUser) {
       if (existingUser.role !== UserRole.SUPER_ADMIN) {
-        console.log(
-          `Updating existing user ${BOOTSTRAP_ADMIN_EMAIL} to SUPER_ADMIN...`,
-        );
-        await prisma.user.update({
-          where: { id: existingUser.id },
-          data: {
-            role: UserRole.SUPER_ADMIN,
-            passwordHash: passwordHash,
-            adminProfile: {
-              upsert: {
-                create: { approvalStatus: "APPROVED" },
-                update: { approvalStatus: "APPROVED" },
+        // Safety: require explicit opt-in to promote existing users
+        if (process.env.FORCE_BOOTSTRAP_PROMOTE === "true") {
+          console.log(
+            `⚠️ FORCE_BOOTSTRAP_PROMOTE is set. Promoting ${BOOTSTRAP_ADMIN_EMAIL} to SUPER_ADMIN...`,
+          );
+          await prisma.user.update({
+            where: { id: existingUser.id },
+            data: {
+              role: UserRole.SUPER_ADMIN,
+              passwordHash: passwordHash,
+              adminProfile: {
+                upsert: {
+                  create: { approvalStatus: "APPROVED" },
+                  update: { approvalStatus: "APPROVED" },
+                },
               },
             },
-          },
-        });
-        console.log(`✨ Existing user upgraded to Super Admin successfully!`);
+          });
+          console.log(`✨ Existing user upgraded to Super Admin successfully!`);
+        } else {
+          console.log(
+            `⚠️ User ${BOOTSTRAP_ADMIN_EMAIL} exists but is not a SUPER_ADMIN. Set FORCE_BOOTSTRAP_PROMOTE=true to promote.`,
+          );
+        }
       } else {
         console.log(`✅ User ${BOOTSTRAP_ADMIN_EMAIL} is already a Super Admin.`);
       }
@@ -226,7 +233,10 @@ async function main() {
   // 3. Seed Sample Building Materials Catalogue
   console.log(`\n🏪 Seeding Sample Merchant & Products...`);
   const DEMO_MERCHANT_EMAIL = "merchant@demo.swifttrade.ng";
-  let merchantUser = await prisma.user.findFirst({ where: { email: DEMO_MERCHANT_EMAIL } });
+  const DEMO_PASSWORD = "DemoMerchant123!";
+  const demoPasswordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
+
+  let merchantUser = await prisma.user.findUnique({ where: { email: DEMO_MERCHANT_EMAIL } });
   
   if (!merchantUser) {
     merchantUser = await prisma.user.create({
@@ -235,7 +245,7 @@ async function main() {
         phone: "+2348000000001",
         firstName: "Demo",
         lastName: "Merchant",
-        passwordHash: await bcrypt.hash("Password123!", 10),
+        passwordHash: demoPasswordHash,
         role: UserRole.MERCHANT,
         merchantProfile: {
           create: {
@@ -258,12 +268,13 @@ async function main() {
     if (productCount === 0) {
       console.log(`📦 Creating sample building materials for Demo Merchant...`);
       
+      // categoryTag values match the PRODUCT_CATEGORIES constant from shared package
       const sampleProducts = [
         {
           name: "Dangote Cement 3X (50kg Bag)",
           description: "High quality Portland limestone cement suitable for all general purpose construction projects.",
           unit: "Bag",
-          pricePerUnitKobo: 950000n, // 9,500 NGN
+          pricePerUnitKobo: 950000n,
           categoryTag: "Cement",
           minOrderQuantity: 50,
         },
@@ -279,7 +290,7 @@ async function main() {
           name: "9-inch Hollow Concrete Block",
           description: "Standard 9-inch load-bearing hollow sandcrete blocks, properly cured.",
           unit: "Piece",
-          pricePerUnitKobo: 55000n, // 550 NGN
+          pricePerUnitKobo: 55000n,
           categoryTag: "Blocks",
           minOrderQuantity: 500,
         },
@@ -287,7 +298,7 @@ async function main() {
           name: "Dulux Emulsion Paint (20 Litres)",
           description: "Premium quality emulsion paint for interior and exterior walls. Brilliant White color.",
           unit: "Bucket",
-          pricePerUnitKobo: 4500000n, // 45,000 NGN
+          pricePerUnitKobo: 4500000n,
           categoryTag: "Paints & Coatings",
           minOrderQuantity: 5,
         },
@@ -295,7 +306,7 @@ async function main() {
           name: "0.45mm Aluminum Roofing Sheet (Long Span)",
           description: "Durable corrugated aluminum roofing sheets, available in various colors.",
           unit: "Meter",
-          pricePerUnitKobo: 420000n, // 4,200 NGN
+          pricePerUnitKobo: 420000n,
           categoryTag: "Roofing Sheets",
           minOrderQuantity: 100,
         },
@@ -303,7 +314,7 @@ async function main() {
           name: "60x60cm Vitrified Floor Tiles",
           description: "High gloss, anti-slip vitrified ceramic tiles for living rooms and offices. (1 carton = 1.44 sqm)",
           unit: "Carton",
-          pricePerUnitKobo: 750000n, // 7,500 NGN
+          pricePerUnitKobo: 750000n,
           categoryTag: "Tiles (Floor & Wall)",
           minOrderQuantity: 20,
         },
@@ -311,19 +322,20 @@ async function main() {
 
       let seededCount = 0;
       for (const prod of sampleProducts) {
-        const product = await prisma.product.create({
-          data: {
-            merchantId: merchantProfile.id,
-            ...prod,
-          }
-        });
-        
-        // Add some stock
-        await prisma.productStockCache.create({
-          data: {
-            productId: product.id,
-            stock: 1000,
-          }
+        await prisma.$transaction(async (tx) => {
+          const product = await tx.product.create({
+            data: {
+              merchantId: merchantProfile.id,
+              ...prod,
+            }
+          });
+          
+          await tx.productStockCache.create({
+            data: {
+              productId: product.id,
+              stock: 1000,
+            }
+          });
         });
         seededCount++;
       }

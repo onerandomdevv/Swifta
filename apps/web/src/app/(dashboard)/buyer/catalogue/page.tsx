@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { getCatalogue } from "@/lib/api/product.api";
 import { PRODUCT_CATEGORIES, type Product } from "@hardware-os/shared";
 
@@ -18,6 +18,7 @@ export default function BuyerCataloguePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All Categories");
   const [products, setProducts] = useState<Product[]>([]);
+  const isInitialMount = useRef(true);
 
   const fetchProducts = useCallback(async (search: string, category: string) => {
     try {
@@ -34,6 +35,10 @@ export default function BuyerCataloguePage() {
 
   // Debounced search will handle the initial fetch since searchQuery defaults to ""
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     const timer = setTimeout(() => {
       fetchProducts(searchQuery, activeCategory);
     }, 400);
