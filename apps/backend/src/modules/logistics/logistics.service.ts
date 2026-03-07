@@ -3,6 +3,7 @@ import {
   Inject,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
   Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
@@ -41,7 +42,8 @@ export class LogisticsService {
       where: { id: orderId },
       include: {
         user: true, // buyer
-        merchantProfile: true, // seller
+        merchantProfile: true, // seller (merchant)
+        supplierProfile: true, // seller (supplier)
         deliveryBooking: true,
       },
     });
@@ -59,12 +61,19 @@ export class LogisticsService {
       // 1. Book with partner
       // Note: We need a reliable pickup address. In a real app we'd fetch the exact warehouse.
       // We fall back to merchant profile business address if warehouse isn't set.
-      const pickupAddress = order.merchantProfile.businessAddress;
+      // Support both merchants and suppliers as sellers
+      const pickupAddress =
+        order.merchantProfile?.businessAddress ||
+        order.supplierProfile?.companyAddress;
       const deliveryAddress = order.deliveryAddress;
-      const contactPhone = order.user.phone;
+      const contactPhone = order.user?.phone;
 
       if (!pickupAddress || !deliveryAddress) {
         throw new Error("Missing addresses for logistics booking");
+      }
+
+      if (!contactPhone) {
+        throw new Error("Missing contact phone for logistics booking");
       }
 
       this.logger.log(
@@ -108,7 +117,10 @@ export class LogisticsService {
         data: {
           orderId: order.id,
           method: "PLATFORM_LOGISTICS",
-          pickupAddress: order.merchantProfile?.businessAddress || "Unknown",
+          pickupAddress:
+            order.merchantProfile?.businessAddress ||
+            order.supplierProfile?.companyAddress ||
+            "Unknown",
           deliveryAddress: order.deliveryAddress || "Unknown",
           status: DeliveryStatus.FAILED,
           estimatedCostKobo: order.deliveryFeeKobo,
@@ -126,11 +138,24 @@ export class LogisticsService {
     // 1. For a real provider, extract bookingRef, status, etc.
     // Assuming simple mapping for our mock
     const partnerRef = payload.bookingRef;
-    const newStatus = payload.status as DeliveryStatus;
+    const rawStatus = payload.status;
 
-    if (!partnerRef || !newStatus) {
-      throw new BadRequestException("Invalid webhook payload");
+    if (!partnerRef || typeof partnerRef !== "string" || !partnerRef.trim()) {
+      throw new BadRequestException(
+        "Invalid webhook payload: missing bookingRef",
+      );
     }
+
+    if (
+      !rawStatus ||
+      !Object.values(DeliveryStatus).includes(rawStatus as DeliveryStatus)
+    ) {
+      throw new BadRequestException(
+        `Invalid webhook payload: unknown status "${rawStatus}". Valid values: ${Object.values(DeliveryStatus).join(", ")}`,
+      );
+    }
+
+    const newStatus = rawStatus as DeliveryStatus;
 
     this.logger.log(
       `Received webhook for booking ${partnerRef}: Status ${newStatus}`,
@@ -140,7 +165,11 @@ export class LogisticsService {
       where: { partnerRef },
       include: {
         order: {
-          include: { user: true, merchantProfile: true },
+          include: {
+            user: true,
+            merchantProfile: true,
+            supplierProfile: true,
+          },
         },
       },
     });
@@ -259,8 +288,8 @@ export class LogisticsService {
       role === UserRole.SUPPORT;
 
     if (!isBuyer && !isMerchant && !isAdmin) {
-      throw new BadRequestException(
-        "Unauthorized to view this tracking information",
+      throw new ForbiddenException(
+        "You do not have permission to view this tracking information",
       );
     }
 

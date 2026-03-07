@@ -6,37 +6,18 @@ import { useAuth } from "@/providers/auth-provider";
 import { getDisplayName } from "@hardware-os/shared";
 import { Logo } from "@/components/ui/logo";
 
-export function MerchantSidebar() {
+export function SupplierSidebar() {
   const pathname = usePathname();
   const { logout, user } = useAuth();
 
   const navItems = [
-    { label: "Dashboard", icon: "dashboard", href: "/merchant/dashboard" },
-    { label: "Orders", icon: "list_alt", href: "/merchant/orders" },
-    { label: "Quotes", icon: "request_quote", href: "/merchant/quotes" },
+    { label: "Dashboard", icon: "dashboard", href: "/supplier/dashboard" },
     {
-      label: "Quote Link",
-      icon: "link",
-      href: "/merchant/quotes/generate",
+      label: "Wholesale Products",
+      icon: "inventory_2",
+      href: "/supplier/products",
     },
-    {
-      label: "Storefront Preview",
-      icon: "storefront",
-      href: "/merchant/catalogue",
-    },
-    { label: "Inventory", icon: "inventory_2", href: "/merchant/inventory" },
-    {
-      label: "Buy Wholesale",
-      icon: "factory",
-      href: "/merchant/wholesale",
-    },
-    { label: "Payouts", icon: "payments", href: "/merchant/payouts" },
-    {
-      label: "Verification",
-      icon: "verified_user",
-      href: "/merchant/verification",
-    },
-    { label: "Settings", icon: "settings", href: "/merchant/settings" },
+    { label: "Settings", icon: "settings", href: "/supplier/settings" },
   ];
 
   return (
@@ -47,11 +28,7 @@ export function MerchantSidebar() {
 
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
-          // Use exact match for routes that are prefixes of other routes
-          const isActive =
-            item.href === "/merchant/quotes"
-              ? pathname === item.href
-              : pathname.startsWith(item.href);
+          const isActive = pathname.startsWith(item.href);
           return (
             <Link
               key={item.href}
@@ -81,21 +58,12 @@ export function MerchantSidebar() {
               <p className="text-xs font-bold truncate text-slate-900 dark:text-white">
                 {getDisplayName(user) ||
                   user?.email?.split("@")[0] ||
-                  "Merchant User"}
+                  "Supplier User"}
               </p>
               <p className="text-[10px] text-slate-500 xl:truncate">
-                {user?.role === "MERCHANT"
-                  ? "Merchant"
-                  : user?.role === "BUYER"
-                    ? "Buyer"
-                    : user?.role === "SUPER_ADMIN"
-                      ? "Admin"
-                      : user?.role || "User"}
+                {user?.role === "SUPPLIER" ? "Supplier" : "User"}
               </p>
             </div>
-            <span className="material-symbols-outlined text-slate-400 text-sm cursor-pointer hover:text-primary transition-colors">
-              settings
-            </span>
           </div>
           <button
             onClick={() => logout()}

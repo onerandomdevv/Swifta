@@ -7,6 +7,7 @@ import { QuoteService } from "../quote/quote.service";
 import { ProductService } from "../product/product.service";
 import { InventoryService } from "../inventory/inventory.service";
 import { WhatsAppAuthService } from "./whatsapp-auth.service";
+import { WhatsAppBuyerService } from "./whatsapp-buyer.service";
 import { WhatsAppIntentService, ParsedIntent } from "./whatsapp-intent.service";
 import {
   MAIN_MENU,
@@ -42,6 +43,7 @@ export class WhatsAppService {
     private inventoryService: InventoryService,
     private authService: WhatsAppAuthService,
     private intentService: WhatsAppIntentService,
+    private buyerService: WhatsAppBuyerService,
   ) {
     this.accessToken =
       this.configService.get<string>("WHATSAPP_ACCESS_TOKEN") || "";
@@ -58,39 +60,30 @@ export class WhatsAppService {
     messageId: string,
   ): Promise<void> {
     try {
-      // 1. Check if phone is linked
+      // 1. Check if phone is linked to a Merchant
       const merchantId = await this.authService.resolvePhone(phone);
-
-      if (!merchantId) {
-        // Not linked — run the linking flow
-        const response = await this.authService.handleLinkingFlow(
-          phone,
-          messageText,
+      if (merchantId) {
+        // Merchant path
+        this.logger.log(
+          `Routing message to Merchant Bot (Merchant ID: ${merchantId})`,
         );
+        const intent = await this.intentService.parseIntent(messageText);
+        const response = await this.executeCommand(merchantId, intent);
         await this.sendWhatsAppMessage(phone, response);
         return;
       }
 
-      // 2. Parse intent (numbers → AI → keyword fallback)
-      const intent = await this.intentService.parseIntent(messageText);
-      this.logger.log(
-        `Intent: ${intent.functionName} | Params: ${JSON.stringify(intent.params)} | Phone: ${phone}`,
-      );
-
-      // 3. Execute command
-      const response = await this.executeCommand(merchantId, intent);
-
-      // 4. Send response
-      await this.sendWhatsAppMessage(phone, response);
+      // 2. Not a merchant — pass to Buyer Bot
+      this.logger.log(`Routing message to Buyer Bot (Phone: ${phone})`);
+      await this.buyerService.processMessage(phone, messageText, messageId);
     } catch (error) {
       this.logger.error(
         `Error processing message from ${phone}: ${error instanceof Error ? error.message : error}`,
       );
-      // Send a friendly error — never leave the merchant hanging
+      // Send a friendly error — never leave the user hanging
       try {
         await this.sendWhatsAppMessage(phone, GENERIC_ERROR);
       } catch {
-        // If even error response fails, just log it
         this.logger.error(`Failed to send error message to ${phone}`);
       }
     }
@@ -596,21 +589,21 @@ export class WhatsAppService {
     const targetOrder = matches[0];
 
     // Normalize incoming status string
-    const normalizedStatus = status.trim().toUpperCase().replace(/[\s-]/g, '_');
-    
+    const normalizedStatus = status.trim().toUpperCase().replace(/[\s-]/g, "_");
+
     // Map common phrases to valid enum values
     const statusMap: Record<string, string> = {
-      'ON_THE_WAY': 'IN_TRANSIT',
-      'IN_TRANSIT': 'IN_TRANSIT',
-      'DISPATCHED': 'DISPATCHED',
-      'PREPARING': 'PREPARING'
+      ON_THE_WAY: "IN_TRANSIT",
+      IN_TRANSIT: "IN_TRANSIT",
+      DISPATCHED: "DISPATCHED",
+      PREPARING: "PREPARING",
     };
     const mappedStatus = statusMap[normalizedStatus] || normalizedStatus;
 
     // Must map string status back to OrderStatus enum based on what Gemini outputs
     const validStatuses = ["PREPARING", "DISPATCHED", "IN_TRANSIT"];
     if (!validStatuses.includes(mappedStatus)) {
-       return `❌ Invalid status. Must be PREPARING, DISPATCHED, or IN_TRANSIT. Use the dashboard to mark an order as DELIVERED after OTP confirmation.`;
+      return `❌ Invalid status. Must be PREPARING, DISPATCHED, or IN_TRANSIT. Use the dashboard to mark an order as DELIVERED after OTP confirmation.`;
     }
 
     try {
@@ -644,17 +637,17 @@ export class WhatsAppService {
         return `❌ I no fit find your merchant profile. Contact support abeg.`;
       }
 
-      const tier = (merchant as any).verificationTier || 'UNVERIFIED';
-      const name = merchant.businessName || 'Boss';
+      const tier = (merchant as any).verificationTier || "UNVERIFIED";
+      const name = merchant.businessName || "Boss";
 
       switch (tier) {
-        case 'UNVERIFIED':
+        case "UNVERIFIED":
           return `Hey ${name}! 👋\n\nYour account is currently *unverified*.\n\nVisit your dashboard settings to upload your ID and get verified. Verified merchants get lower fees and buyers can pay you directly! 🚀\n\n🔗 Go to: Settings → Get Verified`;
-        case 'BASIC':
+        case "BASIC":
           return `Hey ${name}! 👋\n\nYour account is *Basic* tier.\n\nUpload your government ID on the dashboard to apply for *Verified* status. Benefits include:\n• Lower platform fees (1% vs 2%)\n• Direct payments from buyers\n• Trust badge on your profile ✅`;
-        case 'VERIFIED':
+        case "VERIFIED":
           return `✅ ${name}, you're a *Verified Merchant*!\n\nYou enjoy:\n• 1% platform fees (lowest tier)\n• Buyers can pay you directly\n• Verified badge on your profile\n\nKeep up the good work! 💪`;
-        case 'TRUSTED':
+        case "TRUSTED":
           return `⭐ ${name}, you're a *Trusted Merchant*!\n\nHighest trust level with the lowest fees. You're featured in the catalogue and buyers see your ⭐ Trusted badge.\n\nYou don hammer! 🎉`;
         default:
           return `Your verification tier is: *${tier}*. Visit your dashboard for more details.`;
@@ -662,7 +655,7 @@ export class WhatsAppService {
     } catch (error) {
       this.logger.error(
         `Failed to fetch verification status for merchant ${merchantId}`,
-        error instanceof Error ? error.stack : 'Unknown error',
+        error instanceof Error ? error.stack : "Unknown error",
       );
       return `❌ Something went wrong checking your verification status. Try again later.`;
     }

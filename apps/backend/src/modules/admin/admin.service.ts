@@ -924,4 +924,128 @@ export class AdminService {
     this.logger.log(`Staff ${staffId} reactivated by admin ${adminId}`);
     return { success: true, message: "Staff member has been reactivated." };
   }
+
+  // ─── Supplier Management (E: Admin-Invite-Only Onboarding) ───
+
+  async createSupplierAccount(
+    dto: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone: string;
+      password: string;
+      companyName: string;
+      companyAddress: string;
+      cacNumber?: string;
+    },
+    adminId: string,
+  ) {
+    // Validate unique email and phone
+    const existing = await this.prisma.user.findFirst({
+      where: { OR: [{ email: dto.email }, { phone: dto.phone }] },
+    });
+    if (existing) {
+      throw new BadRequestException(
+        "An account with this email or phone already exists.",
+      );
+    }
+
+    const SALT_ROUNDS = 10;
+    const passwordHash = await bcrypt.hash(dto.password, SALT_ROUNDS);
+
+    const user = await this.prisma.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
+        data: {
+          email: dto.email,
+          phone: dto.phone,
+          passwordHash,
+          role: "SUPPLIER",
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          emailVerified: true, // Admin-created accounts are pre-verified
+        },
+      });
+
+      await tx.supplierProfile.create({
+        data: {
+          userId: newUser.id,
+          companyName: dto.companyName,
+          companyAddress: dto.companyAddress,
+          cacNumber: dto.cacNumber,
+          isVerified: false, // Admin must explicitly verify after reviewing docs
+        },
+      });
+
+      return newUser;
+    });
+
+    await this.auditLog.log(adminId, "CREATE_SUPPLIER", "User", user.id, {
+      email: dto.email,
+      companyName: dto.companyName,
+    });
+
+    this.logger.log(
+      `Supplier account created by admin ${adminId}: ${dto.email} (${dto.companyName})`,
+    );
+
+    return {
+      success: true,
+      userId: user.id,
+      email: user.email,
+      message:
+        "Supplier account created. They can now log in and list products.",
+    };
+  }
+
+  async listSuppliers(isVerified?: boolean) {
+    return this.prisma.supplierProfile.findMany({
+      where: isVerified !== undefined ? { isVerified } : {},
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            phone: true,
+            firstName: true,
+            lastName: true,
+            createdAt: true,
+          },
+        },
+        _count: {
+          select: { products: true, orders: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  async verifySupplier(supplierId: string, adminId: string) {
+    const profile = await this.prisma.supplierProfile.findUnique({
+      where: { id: supplierId },
+    });
+    if (!profile) {
+      throw new NotFoundException("Supplier profile not found.");
+    }
+
+    const updated = await this.prisma.supplierProfile.update({
+      where: { id: supplierId },
+      data: { isVerified: true },
+    });
+
+    await this.auditLog.log(
+      adminId,
+      "VERIFY_SUPPLIER",
+      "SupplierProfile",
+      supplierId,
+    );
+
+    this.logger.log(
+      `Supplier ${supplierId} (${profile.companyName}) verified by admin ${adminId}`,
+    );
+
+    return {
+      success: true,
+      message: `${profile.companyName} has been verified and can now be seen in the merchant catalogue.`,
+    };
+  }
 }

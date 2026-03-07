@@ -17,6 +17,16 @@ export class LogisticsProcessor extends WorkerHost {
 
     try {
       if (job.name === "book-pickup") {
+        if (
+          !job.data ||
+          typeof job.data.orderId !== "string" ||
+          !job.data.orderId.trim()
+        ) {
+          this.logger.error(
+            `Job ${job.id} (book-pickup) has invalid or missing orderId. job.data=${JSON.stringify(job.data)}. Skipping.`,
+          );
+          return;
+        }
         await this.logisticsService.bookPickup(job.data.orderId);
       }
     } catch (error) {

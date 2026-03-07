@@ -25,6 +25,7 @@ export function AccountDetailsStep({
 
   const role = watch("role");
   const isMerchant = role === UserRole.MERCHANT;
+  const isSupplier = role === UserRole.SUPPLIER;
 
   return (
     <div className="max-w-md w-full mx-auto animate-in fade-in slide-in-from-right-4 duration-700">
@@ -45,12 +46,18 @@ export function AccountDetailsStep({
 
       <div className="mb-8">
         <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">
-          {isMerchant ? "Set Up Your Store" : "Create Your Account"}
+          {isMerchant
+            ? "Set Up Your Store"
+            : isSupplier
+              ? "Supplier Registration"
+              : "Create Your Account"}
         </h1>
         <p className="text-slate-500 font-medium">
           {isMerchant
             ? "Register your business to start selling on Lagos's premier hardware marketplace."
-            : "Sign up to source quality hardware from verified merchants across Lagos."}
+            : isSupplier
+              ? "Register as a manufacturer or large distributor to reach verified merchants."
+              : "Sign up to source quality hardware from verified merchants across Lagos."}
         </p>
       </div>
 
@@ -138,6 +145,77 @@ export function AccountDetailsStep({
           </div>
         )}
 
+        {/* Supplier Specific Fields */}
+        {isSupplier && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                Company Name
+              </label>
+              <div className="relative">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
+                  factory
+                </span>
+                <input
+                  className={`w-full pl-10 pr-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.companyName ? "border-red-400" : "border-slate-200"}`}
+                  placeholder="Dangote Cement PLC"
+                  type="text"
+                  {...register("companyName")}
+                />
+              </div>
+              {errors.companyName && (
+                <p className="text-xs font-semibold text-red-500 mt-1">
+                  {errors.companyName.message}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                Company Address
+              </label>
+              <div className="relative">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
+                  location_on
+                </span>
+                <input
+                  className={`w-full pl-10 pr-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.companyAddress ? "border-red-400" : "border-slate-200"}`}
+                  placeholder="12 Industrial Way, Ikeja, Lagos"
+                  type="text"
+                  {...register("companyAddress")}
+                />
+              </div>
+              {errors.companyAddress && (
+                <p className="text-xs font-semibold text-red-500 mt-1">
+                  {errors.companyAddress.message}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                CAC Number (Optional)
+              </label>
+              <div className="relative">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
+                  badge
+                </span>
+                <input
+                  className={`w-full pl-10 pr-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.cacNumber ? "border-red-400" : "border-slate-200"}`}
+                  placeholder="RC123456"
+                  type="text"
+                  {...register("cacNumber")}
+                />
+              </div>
+              {errors.cacNumber && (
+                <p className="text-xs font-semibold text-red-500 mt-1">
+                  {errors.cacNumber.message}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Phone */}
         <div>
           <label className="block text-sm font-bold text-slate-700 mb-1.5">
@@ -197,7 +275,9 @@ export function AccountDetailsStep({
               ? "Creating Account..."
               : isMerchant
                 ? "Register My Store"
-                : "Create Account"}
+                : isSupplier
+                  ? "Register as Supplier"
+                  : "Create Account"}
           </span>
           {!isLoading && (
             <span className="material-symbols-outlined text-lg">

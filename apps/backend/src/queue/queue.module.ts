@@ -8,6 +8,7 @@ import {
   WHATSAPP_QUEUE,
   PAYOUT_QUEUE,
   LOGISTICS_QUEUE,
+  AUTO_CONFIRM_QUEUE,
 } from "./queue.constants";
 
 @Global()
@@ -41,6 +42,7 @@ import {
       { name: WHATSAPP_QUEUE },
       { name: PAYOUT_QUEUE },
       { name: LOGISTICS_QUEUE },
+      { name: AUTO_CONFIRM_QUEUE },
     ),
   ],
   exports: [BullModule],

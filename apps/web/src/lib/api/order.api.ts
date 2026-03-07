@@ -31,7 +31,11 @@ export async function dispatchOrder(id: string): Promise<Order> {
   return apiClient.post(`/orders/${id}/dispatch`);
 }
 
-export async function addTracking(id: string, status: OrderStatus, note?: string): Promise<Order> {
+export async function addTracking(
+  id: string,
+  status: OrderStatus,
+  note?: string,
+): Promise<Order> {
   return apiClient.post(`/orders/${id}/tracking`, { status, note });
 }
 
@@ -60,6 +64,25 @@ export async function createDirectOrder(payload: {
   quantity: number;
   deliveryAddress: string;
   paymentMethod?: "ESCROW" | "DIRECT";
-}): Promise<{ orderId: string; authorizationUrl: string; totalAmountKobo: number; platformFeeKobo: number; paymentMethod: string }> {
+  deliveryMethod?: "MERCHANT_DELIVERY" | "PLATFORM_LOGISTICS";
+}): Promise<{
+  orderId: string;
+  authorizationUrl: string;
+  totalAmountKobo: number;
+  platformFeeKobo: number;
+  paymentMethod: string;
+}> {
   return apiClient.post("/orders/direct", payload);
 }
+
+export const getDeliveryQuote = async (
+  pickupAddress: string,
+  deliveryAddress: string,
+  weightKg: number,
+): Promise<{ costKobo: number; estimatedMinutes: number }> => {
+  return apiClient.post("/logistics/quote", {
+    pickupAddress,
+    deliveryAddress,
+    weightKg,
+  });
+};

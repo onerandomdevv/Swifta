@@ -25,6 +25,12 @@ interface User {
   role: UserRole;
   emailVerified: boolean;
   merchantId?: string;
+  supplierId?: string;
+  supplierProfile?: {
+    companyName: string;
+    companyAddress: string;
+    cacNumber?: string;
+  };
   createdAt: string;
   updatedAt: string;
 }
