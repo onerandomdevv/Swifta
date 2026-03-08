@@ -309,7 +309,7 @@ export class TradeFinancingService {
         return { message: "User not found" };
       }
 
-      if (user.bnplWaitlist && user.bnplWaitlist.length > 0) {
+      if (user.bnplWaitlist) {
         return { message: "You're already on the waitlist!" };
       }
 
