@@ -143,8 +143,26 @@ export class CategoryService {
     }
 
     const data: any = { ...dto };
-    if (dto.name && !dto.slug) {
-      data.slug = slugify(dto.name);
+    let slug = dto.slug;
+
+    if (dto.name && !slug) {
+      slug = slugify(dto.name);
+    }
+
+    if (slug) {
+      // Check if slug is already taken by another category (not this one)
+      const existing = await this.prisma.category.findFirst({
+        where: {
+          slug,
+          id: { not: id },
+        },
+      });
+      if (existing) {
+        throw new BadRequestException(
+          `Category with slug "${slug}" already exists`,
+        );
+      }
+      data.slug = slug;
     }
 
     return this.prisma.category.update({

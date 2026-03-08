@@ -93,7 +93,7 @@ export default function BuyerCataloguePage() {
           </div>
 
           <div className="relative flex-1 max-w-xl">
-            <span className="material-symbols-outlined absolute left-4 top-1/2 -track-y-1/2 -translate-y-1/2 text-slate-400 text-xl">
+            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
               search
             </span>
             <input

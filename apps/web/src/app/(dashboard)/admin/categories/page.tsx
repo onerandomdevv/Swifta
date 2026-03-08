@@ -9,6 +9,7 @@ import {
 } from "@/lib/api/category.api";
 import { type Category } from "@hardware-os/shared";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/providers/toast-provider";
 
 export default function AdminCategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -18,6 +19,7 @@ export default function AdminCategoriesPage() {
   const [editingCategory, setEditingCategory] =
     useState<Partial<Category> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     fetchCategories();
@@ -57,15 +59,21 @@ export default function AdminCategoriesPage() {
 
     try {
       setIsSubmitting(true);
-      if (editingCategory.id) {
+      if (isEditing && editingCategory.id) {
         await updateCategory(editingCategory.id, editingCategory);
+        toast.success("Category updated successfully");
       } else {
-        await createCategory(editingCategory);
+        await createCategory(editingCategory as any);
+        toast.success("Category created successfully");
       }
+      setError(null); // Reset error on success
       setIsEditing(false);
+      setEditingCategory(null);
       fetchCategories();
     } catch (err: any) {
-      setError(err?.message || "Failed to save category");
+      setError(
+        err.response?.data?.message || err.message || "Operation failed",
+      );
     } finally {
       setIsSubmitting(false);
     }

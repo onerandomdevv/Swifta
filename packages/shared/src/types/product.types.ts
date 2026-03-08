@@ -49,3 +49,21 @@ export type UpdateProductDto = Partial<CreateProductDto> & {
   isActive?: boolean;
   categoryId?: string;
 };
+
+export interface SupplierProduct {
+  id: string;
+  name: string;
+  description?: string;
+  category: string;
+  unit: string;
+  wholesalePriceKobo: number;
+  minOrderQty: number;
+  isActive: boolean;
+  isRecommended?: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  supplier: {
+    companyName: string;
+    isVerified: boolean;
+  };
+}

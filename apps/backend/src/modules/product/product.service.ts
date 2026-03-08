@@ -99,8 +99,15 @@ export class ProductService {
         );
 
       const foundCategory = await this.prisma.category.findFirst({
-        where: isUuid ? { id: category } : { slug: category },
-        include: { children: { select: { id: true } } },
+        where: isUuid
+          ? { id: category, isActive: true }
+          : { slug: category, isActive: true },
+        include: {
+          children: {
+            where: { isActive: true },
+            select: { id: true },
+          },
+        },
       });
 
       if (foundCategory) {

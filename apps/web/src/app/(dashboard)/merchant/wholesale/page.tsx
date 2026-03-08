@@ -129,14 +129,17 @@ export default function WholesaleCataloguePage() {
             </h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {recommended.slice(0, 3).map((item: any) => (
-              <WholesaleCard
-                key={item.id}
-                item={item}
-                onOrder={handleOpenOrder}
-                isRecommended
-              />
-            ))}
+            {recommended
+              .filter((item: any) => item.isRecommended)
+              .slice(0, 3)
+              .map((item: any) => (
+                <WholesaleCard
+                  key={item.id}
+                  item={item}
+                  onOrder={handleOpenOrder}
+                  isRecommended={true}
+                />
+              ))}
           </div>
         </div>
       )}

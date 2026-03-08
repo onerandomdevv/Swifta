@@ -29,10 +29,16 @@ export class SupplierService {
     return products.map((p) => p.categoryTag);
   }
 
-  async getRecommendedCatalogue(merchantId: string) {
-    const merchantCategories = await this.findMerchantCategories(merchantId);
+  async getRecommendedCatalogue(
+    merchantId: string,
+    page: number = 1,
+    limit: number = 50,
+  ) {
+    const merchantCategories = (
+      await this.findMerchantCategories(merchantId)
+    ).map((c) => c.trim().toLowerCase());
 
-    // Get all active supplier products
+    // Get all active supplier products (with pagination)
     const allProducts = await this.prisma.supplierProduct.findMany({
       where: {
         isActive: true,
@@ -43,17 +49,24 @@ export class SupplierService {
           select: { companyName: true, isVerified: true },
         },
       },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      skip: (page - 1) * limit,
     });
 
-    // Sort: Recommended (matching categories) first
-    return allProducts.sort((a, b) => {
-      const aMatches = merchantCategories.includes(a.category);
-      const bMatches = merchantCategories.includes(b.category);
-
-      if (aMatches && !bMatches) return -1;
-      if (!aMatches && bMatches) return 1;
-      return 0; // maintain default order (createdAt desc from query)
-    });
+    // Map and Sort: Recommended (matching categories) first
+    return allProducts
+      .map((p) => {
+        const isMatch = merchantCategories.includes(
+          p.category.trim().toLowerCase(),
+        );
+        return { ...p, isRecommended: isMatch };
+      })
+      .sort((a, b) => {
+        if (a.isRecommended && !b.isRecommended) return -1;
+        if (!a.isRecommended && b.isRecommended) return 1;
+        return 0; // maintain default order (createdAt desc from query)
+      });
   }
 
   async getProfile(userId: string) {
