@@ -31,6 +31,7 @@ export const baseRegistrationSchema = z
           "Name can only contain letters, spaces, hyphens, and apostrophes.",
       }),
     businessName: z.string().trim().optional().or(z.literal("")),
+    buyerType: z.string().trim().optional().or(z.literal("")),
     companyName: z.string().trim().optional().or(z.literal("")),
     companyAddress: z.string().trim().optional().or(z.literal("")),
     cacNumber: z.string().trim().optional().or(z.literal("")),
@@ -75,6 +76,15 @@ export const baseRegistrationSchema = z
           message:
             "Company name and address are both required for supplier registration.",
           path: ["companyAddress"],
+        });
+      }
+    }
+    if (data.role === UserRole.BUYER && data.buyerType === "BUSINESS") {
+      if (!data.businessName || !data.businessName.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Business name is required for business accounts.",
+          path: ["businessName"],
         });
       }
     }

@@ -439,6 +439,8 @@ export const MSG_DEDUP_TTL = 5 * 60;
 // V5 Onboarding — Step enum and constants
 // ---------------------------------------------------------------------------
 export enum OnboardingStep {
+  BUYER_TYPE = "BUYER_TYPE",
+  BUYER_BUSINESS_NAME = "BUYER_BUSINESS_NAME",
   BUYER_NAME = "BUYER_NAME",
   BUYER_EMAIL = "BUYER_EMAIL",
   BUYER_OTP = "BUYER_OTP",

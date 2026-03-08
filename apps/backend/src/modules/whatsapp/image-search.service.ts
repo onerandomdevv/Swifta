@@ -28,6 +28,13 @@ export class ImageSearchService {
       this.configService.get<string>("WHATSAPP_ACCESS_TOKEN") || "";
   }
 
+  private maskIdentifier(identifier: string): string {
+    if (!identifier) return "";
+    return identifier.length > 4
+      ? `****${identifier.substring(identifier.length - 4)}`
+      : "****";
+  }
+
   async handleImageSearch(phone: string, imageId: string): Promise<void> {
     try {
       await this.interactiveService.sendTextMessage(
@@ -36,8 +43,8 @@ export class ImageSearchService {
       );
 
       // 1. Download image from Meta
-      const base64ImageData = await this.downloadMetaImage(imageId);
-      if (!base64ImageData) {
+      const imageResult = await this.downloadMetaImage(imageId);
+      if (!imageResult) {
         await this.interactiveService.sendTextMessage(
           phone,
           "Sorry, I couldn't download the image. Please try again.",
@@ -45,9 +52,12 @@ export class ImageSearchService {
         return;
       }
 
+      const { base64Data, mimeType } = imageResult;
+
       // 2. Identify image content
       let extractedTerms = await this.analyzeImage(
-        base64ImageData,
+        base64Data,
+        mimeType,
         this.primarySearchApi,
       );
       if (!extractedTerms && this.fallbackSearchApi) {
@@ -55,7 +65,8 @@ export class ImageSearchService {
           `Primary API failed, falling back to ${this.fallbackSearchApi}`,
         );
         extractedTerms = await this.analyzeImage(
-          base64ImageData,
+          base64Data,
+          mimeType,
           this.fallbackSearchApi,
         );
       }
@@ -99,7 +110,10 @@ export class ImageSearchService {
         [{ title: "Matches", rows }],
       );
     } catch (error) {
-      this.logger.error(`Image search failed for ${phone}:`, error);
+      this.logger.error(
+        `Image search failed for ${this.maskIdentifier(phone)}:`,
+        error,
+      );
       await this.interactiveService.sendTextMessage(
         phone,
         "Something went wrong while searching. Please try again later.",
@@ -107,25 +121,51 @@ export class ImageSearchService {
     }
   }
 
-  private async downloadMetaImage(imageId: string): Promise<string | null> {
+  private async downloadMetaImage(
+    imageId: string,
+  ): Promise<{ base64Data: string; mimeType: string } | null> {
     try {
+      const controller1 = new AbortController();
+      const timeout1 = setTimeout(() => controller1.abort(), 10000);
+
       // Get URL
-      const urlResponse = await fetch(
-        `https://graph.facebook.com/v21.0/${imageId}`,
-        {
-          headers: { Authorization: `Bearer ${this.metaAccessToken}` },
-        },
-      );
+      let urlResponse;
+      try {
+        urlResponse = await fetch(
+          `https://graph.facebook.com/v21.0/${imageId}`,
+          {
+            headers: { Authorization: `Bearer ${this.metaAccessToken}` },
+            signal: controller1.signal as RequestInit["signal"],
+          },
+        );
+      } finally {
+        clearTimeout(timeout1);
+      }
       if (!urlResponse.ok) throw new Error("Failed to get image URL");
       const urlData = await urlResponse.json();
 
+      const controller2 = new AbortController();
+      const timeout2 = setTimeout(() => controller2.abort(), 10000);
+
       // Download binary
-      const imageResponse = await fetch(urlData.url, {
-        headers: { Authorization: `Bearer ${this.metaAccessToken}` },
-      });
+      let imageResponse;
+      try {
+        imageResponse = await fetch(urlData.url, {
+          headers: { Authorization: `Bearer ${this.metaAccessToken}` },
+          signal: controller2.signal as RequestInit["signal"],
+        });
+      } finally {
+        clearTimeout(timeout2);
+      }
+
       if (!imageResponse.ok) throw new Error("Failed to download image data");
+
+      const mimeType =
+        imageResponse.headers.get("content-type") || "image/jpeg";
       const arrayBuffer = await imageResponse.arrayBuffer();
-      return Buffer.from(arrayBuffer).toString("base64");
+      const base64Data = Buffer.from(arrayBuffer).toString("base64");
+
+      return { base64Data, mimeType };
     } catch (error) {
       this.logger.error("Meta image download error:", error);
       return null;
@@ -134,13 +174,14 @@ export class ImageSearchService {
 
   private async analyzeImage(
     base64Data: string,
+    mimeType: string,
     apiType: string,
   ): Promise<string[] | null> {
     if (apiType === "cloud_vision" && this.googleCloudApiKey) {
       return this.callCloudVision(base64Data);
     }
     if (apiType === "gemini" && this.geminiApiKey) {
-      return this.callGeminiVision(base64Data);
+      return this.callGeminiVision(base64Data, mimeType);
     }
     return null;
   }
@@ -191,7 +232,10 @@ export class ImageSearchService {
     }
   }
 
-  private async callGeminiVision(base64Data: string): Promise<string[] | null> {
+  private async callGeminiVision(
+    base64Data: string,
+    mimeType: string,
+  ): Promise<string[] | null> {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
@@ -210,7 +254,7 @@ export class ImageSearchService {
                   },
                   {
                     inlineData: {
-                      mimeType: "image/jpeg",
+                      mimeType: mimeType,
                       data: base64Data,
                     },
                   },
