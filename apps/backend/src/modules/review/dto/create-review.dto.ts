@@ -5,6 +5,7 @@ import {
   Min,
   Max,
   IsOptional,
+  IsInt,
 } from "class-validator";
 
 export class CreateReviewDto {
@@ -12,7 +13,7 @@ export class CreateReviewDto {
   @IsNotEmpty()
   orderId: string;
 
-  @IsNumber()
+  @IsInt()
   @Min(1)
   @Max(5)
   rating: number;

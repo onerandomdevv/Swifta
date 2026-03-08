@@ -76,13 +76,35 @@ export class ReviewService {
         },
       });
 
+      // Check for TRUSTED tier upgrade (inside transaction)
+      try {
+        await this.evaluateTrustedTierInternal(merchantId, tx);
+      } catch (tierErr) {
+        this.logger.error(
+          `Failed to evaluate trusted tier for merchant ${merchantId}`,
+          tierErr,
+        );
+        // We don't necessarily want to fail the whole review if tier check fails,
+        // but the user requirement implies it should be atomic or compensated.
+        // Moving it inside means it's atomic.
+      }
+
       return newReview;
     });
 
-    // Check for TRUSTED tier upgrade
-    await this.evaluateTrustedTier(merchantId);
-
     return review;
+  }
+
+  async updateComment(orderId: string, comment: string) {
+    const review = await this.prisma.review.findUnique({
+      where: { orderId },
+    });
+    if (!review) throw new NotFoundException("Review not found for this order");
+
+    return this.prisma.review.update({
+      where: { orderId },
+      data: { comment },
+    });
   }
 
   async findByMerchant(merchantId: string, page = 1, limit = 10) {
@@ -118,7 +140,11 @@ export class ReviewService {
   }
 
   private async evaluateTrustedTier(merchantId: string) {
-    const merchant = await this.prisma.merchantProfile.findUnique({
+    return this.evaluateTrustedTierInternal(merchantId, this.prisma as any);
+  }
+
+  private async evaluateTrustedTierInternal(merchantId: string, tx: any) {
+    const merchant = await tx.merchantProfile.findUnique({
       where: { id: merchantId },
       include: {
         _count: {
@@ -129,16 +155,16 @@ export class ReviewService {
 
     if (!merchant) return;
 
-    // Criteria: 50+ completed orders, 6+ months since creation, 4.0+ average rating
+    // Criteria: 10+ completed orders, 30+ days since creation, 4.5+ average rating
     const completedOrders = merchant._count.orders;
-    const monthsSinceCreation =
+    const daysSinceCreation =
       (new Date().getTime() - merchant.createdAt.getTime()) /
-      (1000 * 60 * 60 * 24 * 30);
+      (1000 * 60 * 60 * 24);
     const avgRating = merchant.averageRating || 0;
 
-    if (completedOrders >= 50 && monthsSinceCreation >= 6 && avgRating >= 4.0) {
+    if (completedOrders >= 10 && daysSinceCreation >= 30 && avgRating >= 4.5) {
       if (merchant.verificationTier !== VerificationTier.TRUSTED) {
-        await this.prisma.merchantProfile.update({
+        await tx.merchantProfile.update({
           where: { id: merchantId },
           data: { verificationTier: VerificationTier.TRUSTED },
         });

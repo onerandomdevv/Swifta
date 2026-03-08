@@ -114,6 +114,33 @@ export class WhatsAppInteractiveService {
   }
 
   // -----------------------------------------------------------------------
+  // Send CTA URL Button (Single button that opens a website)
+  // -----------------------------------------------------------------------
+  async sendCTAUrlButton(
+    phone: string,
+    bodyText: string,
+    buttonTitle: string,
+    url: string,
+  ): Promise<void> {
+    await this.callMetaApi(phone, {
+      messaging_product: "whatsapp",
+      to: phone,
+      type: "interactive",
+      interactive: {
+        type: "cta_url",
+        body: { text: bodyText },
+        action: {
+          name: "cta_url",
+          parameters: {
+            display_text: buttonTitle.substring(0, 20),
+            url: url,
+          },
+        },
+      },
+    });
+  }
+
+  // -----------------------------------------------------------------------
   // Internal: Call Meta Cloud API
   // -----------------------------------------------------------------------
   private async callMetaApi(phone: string, payload: any): Promise<void> {

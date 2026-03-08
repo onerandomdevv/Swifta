@@ -40,8 +40,9 @@ export const StarRating: React.FC<StarRatingProps> = ({
             onMouseEnter={() => !readOnly && setHoverRating(star)}
             onMouseLeave={() => !readOnly && setHoverRating(0)}
             onClick={() => !readOnly && onRatingChange?.(star)}
+            aria-label={`${star} star${star > 1 ? "s" : ""}${!readOnly ? ` - click to rate ${star}` : ""}`}
             className={cn(
-              "transition-all duration-200 focus:outline-none",
+              "transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 rounded-lg",
               sizes[size],
               isActive
                 ? "text-amber-400 fill-amber-400"

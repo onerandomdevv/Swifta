@@ -362,6 +362,7 @@ export class OrderService {
       include: {
         quote: { include: { rfq: { include: { product: true } } } },
         orderEvents: { orderBy: { createdAt: "asc" } },
+        review: true,
       },
     });
     if (!order) throw new NotFoundException("Order not found");

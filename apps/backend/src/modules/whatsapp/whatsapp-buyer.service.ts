@@ -127,7 +127,16 @@ export class WhatsAppBuyerService {
       const reviewKey = `${PENDING_REVIEW_PREFIX}${buyerId}`;
       const reviewSessionRaw = await this.redisService.get(reviewKey);
       if (reviewSessionRaw) {
-        const session = JSON.parse(reviewSessionRaw);
+        let session: any = null;
+        try {
+          session = JSON.parse(reviewSessionRaw);
+        } catch (parseErr) {
+          this.logger.error(`Malformed review session for ${buyerId}`);
+          await this.redisService.del(reviewKey);
+          return;
+        }
+
+        if (!session) return;
 
         // a. Handle interactive rating button (if any)
         if (interactiveReply && interactiveReply.id.startsWith("rate_")) {
@@ -165,11 +174,7 @@ export class WhatsAppBuyerService {
 
         // c. Handle text comment input
         if (session.step === "AWAITING_COMMENT" && messageText) {
-          await this.reviewService.create(buyerId, {
-            orderId: session.orderId,
-            rating: session.rating,
-            comment: messageText,
-          });
+          await this.reviewService.updateComment(session.orderId, messageText);
           await this.redisService.del(reviewKey);
           await this.sendWhatsAppMessage(
             phone,

@@ -12,10 +12,15 @@ import { ReviewService } from "./review.service";
 import { CreateReviewDto } from "./dto/create-review.dto";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { OrderService } from "../order/order.service";
+import { JwtPayload } from "@hardware-os/shared";
 
 @Controller("reviews")
 export class ReviewController {
-  constructor(private readonly reviewService: ReviewService) {}
+  constructor(
+    private readonly reviewService: ReviewService,
+    private readonly orderService: OrderService,
+  ) {}
 
   @Post()
   @UseGuards(JwtAuthGuard)
@@ -37,7 +42,12 @@ export class ReviewController {
 
   @Get("order/:orderId")
   @UseGuards(JwtAuthGuard)
-  async findByOrder(@Param("orderId") orderId: string) {
+  async findByOrder(
+    @CurrentUser() user: JwtPayload,
+    @Param("orderId") orderId: string,
+  ) {
+    // Verify participation via OrderService
+    await this.orderService.getById(orderId, user.sub, user.merchantId);
     return this.reviewService.findByOrder(orderId);
   }
 }

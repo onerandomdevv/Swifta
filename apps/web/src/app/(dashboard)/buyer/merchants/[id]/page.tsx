@@ -27,16 +27,23 @@ export default function BuyerMerchantProfilePage() {
       try {
         setError("");
         setLoading(true);
-        const [profileData, productsData, reviewsData] = await Promise.all([
+        const [profileData, productsData] = await Promise.all([
           getPublicProfile(id as string),
           getPublicProductsByMerchant(id as string, 1, 50),
-          getMerchantReviews(id as string, 1, 10),
         ]);
 
         if (active) {
           setProfile(profileData);
           setProducts(productsData as unknown as Product[]);
-          setReviews(reviewsData);
+        }
+
+        // Fetch reviews separately so failures don't block the whole page
+        try {
+          const reviewsData = await getMerchantReviews(id as string, 1, 10);
+          if (active) setReviews(reviewsData);
+        } catch (revErr) {
+          console.error("Failed to load reviews:", revErr);
+          if (active) setReviews([]);
         }
       } catch (err: any) {
         if (active) {

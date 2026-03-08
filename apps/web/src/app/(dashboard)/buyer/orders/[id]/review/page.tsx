@@ -38,7 +38,7 @@ export default function OrderReviewPage() {
           setComment(reviewData.comment || "");
         }
       } catch (err: any) {
-        setError(err?.message || "Failed to load order info");
+        setError(err?.error || err?.message || "Failed to load order info");
       } finally {
         setLoading(false);
       }
@@ -60,7 +60,7 @@ export default function OrderReviewPage() {
       });
       router.push(`/buyer/orders/${order.id}?reviewed=true`);
     } catch (err: any) {
-      setError(err?.message || "Failed to submit review");
+      setError(err?.error || err?.message || "Failed to submit review");
       setSubmitting(false);
     }
   };
