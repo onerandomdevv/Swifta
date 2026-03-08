@@ -219,7 +219,7 @@ export class WhatsAppService {
   }
 
   // =======================================================================
-  // Command handlers — warm, conversational Pidgin/Lagos tone
+  // Command handlers — professional English responses (Pidgin/Lagos input understood, English output always)
   // =======================================================================
 
   /**
