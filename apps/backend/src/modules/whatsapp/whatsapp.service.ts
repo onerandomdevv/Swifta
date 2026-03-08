@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, Inject, forwardRef } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../../prisma/prisma.service";
 import { OrderService } from "../order/order.service";
@@ -43,6 +43,7 @@ export class WhatsAppService {
   constructor(
     private configService: ConfigService,
     private prisma: PrismaService,
+    @Inject(forwardRef(() => OrderService))
     private orderService: OrderService,
     private rfqService: RFQService,
     private quoteService: QuoteService,
@@ -176,6 +177,7 @@ export class WhatsAppService {
       this.logger.error(
         `Error processing message from ${phone}: ${error instanceof Error ? error.message : error}`,
       );
+      throw error; // Rethrow to allow BullMQ to retry
       // Send a friendly error — never leave the user hanging
       try {
         await this.sendWhatsAppMessage(phone, GENERIC_ERROR);
@@ -292,7 +294,7 @@ export class WhatsAppService {
       if (!order) return "❌ Order details not found.";
 
       const status = order.status;
-      const canDispatch = status === "PAID" || status === "PENDING_PAYMENT";
+      const canDispatch = status === "PAID" || status === "PREPARING";
 
       let msg = `📦 *Order #${order.id.slice(0, 8).toUpperCase()}*\n`;
       msg += `Status: *${status}*\n`;
@@ -632,7 +634,7 @@ export class WhatsAppService {
         {
           title: "Pending Quotes",
           rows: rfqs.map((rfq: any) => ({
-            id: `quote_rfq_${rfq.id.substring(0, 8)}`,
+            id: `view_rfq_${rfq.id.substring(0, 8)}`,
             title: `${rfq.quantity} ${rfq.product?.unit || "units"} ${rfq.product?.name || "Product"}`,
             description: `From: ${rfq.user?.firstName || "Buyer"} | Loc: ${rfq.deliveryAddress?.split(",")[0] || "Nigeria"}`,
           })),
@@ -862,6 +864,9 @@ export class WhatsAppService {
       return "🏪 You have no products listed currently. Please add products via the SwiftTrade web dashboard to begin selling. 🛒";
     }
 
+    // Meta interactive list supports max 10 rows
+    const displayedProducts = products.slice(0, 10);
+
     await this.interactiveService.sendListMessage(
       phone,
       `🏪 *Your Product Portfolio* (${products.length} items)`,
@@ -869,7 +874,7 @@ export class WhatsAppService {
       [
         {
           title: "My Active Listings",
-          rows: products.map((p) => ({
+          rows: displayedProducts.map((p) => ({
             id: `view_product_${p.id.substring(0, 8)}`,
             title: p.name,
             description: `Price: ${this.formatNaira(Number(p.pricePerUnitKobo || 0))} | Category: ${(p as any).category?.name || "General"}`,

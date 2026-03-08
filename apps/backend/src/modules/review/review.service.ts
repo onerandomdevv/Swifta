@@ -48,48 +48,52 @@ export class ReviewService {
     if (!buyerProfile) throw new BadRequestException("Buyer profile not found");
 
     const review = await this.prisma.$transaction(async (tx) => {
-      const newReview = await tx.review.create({
-        data: {
-          orderId,
-          buyerId: buyerProfile.userId, // Review model links to buyer via buyerId (User relations)
-          merchantId,
-          rating,
-          comment,
-        },
-      });
-
-      // Recalculate merchant ratings
-      const reviews = await tx.review.findMany({
-        where: { merchantId },
-        select: { rating: true },
-      });
-
-      const reviewCount = reviews.length;
-      const totalStars = reviews.reduce((sum, r) => sum + r.rating, 0);
-      const averageRating = totalStars / reviewCount;
-
-      await tx.merchantProfile.update({
-        where: { id: merchantId },
-        data: {
-          reviewCount,
-          averageRating,
-        },
-      });
-
-      // Check for TRUSTED tier upgrade (inside transaction)
       try {
-        await this.evaluateTrustedTierInternal(merchantId, tx);
-      } catch (tierErr) {
-        this.logger.error(
-          `Failed to evaluate trusted tier for merchant ${merchantId}`,
-          tierErr,
-        );
-        // We don't necessarily want to fail the whole review if tier check fails,
-        // but the user requirement implies it should be atomic or compensated.
-        // Moving it inside means it's atomic.
-      }
+        const newReview = await tx.review.create({
+          data: {
+            orderId,
+            buyerId: buyerProfile.userId, // Review model links to buyer via buyerId (User relations)
+            merchantId,
+            rating,
+            comment,
+          },
+        });
 
-      return newReview;
+        // Recalculate merchant ratings
+        const reviews = await tx.review.findMany({
+          where: { merchantId },
+          select: { rating: true },
+        });
+
+        const reviewCount = reviews.length;
+        const totalStars = reviews.reduce((sum, r) => sum + r.rating, 0);
+        const averageRating = totalStars / reviewCount;
+
+        await tx.merchantProfile.update({
+          where: { id: merchantId },
+          data: {
+            reviewCount,
+            averageRating,
+          },
+        });
+
+        // Check for TRUSTED tier upgrade (inside transaction)
+        try {
+          await this.evaluateTrustedTierInternal(merchantId, tx);
+        } catch (tierErr) {
+          this.logger.error(
+            `Failed to evaluate trusted tier for merchant ${merchantId}`,
+            tierErr,
+          );
+        }
+
+        return newReview;
+      } catch (error) {
+        if ((error as any).code === "P2002") {
+          throw new ConflictException("This order has already been reviewed");
+        }
+        throw error;
+      }
     });
 
     return review;
@@ -111,7 +115,11 @@ export class ReviewService {
     const skip = (page - 1) * limit;
     const reviews = await this.prisma.review.findMany({
       where: { merchantId },
-      include: {
+      select: {
+        id: true,
+        rating: true,
+        comment: true,
+        createdAt: true,
         buyer: {
           select: {
             user: {
@@ -128,7 +136,10 @@ export class ReviewService {
     });
 
     return reviews.map((r) => ({
-      ...r,
+      id: r.id,
+      rating: r.rating,
+      comment: r.comment,
+      createdAt: r.createdAt,
       buyerName: r.buyer?.user?.firstName || "Buyer",
     }));
   }

@@ -20,7 +20,8 @@ export const getOrderReview = async (
 ): Promise<Review | null> => {
   try {
     return await apiClient.get<Review>(`/reviews/order/${orderId}`);
-  } catch (error) {
-    return null;
+  } catch (error: any) {
+    if (error.response?.status === 404) return null;
+    throw error;
   }
 };

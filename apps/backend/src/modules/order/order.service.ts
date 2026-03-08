@@ -45,6 +45,7 @@ export class OrderService {
     @InjectQueue(REVIEW_QUEUE) private reviewQueue: Queue,
     private verificationService: VerificationService,
     private logisticsService: LogisticsService,
+    @Inject(forwardRef(() => WhatsAppService))
     private whatsappService: WhatsAppService,
   ) {}
 
@@ -688,20 +689,29 @@ export class OrderService {
     }
 
     // REVIEW PROMPT: Queue a review prompt job after 1 hour (3600 seconds)
-    try {
-      this.logger.log(`Queueing review prompt for order ${orderId} in 1 hour`);
-      await this.reviewQueue.add(
-        "send-review-prompt",
-        { orderId, buyerId },
-        {
-          delay: 3600 * 1000, // 1 hour delay
-          jobId: `review-prompt-${orderId}`,
-          removeOnComplete: true,
-        },
-      );
-    } catch (error) {
-      this.logger.error(
-        `Failed to queue review prompt for order ${orderId}: ${error instanceof Error ? error.message : error}`,
+    // Only if the order has a merchant (Reviews are for merchants)
+    if (order.merchantId) {
+      try {
+        this.logger.log(
+          `Queueing review prompt for order ${orderId} in 1 hour`,
+        );
+        await this.reviewQueue.add(
+          "send-review-prompt",
+          { orderId, buyerId },
+          {
+            delay: 3600 * 1000, // 1 hour delay
+            jobId: `review-prompt-${orderId}`,
+            removeOnComplete: true,
+          },
+        );
+      } catch (error) {
+        this.logger.error(
+          `Failed to queue review prompt for order ${orderId}: ${error instanceof Error ? error.message : error}`,
+        );
+      }
+    } else {
+      this.logger.log(
+        `Skipping review prompt for order ${orderId} (No merchant associated)`,
       );
     }
 
