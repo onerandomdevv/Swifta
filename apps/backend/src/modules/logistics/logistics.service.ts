@@ -222,38 +222,30 @@ export class LogisticsService {
     const trackingUrl = booking.trackingUrl;
 
     try {
-      switch (newStatus) {
-        case DeliveryStatus.PICKUP_SCHEDULED:
-          await this.whatsappService.sendWhatsAppMessage(
-            buyerPhone,
-            `🚚 *Pickup Scheduled!*\n\nYour order #${booking.orderId.slice(0, 6)} has been scheduled for pickup from the merchant. We will notify you when it's on the way.`,
-          );
-          break;
-        case DeliveryStatus.PICKED_UP:
-        case DeliveryStatus.IN_TRANSIT:
-          await this.whatsappService.sendWhatsAppMessage(
-            buyerPhone,
-            `📦 *Order On The Way!*\n\nYour order #${booking.orderId.slice(0, 6)} has been picked up by our logistics partner and is in transit.\n\n📍 Track live: ${trackingUrl || "Unavailable"}`,
-          );
-          break;
-        case DeliveryStatus.ARRIVING:
-          await this.whatsappService.sendWhatsAppMessage(
-            buyerPhone,
-            `📍 *Almost there!*\n\nYour order #${booking.orderId.slice(0, 6)} is arriving shortly. Please ensure someone is available to receive it at the delivery address.`,
-          );
-          break;
-        case DeliveryStatus.DELIVERED:
-          await this.whatsappService.sendWhatsAppMessage(
-            buyerPhone,
-            `✅ *Order Delivered!*\n\nYour order #${booking.orderId.slice(0, 6)} has been successfully delivered by our logistics partner. Please reply with the delivery OTP to complete the transaction.`,
-          );
-          break;
-        case DeliveryStatus.FAILED:
-          await this.whatsappService.sendWhatsAppMessage(
-            buyerPhone,
-            `⚠️ *Delivery Update*\n\nThere was an issue with the delivery for order #${booking.orderId.slice(0, 6)}. Our support team is investigating and will contact you shortly.`,
-          );
-          break;
+      // Notify Buyer
+      await this.whatsappService.sendBuyerLogisticsUpdate(
+        buyerPhone,
+        booking.orderId,
+        newStatus,
+        trackingUrl,
+      );
+
+      // Notify Merchant
+      if (booking.order.merchantId) {
+        await this.whatsappService.sendMerchantLogisticsUpdate(
+          booking.order.merchantId,
+          booking.orderId,
+          newStatus,
+        );
+      }
+
+      // Notify Supplier
+      if (booking.order.supplierId) {
+        await this.whatsappService.sendSupplierLogisticsUpdate(
+          booking.order.supplierId,
+          booking.orderId,
+          newStatus,
+        );
       }
     } catch (err) {
       this.logger.error(

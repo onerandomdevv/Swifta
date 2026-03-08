@@ -75,8 +75,8 @@ model MerchantProfile {
   reorderReminders      ReorderReminder[]
   payoutRequests        PayoutRequest[]
   payouts               Payout[]
-  whatsappLink          WhatsAppLink?
   verificationRequests  VerificationRequest[]
+  creditApplications    CreditApplication[]
 
   @@map("merchant_profiles")
 }
@@ -371,6 +371,7 @@ model User {
   bnplWaitlist                 BnplWaitlist[]
   supplierProfile              SupplierProfile?
   whatsappBuyerLink            WhatsAppBuyerLink?
+  whatsappLink                 WhatsAppLink?
 
   @@map("users")
 }
@@ -542,10 +543,10 @@ model ReorderReminder {
 model WhatsAppLink {
   id         String          @id @default(uuid()) @db.Uuid
   phone      String          @unique
-  merchantId String          @unique @map("merchant_id") @db.Uuid
+  userId     String          @unique @map("user_id") @db.Uuid
   linkedAt   DateTime        @default(now()) @map("linked_at")
   isActive   Boolean         @default(true) @map("is_active")
-  merchant   MerchantProfile @relation(fields: [merchantId], references: [id])
+  user       User            @relation(fields: [userId], references: [id])
 
   @@map("whatsapp_links")
 }
@@ -621,23 +622,26 @@ model OrderTracking {
 }
 
 model CreditApplication {
-  id              String       @id @default(uuid()) @db.Uuid
-  buyerId         String       @map("buyer_id") @db.Uuid
-  orderId         String       @unique @map("order_id") @db.Uuid
-  requestedAmount BigInt       @map("requested_amount_kobo")
-  tenure          Int
-  status          CreditStatus @default(PENDING)
-  partnerName     String       @default("mock") @map("partner_name")
-  partnerRef      String?      @map("partner_ref")
-  partnerDisbursementRef String? @map("partner_disbursement_ref")
-  approvedAmount  BigInt?      @map("approved_amount_kobo")
-  interestRate    Float?       @map("interest_rate")
-  commissionKobo  BigInt       @default(0) @map("commission_kobo")
-  createdAt       DateTime     @default(now()) @map("created_at")
-  buyer           User         @relation(fields: [buyerId], references: [id])
-  order           Order        @relation(fields: [orderId], references: [id])
+  id                     String            @id @default(uuid()) @db.Uuid
+  buyerId                String            @map("buyer_id") @db.Uuid
+  merchantId             String?           @map("merchant_id") @db.Uuid
+  orderId                String            @unique @map("order_id") @db.Uuid
+  requestedAmount        BigInt            @map("requested_amount_kobo")
+  tenure                 Int
+  status                 CreditStatus      @default(PENDING)
+  partnerName            String            @default("mock") @map("partner_name")
+  partnerRef             String?           @map("partner_ref")
+  partnerDisbursementRef String?           @map("partner_disbursement_ref")
+  approvedAmount         BigInt?           @map("approved_amount_kobo")
+  interestRate           Float?            @map("interest_rate")
+  commissionKobo         BigInt            @default(0) @map("commission_kobo")
+  createdAt              DateTime          @default(now()) @map("created_at")
+  buyer                  User              @relation(fields: [buyerId], references: [id])
+  merchant               MerchantProfile?  @relation(fields: [merchantId], references: [id])
+  order                  Order             @relation(fields: [orderId], references: [id])
 
   @@index([buyerId])
+  @@index([merchantId])
   @@map("credit_applications")
 }
 
@@ -718,6 +722,7 @@ model SupplierProfile {
   user            User              @relation(fields: [userId], references: [id])
   products        SupplierProduct[]
   orders          Order[]
+  whatsappLink    WhatsAppSupplierLink?
   @@map("supplier_profiles")
 }
 
@@ -745,4 +750,14 @@ model WhatsAppBuyerLink {
   isActive  Boolean  @default(true) @map("is_active")
   buyer     User     @relation(fields: [buyerId], references: [id])
   @@map("whatsapp_buyer_links")
+}
+
+model WhatsAppSupplierLink {
+  id          String          @id @default(uuid()) @db.Uuid
+  phone       String          @unique
+  supplierId  String          @unique @map("supplier_id") @db.Uuid
+  linkedAt    DateTime        @default(now()) @map("linked_at")
+  isActive    Boolean         @default(true) @map("is_active")
+  supplier    SupplierProfile @relation(fields: [supplierId], references: [id])
+  @@map("whatsapp_supplier_links")
 }

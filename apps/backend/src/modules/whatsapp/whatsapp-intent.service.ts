@@ -59,9 +59,18 @@ export class WhatsAppIntentService {
       return { functionName: "show_menu", params: {} };
     }
 
-    // 3. EVERYTHING ELSE → send to Gemini AI for intent parsing
-    //    This includes "hi", "hello", "how market", "check stock", etc.
-    //    The AI will decide the right function.
+    // 3. Wholesale / Manufacturer shortcuts (High priority in V4)
+    if (
+      lower.includes("wholesale") ||
+      lower.includes("manufacturer") ||
+      lower.includes("supplier") ||
+      lower.includes("buy stock")
+    ) {
+      this.logger.log(`Wholesale shortcut matched: "${text}"`);
+      return this.basicKeywordMatch(text);
+    }
+
+    // 4. EVERYTHING ELSE → send to Gemini AI for intent parsing
     if (this.genAI) {
       try {
         this.logger.log(`Sending to Gemini AI: "${text}"`);
@@ -182,6 +191,24 @@ export class WhatsAppIntentService {
       lower.includes("verified")
     ) {
       return { functionName: "get_verification_status", params: {} };
+    }
+
+    // Wholesale / Stock
+    if (
+      lower.includes("wholesale") ||
+      lower.includes("manufacturer") ||
+      lower.includes("stock")
+    ) {
+      const buyMatch = lower.match(
+        /(?:buy|order)\s+(?:stock\s+)?([a-zA-Z0-9]+)/,
+      );
+      if (buyMatch) {
+        return {
+          functionName: "buy_wholesale",
+          params: { productId: buyMatch[1] },
+        };
+      }
+      return { functionName: "browse_wholesale", params: {} };
     }
 
     // Greetings

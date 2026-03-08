@@ -5,9 +5,14 @@ import {
   getWholesaleCatalogue,
   createWholesaleOrder,
 } from "@/lib/api/supplier.api";
+import {
+  checkTradeFinancingEligibility,
+  applyForTradeFinancing,
+  type TradeFinancingEligibilityResponse,
+} from "@/lib/api/trade-financing.api";
 import { formatKobo } from "@hardware-os/shared";
 import { useToast } from "@/providers/toast-provider";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 
@@ -16,6 +21,12 @@ export default function WholesaleCataloguePage() {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [quantity, setQuantity] = useState<number>(0);
   const [address, setAddress] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<
+    "PAY_NOW" | "TRADE_FINANCING"
+  >("PAY_NOW");
+  const [tenureDays, setTenureDays] = useState(30);
+  const [eligibility, setEligibility] =
+    useState<TradeFinancingEligibilityResponse | null>(null);
 
   const {
     data: catalogue,
@@ -26,14 +37,44 @@ export default function WholesaleCataloguePage() {
     queryFn: getWholesaleCatalogue,
   });
 
+  useEffect(() => {
+    checkTradeFinancingEligibility()
+      .then(setEligibility)
+      .catch((err) => {
+        console.error(err);
+        toast.error("Failed to check Trade Financing eligibility.");
+      });
+  }, [toast]);
+
   const orderMutation = useMutation({
     mutationFn: createWholesaleOrder,
-    onSuccess: (data: any) => {
-      toast.success("Order created! Redirecting to payment...");
-      if (data.authorizationUrl) {
-        window.location.href = data.authorizationUrl;
+    onSuccess: async (data: any) => {
+      if (paymentMethod === "TRADE_FINANCING") {
+        try {
+          await applyForTradeFinancing({
+            orderId: data.orderId,
+            tenureDays,
+          });
+          toast.success("Trade financing application successful!");
+          window.location.href = `/merchant/orders/${data.orderId}?success=financing_approved`;
+        } catch (err: any) {
+          toast.error(
+            err.message ||
+              "Financing application failed. Redirecting to regular payment...",
+          );
+          if (data.authorizationUrl) {
+            window.location.href = data.authorizationUrl;
+            return; // Don't close modal yet if redirecting
+          }
+        }
+      } else {
+        toast.success("Order created! Redirecting to payment...");
+        if (data.authorizationUrl) {
+          window.location.href = data.authorizationUrl;
+          return;
+        }
+        setSelectedProduct(null);
       }
-      setSelectedProduct(null);
     },
     onError: (error: any) => {
       toast.error(error.message || "Failed to create order");
@@ -43,6 +84,7 @@ export default function WholesaleCataloguePage() {
   const handleOpenOrder = (product: any) => {
     setSelectedProduct(product);
     setQuantity(product.minOrderQty);
+    setPaymentMethod("PAY_NOW");
   };
 
   const handleOrder = (e: React.FormEvent) => {
@@ -217,6 +259,100 @@ export default function WholesaleCataloguePage() {
             </div>
           </div>
 
+          <div className="space-y-4">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
+              Payment Method
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("PAY_NOW")}
+                className={`p-4 rounded-xl border-2 transition-all text-left ${
+                  paymentMethod === "PAY_NOW"
+                    ? "border-primary bg-primary/5"
+                    : "border-slate-100 dark:border-slate-800 hover:border-slate-200"
+                }`}
+              >
+                <p className="text-xs font-black uppercase text-slate-900 dark:text-white">
+                  Pay Now
+                </p>
+                <p className="text-[10px] text-slate-500 mt-1 font-medium italic">
+                  Direct Payment
+                </p>
+              </button>
+
+              <button
+                type="button"
+                disabled={!eligibility?.eligible}
+                onClick={() => setPaymentMethod("TRADE_FINANCING")}
+                className={`p-4 rounded-xl border-2 transition-all text-left relative overflow-hidden ${
+                  paymentMethod === "TRADE_FINANCING"
+                    ? "border-indigo-500 bg-indigo-50"
+                    : eligibility?.eligible
+                      ? "border-slate-100 dark:border-slate-800 hover:border-slate-200"
+                      : "border-slate-100 dark:border-slate-800 opacity-50 cursor-not-allowed"
+                }`}
+              >
+                {!eligibility?.eligible && (
+                  <div className="absolute top-1 right-1">
+                    <span className="material-symbols-outlined text-slate-300 text-xs">
+                      lock
+                    </span>
+                  </div>
+                )}
+                <p className="text-xs font-black uppercase text-slate-900 dark:text-white">
+                  Trade Financing
+                </p>
+                <p className="text-[10px] text-slate-500 mt-1 font-medium italic">
+                  Stock Financing
+                </p>
+              </button>
+            </div>
+
+            {paymentMethod === "TRADE_FINANCING" && eligibility && (
+              <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-xl space-y-3 animate-in slide-in-from-top-2 duration-300">
+                <p className="text-[10px] font-bold text-indigo-700 uppercase tracking-widest">
+                  💳 Available Credit:{" "}
+                  {formatKobo(BigInt(eligibility.maxAmount))}
+                </p>
+                <div className="space-y-2">
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
+                    Choose Repayment Period
+                  </label>
+                  <div className="flex gap-2">
+                    {[30, 60, 90].map((days) => (
+                      <button
+                        key={days}
+                        type="button"
+                        onClick={() => setTenureDays(days)}
+                        className={`flex-1 py-2 rounded-lg text-[10px] font-black tracking-widest uppercase transition-all ${
+                          tenureDays === days
+                            ? "bg-indigo-600 text-white"
+                            : "bg-white text-indigo-600 border border-indigo-200"
+                        }`}
+                      >
+                        {days} Days
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <p className="text-[9px] text-indigo-500 italic font-medium">
+                  Interest rate: {eligibility.interestRate}% flat
+                </p>
+              </div>
+            )}
+
+            {!eligibility?.eligible && eligibility && (
+              <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg">
+                <p className="text-[9px] font-bold text-amber-700 uppercase tracking-wide leading-relaxed">
+                  ⚠️ Financing locked:{" "}
+                  {eligibility.reason ||
+                    "Verification tier or trade history requirements not met."}
+                </p>
+              </div>
+            )}
+          </div>
+
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
               Delivery Address
@@ -224,7 +360,7 @@ export default function WholesaleCataloguePage() {
             <textarea
               value={address}
               onChange={(e) => setAddress(e.target.value)}
-              className="w-full h-32 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 font-medium text-slate-900 dark:text-white focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all resize-none"
+              className="w-full h-24 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 font-medium text-slate-900 dark:text-white focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all resize-none"
               placeholder="Enter the full delivery address for this stock..."
               required
             />
@@ -232,18 +368,21 @@ export default function WholesaleCataloguePage() {
 
           <Button
             type="submit"
-            className="w-full h-14"
+            className={`w-full h-14 ${paymentMethod === "TRADE_FINANCING" ? "bg-indigo-600 hover:bg-indigo-700" : ""}`}
             isLoading={orderMutation.isPending}
             disabled={
               !quantity || quantity < (selectedProduct?.minOrderQty || 0)
             }
           >
-            Confirm & Proceed to Payment
+            {paymentMethod === "TRADE_FINANCING"
+              ? "Apply for Financing"
+              : "Confirm & Proceed to Payment"}
           </Button>
 
           <p className="text-center text-[10px] text-slate-400 font-medium px-4">
-            By clicking confirm, you agree to the Hardware OS B2B Escrow terms.
-            Payment will be held until you confirm receipt of stock.
+            {paymentMethod === "TRADE_FINANCING"
+              ? "Application will be cross-checked with our financing partner instantly."
+              : "By clicking confirm, you agree to the Hardware OS B2B Escrow terms."}
           </p>
         </form>
       </Modal>

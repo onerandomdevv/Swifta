@@ -7,7 +7,11 @@ import { QuoteService } from "../quote/quote.service";
 import { ProductService } from "../product/product.service";
 import { InventoryService } from "../inventory/inventory.service";
 import { WhatsAppAuthService } from "./whatsapp-auth.service";
+import { WhatsAppBuyerAuthService } from "./whatsapp-buyer-auth.service";
 import { WhatsAppBuyerService } from "./whatsapp-buyer.service";
+import { TradeFinancingService } from "../trade-financing/trade-financing.service";
+import { RedisService } from "../../redis/redis.service";
+import { WhatsAppSupplierService } from "./whatsapp-supplier.service";
 import { WhatsAppIntentService, ParsedIntent } from "./whatsapp-intent.service";
 import {
   MAIN_MENU,
@@ -42,8 +46,12 @@ export class WhatsAppService {
     private productService: ProductService,
     private inventoryService: InventoryService,
     private authService: WhatsAppAuthService,
+    private buyerAuthService: WhatsAppBuyerAuthService,
     private intentService: WhatsAppIntentService,
     private buyerService: WhatsAppBuyerService,
+    private supplierService: WhatsAppSupplierService,
+    private tradeFinancingService: TradeFinancingService,
+    private redisService: RedisService,
   ) {
     this.accessToken =
       this.configService.get<string>("WHATSAPP_ACCESS_TOKEN") || "";
@@ -67,15 +75,74 @@ export class WhatsAppService {
         this.logger.log(
           `Routing message to Merchant Bot (Merchant ID: ${merchantId})`,
         );
+
+        // 1. Check for pending wholesale checkout flow
+        const checkoutKey = `wa_pending_wholesale_${merchantId}`;
+        const checkoutSessionRaw = await this.redisService.get(checkoutKey);
+        if (checkoutSessionRaw) {
+          try {
+            const session = JSON.parse(checkoutSessionRaw);
+            const response = await this.handleWholesaleCheckoutStep(
+              merchantId,
+              session,
+              messageText,
+              checkoutKey,
+            );
+            await this.sendWhatsAppMessage(phone, response);
+            return;
+          } catch (parseErr) {
+            this.logger.error(
+              `Malformed wholesale checkout session for ${merchantId}`,
+            );
+            await this.redisService.del(checkoutKey);
+          }
+        }
+
         const intent = await this.intentService.parseIntent(messageText);
         const response = await this.executeCommand(merchantId, intent);
         await this.sendWhatsAppMessage(phone, response);
         return;
       }
 
-      // 2. Not a merchant — pass to Buyer Bot
-      this.logger.log(`Routing message to Buyer Bot (Phone: ${phone})`);
-      await this.buyerService.processMessage(phone, messageText, messageId);
+      // 2. Check if phone is linked to a Buyer
+      const buyerId = await this.buyerAuthService.resolvePhone(phone);
+      if (buyerId) {
+        this.logger.log(`Routing message to Buyer Bot (Phone: ${phone})`);
+        await this.buyerService.processMessage(phone, messageText, messageId);
+        return;
+      }
+
+      // 3. Check if phone is linked to a Supplier
+      const supplierId = await this.authService.resolveSupplierPhone(phone);
+      if (supplierId) {
+        this.logger.log(`Routing message to Supplier Bot (Phone: ${phone})`);
+        try {
+          await this.supplierService.processMessage(
+            phone,
+            messageText,
+            messageId,
+          );
+        } catch (error) {
+          this.logger.error(
+            `Error processing supplier message from ${phone}: ${error instanceof Error ? error.message : error}`,
+          );
+          await this.sendWhatsAppMessage(
+            phone,
+            "Supplier bot features are currently experiencing an issue. Please try again later.",
+          );
+        }
+        return;
+      }
+
+      // 4. Unknown number — Trigger Unified Authentication Flow
+      this.logger.log(
+        `Routing message to Unified Onboarding (Phone: ${phone})`,
+      );
+      const response = await this.authService.handleLinkingFlow(
+        phone,
+        messageText,
+      );
+      await this.sendWhatsAppMessage(phone, response);
     } catch (error) {
       this.logger.error(
         `Error processing message from ${phone}: ${error instanceof Error ? error.message : error}`,
@@ -129,6 +196,14 @@ export class WhatsAppService {
           );
         case "get_verification_status":
           return this.handleGetVerificationStatus(merchantId);
+        case "browse_wholesale":
+          return this.handleBrowseWholesale(intent.params.query);
+        case "buy_wholesale":
+          return this.handleBuyWholesale(
+            merchantId,
+            intent.params.productId,
+            intent.params.quantity,
+          );
         case "friendly_fallback":
           return FRIENDLY_FALLBACK;
         case "show_menu":
@@ -409,7 +484,7 @@ export class WhatsAppService {
       where: {
         merchantId,
         deletedAt: null,
-        name: { contains: productName, mode: "insensitive" },
+        name: { startsWith: productName, mode: "insensitive" },
       },
       include: { productStockCache: true },
     });
@@ -710,8 +785,13 @@ export class WhatsAppService {
     },
   ): Promise<void> {
     try {
-      const link = await this.prisma.whatsAppLink.findUnique({
-        where: { merchantId },
+      const link = await this.prisma.whatsAppLink.findFirst({
+        where: {
+          OR: [
+            { userId: merchantId },
+            { user: { merchantProfile: { id: merchantId } } },
+          ],
+        },
         select: { phone: true, isActive: true },
       });
 
@@ -743,8 +823,13 @@ export class WhatsAppService {
     orderData: any,
   ): Promise<void> {
     try {
-      const link = await this.prisma.whatsAppLink.findUnique({
-        where: { merchantId },
+      const link = await this.prisma.whatsAppLink.findFirst({
+        where: {
+          OR: [
+            { userId: merchantId },
+            { user: { merchantProfile: { id: merchantId } } },
+          ],
+        },
         select: { phone: true, isActive: true },
       });
       if (!link || !link.isActive) return;
@@ -772,8 +857,13 @@ export class WhatsAppService {
     payoutData: any,
   ): Promise<void> {
     try {
-      const link = await this.prisma.whatsAppLink.findUnique({
-        where: { merchantId },
+      const link = await this.prisma.whatsAppLink.findFirst({
+        where: {
+          OR: [
+            { userId: merchantId },
+            { user: { merchantProfile: { id: merchantId } } },
+          ],
+        },
         select: { phone: true, isActive: true },
       });
       if (!link || !link.isActive) return;
@@ -799,8 +889,13 @@ export class WhatsAppService {
     payoutData: any,
   ): Promise<void> {
     try {
-      const link = await this.prisma.whatsAppLink.findUnique({
-        where: { merchantId },
+      const link = await this.prisma.whatsAppLink.findFirst({
+        where: {
+          OR: [
+            { userId: merchantId },
+            { user: { merchantProfile: { id: merchantId } } },
+          ],
+        },
         select: { phone: true, isActive: true },
       });
       if (!link || !link.isActive) return;
@@ -825,8 +920,13 @@ export class WhatsAppService {
     payoutData: any,
   ): Promise<void> {
     try {
-      const link = await this.prisma.whatsAppLink.findUnique({
-        where: { merchantId },
+      const link = await this.prisma.whatsAppLink.findFirst({
+        where: {
+          OR: [
+            { userId: merchantId },
+            { user: { merchantProfile: { id: merchantId } } },
+          ],
+        },
         select: { phone: true, isActive: true },
       });
       if (!link || !link.isActive) return;
@@ -841,6 +941,151 @@ export class WhatsAppService {
     } catch (error) {
       this.logger.error(
         `Failed to send payout failed push notification to merchant ${merchantId}`,
+      );
+    }
+  }
+
+  // =======================================================================
+  // V4 Unified Notifications
+  // =======================================================================
+
+  async sendBuyerLogisticsUpdate(
+    phone: string,
+    orderId: string,
+    status: string,
+    trackingUrl?: string,
+  ): Promise<void> {
+    const shortId = orderId.slice(0, 6).toUpperCase();
+    let msg = "";
+
+    switch (status) {
+      case "PICKUP_SCHEDULED":
+        msg = `🚚 *Pickup Scheduled!*\n\nYour order #${shortId} has been scheduled for pickup from the merchant. We will notify you when it's on the way.`;
+        break;
+      case "PICKED_UP":
+      case "IN_TRANSIT":
+        msg = `📦 *Order On The Way!*\n\nYour order #${shortId} has been picked up and is in transit.\n\n📍 Track live: ${trackingUrl || "Unavailable"}`;
+        break;
+      case "ARRIVING":
+        msg = `📍 *Your order is 15 minutes away!*\n\nOrder #${shortId} is arriving shortly. Track live: ${trackingUrl || "Unavailable"}`;
+        break;
+      case "DELIVERED":
+        msg = `✅ *Order Delivered!*\n\nYour order #${shortId} has been successfully delivered. Please reply with your 6-digit Delivery OTP to complete the transaction.`;
+        break;
+      case "FAILED":
+        msg = `⚠️ *Delivery Update*\n\nThere was an issue with the delivery for order #${shortId}. Our support team is investigating.`;
+        break;
+      default:
+        msg = `🚚 *Logistics Update*: Order #${shortId} is now ${status.replace(/_/g, " ").toLowerCase()}.`;
+    }
+
+    await this.sendWhatsAppMessage(phone, msg);
+  }
+
+  async sendMerchantLogisticsUpdate(
+    merchantId: string,
+    orderId: string,
+    status: string,
+  ): Promise<void> {
+    try {
+      // Find the user associated with this merchant profile
+      const merchant = await this.prisma.merchantProfile.findUnique({
+        where: { id: merchantId },
+        select: { userId: true },
+      });
+      if (!merchant) return;
+
+      const link = await this.prisma.whatsAppLink.findUnique({
+        where: { userId: merchant.userId },
+        select: { phone: true, isActive: true },
+      });
+      if (!link || !link.isActive) return;
+
+      const shortId = orderId.slice(0, 6).toUpperCase();
+      let msg = "";
+
+      switch (status) {
+        case "PICKUP_SCHEDULED":
+          msg = `🚚 *Rider is coming!*\n\nA rider is coming to pick up Order #${shortId}. Please have it ready for collection.`;
+          break;
+        case "PICKED_UP":
+          msg = `✅ *Order Picked Up!*\n\nOrder #${shortId} has been picked up successfully and is now on its way to the buyer.`;
+          break;
+      }
+
+      if (msg) await this.sendWhatsAppMessage(link.phone, msg);
+    } catch (error) {
+      this.logger.error(
+        `Failed to send merchant logistics update for ${orderId}`,
+      );
+    }
+  }
+
+  async sendSupplierLogisticsUpdate(
+    supplierId: string,
+    orderId: string,
+    status: string,
+  ): Promise<void> {
+    try {
+      const link = await (this.prisma as any).whatsAppSupplierLink.findFirst({
+        where: { supplierId, isActive: true },
+        select: { phone: true },
+      });
+      if (!link) return;
+
+      const shortId = orderId.slice(0, 6).toUpperCase();
+      let msg = "";
+
+      switch (status) {
+        case "PICKUP_SCHEDULED":
+          msg = `🚚 *Wholesale Order: Rider coming!*\n\nA rider is coming to pick up Wholesale Order #${shortId}. Please have it ready for collection.`;
+          break;
+        case "PICKED_UP":
+          msg = `✅ *Wholesale Order Picked Up!*\n\nWholesale Order #${shortId} has been collected and is in transit.`;
+          break;
+        case "DELIVERED":
+          msg = `🏢 *Wholesale Order Delivered!*\n\nWholesale Order #${shortId} has been delivered to the merchant.`;
+          break;
+      }
+
+      if (msg) await this.sendWhatsAppMessage(link.phone, msg);
+    } catch (error) {
+      this.logger.error(
+        `Failed to send supplier logistics update for ${orderId}`,
+      );
+    }
+  }
+
+  async sendSupplierNewOrder(
+    supplierId: string,
+    orderData: {
+      orderId: string;
+      buyerName: string;
+      productName: string;
+      quantity: number;
+      amountKobo: bigint;
+      deliveryAddress: string;
+    },
+  ): Promise<void> {
+    try {
+      const link = await (this.prisma as any).whatsAppSupplierLink.findFirst({
+        where: { supplierId, isActive: true },
+        select: { phone: true },
+      });
+      if (!link) return;
+
+      const shortId = orderData.orderId.substring(0, 8).toUpperCase();
+      let msg = `🏭 *New Wholesale Order!*\n\n`;
+      msg += `Merchant: ${orderData.buyerName}\n`;
+      msg += `Product: ${orderData.quantity} x ${orderData.productName}\n`;
+      msg += `Total: ${this.formatNaira(Number(orderData.amountKobo))}\n`;
+      msg += `Ship to: ${orderData.deliveryAddress}\n\n`;
+      msg += `Order #${shortId} is pending fulfillment.`;
+
+      await this.sendWhatsAppMessage(link.phone, msg);
+    } catch (error) {
+      this.logger.error(
+        `Failed to send supplier order notification for supplier ${supplierId}`,
       );
     }
   }
@@ -943,5 +1188,206 @@ export class WhatsAppService {
     if (days === 1) return "Expires tomorrow";
     if (hours > 1) return `Expires in ${hours}hrs`;
     return "Expires soon ⚡";
+  }
+
+  // =======================================================================
+  // Wholesale & Trade Financing Handlers (V4)
+  // =======================================================================
+
+  private async handleBrowseWholesale(query?: string): Promise<string> {
+    const products = await this.prisma.supplierProduct.findMany({
+      where: {
+        isActive: true,
+        supplier: { isVerified: true },
+        ...(query && { name: { contains: query, mode: "insensitive" } }),
+      },
+      include: { supplier: true },
+      take: 5,
+    });
+
+    if (products.length === 0) {
+      return `❌ No wholesale products found${query ? ` matching "${query}"` : ""}. Manufacturer stock will appear here soon!`;
+    }
+
+    let msg = `🏭 *Manufacturer Catalogue*${query ? ` for "${query}"` : ""}:\n\n`;
+    products.forEach((p, idx) => {
+      msg += `*${idx + 1}. ${p.name}*\n`;
+      msg += `🏢 ${p.supplier.companyName}\n`;
+      msg += `💰 ${this.formatNaira(Number(p.wholesalePriceKobo))} (Min: ${p.minOrderQty} ${p.unit})\n`;
+      msg += `🆔 ID: ${p.id.substring(0, 8)}\n\n`;
+    });
+
+    msg += `💡 To order, say: *"Buy stock [ID] [quantity] units"*`;
+    return msg;
+  }
+
+  private async handleBuyWholesale(
+    merchantId: string,
+    productId: string,
+    quantity?: number,
+  ): Promise<string> {
+    // Prisma doesn't support startsWith on UUID, so we fetch and filter
+    const allProducts = await this.prisma.supplierProduct.findMany({
+      where: { isActive: true, supplier: { isVerified: true } },
+      include: { supplier: true },
+    });
+
+    const product = allProducts.find((p) =>
+      p.id.toLowerCase().startsWith(productId.toLowerCase()),
+    );
+
+    if (!product) {
+      return `❌ System ID starting with "${productId}" not found. Check the ID and try again.`;
+    }
+
+    const qty = quantity || product.minOrderQty;
+    if (qty < product.minOrderQty) {
+      return `⚠️ Min order for this item is ${product.minOrderQty} ${product.unit}. Please adjust your quantity.`;
+    }
+
+    try {
+      const checkoutKey = `wa_pending_wholesale_${merchantId}`;
+      const session = {
+        productId: product.id,
+        quantity: qty,
+        unitPriceKobo: product.wholesalePriceKobo.toString(),
+        step: "SELECT_PAYMENT",
+      };
+      await this.redisService.set(checkoutKey, JSON.stringify(session), 3600);
+
+      const merchant = await this.prisma.merchantProfile.findUnique({
+        where: { id: merchantId },
+        select: { userId: true },
+      });
+      const eligibility = merchant
+        ? await this.tradeFinancingService.checkEligibility(merchant.userId)
+        : { eligible: false, reason: "Merchant not found", maxAmount: 0n };
+
+      let msg = `✅ Order started: *${product.name}* (${qty} ${product.unit}).\n\n`;
+      msg += `How would you like to pay?\n\n`;
+      msg += `1️⃣ *Pay Now* (${this.formatNaira(Number(product.wholesalePriceKobo) * qty)})\n`;
+
+      if (eligibility.eligible) {
+        msg += `2️⃣ *Trade Financing* (Approved up to ${this.formatNaira(Number(eligibility.maxAmount))})\n`;
+        msg += `   _Repay over 30/60/90 days_`;
+      } else {
+        msg += `❌ *Trade Financing* locked: ${eligibility.reason}`;
+      }
+
+      return msg;
+    } catch (e) {
+      this.logger.error("Wholesale checkout initialization failed", e);
+      return "Something went wrong starting your wholesale order. Please try again on the web dashboard.";
+    }
+  }
+
+  private async handleWholesaleCheckoutStep(
+    merchantId: string,
+    session: any,
+    text: string,
+    key: string,
+  ): Promise<string> {
+    const input = text.trim();
+
+    if (session.step === "SELECT_PAYMENT") {
+      let paymentMethod = "";
+      if (input === "1") {
+        paymentMethod = "PAY_NOW";
+      } else if (input === "2") {
+        const merchant = await this.prisma.merchantProfile.findUnique({
+          where: { id: merchantId },
+          select: { userId: true },
+        });
+        const eligibility = merchant
+          ? await this.tradeFinancingService.checkEligibility(merchant.userId)
+          : { eligible: false };
+        if (!eligibility.eligible)
+          return "Sorry, Trade Financing is not available for your account yet. Please reply 1️⃣ to Pay Now.";
+        paymentMethod = "TRADE_FINANCING";
+      } else {
+        return "Please reply with 1️⃣ or 2️⃣ (if eligible) to select your payment method.";
+      }
+
+      // Complete - generate app link
+      await this.redisService.del(key);
+      const appUrl =
+        this.configService.get("FRONTEND_URL") || "https://swifttrade.com";
+      const checkoutLink = `${appUrl}/merchant/wholesale?productId=${session.productId}&qty=${session.quantity}&pay=${paymentMethod}`;
+
+      let msg = `✅ *Wholesale Details confirmed!*\n\n`;
+      msg += `*Item*: ${session.productId.substring(0, 8)} (${session.quantity} units)\n`;
+      msg += `*Payment*: ${paymentMethod.replace(/_/g, " ")}\n\n`;
+      msg += `🔗 *Tap below to finalize this order:*\n`;
+      msg += checkoutLink;
+
+      return msg;
+    }
+
+    await this.redisService.del(key);
+    return MAIN_MENU;
+  }
+
+  // =======================================================================
+  // Supplier Push Notifications
+  // =======================================================================
+
+  async sendSupplierOrderNotification(
+    supplierId: string,
+    orderId: string,
+    merchantName: string,
+    productsSummary: string,
+    totalNaira: number,
+  ): Promise<void> {
+    try {
+      const link = await (this.prisma as any).whatsAppSupplierLink.findFirst({
+        where: { supplierId, isActive: true },
+        select: { phone: true },
+      });
+
+      if (!link) return; // Supplier not linked or inactive
+
+      let msg = `🔔 *New Wholesale Order!*\n\n`;
+      msg += `Merchant *${merchantName}* just placed a new order (#${orderId}).\n\n`;
+      msg += `📦 *Items*: ${productsSummary}\n`;
+      msg += `💰 *Total*: ₦${totalNaira.toLocaleString()}\n\n`;
+      msg += `Please prepare the items for dispatch. Check your dashboard for full details.`;
+
+      await this.sendWhatsAppMessage(link.phone, msg);
+    } catch (error) {
+      this.logger.error(`Failed to send supplier order notification: ${error}`);
+    }
+  }
+
+  async sendSupplierPayoutNotification(
+    supplierId: string,
+    status: "PROCESSED" | "FAILED",
+    amountNaira: number,
+    reference: string,
+  ): Promise<void> {
+    try {
+      const link = await (this.prisma as any).whatsAppSupplierLink.findFirst({
+        where: { supplierId, isActive: true },
+        select: { phone: true },
+      });
+
+      if (!link) return;
+
+      let msg = "";
+      if (status === "PROCESSED") {
+        msg = `✅ *Payout Successful*\n\n`;
+        msg += `A settlement of ₦${amountNaira.toLocaleString()} has been sent to your bank account for recent wholesale orders (Ref: ${reference}).\n\n`;
+        msg += `Have a great day!`;
+      } else {
+        msg = `❌ *Payout Failed*\n\n`;
+        msg += `We encountered an issue processing your payout of ₦${amountNaira.toLocaleString()} (Ref: ${reference}).\n\n`;
+        msg += `Our team is looking into this. You can also check your dashboard for updates.`;
+      }
+
+      await this.sendWhatsAppMessage(link.phone, msg);
+    } catch (error) {
+      this.logger.error(
+        `Failed to send supplier payout notification: ${error}`,
+      );
+    }
   }
 }

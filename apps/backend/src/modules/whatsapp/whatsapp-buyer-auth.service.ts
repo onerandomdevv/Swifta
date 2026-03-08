@@ -27,6 +27,21 @@ interface SessionData {
   data: Record<string, any>;
 }
 
+// Helper to mask phone numbers — only show last 4 digits
+function maskPhone(phone: string): string {
+  if (phone.length <= 4) return "****";
+  return `****${phone.slice(-4)}`;
+}
+
+// Helper to mask email
+function maskEmail(email: string): string {
+  if (!email) return "";
+  const [local, domain] = email.split("@");
+  if (!domain) return "***";
+  if (local.length <= 2) return `${local[0]}***@${domain}`;
+  return `${local[0]}${local[1]}***@${domain}`;
+}
+
 @Injectable()
 export class WhatsAppBuyerAuthService {
   private readonly logger = new Logger(WhatsAppBuyerAuthService.name);
@@ -50,7 +65,7 @@ export class WhatsAppBuyerAuthService {
       return link?.isActive ? link.buyerId : null;
     } catch (error) {
       this.logger.error(
-        `Error resolving phone ${phone}: ${error instanceof Error ? error.message : error}`,
+        `Error resolving phone ${maskPhone(phone)}: ${error instanceof Error ? error.message : error}`,
       );
       return null;
     }
@@ -91,7 +106,7 @@ export class WhatsAppBuyerAuthService {
       }
     } catch (error) {
       this.logger.error(
-        `Error in linking flow for ${phone}: ${error instanceof Error ? error.message : error}`,
+        `Error in linking flow for ${maskPhone(phone)}: ${error instanceof Error ? error.message : error}`,
       );
       await this.redisService.del(sessionKey);
       return BUYER_WELCOME_MESSAGE;
@@ -138,7 +153,7 @@ export class WhatsAppBuyerAuthService {
       await this.emailService.sendVerificationOTP(emailLower, otp);
     } catch (error) {
       this.logger.error(
-        `Failed to send OTP to ${emailLower}: ${error instanceof Error ? error.message : error}`,
+        `Failed to send OTP to ${maskEmail(emailLower)}: ${error instanceof Error ? error.message : error}`,
       );
       return "I couldn't send the email. Please try again in a moment.";
     }
@@ -210,7 +225,7 @@ export class WhatsAppBuyerAuthService {
       });
     } catch (error) {
       this.logger.error(
-        `Failed to create WhatsAppBuyerLink for ${phone}: ${error instanceof Error ? error.message : error}`,
+        `Failed to create WhatsAppBuyerLink for ${maskPhone(phone)}: ${error instanceof Error ? error.message : error}`,
       );
       await this.redisService.del(sessionKey);
       return "Something went wrong. Please try again.";
@@ -220,14 +235,12 @@ export class WhatsAppBuyerAuthService {
     await this.redisService.del(otpKey);
 
     this.logger.log(
-      `Buyer WhatsApp linked: phone=${phone}, buyerId=${session.data.buyerId}`,
+      `Buyer WhatsApp linked: phone=${maskPhone(phone)}, buyerId=${session.data.buyerId}`,
     );
     return BUYER_LINK_SUCCESS(session.data.buyerName || "Buyer");
   }
 
   private maskEmail(email: string): string {
-    const [local, domain] = email.split("@");
-    if (local.length <= 2) return `${local[0]}***@${domain}`;
-    return `${local[0]}${local[1]}***@${domain}`;
+    return maskEmail(email);
   }
 }

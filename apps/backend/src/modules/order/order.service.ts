@@ -16,6 +16,7 @@ import { PaymentService } from "../payment/payment.service";
 import { ReorderService } from "../reorder/reorder.service";
 import { LogisticsService } from "../logistics/logistics.service";
 import { PAYOUT_QUEUE } from "../../queue/queue.constants";
+import { WhatsAppService } from "../whatsapp/whatsapp.service";
 import {
   OrderStatus,
   OTP_LENGTH,
@@ -43,6 +44,7 @@ export class OrderService {
     @InjectQueue(PAYOUT_QUEUE) private payoutQueue: Queue,
     private verificationService: VerificationService,
     private logisticsService: LogisticsService,
+    private whatsappService: WhatsAppService,
   ) {}
 
   // ──────────────────────────────────────────────
@@ -222,6 +224,36 @@ export class OrderService {
 
       return newOrder;
     });
+
+    // Notify Merchant (outside transaction)
+    try {
+      const orderWithDetails = await this.prisma.order.findUnique({
+        where: { id: order.id },
+        include: { user: true, product: true },
+      });
+
+      if (orderWithDetails && order.merchantId) {
+        await this.whatsappService.sendDirectOrderNotification(
+          order.merchantId,
+          {
+            orderId: order.id,
+            buyerName:
+              orderWithDetails.user.firstName +
+              " " +
+              orderWithDetails.user.lastName,
+            productName: orderWithDetails.product?.name || "Product",
+            quantity: order.quantity || 1,
+            amountKobo: order.totalAmountKobo,
+            deliveryAddress: order.deliveryAddress || "Not specified",
+          },
+        );
+      }
+    } catch (notifierErr) {
+      this.logger.error(
+        `Failed to send merchant WhatsApp notification for ${order.id}`,
+        notifierErr,
+      );
+    }
 
     this.logger.log(
       `Direct order ${order.id} created for product ${productId} (method: ${paymentMethod})`,
