@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../../prisma/prisma.service";
 import { OrderService } from "../order/order.service";
+import { WhatsAppOnboardingService } from "./whatsapp-onboarding.service";
 import { RFQService } from "../rfq/rfq.service";
 import { QuoteService } from "../quote/quote.service";
 import { ProductService } from "../product/product.service";
@@ -43,6 +44,7 @@ export class WhatsAppService {
     private orderService: OrderService,
     private rfqService: RFQService,
     private quoteService: QuoteService,
+    private onboardingService: WhatsAppOnboardingService,
     private productService: ProductService,
     private inventoryService: InventoryService,
     private authService: WhatsAppAuthService,
@@ -66,6 +68,7 @@ export class WhatsAppService {
     phone: string,
     messageText: string,
     messageId: string,
+    interactiveReply?: { type: string; id: string; title: string },
   ): Promise<void> {
     try {
       // 1. Check if phone is linked to a Merchant
@@ -134,15 +137,13 @@ export class WhatsAppService {
         return;
       }
 
-      // 4. Unknown number — Trigger Unified Authentication Flow
-      this.logger.log(
-        `Routing message to Unified Onboarding (Phone: ${phone})`,
-      );
-      const response = await this.authService.handleLinkingFlow(
+      // 4. Unknown number — Route to V5 WhatsApp-Only Onboarding
+      this.logger.log(`Routing to WhatsApp Onboarding (Phone: ${phone})`);
+      await this.onboardingService.handleOnboarding(
         phone,
         messageText,
+        interactiveReply,
       );
-      await this.sendWhatsAppMessage(phone, response);
     } catch (error) {
       this.logger.error(
         `Error processing message from ${phone}: ${error instanceof Error ? error.message : error}`,

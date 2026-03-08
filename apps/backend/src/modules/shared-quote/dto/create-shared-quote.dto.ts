@@ -1,5 +1,12 @@
-import { IsString, IsOptional, IsArray, ValidateNested, IsNumber, IsDateString } from 'class-validator';
-import { Type } from 'class-transformer';
+import {
+  IsString,
+  IsOptional,
+  IsArray,
+  ValidateNested,
+  IsNumber,
+  IsDateString,
+} from "class-validator";
+import { Type } from "class-transformer";
 
 class SharedQuoteItemDto {
   @IsString()

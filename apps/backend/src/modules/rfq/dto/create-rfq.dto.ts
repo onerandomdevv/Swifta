@@ -1,5 +1,14 @@
-import { IsUUID, IsInt, Min, IsString, IsOptional, IsNotEmpty, IsObject, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
+import {
+  IsUUID,
+  IsInt,
+  Min,
+  IsString,
+  IsOptional,
+  IsNotEmpty,
+  IsObject,
+  ValidateNested,
+} from "class-validator";
+import { Type } from "class-transformer";
 
 export class UnlistedItemDetailsDto {
   @IsString()

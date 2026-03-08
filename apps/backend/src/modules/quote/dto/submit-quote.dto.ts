@@ -6,7 +6,7 @@ import {
   IsString,
   IsNotEmpty,
   Min,
-} from 'class-validator';
+} from "class-validator";
 
 export class SubmitQuoteDto {
   @IsUUID()

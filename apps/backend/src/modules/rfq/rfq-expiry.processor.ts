@@ -1,11 +1,11 @@
-import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
-import { Job } from 'bullmq';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
-import { Logger } from '@nestjs/common';
-import { RFQ_EXPIRY_QUEUE } from '../../queue/queue.constants';
-import { RFQService } from './rfq.service';
-import { NotificationTriggerService } from '../notification/notification-trigger.service';
+import { Processor, WorkerHost, OnWorkerEvent } from "@nestjs/bullmq";
+import { Job } from "bullmq";
+import { InjectQueue } from "@nestjs/bullmq";
+import { Queue } from "bullmq";
+import { Logger } from "@nestjs/common";
+import { RFQ_EXPIRY_QUEUE } from "../../queue/queue.constants";
+import { RFQService } from "./rfq.service";
+import { NotificationTriggerService } from "../notification/notification-trigger.service";
 
 @Processor(RFQ_EXPIRY_QUEUE)
 export class RFQExpiryProcessor extends WorkerHost {
@@ -22,25 +22,25 @@ export class RFQExpiryProcessor extends WorkerHost {
   async onModuleInit() {
     // Register repeatable job: run every hour
     await this.expiryQueue.add(
-      'expire-stale-rfqs',
+      "expire-stale-rfqs",
       {},
       {
-        repeat: { pattern: '0 * * * *' }, // Every hour at minute 0
+        repeat: { pattern: "0 * * * *" }, // Every hour at minute 0
         removeOnComplete: true,
         removeOnFail: false,
       },
     );
-    this.logger.log('RFQ expiry cron job registered (every hour)');
+    this.logger.log("RFQ expiry cron job registered (every hour)");
   }
 
   async process(job: Job<any, any, string>): Promise<any> {
-    this.logger.log('Running RFQ expiry check...');
+    this.logger.log("Running RFQ expiry check...");
 
     const expiredBuyerIds = await this.rfqService.expireStaleRFQs();
 
     // Trigger notification for each affected buyer
     for (const buyerId of expiredBuyerIds) {
-      await this.notifications.triggerRFQExpired(buyerId, '');
+      await this.notifications.triggerRFQExpired(buyerId, "");
     }
 
     this.logger.log(`Expired ${expiredBuyerIds.length} stale RFQs`);

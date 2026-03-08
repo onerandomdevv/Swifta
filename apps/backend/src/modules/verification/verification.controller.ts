@@ -43,9 +43,7 @@ export class VerificationController {
 
   @Get("admin/verification/requests")
   @Roles(UserRole.SUPER_ADMIN, UserRole.OPERATOR)
-  getPendingRequests(
-    @Query() query: PaginationQueryDto,
-  ) {
+  getPendingRequests(@Query() query: PaginationQueryDto) {
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 20;
     return this.verificationService.getPendingRequests(page, limit);

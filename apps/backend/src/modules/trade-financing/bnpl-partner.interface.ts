@@ -13,9 +13,7 @@ export interface BnplPartnerClient {
   /**
    * Evaluates the buyer's creditworthiness based on SwiftTrade history + partner logic
    */
-  checkEligibility(
-    buyerData: BuyerCreditData,
-  ): Promise<{
+  checkEligibility(buyerData: BuyerCreditData): Promise<{
     eligible: boolean;
     maxAmount: bigint;
     interestRate: number;
@@ -35,9 +33,7 @@ export interface BnplPartnerClient {
   /**
    * Fetches the latest repayment status for an active loan
    */
-  getLoanStatus(
-    loanRef: string,
-  ): Promise<{
+  getLoanStatus(loanRef: string): Promise<{
     status: "ACTIVE" | "REPAID" | "DEFAULTED";
     repaid: bigint;
     remaining: bigint;

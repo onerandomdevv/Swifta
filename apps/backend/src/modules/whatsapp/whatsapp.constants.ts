@@ -434,3 +434,33 @@ export const OTP_TTL = 10 * 60;
 export const WA_MSG_DEDUP_PREFIX = "wa:msg:";
 /** Dedup TTL in seconds (5 minutes) */
 export const MSG_DEDUP_TTL = 5 * 60;
+
+// ---------------------------------------------------------------------------
+// V5 Onboarding — Step enum and constants
+// ---------------------------------------------------------------------------
+export enum OnboardingStep {
+  BUYER_NAME = "BUYER_NAME",
+  BUYER_EMAIL = "BUYER_EMAIL",
+  BUYER_OTP = "BUYER_OTP",
+  MERCHANT_BUSINESS_NAME = "MERCHANT_BUSINESS_NAME",
+  MERCHANT_NAME = "MERCHANT_NAME",
+  MERCHANT_EMAIL = "MERCHANT_EMAIL",
+  MERCHANT_OTP = "MERCHANT_OTP",
+  MERCHANT_BANK_SELECT = "MERCHANT_BANK_SELECT",
+  MERCHANT_BANK_NAME = "MERCHANT_BANK_NAME",
+  MERCHANT_ACCOUNT_NUMBER = "MERCHANT_ACCOUNT_NUMBER",
+  MERCHANT_BANK_CONFIRM = "MERCHANT_BANK_CONFIRM",
+}
+
+/** Onboarding session TTL in seconds (1 hour) */
+export const ONBOARDING_SESSION_TTL = 60 * 60;
+
+/** Nigerian banks for List Message (using Paystack bank codes) */
+export const NIGERIAN_BANKS = [
+  { code: "058", name: "GTBank", description: "Guaranty Trust Bank" },
+  { code: "044", name: "Access Bank", description: "Access Bank Plc" },
+  { code: "011", name: "First Bank", description: "First Bank of Nigeria" },
+  { code: "033", name: "UBA", description: "United Bank for Africa" },
+  { code: "057", name: "Zenith Bank", description: "Zenith Bank Plc" },
+  { code: "other", name: "Other Bank", description: "Type your bank name" },
+];
