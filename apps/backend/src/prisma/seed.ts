@@ -329,7 +329,24 @@ async function main() {
         },
       ];
 
-      for (const prod of sampleProducts) {
+      const allCategories = await prisma.category.findMany();
+      const categoryMap = new Map(
+        allCategories.map((c) => [c.name.toLowerCase(), c.id]),
+      );
+
+      for (const prodData of sampleProducts) {
+        const { categoryTag, ...rest } = prodData;
+        const categoryId =
+          categoryMap.get(categoryTag.toLowerCase()) ||
+          categoryMap.get("other");
+
+        if (!categoryId) {
+          console.warn(`⚠️ No category ID found for tag: ${categoryTag}`);
+          continue;
+        }
+
+        const prod = { ...rest, categoryTag, categoryId };
+
         await prisma.$transaction(async (tx) => {
           // Check for existence by merchantId + name
           const existing = await tx.product.findFirst({
