@@ -97,6 +97,7 @@ export class WhatsAppController {
       let interactiveReply:
         | { type: string; id: string; title: string }
         | undefined;
+      let imageId: string | undefined;
 
       if (messageType === "text") {
         messageText = message.text?.body?.trim();
@@ -117,10 +118,12 @@ export class WhatsAppController {
             title: message.interactive.list_reply.title,
           };
         }
+      } else if (messageType === "image") {
+        imageId = message.image?.id;
       }
 
       // Skip if no usable content
-      if (!messageText && !interactiveReply) {
+      if (!messageText && !interactiveReply && !imageId) {
         return { status: "ok" };
       }
 
@@ -136,7 +139,7 @@ export class WhatsAppController {
       // 4. Queue for async processing — return 200 immediately
       await this.whatsappQueue.add(
         "process-message",
-        { phone, messageText, messageId, interactiveReply },
+        { phone, messageText, messageId, interactiveReply, imageId },
         {
           attempts: 2,
           backoff: { type: "exponential", delay: 3000 },
