@@ -14,6 +14,7 @@ import { TradeFinancingService } from "../trade-financing/trade-financing.servic
 import { RedisService } from "../../redis/redis.service";
 import { WhatsAppSupplierService } from "./whatsapp-supplier.service";
 import { WhatsAppIntentService, ParsedIntent } from "./whatsapp-intent.service";
+import { ImageSearchService } from "./image-search.service";
 import {
   MAIN_MENU,
   GENERIC_ERROR,
@@ -53,6 +54,7 @@ export class WhatsAppService {
     private buyerService: WhatsAppBuyerService,
     private supplierService: WhatsAppSupplierService,
     private tradeFinancingService: TradeFinancingService,
+    private imageSearchService: ImageSearchService,
     private redisService: RedisService,
   ) {
     this.accessToken =
@@ -66,11 +68,18 @@ export class WhatsAppService {
   // =======================================================================
   async processMessage(
     phone: string,
-    messageText: string,
-    messageId: string,
+    messageText?: string,
+    messageId?: string,
     interactiveReply?: { type: string; id: string; title: string },
+    imageId?: string,
   ): Promise<void> {
     try {
+      if (imageId) {
+        this.logger.log(`Routing image search (Phone: ${phone})`);
+        await this.imageSearchService.handleImageSearch(phone, imageId);
+        return;
+      }
+
       // 1. Check if phone is linked to a Merchant
       const merchantId = await this.authService.resolvePhone(phone);
       if (merchantId) {

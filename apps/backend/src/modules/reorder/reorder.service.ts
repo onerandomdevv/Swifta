@@ -182,7 +182,7 @@ export class ReorderService {
     }
 
     const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 72); // RFQ_EXPIRY_HOURS
+    expiresAt.setHours(expiresAt.getHours() + RFQ_EXPIRY_HOURS);
 
     const rfq = await this.prisma.rfq.create({
       data: {

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import * as bcrypt from "bcrypt";
+import * as crypto from "crypto";
 import { PrismaService } from "../../prisma/prisma.service";
 import { EmailService } from "../email/email.service";
 import { WhatsAppInteractiveService } from "./whatsapp-interactive.service";
@@ -33,6 +34,17 @@ export class WhatsAppOnboardingService {
   ) {
     this.paystackSecretKey =
       this.configService.get<string>("PAYSTACK_SECRET_KEY") || "";
+  }
+
+  private maskIdentifier(identifier: string): string {
+    if (!identifier) return "";
+    if (identifier.includes("@")) {
+      const [local, domain] = identifier.split("@");
+      return `${local.substring(0, 2)}***@${domain}`;
+    }
+    return identifier.length > 4
+      ? `****${identifier.substring(identifier.length - 4)}`
+      : "****";
   }
 
   // =======================================================================
@@ -126,7 +138,7 @@ export class WhatsAppOnboardingService {
       }
     } catch (error) {
       this.logger.error(
-        `Onboarding error for ${phone}: ${error instanceof Error ? error.message : error}`,
+        `Onboarding error for ${this.maskIdentifier(phone)}: ${error instanceof Error ? error.message : error}`,
       );
       await this.interactiveService.sendTextMessage(
         phone,
@@ -301,14 +313,26 @@ export class WhatsAppOnboardingService {
       return;
     }
 
+    if (data.otpSentAt && Date.now() - data.otpSentAt < 60 * 1000) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "Please wait a minute before requesting another code.",
+      );
+      return;
+    }
+
     // Generate and send OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = crypto.randomInt(100000, 1000000).toString();
+    const otpHash = crypto
+      .createHmac("sha256", this.paystackSecretKey)
+      .update(otp)
+      .digest("hex");
 
     try {
       await this.emailService.sendVerificationOTP(email, otp);
     } catch (error) {
       this.logger.error(
-        `Failed to send OTP to ${email}: ${error instanceof Error ? error.message : error}`,
+        `Failed to send OTP to ${this.maskIdentifier(email)}: ${error instanceof Error ? error.message : error}`,
       );
       await this.interactiveService.sendTextMessage(
         phone,
@@ -320,7 +344,7 @@ export class WhatsAppOnboardingService {
     await this.updateSession(sessionId, OnboardingStep.BUYER_OTP, {
       ...data,
       email,
-      otp,
+      otpHash,
       otpAttempts: 0,
       otpSentAt: Date.now(),
     });
@@ -359,7 +383,12 @@ export class WhatsAppOnboardingService {
       return;
     }
 
-    if (otpInput !== data.otp) {
+    const inputHash = crypto
+      .createHmac("sha256", this.paystackSecretKey)
+      .update(otpInput)
+      .digest("hex");
+
+    if (inputHash !== data.otpHash) {
       const attempts = (data.otpAttempts || 0) + 1;
       if (attempts >= 3) {
         await this.prisma.onboardingSession.delete({
@@ -466,11 +495,21 @@ export class WhatsAppOnboardingService {
       );
 
       this.logger.log(
-        `Buyer account created via WhatsApp: ${data.email}, phone: ${phone}`,
+        `Buyer account created via WhatsApp: ${this.maskIdentifier(data.email)}, phone: ${this.maskIdentifier(phone)}`,
       );
-    } catch (error) {
+    } catch (error: any) {
+      if (error.code === "P2002") {
+        await this.prisma.onboardingSession.delete({
+          where: { id: sessionId },
+        });
+        await this.interactiveService.sendTextMessage(
+          phone,
+          "This email or phone number is already registered to another account. Please use different details or visit swifttrade.store.",
+        );
+        return;
+      }
       this.logger.error(
-        `Failed to create buyer account for ${phone}: ${error instanceof Error ? error.message : error}`,
+        `Failed to create buyer account for ${this.maskIdentifier(phone)}: ${error instanceof Error ? error.message : error}`,
       );
       await this.interactiveService.sendTextMessage(
         phone,
@@ -634,13 +673,25 @@ export class WhatsAppOnboardingService {
       return;
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    if (data.otpSentAt && Date.now() - data.otpSentAt < 60 * 1000) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "Please wait a minute before requesting another code.",
+      );
+      return;
+    }
+
+    const otp = crypto.randomInt(100000, 1000000).toString();
+    const otpHash = crypto
+      .createHmac("sha256", this.paystackSecretKey)
+      .update(otp)
+      .digest("hex");
 
     try {
       await this.emailService.sendVerificationOTP(email, otp);
     } catch (error) {
       this.logger.error(
-        `Failed to send OTP to ${email}: ${error instanceof Error ? error.message : error}`,
+        `Failed to send OTP to ${this.maskIdentifier(email)}: ${error instanceof Error ? error.message : error}`,
       );
       await this.interactiveService.sendTextMessage(
         phone,
@@ -652,7 +703,7 @@ export class WhatsAppOnboardingService {
     await this.updateSession(sessionId, OnboardingStep.MERCHANT_OTP, {
       ...data,
       email,
-      otp,
+      otpHash,
       otpAttempts: 0,
       otpSentAt: Date.now(),
     });
@@ -690,7 +741,12 @@ export class WhatsAppOnboardingService {
       return;
     }
 
-    if (otpInput !== data.otp) {
+    const inputHash = crypto
+      .createHmac("sha256", this.paystackSecretKey)
+      .update(otpInput)
+      .digest("hex");
+
+    if (inputHash !== data.otpHash) {
       const attempts = (data.otpAttempts || 0) + 1;
       if (attempts >= 3) {
         await this.prisma.onboardingSession.delete({
@@ -718,7 +774,7 @@ export class WhatsAppOnboardingService {
     // OTP verified — proceed to bank selection
     await this.updateSession(sessionId, OnboardingStep.MERCHANT_BANK_SELECT, {
       ...data,
-      otp: undefined,
+      otpHash: undefined,
       otpAttempts: undefined,
     });
 
@@ -1080,11 +1136,21 @@ export class WhatsAppOnboardingService {
       );
 
       this.logger.log(
-        `Merchant account created via WhatsApp: ${data.email}, business: ${data.businessName}, phone: ${phone}`,
+        `Merchant account created via WhatsApp: ${this.maskIdentifier(data.email)}, business: ${this.maskIdentifier(data.businessName)}, phone: ${this.maskIdentifier(phone)}`,
       );
-    } catch (error) {
+    } catch (error: any) {
+      if (error.code === "P2002") {
+        await this.prisma.onboardingSession.delete({
+          where: { id: sessionId },
+        });
+        await this.interactiveService.sendTextMessage(
+          phone,
+          "This email or phone number is already registered to another account. Please use different details or visit swifttrade.store.",
+        );
+        return;
+      }
       this.logger.error(
-        `Failed to create merchant account for ${phone}: ${error instanceof Error ? error.message : error}`,
+        `Failed to create merchant account for ${this.maskIdentifier(phone)}: ${error instanceof Error ? error.message : error}`,
       );
       await this.interactiveService.sendTextMessage(
         phone,
@@ -1100,6 +1166,9 @@ export class WhatsAppOnboardingService {
     bankCode: string,
     accountNumber: string,
   ): Promise<{ account_name: string; account_number: string } | null> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
     try {
       const response = await fetch(
         `https://api.paystack.co/bank/resolve?account_number=${accountNumber}&bank_code=${bankCode}`,
@@ -1107,8 +1176,11 @@ export class WhatsAppOnboardingService {
           headers: {
             Authorization: `Bearer ${this.paystackSecretKey}`,
           },
+          signal: controller.signal as RequestInit["signal"],
         },
       );
+
+      clearTimeout(timeout);
 
       if (!response.ok) {
         return null;
@@ -1120,6 +1192,7 @@ export class WhatsAppOnboardingService {
       }
       return null;
     } catch (error) {
+      clearTimeout(timeout);
       this.logger.error(
         `Paystack resolve error: ${error instanceof Error ? error.message : error}`,
       );
@@ -1130,12 +1203,18 @@ export class WhatsAppOnboardingService {
   private async searchPaystackBank(
     bankName: string,
   ): Promise<{ code: string; name: string } | null> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
     try {
       const response = await fetch("https://api.paystack.co/bank", {
         headers: {
           Authorization: `Bearer ${this.paystackSecretKey}`,
         },
+        signal: controller.signal as RequestInit["signal"],
       });
+
+      clearTimeout(timeout);
 
       if (!response.ok) return null;
 
@@ -1151,6 +1230,7 @@ export class WhatsAppOnboardingService {
 
       return match ? { code: match.code, name: match.name } : null;
     } catch (error) {
+      clearTimeout(timeout);
       this.logger.error(
         `Paystack bank list error: ${error instanceof Error ? error.message : error}`,
       );

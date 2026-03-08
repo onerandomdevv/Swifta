@@ -20,6 +20,13 @@ export class WhatsAppInteractiveService {
       this.configService.get<string>("WHATSAPP_PHONE_NUMBER_ID") || "";
     this.accessToken =
       this.configService.get<string>("WHATSAPP_ACCESS_TOKEN") || "";
+
+    if (!this.phoneNumberId || !this.accessToken) {
+      throw new Error(
+        "WhatsApp configuration missing! WHATSAPP_PHONE_NUMBER_ID and WHATSAPP_ACCESS_TOKEN are required.",
+      );
+    }
+
     this.apiUrl = `https://graph.facebook.com/${META_API_VERSION}/${this.phoneNumberId}/messages`;
   }
 
@@ -110,6 +117,9 @@ export class WhatsAppInteractiveService {
   // Internal: Call Meta Cloud API
   // -----------------------------------------------------------------------
   private async callMetaApi(phone: string, payload: any): Promise<void> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
     try {
       const response = await fetch(this.apiUrl, {
         method: "POST",
@@ -118,18 +128,24 @@ export class WhatsAppInteractiveService {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
+        signal: controller.signal as RequestInit["signal"],
       });
+
+      clearTimeout(timeout);
 
       if (!response.ok) {
         const errorBody = await response.text();
         this.logger.error(
           `Meta API error (${response.status}) for ${phone}: ${errorBody}`,
         );
+        throw new Error(`Meta API error: ${response.status} ${errorBody}`);
       }
     } catch (error) {
+      clearTimeout(timeout);
       this.logger.error(
         `Failed to send WhatsApp message to ${phone}: ${error instanceof Error ? error.message : error}`,
       );
+      throw error;
     }
   }
 }

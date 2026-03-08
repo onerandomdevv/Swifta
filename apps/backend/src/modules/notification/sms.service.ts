@@ -46,7 +46,7 @@ export class SmsService {
     }
 
     // A fast regex to ensure the number loosely matches E.164 structure before sending
-    const e164Regex = /^\\+[1-9]\\d{1,14}$/;
+    const e164Regex = /^\+[1-9]\d{1,14}$/;
     if (!e164Regex.test(to)) {
       this.logger.error(
         `Failed to send SMS: Invalid phone number format for ${to}. Must be E.164 (e.g. +234...)`,

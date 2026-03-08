@@ -23,12 +23,14 @@ export class WhatsAppProcessor extends WorkerHost {
     try {
       switch (job.name) {
         case "process-message": {
-          const { phone, messageText, messageId, interactiveReply } = job.data;
+          const { phone, messageText, messageId, interactiveReply, imageId } =
+            job.data;
           await this.whatsAppService.processMessage(
             phone,
             messageText,
             messageId,
             interactiveReply,
+            imageId,
           );
           break;
         }

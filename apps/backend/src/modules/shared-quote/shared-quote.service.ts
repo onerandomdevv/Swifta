@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
   GoneException,
   Logger,
 } from "@nestjs/common";
@@ -149,7 +150,7 @@ export class SharedQuoteService {
     }
 
     if (quote.merchantId !== merchantId) {
-      throw new BadRequestException("Access denied");
+      throw new ForbiddenException("Access denied");
     }
 
     if (quote.status !== "DRAFT") {

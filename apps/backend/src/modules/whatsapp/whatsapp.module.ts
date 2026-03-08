@@ -21,6 +21,7 @@ import { WhatsAppSupplierIntentService } from "./whatsapp-supplier-intent.servic
 import { WhatsAppOnboardingService } from "./whatsapp-onboarding.service";
 import { WhatsAppInteractiveService } from "./whatsapp-interactive.service";
 import { WhatsAppProcessor } from "./whatsapp.processor";
+import { ImageSearchService } from "./image-search.service";
 
 /**
  * WhatsApp Bot Module
@@ -65,6 +66,7 @@ import { WhatsAppProcessor } from "./whatsapp.processor";
     WhatsAppOnboardingService,
     WhatsAppInteractiveService,
     WhatsAppProcessor,
+    ImageSearchService,
   ],
   exports: [WhatsAppService],
 })
