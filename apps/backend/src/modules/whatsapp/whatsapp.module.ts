@@ -1,18 +1,24 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { PrismaModule } from '../../prisma/prisma.module';
-import { RedisModule } from '../../redis/redis.module';
-import { QueueModule } from '../../queue/queue.module';
-import { OrderModule } from '../order/order.module';
-import { RFQModule } from '../rfq/rfq.module';
-import { QuoteModule } from '../quote/quote.module';
-import { ProductModule } from '../product/product.module';
-import { EmailModule } from '../email/email.module';
-import { WhatsAppController } from './whatsapp.controller';
-import { WhatsAppService } from './whatsapp.service';
-import { WhatsAppAuthService } from './whatsapp-auth.service';
-import { WhatsAppIntentService } from './whatsapp-intent.service';
-import { WhatsAppProcessor } from './whatsapp.processor';
+import { Module } from "@nestjs/common";
+import { ConfigModule } from "@nestjs/config";
+import { PrismaModule } from "../../prisma/prisma.module";
+import { RedisModule } from "../../redis/redis.module";
+import { QueueModule } from "../../queue/queue.module";
+import { OrderModule } from "../order/order.module";
+import { RFQModule } from "../rfq/rfq.module";
+import { QuoteModule } from "../quote/quote.module";
+import { ProductModule } from "../product/product.module";
+import { TradeFinancingModule } from "../trade-financing/trade-financing.module";
+import { EmailModule } from "../email/email.module";
+import { WhatsAppController } from "./whatsapp.controller";
+import { WhatsAppService } from "./whatsapp.service";
+import { WhatsAppAuthService } from "./whatsapp-auth.service";
+import { WhatsAppIntentService } from "./whatsapp-intent.service";
+import { WhatsAppBuyerService } from "./whatsapp-buyer.service";
+import { WhatsAppBuyerAuthService } from "./whatsapp-buyer-auth.service";
+import { WhatsAppBuyerIntentService } from "./whatsapp-buyer-intent.service";
+import { WhatsAppSupplierService } from "./whatsapp-supplier.service";
+import { WhatsAppSupplierIntentService } from "./whatsapp-supplier-intent.service";
+import { WhatsAppProcessor } from "./whatsapp.processor";
 
 /**
  * WhatsApp Bot Module
@@ -41,6 +47,7 @@ import { WhatsAppProcessor } from './whatsapp.processor';
     RFQModule,
     QuoteModule,
     ProductModule,
+    TradeFinancingModule,
     EmailModule,
   ],
   controllers: [WhatsAppController],
@@ -48,6 +55,11 @@ import { WhatsAppProcessor } from './whatsapp.processor';
     WhatsAppService,
     WhatsAppAuthService,
     WhatsAppIntentService,
+    WhatsAppBuyerService,
+    WhatsAppBuyerAuthService,
+    WhatsAppBuyerIntentService,
+    WhatsAppSupplierService,
+    WhatsAppSupplierIntentService,
     WhatsAppProcessor,
   ],
   exports: [WhatsAppService],

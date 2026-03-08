@@ -6,7 +6,6 @@ import { DashboardSkeleton } from "@/components/buyer/dashboard/dashboard-skelet
 import { BuyerSummaryCards } from "@/components/buyer/dashboard/buyer-summary-cards";
 import { PendingQuotes } from "@/components/buyer/dashboard/pending-quotes";
 import { ActiveDeliveries } from "@/components/buyer/dashboard/active-deliveries";
-import { BnplEligibilityCard } from "@/components/buyer/dashboard/bnpl-eligibility-card";
 
 export default function BuyerDashboard() {
   const { rfqs, orders, isLoading, isError, error } = useBuyerDashboard();
@@ -29,7 +28,7 @@ export default function BuyerDashboard() {
 
   // Active Orders: Orders that are not COMPLETED or CANCELLED, but have been initialized/paid.
   const activeOrders = orders.filter(
-    (o) => o.status !== "COMPLETED" && o.status !== "CANCELLED"
+    (o) => o.status !== "COMPLETED" && o.status !== "CANCELLED",
   );
 
   return (
@@ -40,12 +39,9 @@ export default function BuyerDashboard() {
         orders={orders}
       />
 
-      <BnplEligibilityCard />
-
       <PendingQuotes quotes={pendingQuotes} />
 
       <ActiveDeliveries deliveries={activeOrders} />
     </>
   );
 }
-

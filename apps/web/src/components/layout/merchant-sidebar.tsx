@@ -25,6 +25,11 @@ export function MerchantSidebar() {
       href: "/merchant/catalogue",
     },
     { label: "Inventory", icon: "inventory_2", href: "/merchant/inventory" },
+    {
+      label: "Buy Wholesale",
+      icon: "factory",
+      href: "/merchant/wholesale",
+    },
     { label: "Payouts", icon: "payments", href: "/merchant/payouts" },
     {
       label: "Verification",

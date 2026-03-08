@@ -29,8 +29,10 @@ async function main() {
       where: { email: BOOTSTRAP_ADMIN_EMAIL },
     });
 
-    const needsWrite = !existingUserByEmail || 
-                      (existingUserByEmail.role !== UserRole.SUPER_ADMIN && process.env.FORCE_BOOTSTRAP_PROMOTE === "true");
+    const needsWrite =
+      !existingUserByEmail ||
+      (existingUserByEmail.role !== UserRole.SUPER_ADMIN &&
+        process.env.FORCE_BOOTSTRAP_PROMOTE === "true");
 
     if (needsWrite) {
       if (!DEFAULT_ADMIN_PASSWORD) {
@@ -41,7 +43,10 @@ async function main() {
 
       const SALT_ROUNDS = 10;
       console.log(`🔒 Hashing master password...`);
-      const passwordHash = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, SALT_ROUNDS);
+      const passwordHash = await bcrypt.hash(
+        DEFAULT_ADMIN_PASSWORD,
+        SALT_ROUNDS,
+      );
 
       if (existingUserByEmail) {
         console.log(`⚠️ Promoting ${BOOTSTRAP_ADMIN_EMAIL} to SUPER_ADMIN...`);
@@ -78,7 +83,10 @@ async function main() {
         });
         bootstrapPerformed = true;
       }
-    } else if (existingUserByEmail && existingUserByEmail.role !== UserRole.SUPER_ADMIN) {
+    } else if (
+      existingUserByEmail &&
+      existingUserByEmail.role !== UserRole.SUPER_ADMIN
+    ) {
       console.log(
         `⚠️ User ${BOOTSTRAP_ADMIN_EMAIL} exists but is not a SUPER_ADMIN. Set FORCE_BOOTSTRAP_PROMOTE=true to promote.`,
       );
@@ -229,9 +237,11 @@ async function main() {
   console.log(`\n🏪 Seeding Sample Merchant & Products...`);
   const DEMO_MERCHANT_EMAIL = "merchant@demo.swifttrade.ng";
   const DEMO_PASSWORD = process.env.DEV_DEMO_MERCHANT_PASSWORD;
-  
-  let merchantUser = await prisma.user.findUnique({ where: { email: DEMO_MERCHANT_EMAIL } });
-  
+
+  let merchantUser = await prisma.user.findUnique({
+    where: { email: DEMO_MERCHANT_EMAIL },
+  });
+
   if (!merchantUser && DEMO_PASSWORD) {
     const demoPasswordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
     merchantUser = await prisma.user.create({
@@ -247,22 +257,26 @@ async function main() {
             businessName: "Demo Building Materials Ltd",
             businessAddress: "123 Trade Way, Lagos",
             verificationTier: "BASIC",
-          }
-        }
-      }
+          },
+        },
+      },
     });
     console.log(`✨ Demo merchant created: ${DEMO_MERCHANT_EMAIL}`);
   }
 
-  const merchantProfile = await prisma.merchantProfile.findFirst({ where: { userId: merchantUser.id } });
-  
+  if (merchantUser) {
+    const merchantProfile = await prisma.merchantProfile.findFirst({
+      where: { userId: merchantUser.id },
+    });
+
     if (merchantProfile) {
       console.log(`📦 Checking sample building materials for Demo Merchant...`);
 
       const sampleProducts = [
         {
           name: "Dangote Cement 3X (50kg Bag)",
-          description: "High quality Portland limestone cement suitable for all general purpose construction projects.",
+          description:
+            "High quality Portland limestone cement suitable for all general purpose construction projects.",
           unit: "Bag",
           pricePerUnitKobo: 950000n,
           categoryTag: "Cement",
@@ -270,7 +284,8 @@ async function main() {
         },
         {
           name: "12mm Iron Rods (TMT)",
-          description: "High-yield Thermo Mechanically Treated (TMT) steel reinforcement bars for structural concrete.",
+          description:
+            "High-yield Thermo Mechanically Treated (TMT) steel reinforcement bars for structural concrete.",
           unit: "Length",
           pricePerUnitKobo: 1250000n,
           categoryTag: "Iron Rods & Steel",
@@ -278,7 +293,8 @@ async function main() {
         },
         {
           name: "9-inch Hollow Concrete Block",
-          description: "Standard 9-inch load-bearing hollow sandcrete blocks, properly cured.",
+          description:
+            "Standard 9-inch load-bearing hollow sandcrete blocks, properly cured.",
           unit: "Piece",
           pricePerUnitKobo: 55000n,
           categoryTag: "Blocks",
@@ -286,7 +302,8 @@ async function main() {
         },
         {
           name: "Dulux Emulsion Paint (20 Litres)",
-          description: "Premium quality emulsion paint for interior and exterior walls. Brilliant White color.",
+          description:
+            "Premium quality emulsion paint for interior and exterior walls. Brilliant White color.",
           unit: "Bucket",
           pricePerUnitKobo: 4500000n,
           categoryTag: "Paints & Coatings",
@@ -294,7 +311,8 @@ async function main() {
         },
         {
           name: "0.45mm Aluminum Roofing Sheet (Long Span)",
-          description: "Durable corrugated aluminum roofing sheets, available in various colors.",
+          description:
+            "Durable corrugated aluminum roofing sheets, available in various colors.",
           unit: "Meter",
           pricePerUnitKobo: 420000n,
           categoryTag: "Roofing Sheets",
@@ -302,7 +320,8 @@ async function main() {
         },
         {
           name: "60x60cm Vitrified Floor Tiles",
-          description: "High gloss, anti-slip vitrified ceramic tiles for living rooms and offices. (1 carton = 1.44 sqm)",
+          description:
+            "High gloss, anti-slip vitrified ceramic tiles for living rooms and offices. (1 carton = 1.44 sqm)",
           unit: "Carton",
           pricePerUnitKobo: 750000n,
           categoryTag: "Tiles (Floor & Wall)",
@@ -350,6 +369,7 @@ async function main() {
       }
       console.log(`✅ Sample products verified/seeded for Demo Merchant.`);
     }
+  }
 }
 
 main()

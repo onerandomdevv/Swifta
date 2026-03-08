@@ -16,6 +16,17 @@ export const MAIN_MENU = `Welcome back! 🤝 Here's what I fit help you with:
 
 Just type a number or tell me wetin you need! 🤝`;
 
+/** Supplier main menu */
+export const SUPPLIER_MAIN_MENU = `Welcome back, Supplier! 🏗️
+
+1️⃣ Today's Sales
+2️⃣ My Orders
+3️⃣ My Products
+4️⃣ Update Price
+5️⃣ My Payouts
+
+Or just tell me what you need!`;
+
 /** Friendly fallback when AI can't determine intent */
 export const FRIENDLY_FALLBACK = `I no too understand that one o 😅 But no worry, here's what I fit help you with:
 
@@ -29,6 +40,25 @@ export const FRIENDLY_FALLBACK = `I no too understand that one o 😅 But no wor
 8️⃣ My Verification — "Am I verified?"
 
 Just tell me wetin you need! 🤝`;
+
+/** Main menu for buyers */
+export const BUYER_MAIN_MENU = `Welcome to SwiftTrade Buyer Assistant! 🛒 How I fit help you today?
+
+1️⃣ Search Products — "I need cement"
+2️⃣ Active Orders — "Where my goods dey?"
+3️⃣ Order History — "Wetin I buy before?"
+4️⃣ Contact Support — "I get issue"
+
+Just type wetin you dey find! 🤝`;
+
+/** Friendly fallback for buyers */
+export const BUYER_FRIENDLY_FALLBACK = `I no too understand that one o 😅 You fit try:
+
+• "I need 50 bags cement for Lekki"
+• "Show my orders"
+• "Where is my cement?"
+
+Type *menu* to see all options.`;
 
 /** Follow-up when stock update is incomplete */
 export const STOCK_UPDATE_FOLLOWUP = `No wahala! Which product you wan update? And how many?
@@ -47,17 +77,29 @@ Example: "quote a3f2 at 8500 per bag"
 Reply *2* to see your pending RFQs first.`;
 
 /** First message for an unlinked phone */
-export const WELCOME_MESSAGE = `Welcome to SwiftTrade! 🔗
+export const WELCOME_MESSAGE = `Welcome to SwiftTrade!
 
-To link your merchant account, please reply with your registered email address.`;
+Are you a:
+1️⃣ Buyer
+2️⃣ Merchant
+
+Reply 1 or 2.`;
+
+export const ROLE_SELECTED_MESSAGE = `Great! To link your account, please reply with your registered email address.`;
 
 /** Sent after looking up the email */
 export const LINK_OTP_SENT = (email: string) =>
   `I've sent a 6-digit verification code to ${email}. Please reply with the code.`;
 
 /** Sent when linking succeeds */
-export const LINK_SUCCESS = (merchantName: string) =>
-  `You're all set, ${merchantName}! 🎉\n\n${MAIN_MENU}`;
+export const LINK_SUCCESS = (merchantName: string, role: string) => {
+  if (role === "BUYER") {
+    return `You're all set, ${merchantName}! 🎉\n\nYou can now tell me what you want to buy, or say "track my order" if you have any active deliveries.`;
+  } else if (role === "SUPPLIER") {
+    return `You're all set, ${merchantName}! 🎉\n\n${SUPPLIER_MAIN_MENU}`;
+  }
+  return `You're all set, ${merchantName}! 🎉\n\n${MAIN_MENU}`;
+};
 
 /** Sent when the phone is already linked */
 export const ALREADY_LINKED = `This phone number is already linked to a merchant account.`;
@@ -72,6 +114,7 @@ export const GENERIC_ERROR = `Something went wrong on our end. Please try again 
 // Session states for multi-step flows
 // ---------------------------------------------------------------------------
 export enum SessionState {
+  AWAITING_ROLE = "AWAITING_ROLE",
   AWAITING_EMAIL = "AWAITING_EMAIL",
   AWAITING_OTP = "AWAITING_OTP",
 }
@@ -88,6 +131,7 @@ export const NUMBER_INTENT_MAP: Record<string, string> = {
   "6": "get_products",
   "7": "update_product_price",
   "8": "get_verification_status",
+  "9": "browse_wholesale",
 };
 
 // ---------------------------------------------------------------------------
@@ -160,6 +204,14 @@ Verification queries:
 Price updates:
 - "update cement price to 9000" → update_product_price (productName: "cement", priceNaira: 9000)
 - "change price 8500" → update_product_price (priceNaira: 8500)
+
+Wholesale / Stock Financing:
+- "I need stock" → browse_wholesale
+- "I want to buy from manufacturer" → browse_wholesale
+- "find cement from supplier" → browse_wholesale (query: "cement")
+- "wholesale catalogue" → browse_wholesale
+- "buy stock a3f2 100 units" → buy_wholesale (productId: "a3f2", quantity: 100)
+- "order 500 bags from supplier item a3f2" → buy_wholesale (productId: "a3f2", quantity: 500)
 
 Greetings (show menu):
 - "hi", "hello", "hey", "good morning", "menu", "help" → show_menu
@@ -301,7 +353,8 @@ export const GEMINI_FUNCTION_DECLARATIONS = [
         },
         note: {
           type: "string",
-          description: "Optional note or comment provided by merchant, e.g., 'truck left Alaba at 2pm'",
+          description:
+            "Optional note or comment provided by merchant, e.g., 'truck left Alaba at 2pm'",
         },
       },
       required: ["orderReference", "status"],
@@ -328,6 +381,39 @@ export const GEMINI_FUNCTION_DECLARATIONS = [
     description:
       "Get the merchant's current verification tier and status. Triggered by: 'verify', 'my verification', 'am I verified', 'verification status'",
     parameters: { type: "object" as const, properties: {} },
+  },
+  {
+    name: "browse_wholesale",
+    description:
+      "Browse the manufacturer/supplier catalogue for stock. Triggered by: 'I need stock', 'manufacturer catalogue', 'wholesale'",
+    parameters: {
+      type: "object" as const,
+      properties: {
+        query: {
+          type: "string",
+          description: "Optional product name to search for",
+        },
+      },
+    },
+  },
+  {
+    name: "buy_wholesale",
+    description:
+      "Purchase stock from a manufacturer. Triggered by: 'buy stock ABC 50 units'",
+    parameters: {
+      type: "object" as const,
+      properties: {
+        productId: {
+          type: "string",
+          description: "The short ID of the manufacturer product",
+        },
+        quantity: {
+          type: "number",
+          description: "How many units to buy",
+        },
+      },
+      required: ["productId"],
+    },
   },
 ];
 

@@ -14,7 +14,9 @@ import { NotificationTriggerService } from "../notification/notification-trigger
 import { InventoryService } from "../inventory/inventory.service";
 import { PaymentService } from "../payment/payment.service";
 import { ReorderService } from "../reorder/reorder.service";
+import { LogisticsService } from "../logistics/logistics.service";
 import { PAYOUT_QUEUE } from "../../queue/queue.constants";
+import { WhatsAppService } from "../whatsapp/whatsapp.service";
 import {
   OrderStatus,
   OTP_LENGTH,
@@ -41,6 +43,8 @@ export class OrderService {
     private reorderService: ReorderService,
     @InjectQueue(PAYOUT_QUEUE) private payoutQueue: Queue,
     private verificationService: VerificationService,
+    private logisticsService: LogisticsService,
+    private whatsappService: WhatsAppService,
   ) {}
 
   // ──────────────────────────────────────────────
@@ -119,7 +123,13 @@ export class OrderService {
   // ──────────────────────────────────────────────
 
   async createDirectOrder(buyerId: string, dto: CreateDirectOrderDto) {
-    const { productId, quantity, deliveryAddress, paymentMethod: requestedMethod } = dto;
+    const {
+      productId,
+      quantity,
+      deliveryAddress,
+      paymentMethod: requestedMethod,
+      deliveryMethod = "MERCHANT_DELIVERY",
+    } = dto;
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
       include: { productStockCache: true, merchantProfile: true },
@@ -140,8 +150,10 @@ export class OrderService {
 
     // Determine payment method based on merchant verification tier
     const merchantTier = product.merchantProfile?.verificationTier;
-    const isVerifiedMerchant = merchantTier === "VERIFIED" || merchantTier === "TRUSTED";
-    const paymentMethod = (requestedMethod === "DIRECT" && isVerifiedMerchant) ? "DIRECT" : "ESCROW";
+    const isVerifiedMerchant =
+      merchantTier === "VERIFIED" || merchantTier === "TRUSTED";
+    const paymentMethod =
+      requestedMethod === "DIRECT" && isVerifiedMerchant ? "DIRECT" : "ESCROW";
 
     // Dynamic platform fee: 1% for DIRECT, 2% for ESCROW
     const platformFeePercentage = paymentMethod === "DIRECT" ? 1 : 2;
@@ -149,7 +161,26 @@ export class OrderService {
     const platformFeeKobo = Math.floor(
       subtotalKobo * (platformFeePercentage / 100),
     );
-    const totalAmountKobo = BigInt(subtotalKobo + platformFeeKobo);
+
+    let calculatedDeliveryFeeKobo = 0n;
+    if (
+      deliveryMethod === "PLATFORM_LOGISTICS" &&
+      product.merchantProfile?.businessAddress
+    ) {
+      // Estimate weight roughly, e.g., 50kg per unit if Cement, or fallback to 1kg
+      const estimatedWeightKg =
+        product.unit.toLowerCase() === "bag" ? 50 * quantity : 1 * quantity;
+      const quote = await this.logisticsService.getQuote(
+        product.merchantProfile.businessAddress,
+        deliveryAddress,
+        estimatedWeightKg,
+      );
+      calculatedDeliveryFeeKobo = BigInt(quote.costKobo);
+    }
+
+    // Add delivery fee logic
+    const totalAmountKobo =
+      BigInt(subtotalKobo + platformFeeKobo) + calculatedDeliveryFeeKobo;
 
     const idempotencyKey = `direct-order-${productId}-${buyerId}-${Date.now()}`;
 
@@ -164,10 +195,11 @@ export class OrderService {
           unitPriceKobo: product.pricePerUnitKobo,
           deliveryAddress,
           totalAmountKobo,
-          deliveryFeeKobo: 0n,
+          deliveryFeeKobo: calculatedDeliveryFeeKobo,
           currency: "NGN",
           status: OrderStatus.PENDING_PAYMENT,
           paymentMethod,
+          deliveryMethod,
           quoteId: null,
           idempotencyKey,
           payoutStatus: "PENDING",
@@ -181,12 +213,47 @@ export class OrderService {
           fromStatus: null,
           toStatus: OrderStatus.PENDING_PAYMENT,
           triggeredBy: buyerId,
-          metadata: { action: "direct_purchase_created", productId, quantity, paymentMethod },
+          metadata: {
+            action: "direct_purchase_created",
+            productId,
+            quantity,
+            paymentMethod,
+          },
         },
       });
 
       return newOrder;
     });
+
+    // Notify Merchant (outside transaction)
+    try {
+      const orderWithDetails = await this.prisma.order.findUnique({
+        where: { id: order.id },
+        include: { user: true, product: true },
+      });
+
+      if (orderWithDetails && order.merchantId) {
+        await this.whatsappService.sendDirectOrderNotification(
+          order.merchantId,
+          {
+            orderId: order.id,
+            buyerName:
+              orderWithDetails.user.firstName +
+              " " +
+              orderWithDetails.user.lastName,
+            productName: orderWithDetails.product?.name || "Product",
+            quantity: order.quantity || 1,
+            amountKobo: order.totalAmountKobo,
+            deliveryAddress: order.deliveryAddress || "Not specified",
+          },
+        );
+      }
+    } catch (notifierErr) {
+      this.logger.error(
+        `Failed to send merchant WhatsApp notification for ${order.id}`,
+        notifierErr,
+      );
+    }
 
     this.logger.log(
       `Direct order ${order.id} created for product ${productId} (method: ${paymentMethod})`,
@@ -356,12 +423,18 @@ export class OrderService {
     if (order.merchantId !== merchantId)
       throw new ForbiddenException("Access denied");
 
-    if (order.status !== OrderStatus.PAID && order.status !== OrderStatus.PREPARING) {
-      throw new BadRequestException("Order must be in PAID or PREPARING status to dispatch");
+    if (
+      order.status !== OrderStatus.PAID &&
+      order.status !== OrderStatus.PREPARING
+    ) {
+      throw new BadRequestException(
+        "Order must be in PAID or PREPARING status to dispatch",
+      );
     }
 
     // Crypto-secure 6-digit OTP
-    const deliveryOtp = order.deliveryOtp || crypto.randomInt(100000, 999999).toString();
+    const deliveryOtp =
+      order.deliveryOtp || crypto.randomInt(100000, 999999).toString();
 
     // Resolve triggeredBy (userId from merchantId)
     const triggeredBy = await this.getUserIdFromMerchant(merchantId);
@@ -403,7 +476,11 @@ export class OrderService {
   //  TRACKING (merchant)
   // ──────────────────────────────────────────────
 
-  async addTracking(merchantId: string, orderId: string, dto: CreateTrackingDto) {
+  async addTracking(
+    merchantId: string,
+    orderId: string,
+    dto: CreateTrackingDto,
+  ) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
     });
@@ -413,13 +490,17 @@ export class OrderService {
 
     // Reject DELIVERED status for merchant tracking updates
     if (dto.status === OrderStatus.DELIVERED) {
-      throw new BadRequestException("Use confirmDelivery() to mark an order as DELIVERED after OTP validation");
+      throw new BadRequestException(
+        "Use confirmDelivery() to mark an order as DELIVERED after OTP validation",
+      );
     }
 
     // Check valid next states via state machine
     const allowedNext = getNextStates(order.status as OrderStatus);
     if (!allowedNext.includes(dto.status)) {
-      throw new BadRequestException(`Cannot transition from ${order.status} to ${dto.status}`);
+      throw new BadRequestException(
+        `Cannot transition from ${order.status} to ${dto.status}`,
+      );
     }
 
     // Handle OTP generation if transitioning to DISPATCHED
@@ -475,7 +556,7 @@ export class OrderService {
     } catch (error) {
       this.logger.error(
         `Failed to send tracking notification for order ${orderId} (buyer ${order.buyerId}, type: ${dto.status})`,
-        error instanceof Error ? error.stack : 'Unknown error',
+        error instanceof Error ? error.stack : "Unknown error",
       );
     }
 
@@ -487,7 +568,7 @@ export class OrderService {
       where: { id: orderId },
     });
     if (!order) throw new NotFoundException("Order not found");
-    
+
     // Ensure permission
     if (order.buyerId !== userId && order.merchantId !== merchantId) {
       throw new ForbiddenException("Access denied");
@@ -495,7 +576,7 @@ export class OrderService {
 
     return this.prisma.orderTracking.findMany({
       where: { orderId },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: "asc" },
     });
   }
 
@@ -512,7 +593,10 @@ export class OrderService {
       throw new ForbiddenException("Access denied");
 
     // Explicit status check before OTP validation
-    if (order.status !== OrderStatus.DISPATCHED && order.status !== OrderStatus.IN_TRANSIT) {
+    if (
+      order.status !== OrderStatus.DISPATCHED &&
+      order.status !== OrderStatus.IN_TRANSIT
+    ) {
       throw new BadRequestException(
         "Order must be in DISPATCHED or IN_TRANSIT status to confirm delivery",
       );
@@ -559,7 +643,9 @@ export class OrderService {
 
     // Call VerificationService to trigger check on merchant's verification tier
     try {
-      this.logger.log(`Evaluating tier upgrade for merchant ${order.merchantId}`);
+      this.logger.log(
+        `Evaluating tier upgrade for merchant ${order.merchantId}`,
+      );
       await this.verificationService.checkAndUpgradeTier(order.merchantId);
     } catch (error) {
       this.logger.error(
@@ -585,7 +671,9 @@ export class OrderService {
         );
       }
     } else {
-      this.logger.log(`Skipping payout queue for DIRECT order ${orderId} (already paid out)`);
+      this.logger.log(
+        `Skipping payout queue for DIRECT order ${orderId} (already paid out)`,
+      );
     }
 
     // Create reorder reminder (best-effort)
@@ -786,8 +874,9 @@ export class OrderService {
     };
 
     orders.forEach((o) => {
-      const amount =
-        Number((o.totalAmountKobo || 0n) + (o.deliveryFeeKobo || 0n));
+      const amount = Number(
+        (o.totalAmountKobo || 0n) + (o.deliveryFeeKobo || 0n),
+      );
       switch (o.status) {
         case OrderStatus.PAID:
         case OrderStatus.DISPATCHED:

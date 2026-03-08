@@ -7,6 +7,7 @@ import { InventoryModule } from "../inventory/inventory.module";
 import { PaymentModule } from "../payment/payment.module";
 import { ReorderModule } from "../reorder/reorder.module";
 import { VerificationModule } from "../verification/verification.module";
+import { LogisticsModule } from "../logistics/logistics.module";
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { VerificationModule } from "../verification/verification.module";
     forwardRef(() => PaymentModule),
     ReorderModule,
     VerificationModule,
+    LogisticsModule,
   ],
   controllers: [OrderController],
   providers: [OrderService],
