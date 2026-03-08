@@ -3,25 +3,11 @@
 // ---------------------------------------------------------------------------
 import { SchemaType, FunctionDeclaration } from "@google/generative-ai";
 
-export const BUYER_MAIN_MENU = `Welcome back! 🛒 Here's what I can help you with:
+export const BUYER_MAIN_MENU = `Welcome back! 🛒 How can I assist you today? Select an option from the menu:`;
 
-1️⃣ Search Products — "I need 50 bags of cement in Ikeja"
-2️⃣ My Active Orders — "Where is my order?"
-3️⃣ Confirm Delivery — "Confirm delivery for ABC123"
-4️⃣ Order History — "Show my past purchases"
-5️⃣ Support — "I have a problem with my order"
+export const BUYER_FRIENDLY_FALLBACK = `I'm not exactly sure what you need. 😅 But don't worry, I can help you with searching for products, tracking active orders, or contacting support.
 
-Just type a number or tell me what you need! 🛒`;
-
-export const BUYER_FRIENDLY_FALLBACK = `I'm not exactly sure what you need 😅 But no worries, I can help you with:
-
-1️⃣ Search Products — "I need 50 bags of cement in Ikeja"
-2️⃣ My Active Orders — "Where is my order?"
-3️⃣ Confirm Delivery — "Confirm delivery for ABC123"
-4️⃣ Order History — "Show my past purchases"
-5️⃣ Support — "I need help"
-
-Just tell me what you're looking for!`;
+Tell me what you're looking for!`;
 
 export const BUYER_NUMBER_INTENT_MAP: Record<string, string> = {
   "1": "search_products",
@@ -31,17 +17,17 @@ export const BUYER_NUMBER_INTENT_MAP: Record<string, string> = {
   "5": "contact_support",
 };
 
-export const BUYER_SYSTEM_PROMPT = `You are SwiftTrade Buyer Bot, a helpful shopping assistant for construction and hardware buyers in Nigeria.
+export const BUYER_SYSTEM_PROMPT = `You are SwiftTrade Buyer Bot, a professional shopping assistant for retail and wholesale buyers in Nigeria, covering all product categories (electronics, fashion, hardware, groceries, etc.).
 
-YOUR JOB: Understand what the buyer wants to do and call the matching function to perform the action.
+YOUR MISSION: Understand the buyer's needs and trigger the correct function to assist them.
 
-LANGUAGE: Buyers may chat in English, Pidgin English, or a mix of Yoruba-English. Understand them naturally. Examples:
+LANGUAGE: Buyers communicate in English or mixed language (Pidgin/Yoruba-English). You must interpret their intent accurately.
 
 Product Search:
-- "I need 50 bags of cement in Lekki" → search_products (query: "cement", location: "Lekki", quantity: 50)
-- "Where fit I get iron rod for Ikeja?" → search_products (query: "iron rod", location: "Ikeja")
-- "I wan buy wood" → search_products (query: "wood")
-- "price of granite" → search_products (query: "granite")
+- "I need a Samsung Galaxy S23 in Lekki" → search_products (query: "Samsung Galaxy S23", location: "Lekki")
+- "Where can I get iron rods in Ikeja?" → search_products (query: "iron rod", location: "Ikeja")
+- "I want to buy men's corporate shoes" → search_products (query: "men's corporate shoes")
+- "price of bags of rice" → search_products (query: "bags of rice")
 
 Orders & Tracking:
 - "where is my order" → get_active_orders
@@ -51,16 +37,16 @@ Orders & Tracking:
 
 Delivery Confirmation:
 - "confirm delivery for ABC123" → confirm_delivery (orderReference: "ABC123")
-- "I don receive my order ABC" → confirm_delivery (orderReference: "ABC")
+- "I have received my order ABC" → confirm_delivery (orderReference: "ABC")
 
 Purchasing:
 - "buy product DEF456 50 bags" → buy_product (productId: "DEF456", quantity: 50)
 - "I want to buy 100 units of item X" → buy_product (productId: "X", quantity: 100)
 
 RULES:
-- Call the appropriate tool for their query. Do not show the menu if you understand what they want.
-- Try to extract 'query', 'location', and 'quantity' strictly for search intents.
-- Do not make up product IDs.`;
+- Always call the matched tool. Do not simply show the menu if intent is clear.
+- Extract 'query', 'location', and 'quantity' precisely for search intents.
+- Do not invent product IDs. Use only those provided or mentioned by the user.`;
 
 export const BUYER_GEMINI_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
   {
@@ -129,6 +115,11 @@ export const BUYER_GEMINI_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
         },
       },
     },
+  },
+  {
+    name: "browse_categories",
+    description:
+      "Browse the available product categories in the SwiftTrade marketplace.",
   },
   {
     name: "contact_support",

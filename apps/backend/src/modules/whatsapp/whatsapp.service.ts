@@ -97,13 +97,13 @@ export class WhatsAppService {
         if (checkoutSessionRaw) {
           try {
             const session = JSON.parse(checkoutSessionRaw);
-            const response = await this.handleWholesaleCheckoutStep(
+            await this.handleWholesaleCheckoutStep(
               merchantId,
               session,
               messageText,
               checkoutKey,
+              phone,
             );
-            await this.sendWhatsAppMessage(phone, response);
             return;
           } catch (parseErr) {
             this.logger.error(
@@ -114,20 +114,16 @@ export class WhatsAppService {
         }
 
         if (interactiveReply) {
-          const response = await this.handleMerchantInteractiveReply(
+          await this.handleMerchantInteractiveReply(
             merchantId,
             phone,
             interactiveReply,
           );
-          if (response) {
-            await this.sendWhatsAppMessage(phone, response);
-          }
           return;
         }
 
         const intent = await this.intentService.parseIntent(messageText);
-        const response = await this.executeCommand(merchantId, intent, phone);
-        await this.sendWhatsAppMessage(phone, response);
+        await this.executeCommand(merchantId, intent, phone);
         return;
       }
 
@@ -190,60 +186,77 @@ export class WhatsAppService {
   // =======================================================================
   // Command router
   // =======================================================================
-  /**
-   * Handle interactive replies for merchants
-   */
   private async handleMerchantInteractiveReply(
     merchantId: string,
     phone: string,
     reply: { id: string; title: string },
-  ): Promise<string> {
+  ): Promise<void> {
     const { id } = reply;
 
     if (id === "show_merchant_menu") {
       await this.sendMerchantMenu(phone);
-      return "";
+      return;
     }
 
     if (id === "menu_sales") {
-      return this.handleSalesSummary(merchantId, "today");
+      await this.handleSalesSummary(merchantId, phone, "today");
+      return;
     }
 
     if (id === "menu_rfqs") {
-      return this.handlePendingRfqs(merchantId, phone);
+      await this.handlePendingRfqs(merchantId, phone);
+      return;
     }
 
     if (id === "menu_inventory") {
-      return this.handleInventory(merchantId, phone);
+      await this.handleInventory(merchantId, phone);
+      return;
     }
 
     if (id === "menu_orders") {
-      return this.handleGetRecentOrders(merchantId, phone);
+      await this.handleGetRecentOrders(merchantId, phone);
+      return;
     }
 
     if (id === "menu_products") {
-      return this.handleGetProducts(merchantId, phone);
+      await this.handleGetProducts(merchantId, phone);
+      return;
     }
 
     if (id === "menu_verify") {
-      return this.handleGetVerificationStatus(merchantId);
+      await this.handleGetVerificationStatus(merchantId, phone);
+      return;
     }
 
     if (id === "menu_help") {
-      return `🤝 *SwiftTrade Merchant Support*\n\nYou can manage your business by using the menu or via natural language commands:\n\n• *"sales summary"* - View performance\n• *"my orders"* - Manage latest orders\n• *"check inventory"* - Monitor stock\n• *"update price of [item] to [amount]"*\n• *"add [qty] to [item] stock"*\n\nNeed more help? Visit our web dashboard or contact support at support@swifttrade.store`;
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `🤝 *SwiftTrade Merchant Support*\n\nYou can manage your business by using the menu or via natural language commands:\n\n• *"sales summary"* - View performance\n• *"my orders"* - Manage latest orders\n• *"check inventory"* - Monitor stock\n• *"update price of [item] to [amount]"*\n• *"add [qty] to [item] stock"*\n\nNeed more help? Visit our web dashboard or contact support at support@swifttrade.store`,
+      );
+      return;
     }
 
     if (id.startsWith("view_product_")) {
       const productIdShort = id.replace("view_product_", "");
-      // Use findMany + filter instead of startsWith for UUID fields
       const products = await this.prisma.product.findMany({
         where: { merchantId },
         include: { category: true },
       });
       const product = products.find((p) => p.id.startsWith(productIdShort));
 
-      if (!product) return "❌ Product details not found.";
-      return `🏪 *${product.name}*\n\nPrice: ${this.formatNaira(Number(product.pricePerUnitKobo))}\nCategory: ${product.category?.name || "General"}\nUnit: ${product.unit}\nStatus: ${product.isActive ? "Active ✅" : "Inactive ⭕"}\n\nTo update price, say: "update price of ${product.name} to [price]"`;
+      if (!product) {
+        await this.interactiveService.sendTextMessage(
+          phone,
+          "❌ Product details not found.",
+        );
+        return;
+      }
+
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `🏪 *${product.name}*\n\nPrice: ${this.formatNaira(Number(product.pricePerUnitKobo))}\nCategory: ${product.category?.name || "General"}\nUnit: ${product.unit}\nStatus: ${product.isActive ? "Active ✅" : "Inactive ⭕"}\n\nTo update price, say: "update price of ${product.name} to [price]"`,
+      );
+      return;
     }
 
     if (id.startsWith("manage_stock_")) {
@@ -254,7 +267,13 @@ export class WhatsAppService {
       });
       const product = products.find((p) => p.id.startsWith(productIdShort));
 
-      if (!product) return "❌ Inventory details not found.";
+      if (!product) {
+        await this.interactiveService.sendTextMessage(
+          phone,
+          "❌ Inventory details not found.",
+        );
+        return;
+      }
 
       const stock = product.productStockCache?.stock || 0;
       await this.interactiveService.sendReplyButtons(
@@ -266,7 +285,7 @@ export class WhatsAppService {
           { id: "show_merchant_menu", title: "Back to Menu" },
         ],
       );
-      return "";
+      return;
     }
 
     if (id.startsWith("stock_add_") || id.startsWith("stock_rem_")) {
@@ -279,9 +298,19 @@ export class WhatsAppService {
         where: { merchantId },
       });
       const product = products.find((p) => p.id.startsWith(productIdShort));
-      if (!product) return "❌ Product not found.";
+      if (!product) {
+        await this.interactiveService.sendTextMessage(
+          phone,
+          "❌ Product not found.",
+        );
+        return;
+      }
 
-      return `To ${isAdd ? "add to" : "remove from"} *${product.name}* stock, please reply with the quantity.\n\nExample: "${isAdd ? "add" : "remove"} 50"`;
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `To ${isAdd ? "add to" : "remove from"} *${product.name}* stock, please reply with the quantity.\n\nExample: "${isAdd ? "add" : "remove"} 50"`,
+      );
+      return;
     }
 
     if (id.startsWith("manage_order_")) {
@@ -291,7 +320,13 @@ export class WhatsAppService {
         include: { product: true },
       });
       const order = orders.find((o) => o.id.startsWith(orderIdShort));
-      if (!order) return "❌ Order details not found.";
+      if (!order) {
+        await this.interactiveService.sendTextMessage(
+          phone,
+          "❌ Order details not found.",
+        );
+        return;
+      }
 
       const status = order.status;
       const canDispatch = status === "PAID" || status === "PREPARING";
@@ -316,12 +351,13 @@ export class WhatsAppService {
       buttons.push({ id: "show_merchant_menu", title: "Back to Menu" });
 
       await this.interactiveService.sendReplyButtons(phone, msg, buttons);
-      return "";
+      return;
     }
 
     if (id.startsWith("dispatch_")) {
       const orderIdShort = id.replace("dispatch_", "");
-      return this.handleDispatchOrder(merchantId, phone, orderIdShort);
+      await this.handleDispatchOrder(merchantId, phone, orderIdShort);
+      return;
     }
 
     if (id.startsWith("track_update_")) {
@@ -353,12 +389,13 @@ export class WhatsAppService {
           },
         ],
       );
-      return "";
+      return;
     }
 
     if (id.startsWith("buy_wholesale_")) {
       const productIdShort = id.replace("buy_wholesale_", "");
-      return this.handleBuyWholesale(merchantId, phone, productIdShort);
+      await this.handleBuyWholesale(merchantId, phone, productIdShort);
+      return;
     }
 
     if (
@@ -367,16 +404,23 @@ export class WhatsAppService {
     ) {
       const checkoutKey = `wa_pending_wholesale_${merchantId}`;
       const checkoutSessionRaw = await this.redisService.get(checkoutKey);
-      if (!checkoutSessionRaw)
-        return "❌ Checkout session has expired. Please start over.";
+      if (!checkoutSessionRaw) {
+        await this.interactiveService.sendTextMessage(
+          phone,
+          "❌ Checkout session has expired. Please start over.",
+        );
+        return;
+      }
       const session = JSON.parse(checkoutSessionRaw);
       const isPayNow = id === "confirm_wholesale_pay_now";
-      return this.handleWholesaleCheckoutStep(
+      await this.handleWholesaleCheckoutStep(
         merchantId,
         session,
         isPayNow ? "1" : "2",
         checkoutKey,
+        phone,
       );
+      return;
     }
 
     if (id.startsWith("view_rfq_")) {
@@ -386,24 +430,35 @@ export class WhatsAppService {
         include: { product: true, user: true },
       });
       const rfq = rfqs.find((r) => r.id.startsWith(rfqIdShort));
-      if (!rfq) return "❌ Request details not found or already closed.";
+      if (!rfq) {
+        await this.interactiveService.sendTextMessage(
+          phone,
+          "❌ Request details not found or already closed.",
+        );
+        return;
+      }
 
       let msg = `📋 *Request for Quote: ${rfq.product?.name || "Product"}*\n\n`;
       msg += `Quantity: *${rfq.quantity} ${rfq.product?.unit || "unit(s)"}*\n`;
       msg += `Buyer: ${rfq.user?.firstName || "Customer"}\n`;
       msg += `Location: ${rfq.deliveryAddress || "Not specified"}\n\n`;
       msg += `To respond, please type: "quote ${rfqIdShort} at [price]"`;
-      return msg;
+      await this.interactiveService.sendTextMessage(phone, msg);
+      return;
     }
 
     if (id.startsWith("status_")) {
       const parts = id.split("_");
       const status = parts[1];
       const orderIdShort = parts[2];
-      return this.handleUpdateOrderTracking(merchantId, orderIdShort, status);
+      await this.handleUpdateOrderTracking(
+        merchantId,
+        phone,
+        orderIdShort,
+        status,
+      );
+      return;
     }
-
-    return `Unrecognized action: ${id}`;
   }
 
   /**
@@ -473,66 +528,89 @@ export class WhatsAppService {
     merchantId: string,
     intent: ParsedIntent,
     phone: string,
-  ): Promise<string> {
+  ): Promise<void> {
     try {
       switch (intent.functionName) {
         case "get_sales_summary":
-          return this.handleSalesSummary(merchantId, intent.params.timeframe);
+          await this.handleSalesSummary(
+            merchantId,
+            phone,
+            intent.params.timeframe,
+          );
+          break;
         case "get_pending_rfqs":
-          return this.handlePendingRfqs(merchantId, phone);
+          await this.handlePendingRfqs(merchantId, phone);
+          break;
         case "get_inventory":
-          return this.handleInventory(
+          await this.handleInventory(
             merchantId,
             phone,
             intent.params.productName,
           );
+          break;
         case "respond_to_rfq":
-          return this.handleRespondToRfq(
+          await this.handleRespondToRfq(
             merchantId,
+            phone,
             intent.params.rfqReference,
             intent.params.unitPriceNaira,
             intent.params.deliveryFeeNaira,
           );
+          break;
         case "update_stock":
-          return this.handleUpdateStock(
+          await this.handleUpdateStock(
             merchantId,
+            phone,
             intent.params.productName,
             intent.params.quantity,
             intent.params.action,
           );
+          break;
         case "get_products":
-          return this.handleGetProducts(merchantId, phone);
+          await this.handleGetProducts(merchantId, phone);
+          break;
         case "get_recent_orders":
-          return this.handleGetRecentOrders(merchantId, phone);
+          await this.handleGetRecentOrders(merchantId, phone);
+          break;
         case "update_order_tracking":
-          return this.handleUpdateOrderTracking(
+          await this.handleUpdateOrderTracking(
             merchantId,
+            phone,
             intent.params.orderReference,
             intent.params.status,
             intent.params.note,
           );
+          break;
         case "get_verification_status":
-          return this.handleGetVerificationStatus(merchantId);
+          await this.handleGetVerificationStatus(merchantId, phone);
+          break;
         case "browse_wholesale":
-          return this.handleBrowseWholesale(phone, intent.params.query);
+          await this.handleBrowseWholesale(phone, intent.params.query);
+          break;
         case "buy_wholesale":
-          return this.handleBuyWholesale(
+          await this.handleBuyWholesale(
             merchantId,
             phone,
             intent.params.productId,
             intent.params.quantity,
           );
+          break;
         case "friendly_fallback":
-          return FRIENDLY_FALLBACK;
+          await this.interactiveService.sendTextMessage(
+            phone,
+            FRIENDLY_FALLBACK,
+          );
+          break;
         case "show_menu":
         default:
-          return MAIN_MENU;
+          await this.sendMerchantMenu(phone);
+          break;
       }
     } catch (error) {
       this.logger.error(
         `Command execution error (${intent.functionName}): ${error instanceof Error ? error.message : error}`,
       );
-      return GENERIC_ERROR;
+      await this.interactiveService.sendTextMessage(phone, GENERIC_ERROR);
     }
   }
 
@@ -545,8 +623,9 @@ export class WhatsAppService {
    */
   private async handleSalesSummary(
     merchantId: string,
+    phone: string,
     timeframe?: string,
-  ): Promise<string> {
+  ): Promise<void> {
     const dateFilter = this.getDateFilter(timeframe || "today");
     const timeframeLabel = this.getTimeframeLabel(timeframe || "today");
 
@@ -609,7 +688,7 @@ export class WhatsAppService {
       msg += `\nYou have active requests awaiting your quote. Please use the menu below to view them.`;
     }
 
-    return msg;
+    await this.interactiveService.sendTextMessage(phone, msg);
   }
 
   /**
@@ -618,12 +697,16 @@ export class WhatsAppService {
   private async handlePendingRfqs(
     merchantId: string,
     phone: string,
-  ): Promise<string> {
+  ): Promise<void> {
     const result = await this.rfqService.listByMerchant(merchantId, 1, 10);
     const rfqs = result.data.filter((r: any) => r.status === RFQStatus.OPEN);
 
     if (rfqs.length === 0) {
-      return "📋 You have no pending RFQs at the moment. All requests have been addressed or have expired. ✅";
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "📋 You have no pending RFQs at the moment. All requests have been addressed or have expired. ✅",
+      );
+      return;
     }
 
     await this.interactiveService.sendListMessage(
@@ -641,8 +724,6 @@ export class WhatsAppService {
         },
       ],
     );
-
-    return ""; // Response handled via interactive service
   }
 
   /**
@@ -652,7 +733,7 @@ export class WhatsAppService {
     merchantId: string,
     phone: string,
     productName?: string,
-  ): Promise<string> {
+  ): Promise<void> {
     if (productName) {
       // Search for specific product
       const products = await this.prisma.product.findMany({
@@ -666,7 +747,11 @@ export class WhatsAppService {
       });
 
       if (products.length === 0) {
-        return `📦 No products matching "${productName}" were found in your inventory.`;
+        await this.interactiveService.sendTextMessage(
+          phone,
+          `📦 No products matching "${productName}" were found in your inventory.`,
+        );
+        return;
       }
 
       await this.interactiveService.sendListMessage(
@@ -684,7 +769,7 @@ export class WhatsAppService {
           },
         ],
       );
-      return "";
+      return;
     }
 
     // All products
@@ -696,7 +781,11 @@ export class WhatsAppService {
     });
 
     if (products.length === 0) {
-      return "📦 You do not have any active product listings. Please add products via the SwiftTrade web dashboard to begin selling. 🛒";
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "📦 You do not have any active product listings. Please add products via the SwiftTrade web dashboard to begin selling. 🛒",
+      );
+      return;
     }
 
     await this.interactiveService.sendListMessage(
@@ -714,8 +803,6 @@ export class WhatsAppService {
         },
       ],
     );
-
-    return "";
   }
 
   /**
@@ -723,12 +810,17 @@ export class WhatsAppService {
    */
   private async handleRespondToRfq(
     merchantId: string,
+    phone: string,
     rfqReference: string,
     unitPriceNaira: number,
     deliveryFeeNaira?: number,
-  ): Promise<string> {
+  ): Promise<void> {
     if (!rfqReference || !unitPriceNaira) {
-      return RFQ_RESPOND_FOLLOWUP;
+      await this.interactiveService.sendTextMessage(
+        phone,
+        RFQ_RESPOND_FOLLOWUP,
+      );
+      return;
     }
 
     // Find the RFQ by short reference (first chars of UUID)
@@ -744,7 +836,11 @@ export class WhatsAppService {
     const rfq = openRfqs.find((r) => r.id.toLowerCase().startsWith(refLower));
 
     if (!rfq) {
-      return `❌ RFQ #${rfqReference} not found or already responded to.\n\nSay *"check rfq"* to see your pending RFQs.`;
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `❌ RFQ #${rfqReference} not found or already responded to.\n\nSay *"check rfq"* to see your pending RFQs.`,
+      );
+      return;
     }
 
     // Convert Naira to kobo
@@ -769,7 +865,11 @@ export class WhatsAppService {
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Unknown error";
       if (errorMsg.includes("not open")) {
-        return `❌ This RFQ is no longer open for quotes.`;
+        await this.interactiveService.sendTextMessage(
+          phone,
+          `❌ This RFQ is no longer open for quotes.`,
+        );
+        return;
       }
       throw error;
     }
@@ -787,7 +887,7 @@ export class WhatsAppService {
     msg += `💵 Total Amount: *${this.formatNaira(grandTotal)}*\n\n`;
     msg += `The buyer has been notified. We will alert you when they respond to your quote.`;
 
-    return msg;
+    await this.interactiveService.sendTextMessage(phone, msg);
   }
 
   /**
@@ -795,12 +895,17 @@ export class WhatsAppService {
    */
   private async handleUpdateStock(
     merchantId: string,
+    phone: string,
     productName: string,
     quantity: number,
     action?: string,
-  ): Promise<string> {
+  ): Promise<void> {
     if (!productName || !quantity) {
-      return STOCK_UPDATE_FOLLOWUP;
+      await this.interactiveService.sendTextMessage(
+        phone,
+        STOCK_UPDATE_FOLLOWUP,
+      );
+      return;
     }
 
     // Fuzzy match product by name
@@ -814,7 +919,11 @@ export class WhatsAppService {
     });
 
     if (!product) {
-      return `❌ No product matching "${productName}" was found in your inventory.`;
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `❌ No product matching "${productName}" was found in your inventory.`,
+      );
+      return;
     }
 
     const isRemove = action === "remove";
@@ -830,7 +939,11 @@ export class WhatsAppService {
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Unknown error";
       this.logger.error(`Stock update failed: ${errorMsg}`);
-      return `❌ Could not update stock for ${product.name}: ${errorMsg}`;
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `❌ Could not update stock for ${product.name}: ${errorMsg}`,
+      );
+      return;
     }
 
     const currentStock = (product.productStockCache?.stock ?? 0) + adjustedQty;
@@ -847,7 +960,7 @@ export class WhatsAppService {
       msg += `\n\n🚨 *Out of Stock*: This product is now out of stock and will be hidden from buyers.`;
     }
 
-    return msg;
+    await this.interactiveService.sendTextMessage(phone, msg);
   }
 
   /**
@@ -856,12 +969,16 @@ export class WhatsAppService {
   private async handleGetProducts(
     merchantId: string,
     phone: string,
-  ): Promise<string> {
+  ): Promise<void> {
     const result = await this.productService.listByMerchant(merchantId, 1, 20);
     const products = result.data;
 
     if (products.length === 0) {
-      return "🏪 You have no products listed currently. Please add products via the SwiftTrade web dashboard to begin selling. 🛒";
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "🏪 You have no products listed currently. Please add products via the SwiftTrade web dashboard to begin selling. 🛒",
+      );
+      return;
     }
 
     // Meta interactive list supports max 10 rows
@@ -882,8 +999,6 @@ export class WhatsAppService {
         },
       ],
     );
-
-    return "";
   }
 
   /**
@@ -892,7 +1007,7 @@ export class WhatsAppService {
   private async handleGetRecentOrders(
     merchantId: string,
     phone: string,
-  ): Promise<string> {
+  ): Promise<void> {
     const orders = await this.prisma.order.findMany({
       where: { merchantId },
       orderBy: { createdAt: "desc" },
@@ -904,7 +1019,11 @@ export class WhatsAppService {
     });
 
     if (orders.length === 0) {
-      return "📦 No orders have been placed yet. Your recent orders will appear here once customers start purchasing your products.";
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "📦 No orders have been placed yet. Your recent orders will appear here once customers start purchasing your products.",
+      );
+      return;
     }
 
     await this.interactiveService.sendListMessage(
@@ -922,8 +1041,6 @@ export class WhatsAppService {
         },
       ],
     );
-
-    return "";
   }
 
   /**
@@ -933,9 +1050,13 @@ export class WhatsAppService {
     merchantId: string,
     phone: string,
     orderReference?: string,
-  ): Promise<string> {
+  ): Promise<void> {
     if (!orderReference) {
-      return `Which order would you like to dispatch? Please provide the order ID or short reference.`;
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `Which order would you like to dispatch? Please provide the order ID or short reference.`,
+      );
+      return;
     }
 
     // Fetch recent orders to find matching short ID
@@ -952,14 +1073,24 @@ export class WhatsAppService {
     );
 
     if (!targetOrder) {
-      return `❌ No active order matching ID "${orderReference}" was found. Please verify the ID and try again.`;
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `❌ No active order matching ID "${orderReference}" was found. Please verify the ID and try again.`,
+      );
+      return;
     }
 
     try {
       await this.orderService.dispatch(merchantId, targetOrder.id);
-      return `✅ *Order #${orderReference.toUpperCase()} Dispatched*\n\nA verification code has been sent to the buyer. Please request this code upon delivery to confirm receipt.`;
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `✅ *Order #${orderReference.toUpperCase()} Dispatched*\n\nA verification code has been sent to the buyer. Please request this code upon delivery to confirm receipt.`,
+      );
     } catch (error: any) {
-      return `❌ Dispatch failed: ${error.message}`;
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `❌ Dispatch failed: ${error.message}`,
+      );
     }
   }
 
@@ -968,12 +1099,17 @@ export class WhatsAppService {
    */
   private async handleUpdateOrderTracking(
     merchantId: string,
+    phone: string,
     orderReference?: string,
     status?: string,
     note?: string,
-  ): Promise<string> {
+  ): Promise<void> {
     if (!orderReference || !status) {
-      return `Please provide the order reference and the new status.\n\nE.g. *"update order ABC123 in transit"*`;
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `Please provide the order reference and the new status.\n\nE.g. *"update order ABC123 in transit"*`,
+      );
+      return;
     }
 
     // Fetch active orders to find matching short ID
@@ -990,11 +1126,19 @@ export class WhatsAppService {
     );
 
     if (matches.length === 0) {
-      return `❌ I no see any active order starting with "${orderReference}". Check your spelling!`;
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `❌ No active order matching "${orderReference}" was found. Please check your spelling.`,
+      );
+      return;
     }
 
     if (matches.length > 1) {
-      return `⚠️ I see ${matches.length} orders matching "${orderReference}". Please provide a longer reference so I know which one you mean!`;
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `⚠️ Multiple orders (${matches.length}) match "${orderReference}". Please provide a more specific reference ID.`,
+      );
+      return;
     }
 
     const targetOrder = matches[0];
@@ -1014,7 +1158,11 @@ export class WhatsAppService {
     // Must map string status back to OrderStatus enum based on what Gemini outputs
     const validStatuses = ["PREPARING", "DISPATCHED", "IN_TRANSIT"];
     if (!validStatuses.includes(mappedStatus)) {
-      return `❌ Invalid status. Must be PREPARING, DISPATCHED, or IN_TRANSIT. Use the dashboard to mark an order as DELIVERED after OTP confirmation.`;
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `❌ Invalid status. Must be PREPARING, DISPATCHED, or IN_TRANSIT. Use the dashboard to mark an order as DELIVERED after OTP confirmation.`,
+      );
+      return;
     }
 
     try {
@@ -1028,9 +1176,12 @@ export class WhatsAppService {
       msg += `New Status: *${mappedStatus.replace(/_/g, " ")}*\n`;
       if (note) msg += `Note: "${note}"\n`;
       msg += `\nThe buyer has been notified of this update. 🚀`;
-      return msg;
+      await this.interactiveService.sendTextMessage(phone, msg);
     } catch (error: any) {
-      return `❌ Tracking update failed: ${error.message}`;
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `❌ Tracking update failed: ${error.message}`,
+      );
     }
   }
 
@@ -1039,7 +1190,8 @@ export class WhatsAppService {
    */
   private async handleGetVerificationStatus(
     merchantId: string,
-  ): Promise<string> {
+    phone: string,
+  ): Promise<void> {
     try {
       const merchant = await this.prisma.merchantProfile.findUnique({
         where: { id: merchantId },
@@ -1047,30 +1199,43 @@ export class WhatsAppService {
       });
 
       if (!merchant) {
-        return `❌ I no fit find your merchant profile. Contact support abeg.`;
+        await this.interactiveService.sendTextMessage(
+          phone,
+          `❌ I no fit find your merchant profile. Contact support abeg.`,
+        );
+        return;
       }
 
       const tier = (merchant as any).verificationTier || "UNVERIFIED";
       const name = merchant.businessName || "Boss";
 
+      let msg = "";
       switch (tier) {
         case "UNVERIFIED":
-          return `Hello ${name}! 👋\n\nYour account is currently *unverified*.\n\nPlease visit your dashboard settings to upload your ID and complete verification. Verified merchants benefit from lower fees and more direct customer trust. 🚀\n\n🔗 Dashboard: Settings → Verification`;
+          msg = `Hello ${name}! 👋\n\nYour account is currently *unverified*.\n\nPlease visit your dashboard settings to upload your ID and complete verification. Verified merchants benefit from lower fees and more direct customer trust. 🚀\n\n🔗 Dashboard: Settings → Verification`;
+          break;
         case "BASIC":
-          return `Hello ${name}! 👋\n\nYour account is currently in the *Basic* tier.\n\nCompleting your government ID verification will upgrade your status to *Verified*, offering:\n• Reduced platform fees (1%)\n• Direct customer payments\n• Enhanced profile trust ✅`;
+          msg = `Hello ${name}! 👋\n\nYour account is currently in the *Basic* tier.\n\nCompleting your government ID verification will upgrade your status to *Verified*, offering:\n• Reduced platform fees (1%)\n• Direct customer payments\n• Enhanced profile trust ✅`;
+          break;
         case "VERIFIED":
-          return `✅ *Verified Merchant Status* — ${name}\n\nYou are currently enjoying:\n• Competitive 1% platform fees\n• Direct customer payments\n• Verified badge on your profile\n\nThank you for choosing SwiftTrade! 💪`;
+          msg = `✅ *Verified Merchant Status* — ${name}\n\nYou are currently enjoying:\n• Competitive 1% platform fees\n• Direct customer payments\n• Verified badge on your profile\n\nThank you for choosing SwiftTrade! 💪`;
+          break;
         case "TRUSTED":
-          return `⭐ *Trusted Merchant Status* — ${name}\n\nYou have achieved the highest trust level! You benefit from minimal fees, featured listings, and a ⭐ Trusted merchant badge.\n\nExcellent work! 🎉`;
+          msg = `⭐ *Trusted Merchant Status* — ${name}\n\nYou have achieved the highest trust level! You benefit from minimal fees, featured listings, and a ⭐ Trusted merchant badge.\n\nExcellent work! 🎉`;
+          break;
         default:
-          return `Your current verification tier is: *${tier}*. Please visit your dashboard for more detailed information.`;
+          msg = `Your current verification tier is: *${tier}*. Please visit your dashboard for more detailed information.`;
       }
+      await this.interactiveService.sendTextMessage(phone, msg);
     } catch (error) {
       this.logger.error(
         `Failed to fetch verification status for merchant ${merchantId}`,
         error instanceof Error ? error.stack : "Unknown error",
       );
-      return `❌ An error occurred while checking your verification status. Please try again later.`;
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `❌ An error occurred while checking your verification status. Please try again later.`,
+      );
     }
   }
 
@@ -1079,11 +1244,16 @@ export class WhatsAppService {
    */
   private async handleUpdateProductPrice(
     merchantId: string,
+    phone: string,
     productName?: string,
     priceNaira?: number,
-  ): Promise<string> {
+  ): Promise<void> {
     if (!productName || !priceNaira) {
-      return `To update a product's price, please provide the name and the new amount.\n\nExample: *"update price of cement to 9000"*`;
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `To update a product's price, please provide the name and the new amount.\n\nExample: *"update price of cement to 9000"*`,
+      );
+      return;
     }
 
     // Find product fuzzy match
@@ -1096,16 +1266,26 @@ export class WhatsAppService {
     });
 
     if (!target) {
-      return `❌ Product "${productName}" was not found in your inventory. Please check your product list.`;
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `❌ Product "${productName}" was not found in your inventory. Please check your product list.`,
+      );
+      return;
     }
 
     try {
       await this.productService.update(merchantId, target.id, {
         pricePerUnitKobo: (priceNaira * 100).toString(),
       });
-      return `✅ *Price Updated Successfuly*\n\nThe price of *${target.name}* has been updated to *${this.formatNaira(priceNaira * 100)}* per ${target.unit}.`;
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `✅ *Price Updated Successfuly*\n\nThe price of *${target.name}* has been updated to *${this.formatNaira(priceNaira * 100)}* per ${target.unit}.`,
+      );
     } catch (error: any) {
-      return `❌ Price update failed: ${error.message}`;
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `❌ Price update failed: ${error.message}`,
+      );
     }
   }
 
@@ -1552,7 +1732,7 @@ export class WhatsAppService {
   private async handleBrowseWholesale(
     phone: string,
     query?: string,
-  ): Promise<string> {
+  ): Promise<void> {
     const products = await this.prisma.supplierProduct.findMany({
       where: {
         isActive: true,
@@ -1564,7 +1744,11 @@ export class WhatsAppService {
     });
 
     if (products.length === 0) {
-      return `❌ No wholesale products found${query ? ` matching "${query}"` : ""}. Manufacturer listings will appear here soon.`;
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `❌ No wholesale products found${query ? ` matching "${query}"` : ""}. Manufacturer listings will appear here soon.`,
+      );
+      return;
     }
 
     await this.interactiveService.sendListMessage(
@@ -1582,8 +1766,6 @@ export class WhatsAppService {
         },
       ],
     );
-
-    return "";
   }
 
   private async handleBuyWholesale(
@@ -1591,7 +1773,7 @@ export class WhatsAppService {
     phone: string,
     productId: string,
     quantity?: number,
-  ): Promise<string> {
+  ): Promise<void> {
     // Prisma doesn't support startsWith on UUID, so we fetch and filter
     const allProducts = await this.prisma.supplierProduct.findMany({
       where: { isActive: true, supplier: { isVerified: true } },
@@ -1603,12 +1785,20 @@ export class WhatsAppService {
     );
 
     if (!product) {
-      return `❌ System ID starting with "${productId}" not found. Check the ID and try again.`;
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `❌ System ID starting with "${productId}" not found. Check the ID and try again.`,
+      );
+      return;
     }
 
     const qty = quantity || product.minOrderQty;
     if (qty < product.minOrderQty) {
-      return `⚠️ Min order for this item is ${product.minOrderQty} ${product.unit}. Please adjust your quantity.`;
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `⚠️ Min order for this item is ${product.minOrderQty} ${product.unit}. Please adjust your quantity.`,
+      );
+      return;
     }
 
     try {
@@ -1618,6 +1808,7 @@ export class WhatsAppService {
         quantity: qty,
         unitPriceKobo: product.wholesalePriceKobo.toString(),
         step: "SELECT_PAYMENT",
+        phone,
       };
       await this.redisService.set(checkoutKey, JSON.stringify(session), 3600);
 
@@ -1646,10 +1837,12 @@ export class WhatsAppService {
       }
 
       await this.interactiveService.sendReplyButtons(phone, msg, buttons);
-      return "";
     } catch (e) {
       this.logger.error("Wholesale checkout initialization failed", e);
-      return "An error occurred while initiating your wholesale order. Please try again or use the merchant dashboard.";
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "An error occurred while initiating your wholesale order. Please try again or use the merchant dashboard.",
+      );
     }
   }
 
@@ -1658,7 +1851,8 @@ export class WhatsAppService {
     session: any,
     text: string,
     key: string,
-  ): Promise<string> {
+    phone: string,
+  ): Promise<void> {
     const input = text.trim();
 
     if (session.step === "SELECT_PAYMENT") {
@@ -1673,11 +1867,20 @@ export class WhatsAppService {
         const eligibility = merchant
           ? await this.tradeFinancingService.checkEligibility(merchant.userId)
           : { eligible: false };
-        if (!eligibility.eligible)
-          return "Sorry, Trade Financing is not available for your account yet. Please reply 1️⃣ to Pay Now.";
+        if (!eligibility.eligible) {
+          await this.interactiveService.sendTextMessage(
+            phone,
+            "Sorry, Trade Financing is not available for your account yet. Please reply 1️⃣ to Pay Now.",
+          );
+          return;
+        }
         paymentMethod = "TRADE_FINANCING";
       } else {
-        return "Please reply with 1️⃣ or 2️⃣ (if eligible) to select your payment method.";
+        await this.interactiveService.sendTextMessage(
+          phone,
+          "Please reply with 1️⃣ or 2️⃣ (if eligible) to select your payment method.",
+        );
+        return;
       }
 
       // Complete - generate app link
@@ -1689,14 +1892,18 @@ export class WhatsAppService {
       let msg = `✅ *Wholesale Details confirmed!*\n\n`;
       msg += `*Item*: ${session.productId.substring(0, 8)} (${session.quantity} units)\n`;
       msg += `*Payment*: ${paymentMethod.replace(/_/g, " ")}\n\n`;
-      msg += `🔗 *Tap below to finalize this order:*\n`;
-      msg += checkoutLink;
 
-      return msg;
+      await this.interactiveService.sendCTAUrlButton(
+        phone,
+        msg + `🔗 *Tap below to finalize this order:*`,
+        "Finalize Order",
+        checkoutLink,
+      );
+      return;
     }
 
     await this.redisService.del(key);
-    return MAIN_MENU;
+    await this.sendMerchantMenu(phone);
   }
 
   // =======================================================================

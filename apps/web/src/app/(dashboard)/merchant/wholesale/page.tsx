@@ -370,7 +370,7 @@ export default function WholesaleCataloguePage() {
           <p className="text-center text-[10px] text-slate-400 font-medium px-4">
             {paymentMethod === "TRADE_FINANCING"
               ? "Application will be cross-checked with our financing partner instantly."
-              : "By clicking confirm, you agree to the Hardware OS B2B Escrow terms."}
+              : "By clicking confirm, you agree to the SwiftTrade Escrow terms."}
           </p>
         </form>
       </Modal>

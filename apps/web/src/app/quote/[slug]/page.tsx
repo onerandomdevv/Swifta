@@ -160,7 +160,7 @@ export default function PublicQuotePage() {
             </div>
             <div>
               <h2 className="font-black text-sm uppercase tracking-tight text-slate-900">
-                {quote.merchantProfile?.businessName || "Hardware Merchant"}
+                {quote.merchantProfile?.businessName || "Merchant"}
               </h2>
               {isVerified && (
                 <p className="text-[10px] text-primary font-bold flex items-center gap-1">

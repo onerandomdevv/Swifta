@@ -57,10 +57,10 @@ export function AccountDetailsStep({
         </h1>
         <p className="text-slate-500 font-medium">
           {isMerchant
-            ? "Register your business to start selling on Lagos's premier hardware marketplace."
+            ? "Register your business to start selling on Lagos's premier wholesale and retail marketplace."
             : isSupplier
               ? "Register as a manufacturer or large distributor to reach verified merchants."
-              : "Sign up to source quality hardware from verified merchants across Lagos."}
+              : "Sign up to source quality products and goods from verified merchants across Lagos."}
         </p>
       </div>
 

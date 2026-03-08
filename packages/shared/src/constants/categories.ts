@@ -1,20 +1,20 @@
 export const PRODUCT_CATEGORIES = [
-  "Cement",
-  "Iron Rods & Steel",
-  "Blocks",
-  "Roofing Sheets",
-  "Tiles (Floor & Wall)",
-  "Paints & Coatings",
-  "Plumbing",
-  "Electrical",
-  "Sand, Gravel & Granite",
-  "Doors & Windows",
-  "Nails, Wire & Fasteners",
-  "Wood & Timber",
-  "Waterproofing",
-  "Tools & Equipment",
-  "Hardware",
+  "Electronics & Gadgets",
+  "Fashion & Apparel",
+  "Home & Kitchen",
+  "Groceries & Supermarket",
+  "Health & Beauty",
+  "Building Materials",
+  "Industrial Equipment",
+  "Auto Parts",
+  "Agricultural Products",
+  "Sports & Outdoors",
+  "Toys & Games",
+  "Books & Stationery",
+  "Furniture",
+  "Hardware & Tools",
+
   "Other",
 ] as const;
 
-export type ProductCategory = typeof PRODUCT_CATEGORIES[number];
+export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];

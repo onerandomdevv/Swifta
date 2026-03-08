@@ -135,7 +135,7 @@ export default function BuyerMerchantProfilePage() {
                   </div>
                   <div className="flex items-center gap-4 mt-2">
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em]">
-                      {profile.category || "General Hardware Supplier"} • Est.{" "}
+                      {profile.category || "General Supplier"} • Est.{" "}
                       {profile.estYear || "N/A"}
                     </p>
                     {(profile.averageRating ?? 0) > 0 && (
@@ -219,7 +219,7 @@ export default function BuyerMerchantProfilePage() {
                     Industry Category
                   </p>
                   <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                    {profile.category || "Hardware Trade"}
+                    {profile.category || "General Trade"}
                   </p>
                 </div>
                 <div className="space-y-1 md:col-span-2 text-wrap">

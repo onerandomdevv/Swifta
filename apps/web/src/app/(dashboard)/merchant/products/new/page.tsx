@@ -102,7 +102,7 @@ export default function NewProductPage() {
           List New Product
         </h1>
         <p className="text-slate-500 font-bold text-sm">
-          Add a new hardware product to your marketplace catalog.
+          Add a new product to your marketplace catalog.
         </p>
       </div>
 

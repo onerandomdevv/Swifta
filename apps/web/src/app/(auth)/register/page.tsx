@@ -220,14 +220,14 @@ export default function RegisterPage() {
             <Logo variant="dark" size="lg" />
           </Link>
           <p className="text-white/70 text-base font-medium max-w-xs leading-relaxed mb-6">
-            Join Nigeria&apos;s trusted B2B hardware trade network. Verified
-            merchants, private pricing, escrow protection.
+            Join Nigeria&apos;s WhatsApp marketplace. Buy and sell anything with
+            payment protection.
           </p>
           <div className="flex flex-col gap-3">
             {[
               { icon: "lock", label: "Escrow Protection" },
               { icon: "verified", label: "Verified Merchants" },
-              { icon: "visibility_off", label: "Private Pricing" },
+              { icon: "payments", label: "Instant Payouts" },
             ].map((item) => (
               <div
                 key={item.label}
