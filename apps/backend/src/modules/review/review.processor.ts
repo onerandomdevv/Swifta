@@ -56,6 +56,7 @@ export class ReviewPromptProcessor extends WorkerHost {
       this.logger.error(
         `Review prompt job failed: ${error instanceof Error ? error.message : error}`,
       );
+      throw error; // Rethrow to allow BullMQ to retry
     }
   }
 }

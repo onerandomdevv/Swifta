@@ -32,7 +32,7 @@ export interface MerchantProfile {
     email: string;
     phone: string;
   } | null;
-  averageRating: number;
+  averageRating?: number;
   reviewCount: number;
 }
 

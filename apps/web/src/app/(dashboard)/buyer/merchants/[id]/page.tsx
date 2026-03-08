@@ -19,6 +19,8 @@ export default function BuyerMerchantProfilePage() {
   const [profile, setProfile] = useState<MerchantProfile | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [reviewsError, setReviewsError] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -27,16 +29,11 @@ export default function BuyerMerchantProfilePage() {
       try {
         setError("");
         setLoading(true);
-        const [profileData, productsData, reviewsData] = await Promise.all([
-          getPublicProfile(id as string),
-          getPublicProductsByMerchant(id as string, 1, 50),
-          getMerchantReviews(id as string, 1, 10),
-        ]);
-
+        const profileData = await getPublicProfile(id as string);
+        const productsData = await getPublicProductsByMerchant(id as string);
         if (active) {
           setProfile(profileData);
           setProducts(productsData as unknown as Product[]);
-          setReviews(reviewsData);
         }
       } catch (err: any) {
         if (active) {
@@ -49,7 +46,33 @@ export default function BuyerMerchantProfilePage() {
       }
     };
 
-    if (id) fetchData();
+    if (id) {
+      fetchData();
+    }
+    return () => {
+      active = false;
+    };
+  }, [id]);
+
+  useEffect(() => {
+    let active = true;
+    const fetchReviews = async () => {
+      setReviewsLoading(true);
+      setReviewsError(null);
+      try {
+        const reviewsData = await getMerchantReviews(id as string, 1, 10);
+        if (active) setReviews(reviewsData);
+      } catch (revErr: any) {
+        console.error("Failed to load reviews:", revErr);
+        if (active) setReviewsError("Failed to load reviews");
+      } finally {
+        if (active) setReviewsLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchReviews();
+    }
     return () => {
       active = false;
     };
@@ -115,15 +138,15 @@ export default function BuyerMerchantProfilePage() {
                       {profile.category || "General Hardware Supplier"} • Est.{" "}
                       {profile.estYear || "N/A"}
                     </p>
-                    {profile.averageRating > 0 && (
+                    {(profile.averageRating ?? 0) > 0 && (
                       <div className="flex items-center gap-2 pl-4 border-l border-slate-200 dark:border-slate-800">
                         <StarRating
-                          rating={profile.averageRating}
+                          rating={profile.averageRating ?? 0}
                           readOnly
                           size="sm"
                         />
                         <span className="text-[10px] font-black text-navy-dark dark:text-white uppercase tracking-widest mt-0.5">
-                          {Number(profile.averageRating).toFixed(1)} (
+                          {Number(profile.averageRating ?? 0).toFixed(1)} (
                           {profile.reviewCount} Reviews)
                         </span>
                       </div>
@@ -356,10 +379,10 @@ export default function BuyerMerchantProfilePage() {
                   What buyers are saying about {profile.businessName}
                 </p>
               </div>
-              {profile.averageRating > 0 && (
+              {(profile.averageRating ?? 0) > 0 && (
                 <div className="text-right">
                   <p className="text-3xl font-black text-navy-dark dark:text-white leading-none">
-                    {Number(profile.averageRating).toFixed(1)}
+                    {Number(profile.averageRating ?? 0).toFixed(1)}
                   </p>
                   <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">
                     Average Rating

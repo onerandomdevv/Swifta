@@ -127,7 +127,16 @@ export class WhatsAppBuyerService {
       const reviewKey = `${PENDING_REVIEW_PREFIX}${buyerId}`;
       const reviewSessionRaw = await this.redisService.get(reviewKey);
       if (reviewSessionRaw) {
-        const session = JSON.parse(reviewSessionRaw);
+        let session: any = null;
+        try {
+          session = JSON.parse(reviewSessionRaw);
+        } catch (parseErr) {
+          this.logger.error(`Malformed review session for ${buyerId}`);
+          await this.redisService.del(reviewKey);
+          return;
+        }
+
+        if (!session) return;
 
         // a. Handle interactive rating button (if any)
         if (interactiveReply && interactiveReply.id.startsWith("rate_")) {
@@ -165,11 +174,7 @@ export class WhatsAppBuyerService {
 
         // c. Handle text comment input
         if (session.step === "AWAITING_COMMENT" && messageText) {
-          await this.reviewService.create(buyerId, {
-            orderId: session.orderId,
-            rating: session.rating,
-            comment: messageText,
-          });
+          await this.reviewService.updateComment(session.orderId, messageText);
           await this.redisService.del(reviewKey);
           await this.sendWhatsAppMessage(
             phone,
@@ -559,20 +564,20 @@ export class WhatsAppBuyerService {
 
     // First message: Stars 1-3
     await this.interactiveService.sendReplyButtons(phone, bodyText, [
-      { id: "rate_1", title: "⭐" },
-      { id: "rate_2", title: "⭐⭐" },
-      { id: "rate_3", title: "⭐⭐⭐" },
+      { id: `rate_1_${orderId}`, title: "⭐" },
+      { id: `rate_2_${orderId}`, title: "⭐⭐" },
+      { id: `rate_3_${orderId}`, title: "⭐⭐⭐" },
     ]);
 
     // Second message: Stars 4-5
     await this.interactiveService.sendReplyButtons(phone, "Or more stars:", [
-      { id: "rate_4", title: "⭐⭐⭐⭐" },
-      { id: "rate_5", title: "⭐⭐⭐⭐⭐" },
+      { id: `rate_4_${orderId}`, title: "⭐⭐⭐⭐" },
+      { id: `rate_5_${orderId}`, title: "⭐⭐⭐⭐⭐" },
     ]);
 
-    // Store pending review session
+    // Store pending review session scoped to order
     await this.redisService.set(
-      `${PENDING_REVIEW_PREFIX}${buyerId}`,
+      `${PENDING_REVIEW_PREFIX}${buyerId}:${orderId}`,
       JSON.stringify({
         orderId,
         step: "SELECT_RATING",
@@ -587,7 +592,7 @@ export class WhatsAppBuyerService {
     rating: number,
     reviewKey: string,
     phone: string,
-  ): Promise<string> {
+  ): Promise<string | null> {
     // Initial save (without comment)
     try {
       await this.reviewService.create(buyerId, {
@@ -610,7 +615,7 @@ export class WhatsAppBuyerService {
         ],
       );
 
-      return ""; // Handled via interactive service
+      return null; // Handled via interactive service
     } catch (error: any) {
       if (error.message.includes("already been reviewed")) {
         await this.redisService.del(reviewKey);

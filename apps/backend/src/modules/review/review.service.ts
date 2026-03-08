@@ -48,48 +48,78 @@ export class ReviewService {
     if (!buyerProfile) throw new BadRequestException("Buyer profile not found");
 
     const review = await this.prisma.$transaction(async (tx) => {
-      const newReview = await tx.review.create({
-        data: {
-          orderId,
-          buyerId: buyerProfile.userId, // Review model links to buyer via buyerId (User relations)
-          merchantId,
-          rating,
-          comment,
-        },
-      });
+      try {
+        const newReview = await tx.review.create({
+          data: {
+            orderId,
+            buyerId: buyerProfile.userId, // Review model links to buyer via buyerId (User relations)
+            merchantId,
+            rating,
+            comment,
+          },
+        });
 
-      // Recalculate merchant ratings
-      const reviews = await tx.review.findMany({
-        where: { merchantId },
-        select: { rating: true },
-      });
+        // Recalculate merchant ratings
+        const reviews = await tx.review.findMany({
+          where: { merchantId },
+          select: { rating: true },
+        });
 
-      const reviewCount = reviews.length;
-      const totalStars = reviews.reduce((sum, r) => sum + r.rating, 0);
-      const averageRating = totalStars / reviewCount;
+        const reviewCount = reviews.length;
+        const totalStars = reviews.reduce((sum, r) => sum + r.rating, 0);
+        const averageRating = totalStars / reviewCount;
 
-      await tx.merchantProfile.update({
-        where: { id: merchantId },
-        data: {
-          reviewCount,
-          averageRating,
-        },
-      });
+        await tx.merchantProfile.update({
+          where: { id: merchantId },
+          data: {
+            reviewCount,
+            averageRating,
+          },
+        });
 
-      return newReview;
+        // Check for TRUSTED tier upgrade (inside transaction)
+        try {
+          await this.evaluateTrustedTierInternal(merchantId, tx);
+        } catch (tierErr) {
+          this.logger.error(
+            `Failed to evaluate trusted tier for merchant ${merchantId}`,
+            tierErr,
+          );
+        }
+
+        return newReview;
+      } catch (error) {
+        if ((error as any).code === "P2002") {
+          throw new ConflictException("This order has already been reviewed");
+        }
+        throw error;
+      }
     });
 
-    // Check for TRUSTED tier upgrade
-    await this.evaluateTrustedTier(merchantId);
-
     return review;
+  }
+
+  async updateComment(orderId: string, comment: string) {
+    const review = await this.prisma.review.findUnique({
+      where: { orderId },
+    });
+    if (!review) throw new NotFoundException("Review not found for this order");
+
+    return this.prisma.review.update({
+      where: { orderId },
+      data: { comment },
+    });
   }
 
   async findByMerchant(merchantId: string, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
     const reviews = await this.prisma.review.findMany({
       where: { merchantId },
-      include: {
+      select: {
+        id: true,
+        rating: true,
+        comment: true,
+        createdAt: true,
         buyer: {
           select: {
             user: {
@@ -106,7 +136,10 @@ export class ReviewService {
     });
 
     return reviews.map((r) => ({
-      ...r,
+      id: r.id,
+      rating: r.rating,
+      comment: r.comment,
+      createdAt: r.createdAt,
       buyerName: r.buyer?.user?.firstName || "Buyer",
     }));
   }
@@ -118,7 +151,11 @@ export class ReviewService {
   }
 
   private async evaluateTrustedTier(merchantId: string) {
-    const merchant = await this.prisma.merchantProfile.findUnique({
+    return this.evaluateTrustedTierInternal(merchantId, this.prisma as any);
+  }
+
+  private async evaluateTrustedTierInternal(merchantId: string, tx: any) {
+    const merchant = await tx.merchantProfile.findUnique({
       where: { id: merchantId },
       include: {
         _count: {
@@ -129,16 +166,16 @@ export class ReviewService {
 
     if (!merchant) return;
 
-    // Criteria: 50+ completed orders, 6+ months since creation, 4.0+ average rating
+    // Criteria: 10+ completed orders, 30+ days since creation, 4.5+ average rating
     const completedOrders = merchant._count.orders;
-    const monthsSinceCreation =
+    const daysSinceCreation =
       (new Date().getTime() - merchant.createdAt.getTime()) /
-      (1000 * 60 * 60 * 24 * 30);
+      (1000 * 60 * 60 * 24);
     const avgRating = merchant.averageRating || 0;
 
-    if (completedOrders >= 50 && monthsSinceCreation >= 6 && avgRating >= 4.0) {
+    if (completedOrders >= 10 && daysSinceCreation >= 30 && avgRating >= 4.5) {
       if (merchant.verificationTier !== VerificationTier.TRUSTED) {
-        await this.prisma.merchantProfile.update({
+        await tx.merchantProfile.update({
           where: { id: merchantId },
           data: { verificationTier: VerificationTier.TRUSTED },
         });

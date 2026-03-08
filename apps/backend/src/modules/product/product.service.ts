@@ -146,6 +146,8 @@ export class ProductService {
             select: {
               id: true,
               businessName: true,
+              averageRating: true,
+              reviewCount: true,
             },
           },
           productStockCache: true, // Needed to determine stockAvailability
@@ -188,6 +190,8 @@ export class ProductService {
             id: true,
             businessName: true,
             verificationTier: true,
+            averageRating: true,
+            reviewCount: true,
           },
         },
       },

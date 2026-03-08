@@ -23,22 +23,24 @@ export default function OrderReviewPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [orderData, reviewData] = await Promise.all([
-          getOrder(id as string),
-          getOrderReview(id as string),
-        ]);
-
-        // Handle wrapped data from interceptor if necessary
+        const orderData = await getOrder(id as string);
         const o = (orderData as any).data || orderData;
         setOrder(o);
-        setExistingReview(reviewData);
 
-        if (reviewData) {
-          setRating(reviewData.rating);
-          setComment(reviewData.comment || "");
+        // Fetch review separately
+        try {
+          const reviewData = await getOrderReview(id as string);
+          setExistingReview(reviewData);
+          if (reviewData) {
+            setRating(reviewData.rating);
+            setComment(reviewData.comment || "");
+          }
+        } catch (revErr) {
+          console.error("Failed to load existing review:", revErr);
+          setExistingReview(null);
         }
       } catch (err: any) {
-        setError(err?.message || "Failed to load order info");
+        setError(err?.error || err?.message || "Failed to load order info");
       } finally {
         setLoading(false);
       }
@@ -60,7 +62,7 @@ export default function OrderReviewPage() {
       });
       router.push(`/buyer/orders/${order.id}?reviewed=true`);
     } catch (err: any) {
-      setError(err?.message || "Failed to submit review");
+      setError(err?.error || err?.message || "Failed to submit review");
       setSubmitting(false);
     }
   };
