@@ -846,6 +846,122 @@ export class WhatsAppService {
   }
 
   // =======================================================================
+  // V4 Unified Notifications
+  // =======================================================================
+
+  async sendBuyerLogisticsUpdate(
+    phone: string,
+    orderId: string,
+    status: string,
+    trackingUrl?: string,
+  ): Promise<void> {
+    const shortId = orderId.slice(0, 6).toUpperCase();
+    let msg = "";
+
+    switch (status) {
+      case "PICKUP_SCHEDULED":
+        msg = `🚚 *Pickup Scheduled!*\n\nYour order #${shortId} has been scheduled for pickup from the merchant. We will notify you when it's on the way.`;
+        break;
+      case "PICKED_UP":
+      case "IN_TRANSIT":
+        msg = `📦 *Order On The Way!*\n\nYour order #${shortId} has been picked up and is in transit.\n\n📍 Track live: ${trackingUrl || "Unavailable"}`;
+        break;
+      case "ARRIVING":
+        msg = `📍 *Your order is 15 minutes away!*\n\nOrder #${shortId} is arriving shortly. Track live: ${trackingUrl || "Unavailable"}`;
+        break;
+      case "DELIVERED":
+        msg = `✅ *Order Delivered!*\n\nYour order #${shortId} has been successfully delivered. Please reply with your 6-digit Delivery OTP to complete the transaction.`;
+        break;
+      case "FAILED":
+        msg = `⚠️ *Delivery Update*\n\nThere was an issue with the delivery for order #${shortId}. Our support team is investigating.`;
+        break;
+      default:
+        msg = `🚚 *Logistics Update*: Order #${shortId} is now ${status.replace(/_/g, " ").toLowerCase()}.`;
+    }
+
+    await this.sendWhatsAppMessage(phone, msg);
+  }
+
+  async sendMerchantLogisticsUpdate(
+    merchantId: string,
+    orderId: string,
+    status: string,
+  ): Promise<void> {
+    try {
+      // Find the user associated with this merchant profile
+      const merchant = await this.prisma.merchantProfile.findUnique({
+        where: { id: merchantId },
+        select: { userId: true },
+      });
+      if (!merchant) return;
+
+      const link = await (this.prisma.whatsAppLink as any).findUnique({
+        where: { userId: merchant.userId },
+        select: { phone: true, isActive: true },
+      });
+      if (!link || !link.isActive) return;
+
+      const shortId = orderId.slice(0, 6).toUpperCase();
+      let msg = "";
+
+      switch (status) {
+        case "PICKUP_SCHEDULED":
+          msg = `🚚 *Rider is coming!*\n\nA rider is coming to pick up Order #${shortId}. Please have it ready for collection.`;
+          break;
+        case "PICKED_UP":
+          msg = `✅ *Order Picked Up!*\n\nOrder #${shortId} has been picked up successfully and is now on its way to the buyer.`;
+          break;
+      }
+
+      if (msg) await this.sendWhatsAppMessage(link.phone, msg);
+    } catch (error) {
+      this.logger.error(
+        `Failed to send merchant logistics update for ${orderId}`,
+      );
+    }
+  }
+
+  async sendSupplierNewOrder(
+    supplierId: string,
+    orderData: {
+      orderId: string;
+      buyerName: string;
+      productName: string;
+      quantity: number;
+      amountKobo: bigint;
+      deliveryAddress: string;
+    },
+  ): Promise<void> {
+    try {
+      const supplier = await this.prisma.supplierProfile.findUnique({
+        where: { id: supplierId },
+        select: { userId: true },
+      });
+      if (!supplier) return;
+
+      const link = await (this.prisma.whatsAppLink as any).findUnique({
+        where: { userId: supplier.userId },
+        select: { phone: true, isActive: true },
+      });
+      if (!link || !link.isActive) return;
+
+      const shortId = orderData.orderId.substring(0, 8).toUpperCase();
+      let msg = `🏭 *New Wholesale Order!*\n\n`;
+      msg += `Merchant: ${orderData.buyerName}\n`;
+      msg += `Product: ${orderData.quantity} x ${orderData.productName}\n`;
+      msg += `Total: ${this.formatNaira(Number(orderData.amountKobo))}\n`;
+      msg += `Ship to: ${orderData.deliveryAddress}\n\n`;
+      msg += `Order #${shortId} is pending fulfillment.`;
+
+      await this.sendWhatsAppMessage(link.phone, msg);
+    } catch (error) {
+      this.logger.error(
+        `Failed to send supplier order notification for supplier ${supplierId}`,
+      );
+    }
+  }
+
+  // =======================================================================
   // Meta Cloud API — Send message
   // =======================================================================
   async sendWhatsAppMessage(phone: string, text: string): Promise<void> {

@@ -7,6 +7,7 @@ import { WhatsAppBuyerAuthService } from "./whatsapp-buyer-auth.service";
 import { WhatsAppBuyerIntentService } from "./whatsapp-buyer-intent.service";
 import { ParsedIntent } from "./whatsapp-intent.service";
 import { RedisService } from "../../redis/redis.service";
+import { BnplService } from "../bnpl/bnpl.service";
 import {
   BUYER_MAIN_MENU,
   BUYER_FRIENDLY_FALLBACK,
@@ -41,6 +42,7 @@ export class WhatsAppBuyerService {
     private authService: WhatsAppBuyerAuthService,
     private intentService: WhatsAppBuyerIntentService,
     private redisService: RedisService,
+    private bnplService: BnplService,
   ) {
     this.accessToken =
       this.configService.get<string>("WHATSAPP_ACCESS_TOKEN") || "";
@@ -68,13 +70,27 @@ export class WhatsAppBuyerService {
         return;
       }
 
-      // Check for pending OTP confirmation first
+      // 1. Check for pending checkout flow (interactive state)
+      const checkoutKey = `wa_pending_checkout_${buyerId}`;
+      const checkoutSessionRaw = await this.redisService.get(checkoutKey);
+      if (checkoutSessionRaw) {
+        const session = JSON.parse(checkoutSessionRaw);
+        const response = await this.handleCheckoutStep(
+          buyerId,
+          session,
+          messageText,
+          checkoutKey,
+        );
+        await this.sendWhatsAppMessage(phone, response);
+        return;
+      }
+
+      // 2. Check for pending OTP confirmation (delivery completion)
       const pendingOtpKey = `${PENDING_OTP_PREFIX}${buyerId}`;
       const pendingSession = await this.redisService.get(pendingOtpKey);
       if (pendingSession) {
         const pending = JSON.parse(pendingSession);
         const text = messageText.trim().replace(/\s/g, "");
-        // If input looks like a 6-digit OTP, try to confirm delivery
         if (/^\d{6}$/.test(text)) {
           const response = await this.handleOtpConfirmation(
             buyerId,
@@ -106,6 +122,69 @@ export class WhatsAppBuyerService {
         "Sorry, I ran into a small issue processing that request. Try sending it again.",
       );
     }
+  }
+
+  // =======================================================================
+  // Checkout Multi-step Flow
+  // =======================================================================
+  private async handleCheckoutStep(
+    buyerId: string,
+    session: any,
+    text: string,
+    key: string,
+  ): Promise<string> {
+    const input = text.trim();
+
+    if (session.step === "SELECT_DELIVERY") {
+      if (input === "1") {
+        session.deliveryMethod = "MERCHANT_DELIVERY";
+      } else if (input === "2") {
+        session.deliveryMethod = "PLATFORM_LOGISTICS";
+      } else {
+        return "Please reply with 1️⃣ or 2️⃣ to select your delivery method.";
+      }
+
+      // Check BNPL eligibility for payment step
+      const eligibility = await this.bnplService.checkEligibility(buyerId);
+      session.isBnplEligible = eligibility.eligible;
+      session.step = "SELECT_PAYMENT";
+      await this.redisService.set(key, JSON.stringify(session), 3600);
+
+      let msg = "Great! Now, how would you like to pay?\n\n";
+      msg += "1️⃣ *Pay Now* (via Paystack)\n";
+      if (eligibility.eligible) {
+        msg += `2️⃣ *Pay Later* (BNPL Approved!)\n`;
+      } else {
+        msg += `❌ (Pay Later locked: ${eligibility.reason})`;
+      }
+      return msg;
+    }
+
+    if (session.step === "SELECT_PAYMENT") {
+      if (input === "1") {
+        session.paymentMethod = "ESCROW";
+      } else if (input === "2" && session.isBnplEligible) {
+        session.paymentMethod = "BNPL";
+      } else {
+        return "Please reply with 1️⃣ or 2️⃣ (if eligible) to select your payment method.";
+      }
+
+      // Complete checkout - generate final instructions
+      await this.redisService.del(key);
+      const appUrl =
+        this.configService.get("FRONTEND_URL") || "https://swifttrade.com";
+      const checkoutLink = `${appUrl}/buyer/checkout/${session.productId}?qty=${session.quantity}&delivery=${session.deliveryMethod}&payment=${session.paymentMethod}`;
+
+      let msg = `✅ *Checkout Details confirmed!*\n\n`;
+      msg += `*Delivery*: ${session.deliveryMethod === "MERCHANT_DELIVERY" ? "Merchant" : "SwiftTrade"}\n`;
+      msg += `*Payment*: ${session.paymentMethod}\n\n`;
+      msg += `💳 *Tap the link below to complete your order:*\n`;
+      msg += checkoutLink;
+
+      return msg;
+    }
+
+    return BUYER_MAIN_MENU;
   }
 
   // =======================================================================
@@ -237,19 +316,26 @@ export class WhatsAppBuyerService {
       return `❌ Couldn't find a product with ID starting with "${partialId}". Please check the ID and try again.`;
 
     try {
-      const appUrl =
-        this.configService.get("FRONTEND_URL") || "https://app.swifttrade.com";
-      const checkoutLink = `${appUrl}/buyer/checkout/${product.id}`;
+      // Initiate multi-step checkout session
+      const checkoutKey = `wa_pending_checkout_${buyerId}`;
+      const session = {
+        productId: product.id,
+        quantity,
+        totalAmountKobo: BigInt(
+          Number(product.pricePerUnitKobo || 0) * quantity,
+        ).toString(), // Store as string for JSON
+        step: "SELECT_DELIVERY",
+      };
+      await this.redisService.set(checkoutKey, JSON.stringify(session), 3600);
 
-      let msg = `✅ Great choice! Let's get your order for *${product.name}* started.\n\n`;
-      msg += `*Quantity*: ${quantity} ${product.unit}(s)\n`;
-      msg += `*Expected Price*: ${this.formatNaira(Number(product.pricePerUnitKobo || 0) * quantity)}\n\n`;
-      msg += `💳 *Tap the secure link below to enter your address and pay with Paystack/Escrow:*\n`;
-      msg += `${checkoutLink}`;
+      let msg = `✅ Order started for *${product.name}* (${quantity} units).\n\n`;
+      msg += `How would you like this delivered?\n\n`;
+      msg += `1️⃣ *Merchant Delivery* (Free)\n`;
+      msg += `2️⃣ *SwiftTrade Tracked Delivery*`;
 
       return msg;
     } catch (e) {
-      this.logger.error("Checkout issue", e);
+      this.logger.error("Checkout session issue", e);
       return "Unable to start the checkout at this time.";
     }
   }

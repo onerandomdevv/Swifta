@@ -30,6 +30,25 @@ export const FRIENDLY_FALLBACK = `I no too understand that one o 😅 But no wor
 
 Just tell me wetin you need! 🤝`;
 
+/** Main menu for buyers */
+export const BUYER_MAIN_MENU = `Welcome to SwiftTrade Buyer Assistant! 🛒 How I fit help you today?
+
+1️⃣ Search Products — "I need cement"
+2️⃣ Active Orders — "Where my goods dey?"
+3️⃣ Order History — "Wetin I buy before?"
+4️⃣ Contact Support — "I get issue"
+
+Just type wetin you dey find! 🤝`;
+
+/** Friendly fallback for buyers */
+export const BUYER_FRIENDLY_FALLBACK = `I no too understand that one o 😅 You fit try:
+
+• "I need 50 bags cement for Lekki"
+• "Show my orders"
+• "Where is my cement?"
+
+Type *menu* to see all options.`;
+
 /** Follow-up when stock update is incomplete */
 export const STOCK_UPDATE_FOLLOWUP = `No wahala! Which product you wan update? And how many?
 
@@ -301,7 +320,8 @@ export const GEMINI_FUNCTION_DECLARATIONS = [
         },
         note: {
           type: "string",
-          description: "Optional note or comment provided by merchant, e.g., 'truck left Alaba at 2pm'",
+          description:
+            "Optional note or comment provided by merchant, e.g., 'truck left Alaba at 2pm'",
         },
       },
       required: ["orderReference", "status"],

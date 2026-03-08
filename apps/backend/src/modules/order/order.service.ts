@@ -16,6 +16,7 @@ import { PaymentService } from "../payment/payment.service";
 import { ReorderService } from "../reorder/reorder.service";
 import { LogisticsService } from "../logistics/logistics.service";
 import { PAYOUT_QUEUE } from "../../queue/queue.constants";
+import { WhatsAppService } from "../whatsapp/whatsapp.service";
 import {
   OrderStatus,
   OTP_LENGTH,
@@ -43,6 +44,7 @@ export class OrderService {
     @InjectQueue(PAYOUT_QUEUE) private payoutQueue: Queue,
     private verificationService: VerificationService,
     private logisticsService: LogisticsService,
+    private whatsappService: WhatsAppService,
   ) {}
 
   // ──────────────────────────────────────────────
@@ -219,6 +221,40 @@ export class OrderService {
           },
         },
       });
+
+      // Trigger WhatsApp notification if it's a wholesale order
+      if (newOrder.supplierId) {
+        try {
+          // Re-fetch with needed relations for notification
+          const orderWithDetails = await tx.order.findUnique({
+            where: { id: newOrder.id },
+            include: { user: true, supplierProduct: true },
+          });
+
+          if (orderWithDetails) {
+            await this.whatsappService.sendSupplierNewOrder(
+              newOrder.supplierId,
+              {
+                orderId: newOrder.id,
+                buyerName:
+                  orderWithDetails.user.firstName +
+                  " " +
+                  orderWithDetails.user.lastName,
+                productName:
+                  orderWithDetails.supplierProduct?.name || "Product",
+                quantity: newOrder.quantity || 1,
+                amountKobo: newOrder.totalAmountKobo,
+                deliveryAddress: newOrder.deliveryAddress || "Not specified",
+              },
+            );
+          }
+        } catch (notifierErr) {
+          this.logger.error(
+            `Failed to send supplier WhatsApp notification for ${newOrder.id}`,
+            notifierErr,
+          );
+        }
+      }
 
       return newOrder;
     });

@@ -1,7 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { RedisService } from '../../redis/redis.service';
-import { EmailService } from '../email/email.service';
+import { Injectable, Logger } from "@nestjs/common";
+import { PrismaService } from "../../prisma/prisma.service";
+import { RedisService } from "../../redis/redis.service";
+import { EmailService } from "../email/email.service";
 import {
   SessionState,
   WA_SESSION_PREFIX,
@@ -15,7 +15,7 @@ import {
   EMAIL_NOT_FOUND,
   INVALID_OTP,
   OTP_EXPIRED,
-} from './whatsapp.constants';
+} from "./whatsapp.constants";
 
 interface SessionData {
   state: SessionState;
@@ -46,13 +46,15 @@ export class WhatsAppAuthService {
    */
   async resolvePhone(phone: string): Promise<string | null> {
     try {
-      const link = await this.prisma.whatsAppLink.findUnique({
+      const link = await (this.prisma.whatsAppLink as any).findUnique({
         where: { phone },
-        select: { merchantId: true, isActive: true },
+        select: { userId: true, isActive: true },
       });
-      return link?.isActive ? link.merchantId : null;
+      return link?.isActive ? link.userId : null;
     } catch (error) {
-      this.logger.error(`Error resolving phone ${phone}: ${error instanceof Error ? error.message : error}`);
+      this.logger.error(
+        `Error resolving phone ${phone}: ${error instanceof Error ? error.message : error}`,
+      );
       return null;
     }
   }
@@ -76,7 +78,11 @@ export class WhatsAppAuthService {
           state: SessionState.AWAITING_EMAIL,
           data: {},
         };
-        await this.redisService.set(sessionKey, JSON.stringify(session), SESSION_TTL);
+        await this.redisService.set(
+          sessionKey,
+          JSON.stringify(session),
+          SESSION_TTL,
+        );
         return WELCOME_MESSAGE;
       }
 
@@ -95,7 +101,9 @@ export class WhatsAppAuthService {
           return WELCOME_MESSAGE;
       }
     } catch (error) {
-      this.logger.error(`Error in linking flow for ${phone}: ${error instanceof Error ? error.message : error}`);
+      this.logger.error(
+        `Error in linking flow for ${phone}: ${error instanceof Error ? error.message : error}`,
+      );
       await this.redisService.del(sessionKey);
       return WELCOME_MESSAGE;
     }
@@ -111,28 +119,26 @@ export class WhatsAppAuthService {
   ): Promise<string> {
     // Basic email format check
     const emailLower = email.toLowerCase().trim();
-    if (!emailLower.includes('@') || !emailLower.includes('.')) {
-      return 'That doesn\'t look like a valid email address. Please reply with your registered email.';
+    if (!emailLower.includes("@") || !emailLower.includes(".")) {
+      return "That doesn't look like a valid email address. Please reply with your registered email.";
     }
 
-    // Look up the user
     const user = await this.prisma.user.findUnique({
       where: { email: emailLower },
       select: {
         id: true,
         role: true,
         firstName: true,
-        merchantProfile: { select: { id: true } },
       },
     });
 
-    if (!user || user.role !== 'MERCHANT' || !user.merchantProfile) {
+    if (!user || (user.role !== "MERCHANT" && user.role !== "SUPPLIER")) {
       return EMAIL_NOT_FOUND;
     }
 
-    // Check if this merchant is already linked to a different phone
-    const existingLink = await this.prisma.whatsAppLink.findUnique({
-      where: { merchantId: user.merchantProfile.id },
+    // Check if this user is already linked to a different phone
+    const existingLink = await (this.prisma.whatsAppLink as any).findUnique({
+      where: { userId: user.id },
     });
     if (existingLink && existingLink.phone !== phone) {
       return ALREADY_LINKED;
@@ -147,8 +153,10 @@ export class WhatsAppAuthService {
     try {
       await this.emailService.sendVerificationOTP(emailLower, otp);
     } catch (error) {
-      this.logger.error(`Failed to send OTP email to ${emailLower}: ${error instanceof Error ? error.message : error}`);
-      return 'I couldn\'t send the verification email right now. Please try again in a moment.';
+      this.logger.error(
+        `Failed to send OTP email to ${emailLower}: ${error instanceof Error ? error.message : error}`,
+      );
+      return "I couldn't send the verification email right now. Please try again in a moment.";
     }
 
     // Update session to AWAITING_OTP
@@ -156,11 +164,16 @@ export class WhatsAppAuthService {
       state: SessionState.AWAITING_OTP,
       data: {
         email: emailLower,
-        merchantId: user.merchantProfile.id,
-        merchantName: user.firstName,
+        userId: user.id,
+        userName: user.firstName,
+        role: user.role,
       },
     };
-    await this.redisService.set(sessionKey, JSON.stringify(session), SESSION_TTL);
+    await this.redisService.set(
+      sessionKey,
+      JSON.stringify(session),
+      SESSION_TTL,
+    );
 
     // Mask email for display
     const maskedEmail = this.maskEmail(emailLower);
@@ -185,7 +198,7 @@ export class WhatsAppAuthService {
       return OTP_EXPIRED;
     }
 
-    const otpClean = otpInput.trim().replace(/\s/g, '');
+    const otpClean = otpInput.trim().replace(/\s/g, "");
 
     if (otpClean !== storedOtp) {
       return INVALID_OTP;
@@ -193,38 +206,42 @@ export class WhatsAppAuthService {
 
     // OTP matches — create WhatsAppLink
     try {
-      await this.prisma.whatsAppLink.upsert({
+      await (this.prisma.whatsAppLink as any).upsert({
         where: { phone },
         update: {
-          merchantId: session.data.merchantId,
+          userId: session.data.userId,
           isActive: true,
           linkedAt: new Date(),
         },
         create: {
           phone,
-          merchantId: session.data.merchantId,
+          userId: session.data.userId,
           isActive: true,
         },
       });
     } catch (error) {
-      this.logger.error(`Failed to create WhatsAppLink for ${phone}: ${error instanceof Error ? error.message : error}`);
+      this.logger.error(
+        `Failed to create WhatsAppLink for ${phone}: ${error instanceof Error ? error.message : error}`,
+      );
       await this.redisService.del(sessionKey);
-      return 'Something went wrong linking your account. Please try again.';
+      return "Something went wrong linking your account. Please try again.";
     }
 
     // Clean up session & OTP
     await this.redisService.del(sessionKey);
     await this.redisService.del(otpKey);
 
-    this.logger.log(`WhatsApp linked: phone=${phone}, merchantId=${session.data.merchantId}`);
-    return LINK_SUCCESS(session.data.merchantName || 'Merchant');
+    this.logger.log(
+      `WhatsApp linked: phone=${phone}, userId=${session.data.userId}, role=${session.data.role}`,
+    );
+    return LINK_SUCCESS(session.data.userName || "there");
   }
 
   // -----------------------------------------------------------------------
   // Helpers
   // -----------------------------------------------------------------------
   private maskEmail(email: string): string {
-    const [local, domain] = email.split('@');
+    const [local, domain] = email.split("@");
     if (local.length <= 2) return `${local[0]}***@${domain}`;
     return `${local[0]}${local[1]}***@${domain}`;
   }
