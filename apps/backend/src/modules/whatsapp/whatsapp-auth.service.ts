@@ -22,6 +22,21 @@ interface SessionData {
   data: Record<string, any>;
 }
 
+// Helper to mask phone numbers — only show last 4 digits
+function maskPhone(phone: string): string {
+  if (phone.length <= 4) return "****";
+  return `****${phone.slice(-4)}`;
+}
+
+// Helper to mask email
+function maskEmail(email: string): string {
+  if (!email) return "";
+  const [local, domain] = email.split("@");
+  if (!domain) return "***";
+  if (local.length <= 2) return `${local[0]}***@${domain}`;
+  return `${local[0]}${local[1]}***@${domain}`;
+}
+
 /**
  * Handles phone-number → merchant-account linking via WhatsApp.
  *
@@ -53,7 +68,7 @@ export class WhatsAppAuthService {
       return link?.isActive ? link.userId : null;
     } catch (error) {
       this.logger.error(
-        `Error resolving phone ${phone}: ${error instanceof Error ? error.message : error}`,
+        `Error resolving phone ${maskPhone(phone)}: ${error instanceof Error ? error.message : error}`,
       );
       return null;
     }
@@ -102,7 +117,7 @@ export class WhatsAppAuthService {
       }
     } catch (error) {
       this.logger.error(
-        `Error in linking flow for ${phone}: ${error instanceof Error ? error.message : error}`,
+        `Error in linking flow for ${maskPhone(phone)}: ${error instanceof Error ? error.message : error}`,
       );
       await this.redisService.del(sessionKey);
       return WELCOME_MESSAGE;
@@ -154,7 +169,7 @@ export class WhatsAppAuthService {
       await this.emailService.sendVerificationOTP(emailLower, otp);
     } catch (error) {
       this.logger.error(
-        `Failed to send OTP email to ${emailLower}: ${error instanceof Error ? error.message : error}`,
+        `Failed to send OTP email to ${maskEmail(emailLower)}: ${error instanceof Error ? error.message : error}`,
       );
       return "I couldn't send the verification email right now. Please try again in a moment.";
     }
@@ -221,7 +236,7 @@ export class WhatsAppAuthService {
       });
     } catch (error) {
       this.logger.error(
-        `Failed to create WhatsAppLink for ${phone}: ${error instanceof Error ? error.message : error}`,
+        `Failed to create WhatsAppLink for ${maskPhone(phone)}: ${error instanceof Error ? error.message : error}`,
       );
       await this.redisService.del(sessionKey);
       return "Something went wrong linking your account. Please try again.";
@@ -232,7 +247,7 @@ export class WhatsAppAuthService {
     await this.redisService.del(otpKey);
 
     this.logger.log(
-      `WhatsApp linked: phone=${phone}, userId=${session.data.userId}, role=${session.data.role}`,
+      `WhatsApp linked: phone=${maskPhone(phone)}, userId=${session.data.userId}, role=${session.data.role}`,
     );
     return LINK_SUCCESS(session.data.userName || "there");
   }

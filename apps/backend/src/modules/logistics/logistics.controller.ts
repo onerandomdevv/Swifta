@@ -54,6 +54,17 @@ export class LogisticsController {
 
   @Post("webhook")
   async handleWebhook(@Body() payload: any, @Req() req: RawBodyRequest<any>) {
+    // 0. Optional IP allowlisting
+    const allowedIps = process.env.LOGISTICS_ALLOWED_IPS;
+    if (allowedIps) {
+      const clientIp = req.ip;
+      const ipList = allowedIps.split(",").map((ip) => ip.trim());
+      if (!clientIp || !ipList.includes(clientIp)) {
+        this.logger.warn(`Webhook rejected: IP ${clientIp} not in allowlist`);
+        throw new ForbiddenException("Unauthorized source IP");
+      }
+    }
+
     const secret = process.env.LOGISTICS_WEBHOOK_SECRET;
     const signature = req.headers["x-logistics-signature"] as string;
     const timestamp = req.headers["x-logistics-timestamp"] as string;

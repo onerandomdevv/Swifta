@@ -7,7 +7,6 @@ import { WhatsAppBuyerAuthService } from "./whatsapp-buyer-auth.service";
 import { WhatsAppBuyerIntentService } from "./whatsapp-buyer-intent.service";
 import { ParsedIntent } from "./whatsapp-intent.service";
 import { RedisService } from "../../redis/redis.service";
-import { BnplService } from "../bnpl/bnpl.service";
 import {
   BUYER_MAIN_MENU,
   BUYER_FRIENDLY_FALLBACK,
@@ -42,7 +41,6 @@ export class WhatsAppBuyerService {
     private authService: WhatsAppBuyerAuthService,
     private intentService: WhatsAppBuyerIntentService,
     private redisService: RedisService,
-    private bnplService: BnplService,
   ) {
     this.accessToken =
       this.configService.get<string>("WHATSAPP_ACCESS_TOKEN") || "";
@@ -144,41 +142,15 @@ export class WhatsAppBuyerService {
         return "Please reply with 1️⃣ or 2️⃣ to select your delivery method.";
       }
 
-      // Check BNPL eligibility for payment step
-      const eligibility = await this.bnplService.checkEligibility(buyerId);
-      session.isBnplEligible = eligibility.eligible;
-      session.step = "SELECT_PAYMENT";
-      await this.redisService.set(key, JSON.stringify(session), 3600);
-
-      let msg = "Great! Now, how would you like to pay?\n\n";
-      msg += "1️⃣ *Pay Now* (via Paystack)\n";
-      if (eligibility.eligible) {
-        msg += `2️⃣ *Pay Later* (BNPL Approved!)\n`;
-      } else {
-        msg += `❌ (Pay Later locked: ${eligibility.reason})`;
-      }
-      return msg;
-    }
-
-    if (session.step === "SELECT_PAYMENT") {
-      if (input === "1") {
-        session.paymentMethod = "ESCROW";
-      } else if (input === "2" && session.isBnplEligible) {
-        session.paymentMethod = "BNPL";
-      } else {
-        return "Please reply with 1️⃣ or 2️⃣ (if eligible) to select your payment method.";
-      }
-
       // Complete checkout - generate final instructions
       await this.redisService.del(key);
       const appUrl =
         this.configService.get("FRONTEND_URL") || "https://swifttrade.com";
-      const checkoutLink = `${appUrl}/buyer/checkout/${session.productId}?qty=${session.quantity}&delivery=${session.deliveryMethod}&payment=${session.paymentMethod}`;
+      const checkoutLink = `${appUrl}/buyer/checkout/${session.productId}?qty=${session.quantity}&delivery=${session.deliveryMethod}`;
 
-      let msg = `✅ *Checkout Details confirmed!*\n\n`;
-      msg += `*Delivery*: ${session.deliveryMethod === "MERCHANT_DELIVERY" ? "Merchant" : "SwiftTrade"}\n`;
-      msg += `*Payment*: ${session.paymentMethod}\n\n`;
-      msg += `💳 *Tap the link below to complete your order:*\n`;
+      let msg = `✅ *Delivery Method confirmed!*\n\n`;
+      msg += `*Delivery*: ${session.deliveryMethod === "MERCHANT_DELIVERY" ? "Merchant" : "SwiftTrade"}\n\n`;
+      msg += `💳 *Tap the link below to complete your order and pay:*\n`;
       msg += checkoutLink;
 
       return msg;

@@ -107,6 +107,7 @@ export const NUMBER_INTENT_MAP: Record<string, string> = {
   "6": "get_products",
   "7": "update_product_price",
   "8": "get_verification_status",
+  "9": "browse_wholesale",
 };
 
 // ---------------------------------------------------------------------------
@@ -179,6 +180,14 @@ Verification queries:
 Price updates:
 - "update cement price to 9000" → update_product_price (productName: "cement", priceNaira: 9000)
 - "change price 8500" → update_product_price (priceNaira: 8500)
+
+Wholesale / Stock Financing:
+- "I need stock" → browse_wholesale
+- "I want to buy from manufacturer" → browse_wholesale
+- "find cement from supplier" → browse_wholesale (query: "cement")
+- "wholesale catalogue" → browse_wholesale
+- "buy stock a3f2 100 units" → buy_wholesale (productId: "a3f2", quantity: 100)
+- "order 500 bags from supplier item a3f2" → buy_wholesale (productId: "a3f2", quantity: 500)
 
 Greetings (show menu):
 - "hi", "hello", "hey", "good morning", "menu", "help" → show_menu
@@ -348,6 +357,39 @@ export const GEMINI_FUNCTION_DECLARATIONS = [
     description:
       "Get the merchant's current verification tier and status. Triggered by: 'verify', 'my verification', 'am I verified', 'verification status'",
     parameters: { type: "object" as const, properties: {} },
+  },
+  {
+    name: "browse_wholesale",
+    description:
+      "Browse the manufacturer/supplier catalogue for stock. Triggered by: 'I need stock', 'manufacturer catalogue', 'wholesale'",
+    parameters: {
+      type: "object" as const,
+      properties: {
+        query: {
+          type: "string",
+          description: "Optional product name to search for",
+        },
+      },
+    },
+  },
+  {
+    name: "buy_wholesale",
+    description:
+      "Purchase stock from a manufacturer. Triggered by: 'buy stock ABC 50 units'",
+    parameters: {
+      type: "object" as const,
+      properties: {
+        productId: {
+          type: "string",
+          description: "The short ID of the manufacturer product",
+        },
+        quantity: {
+          type: "number",
+          description: "How many units to buy",
+        },
+      },
+      required: ["productId"],
+    },
   },
 ];
 

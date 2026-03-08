@@ -7,6 +7,7 @@ import { OrderModule } from "../order/order.module";
 import { RFQModule } from "../rfq/rfq.module";
 import { QuoteModule } from "../quote/quote.module";
 import { ProductModule } from "../product/product.module";
+import { TradeFinancingModule } from "../trade-financing/trade-financing.module";
 import { EmailModule } from "../email/email.module";
 import { WhatsAppController } from "./whatsapp.controller";
 import { WhatsAppService } from "./whatsapp.service";
@@ -44,6 +45,7 @@ import { WhatsAppProcessor } from "./whatsapp.processor";
     RFQModule,
     QuoteModule,
     ProductModule,
+    TradeFinancingModule,
     EmailModule,
   ],
   controllers: [WhatsAppController],

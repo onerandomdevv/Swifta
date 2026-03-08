@@ -8,6 +8,8 @@ import { ProductService } from "../product/product.service";
 import { InventoryService } from "../inventory/inventory.service";
 import { WhatsAppAuthService } from "./whatsapp-auth.service";
 import { WhatsAppBuyerService } from "./whatsapp-buyer.service";
+import { TradeFinancingService } from "../trade-financing/trade-financing.service";
+import { RedisService } from "../../redis/redis.service";
 import { WhatsAppIntentService, ParsedIntent } from "./whatsapp-intent.service";
 import {
   MAIN_MENU,
@@ -44,6 +46,8 @@ export class WhatsAppService {
     private authService: WhatsAppAuthService,
     private intentService: WhatsAppIntentService,
     private buyerService: WhatsAppBuyerService,
+    private tradeFinancingService: TradeFinancingService,
+    private redisService: RedisService,
   ) {
     this.accessToken =
       this.configService.get<string>("WHATSAPP_ACCESS_TOKEN") || "";
@@ -67,6 +71,22 @@ export class WhatsAppService {
         this.logger.log(
           `Routing message to Merchant Bot (Merchant ID: ${merchantId})`,
         );
+
+        // 1. Check for pending wholesale checkout flow
+        const checkoutKey = `wa_pending_wholesale_${merchantId}`;
+        const checkoutSessionRaw = await this.redisService.get(checkoutKey);
+        if (checkoutSessionRaw) {
+          const session = JSON.parse(checkoutSessionRaw);
+          const response = await this.handleWholesaleCheckoutStep(
+            merchantId,
+            session,
+            messageText,
+            checkoutKey,
+          );
+          await this.sendWhatsAppMessage(phone, response);
+          return;
+        }
+
         const intent = await this.intentService.parseIntent(messageText);
         const response = await this.executeCommand(merchantId, intent);
         await this.sendWhatsAppMessage(phone, response);
@@ -129,6 +149,14 @@ export class WhatsAppService {
           );
         case "get_verification_status":
           return this.handleGetVerificationStatus(merchantId);
+        case "browse_wholesale":
+          return this.handleBrowseWholesale(intent.params.query);
+        case "buy_wholesale":
+          return this.handleBuyWholesale(
+            merchantId,
+            intent.params.productId,
+            intent.params.quantity,
+          );
         case "friendly_fallback":
           return FRIENDLY_FALLBACK;
         case "show_menu":
@@ -1059,5 +1087,130 @@ export class WhatsAppService {
     if (days === 1) return "Expires tomorrow";
     if (hours > 1) return `Expires in ${hours}hrs`;
     return "Expires soon ⚡";
+  }
+
+  // =======================================================================
+  // Wholesale & Trade Financing Handlers (V4)
+  // =======================================================================
+
+  private async handleBrowseWholesale(query?: string): Promise<string> {
+    const products = await this.prisma.supplierProduct.findMany({
+      where: {
+        isActive: true,
+        ...(query && { name: { contains: query, mode: "insensitive" } }),
+      },
+      include: { supplier: true },
+      take: 5,
+    });
+
+    if (products.length === 0) {
+      return `❌ No wholesale products found${query ? ` matching "${query}"` : ""}. Manufacturer stock will appear here soon!`;
+    }
+
+    let msg = `🏭 *Manufacturer Catalogue*${query ? ` for "${query}"` : ""}:\n\n`;
+    products.forEach((p, idx) => {
+      msg += `*${idx + 1}. ${p.name}*\n`;
+      msg += `🏢 ${p.supplier.companyName}\n`;
+      msg += `💰 ${this.formatNaira(Number(p.wholesalePriceKobo))} (Min: ${p.minOrderQty} ${p.unit})\n`;
+      msg += `🆔 ID: ${p.id.substring(0, 8)}\n\n`;
+    });
+
+    msg += `💡 To order, say: *"Buy stock [ID] [quantity] units"*`;
+    return msg;
+  }
+
+  private async handleBuyWholesale(
+    merchantId: string,
+    productId: string,
+    quantity?: number,
+  ): Promise<string> {
+    // Prisma doesn't support startsWith on UUID, so we fetch and filter
+    const allProducts = await this.prisma.supplierProduct.findMany({
+      where: { isActive: true },
+      include: { supplier: true },
+    });
+
+    const product = allProducts.find((p) =>
+      p.id.toLowerCase().startsWith(productId.toLowerCase()),
+    );
+
+    if (!product) {
+      return `❌ System ID starting with "${productId}" not found. Check the ID and try again.`;
+    }
+
+    const qty = quantity || product.minOrderQty;
+    if (qty < product.minOrderQty) {
+      return `⚠️ Min order for this item is ${product.minOrderQty} ${product.unit}. Please adjust your quantity.`;
+    }
+
+    try {
+      const checkoutKey = `wa_pending_wholesale_${merchantId}`;
+      const session = {
+        productId: product.id,
+        quantity: qty,
+        unitPriceKobo: product.wholesalePriceKobo.toString(),
+        step: "SELECT_PAYMENT",
+      };
+      await this.redisService.set(checkoutKey, JSON.stringify(session), 3600);
+
+      const eligibility =
+        await this.tradeFinancingService.checkEligibility(merchantId);
+
+      let msg = `✅ Order started: *${product.name}* (${qty} ${product.unit}).\n\n`;
+      msg += `How would you like to pay?\n\n`;
+      msg += `1️⃣ *Pay Now* (₦${this.formatNaira(Number(product.wholesalePriceKobo) * qty)})\n`;
+
+      if (eligibility.eligible) {
+        msg += `2️⃣ *Trade Financing* (Approved up to ${this.formatNaira(Number(eligibility.maxAmount))})\n`;
+        msg += `   _Repay over 30/60/90 days_`;
+      } else {
+        msg += `❌ *Trade Financing* locked: ${eligibility.reason}`;
+      }
+
+      return msg;
+    } catch (e) {
+      this.logger.error("Wholesale checkout initialization failed", e);
+      return "Something went wrong starting your wholesale order. Please try again on the web dashboard.";
+    }
+  }
+
+  private async handleWholesaleCheckoutStep(
+    merchantId: string,
+    session: any,
+    text: string,
+    key: string,
+  ): Promise<string> {
+    const input = text.trim();
+
+    if (session.step === "SELECT_PAYMENT") {
+      let paymentMethod = "";
+      if (input === "1") {
+        paymentMethod = "PAY_NOW";
+      } else if (input === "2") {
+        const eligibility =
+          await this.tradeFinancingService.checkEligibility(merchantId);
+        if (!eligibility.eligible)
+          return "Sorry, Trade Financing is not available for your account yet. Please reply 1️⃣ to Pay Now.";
+        paymentMethod = "TRADE_FINANCING";
+      } else {
+        return "Please reply with 1️⃣ or 2️⃣ (if eligible) to select your payment method.";
+      }
+
+      // Complete - generate app link
+      await this.redisService.del(key);
+      const appUrl =
+        this.configService.get("FRONTEND_URL") || "https://swifttrade.com";
+      const checkoutLink = `${appUrl}/merchant/wholesale?productId=${session.productId}&qty=${session.quantity}&pay=${paymentMethod}`;
+
+      let msg = `✅ *Wholesale Details confirmed!*\n\n`;
+      msg += `*Item*: ${session.productId.substring(0, 8)} (${session.quantity} units)\n`;
+      msg += `*Payment*: ${paymentMethod.replace(/_/g, " ")}\n\n`;
+      msg += `🔗 *Tap below to finalize this order:*\n`;
+      msg += checkoutLink;
+
+      return msg;
+    }
+
+    return MAIN_MENU;
   }
 }

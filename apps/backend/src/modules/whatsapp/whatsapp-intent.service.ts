@@ -184,6 +184,24 @@ export class WhatsAppIntentService {
       return { functionName: "get_verification_status", params: {} };
     }
 
+    // Wholesale / Stock
+    if (
+      lower.includes("wholesale") ||
+      lower.includes("manufacturer") ||
+      lower.includes("stock")
+    ) {
+      const buyMatch = lower.match(
+        /(?:buy|order)\s+(?:stock\s+)?([a-zA-Z0-9]+)/,
+      );
+      if (buyMatch) {
+        return {
+          functionName: "buy_wholesale",
+          params: { productId: buyMatch[1] },
+        };
+      }
+      return { functionName: "browse_wholesale", params: {} };
+    }
+
     // Greetings
     if (
       ["hi", "hello", "hey", "good morning", "good evening"].includes(lower)

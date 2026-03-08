@@ -6,15 +6,10 @@ import { useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getProduct } from "@/lib/api/product.api";
 import { createDirectOrder, getDeliveryQuote } from "@/lib/api/order.api";
-import {
-  checkBnplEligibility,
-  joinBnplWaitlist,
-  type BnplEligibilityResponse,
-} from "@/lib/api/bnpl.api";
 import { useAuth } from "@/providers/auth-provider";
 import type { Product } from "@hardware-os/shared";
 
-type PaymentMethod = "ESCROW" | "DIRECT" | "BNPL";
+type PaymentMethod = "ESCROW" | "DIRECT";
 
 export default function CheckoutPage({
   params,
@@ -39,17 +34,6 @@ export default function CheckoutPage({
   const [isQuoting, setIsQuoting] = useState(false);
   const [showMerchantDisclaimer, setShowMerchantDisclaimer] = useState(true);
 
-  // BNPL States
-  const [eligibility, setEligibility] =
-    useState<BnplEligibilityResponse | null>(null);
-  const [isApplyingBnpl, setIsApplyingBnpl] = useState(false);
-
-  // Waitlist States
-  const [waitlistStatus, setWaitlistStatus] = useState<
-    "idle" | "loading" | "success" | "error"
-  >("idle");
-  const [waitlistMessage, setWaitlistMessage] = useState("");
-
   const merchantTier = (product as any)?.merchantProfile?.verificationTier;
   const isVerifiedMerchant =
     merchantTier === "VERIFIED" || merchantTier === "TRUSTED";
@@ -71,14 +55,10 @@ export default function CheckoutPage({
       }
     }
     fetchProduct();
-    checkBnplEligibility().then(setEligibility).catch(console.error);
   }, [params.productId, router]);
 
   const minQuantity = product?.minOrderQuantity || 1;
   const isBelowMin = quantity < minQuantity;
-
-  // Import applyForBnpl dynamically or ensure it's imported at top
-  const { applyForBnpl } = require("@/lib/api/bnpl.api");
 
   const createOrderMutation = useMutation({
     mutationFn: createDirectOrder,
@@ -86,16 +66,7 @@ export default function CheckoutPage({
       setError(err?.message || "Payment initialization failed");
     },
     onSuccess: async (data) => {
-      if (paymentMethod === "BNPL") {
-        setIsApplyingBnpl(true);
-        try {
-          await applyForBnpl({ orderId: data.orderId, tenureDays: 30 }); // Default 30 days
-          router.replace(`/buyer/orders/${data.orderId}?success=bnpl_approved`);
-        } catch (err: any) {
-          setError(err.message || "BNPL Application failed");
-          setIsApplyingBnpl(false);
-        }
-      } else if (data.authorizationUrl) {
+      if (data.authorizationUrl) {
         window.location.href = data.authorizationUrl;
       } else {
         setError("Invalid payment URL returned");
@@ -148,18 +119,12 @@ export default function CheckoutPage({
       productId: product.id,
       quantity,
       deliveryAddress,
-      // Pass ESCROW explicitly if BNPL is chosen, because under the hood the partner pays us, and we pay the merchant
-      paymentMethod:
-        paymentMethod === "BNPL"
-          ? "ESCROW"
-          : isVerifiedMerchant
-            ? paymentMethod
-            : "ESCROW",
+      paymentMethod: isVerifiedMerchant ? paymentMethod : "ESCROW",
       deliveryMethod,
     });
   };
 
-  const isSubmitting = createOrderMutation.isPending || isApplyingBnpl;
+  const isSubmitting = createOrderMutation.isPending;
 
   const priceKobo = product?.pricePerUnitKobo
     ? Number(product.pricePerUnitKobo)
@@ -178,23 +143,7 @@ export default function CheckoutPage({
       currency: "NGN",
     });
 
-  const handleJoinWaitlist = async (e?: React.MouseEvent) => {
-    if (e) e.preventDefault();
-    setWaitlistStatus("loading");
-    try {
-      const res = await joinBnplWaitlist();
-      setWaitlistStatus("success");
-      setWaitlistMessage(res.message);
-    } catch (err: any) {
-      setWaitlistStatus("error");
-      setWaitlistMessage(
-        err?.message || String(err) || "Failed to join waitlist",
-      );
-    }
-  };
-
-  const showPaymentMethodSection =
-    isVerifiedMerchant || (eligibility && eligibility.eligible);
+  const showPaymentMethodSection = isVerifiedMerchant;
 
   if (loading) {
     return (
@@ -499,44 +448,6 @@ export default function CheckoutPage({
                   </div>
                 </label>
               )}
-
-              {eligibility?.eligible && (
-                <label
-                  className={`flex items-start gap-4 p-4 rounded border-2 cursor-pointer transition-all ${
-                    paymentMethod === "BNPL"
-                      ? "border-indigo-500 bg-indigo-50"
-                      : "border-slate-200 hover:border-slate-300"
-                  }`}
-                  onClick={() => setPaymentMethod("BNPL")}
-                >
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="BNPL"
-                    checked={paymentMethod === "BNPL"}
-                    onChange={() => setPaymentMethod("BNPL")}
-                    className="mt-1 accent-indigo-500"
-                  />
-                  <div>
-                    <p className="text-sm font-black uppercase tracking-wide text-slate-900 flex items-center gap-2">
-                      Pay Later (BNPL)
-                      <span className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-bold">
-                        💳 PRE-APPROVED
-                      </span>
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                      Pay ₦0 today. Use your{" "}
-                      {formatMoney(Number(eligibility.maxAmountKobo))} credit
-                      limit.
-                    </p>
-                    {paymentMethod === "BNPL" && (
-                      <div className="mt-3 p-3 bg-indigo-100 border border-indigo-200 rounded text-xs text-indigo-800 font-medium">
-                        Repay over 30 days. No hidden fees. Partner terms apply.
-                      </div>
-                    )}
-                  </div>
-                </label>
-              )}
             </div>
           )}
         </div>
@@ -601,25 +512,12 @@ export default function CheckoutPage({
                 {formatMoney(totalKobo)}
               </span>
             </div>
-
-            {paymentMethod === "BNPL" && (
-              <div className="pt-2 flex justify-between items-center text-xs">
-                <span className="font-bold uppercase tracking-widest text-indigo-300">
-                  Pay Today
-                </span>
-                <span className="font-black text-white">₦0.00</span>
-              </div>
-            )}
           </div>
 
           <button
             type="submit"
             disabled={isSubmitting || isBelowMin || !deliveryAddress}
-            className={`w-full py-4 rounded text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-4 ${
-              paymentMethod === "BNPL"
-                ? "bg-indigo-600 hover:bg-indigo-700 text-white"
-                : "bg-primary hover:bg-orange-600"
-            }`}
+            className="w-full py-4 rounded text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-4 bg-primary hover:bg-orange-600"
           >
             {isSubmitting ? (
               <>
@@ -631,60 +529,16 @@ export default function CheckoutPage({
             ) : (
               <>
                 <span className="material-symbols-outlined text-lg">lock</span>
-                {paymentMethod === "BNPL"
-                  ? "PAY LATER"
-                  : `PAY ${formatMoney(totalKobo)}`}
+                PAY {formatMoney(totalKobo)}
               </>
             )}
           </button>
 
           <p className="text-[10px] text-center text-slate-500 font-medium uppercase tracking-wider">
-            {paymentMethod === "BNPL"
-              ? "Application is subject to instant partner credit check"
-              : paymentMethod === "DIRECT" && isVerifiedMerchant
-                ? "Direct payment to verified merchant via Paystack"
-                : "Payments securely processed by Paystack Escrow"}
+            {paymentMethod === "DIRECT" && isVerifiedMerchant
+              ? "Direct payment to verified merchant via Paystack"
+              : "Payments securely processed by Paystack Escrow"}
           </p>
-
-          {eligibility && !eligibility.eligible && (
-            <div className="mt-8 pt-6 border-t border-slate-800 space-y-4">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-indigo-400">
-                  payments
-                </span>
-                <h3 className="text-xs font-black uppercase text-slate-300 tracking-widest">
-                  Pay Later
-                </h3>
-                <span className="text-[9px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
-                  LOCKED
-                </span>
-              </div>
-
-              <div className="p-3 bg-slate-800/50 border border-slate-700 rounded opacity-60">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">
-                  💳 Complete {eligibility.ordersNeeded} more orders to unlock
-                  Pay Later
-                </p>
-              </div>
-
-              {waitlistStatus === "success" ? (
-                <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-3 py-2 rounded text-center">
-                  {waitlistMessage}
-                </p>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleJoinWaitlist}
-                  disabled={waitlistStatus === "loading"}
-                  className="w-full py-3 bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600/30 border border-indigo-500/30 rounded text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-50"
-                >
-                  {waitlistStatus === "loading"
-                    ? "Processing..."
-                    : "Notify Me When Ready"}
-                </button>
-              )}
-            </div>
-          )}
         </div>
       </form>
     </div>
