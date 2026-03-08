@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import type { Product } from "@hardware-os/shared";
 import { VerificationBadge } from "@/components/ui/verification-badge";
+import { StarRating } from "@/components/ui/star-rating";
 
 interface Props {
   products: Product[];
@@ -102,6 +103,17 @@ export function CatalogueGrid({
                 <span className="text-[11px] font-bold text-primary dark:text-primary-light truncate group-hover/m:underline decoration-1 underline-offset-2">
                   {p.merchantProfile.businessName}
                 </span>
+                {p.merchantProfile.averageRating !== undefined &&
+                  p.merchantProfile.averageRating > 0 && (
+                    <div className="flex items-center gap-0.5 ml-1">
+                      <span className="text-[10px] font-black text-amber-500">
+                        {Number(p.merchantProfile.averageRating).toFixed(1)}
+                      </span>
+                      <span className="material-symbols-outlined text-[10px] text-amber-400 fill-amber-400">
+                        star
+                      </span>
+                    </div>
+                  )}
               </Link>
             )}
 

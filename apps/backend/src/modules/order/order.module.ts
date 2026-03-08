@@ -8,6 +8,7 @@ import { PaymentModule } from "../payment/payment.module";
 import { ReorderModule } from "../reorder/reorder.module";
 import { VerificationModule } from "../verification/verification.module";
 import { LogisticsModule } from "../logistics/logistics.module";
+import { WhatsAppModule } from "../whatsapp/whatsapp.module";
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { LogisticsModule } from "../logistics/logistics.module";
     ReorderModule,
     VerificationModule,
     LogisticsModule,
+    forwardRef(() => WhatsAppModule),
   ],
   controllers: [OrderController],
   providers: [OrderService],

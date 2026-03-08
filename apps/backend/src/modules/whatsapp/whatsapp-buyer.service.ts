@@ -11,9 +11,12 @@ import {
   BUYER_MAIN_MENU,
   BUYER_FRIENDLY_FALLBACK,
 } from "./whatsapp-buyer.constants";
-import { OrderStatus } from "@hardware-os/shared";
+import { OrderStatus, Review } from "@hardware-os/shared";
+import { ReviewService } from "../review/review.service";
+import { WhatsAppInteractiveService } from "./whatsapp-interactive.service";
 
 const PENDING_OTP_PREFIX = "wa_pending_otp_";
+const PENDING_REVIEW_PREFIX = "wa_pending_review_";
 const PENDING_OTP_TTL = 600; // 10 minutes
 
 // Helper to mask phone numbers — only show last 4 digits
@@ -41,6 +44,8 @@ export class WhatsAppBuyerService {
     private authService: WhatsAppBuyerAuthService,
     private intentService: WhatsAppBuyerIntentService,
     private redisService: RedisService,
+    private reviewService: ReviewService,
+    private interactiveService: WhatsAppInteractiveService,
   ) {
     this.accessToken =
       this.configService.get<string>("WHATSAPP_ACCESS_TOKEN") || "";
@@ -55,6 +60,7 @@ export class WhatsAppBuyerService {
     phone: string,
     messageText: string,
     messageId: string,
+    interactiveReply?: { type: string; id: string; title: string },
   ): Promise<void> {
     try {
       const buyerId = await this.authService.resolvePhone(phone);
@@ -115,6 +121,62 @@ export class WhatsAppBuyerService {
         );
         await this.sendWhatsAppMessage(phone, response);
         return;
+      }
+
+      // 3. Check for pending review session
+      const reviewKey = `${PENDING_REVIEW_PREFIX}${buyerId}`;
+      const reviewSessionRaw = await this.redisService.get(reviewKey);
+      if (reviewSessionRaw) {
+        const session = JSON.parse(reviewSessionRaw);
+
+        // a. Handle interactive rating button (if any)
+        if (interactiveReply && interactiveReply.id.startsWith("rate_")) {
+          const rating = parseInt(interactiveReply.id.split("_")[1]);
+          const response = await this.handleReviewRating(
+            buyerId,
+            session,
+            rating,
+            reviewKey,
+            phone,
+          );
+          await this.sendWhatsAppMessage(phone, response);
+          return;
+        }
+
+        // b. Handle comment preference buttons
+        if (interactiveReply && interactiveReply.id === "review_add_comment") {
+          session.step = "AWAITING_COMMENT";
+          await this.redisService.set(reviewKey, JSON.stringify(session), 3600);
+          await this.sendWhatsAppMessage(
+            phone,
+            "Please type your comment below and send it to me. ✍️",
+          );
+          return;
+        }
+
+        if (interactiveReply && interactiveReply.id === "review_skip") {
+          await this.redisService.del(reviewKey);
+          await this.sendWhatsAppMessage(
+            phone,
+            "Thank you! Your rating has been saved. ✅",
+          );
+          return;
+        }
+
+        // c. Handle text comment input
+        if (session.step === "AWAITING_COMMENT" && messageText) {
+          await this.reviewService.create(buyerId, {
+            orderId: session.orderId,
+            rating: session.rating,
+            comment: messageText,
+          });
+          await this.redisService.del(reviewKey);
+          await this.sendWhatsAppMessage(
+            phone,
+            "✅ Comment added! Thank you for your feedback.",
+          );
+          return;
+        }
       }
 
       const intent = await this.intentService.parseIntent(messageText);
@@ -484,6 +546,77 @@ export class WhatsAppBuyerService {
         this.logger.error(`Meta API error: ${await response.text()}`);
     } catch (error) {
       this.logger.error("Failed to send WhatsApp message", error);
+    }
+  }
+
+  async sendWhatsAppReviewPrompt(
+    phone: string,
+    bodyText: string,
+    orderId: string,
+  ): Promise<void> {
+    const buyerId = await this.authService.resolvePhone(phone);
+    if (!buyerId) return;
+
+    // First message: Stars 1-3
+    await this.interactiveService.sendReplyButtons(phone, bodyText, [
+      { id: "rate_1", title: "⭐" },
+      { id: "rate_2", title: "⭐⭐" },
+      { id: "rate_3", title: "⭐⭐⭐" },
+    ]);
+
+    // Second message: Stars 4-5
+    await this.interactiveService.sendReplyButtons(phone, "Or more stars:", [
+      { id: "rate_4", title: "⭐⭐⭐⭐" },
+      { id: "rate_5", title: "⭐⭐⭐⭐⭐" },
+    ]);
+
+    // Store pending review session
+    await this.redisService.set(
+      `${PENDING_REVIEW_PREFIX}${buyerId}`,
+      JSON.stringify({
+        orderId,
+        step: "SELECT_RATING",
+      }),
+      3600,
+    );
+  }
+
+  private async handleReviewRating(
+    buyerId: string,
+    session: any,
+    rating: number,
+    reviewKey: string,
+    phone: string,
+  ): Promise<string> {
+    // Initial save (without comment)
+    try {
+      await this.reviewService.create(buyerId, {
+        orderId: session.orderId,
+        rating,
+      });
+
+      // Update session to allow adding comment
+      session.rating = rating;
+      session.step = "COMMENT_PROMPT";
+      await this.redisService.set(reviewKey, JSON.stringify(session), 3600);
+
+      // Send interactive prompt for comment
+      await this.interactiveService.sendReplyButtons(
+        phone,
+        "✅ Rating saved! Would you like to add a comment about your experience?",
+        [
+          { id: "review_add_comment", title: "Yes, add comment" },
+          { id: "review_skip", title: "No, thanks" },
+        ],
+      );
+
+      return ""; // Handled via interactive service
+    } catch (error: any) {
+      if (error.message.includes("already been reviewed")) {
+        await this.redisService.del(reviewKey);
+        return "This order has already been reviewed. Thank you!";
+      }
+      throw error;
     }
   }
 }

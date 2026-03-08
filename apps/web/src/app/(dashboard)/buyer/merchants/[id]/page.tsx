@@ -5,10 +5,12 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { getPublicProfile } from "@/lib/api/merchant.api";
 import { getPublicProductsByMerchant } from "@/lib/api/product.api";
-import type { MerchantProfile, Product } from "@hardware-os/shared";
+import { getMerchantReviews } from "@/lib/api/review.api";
+import type { MerchantProfile, Product, Review } from "@hardware-os/shared";
 import { Button } from "@/components/ui/button";
 import { CatalogueGrid } from "@/components/buyer/catalogue/catalogue-grid";
 import { VerificationBadge } from "@/components/ui/verification-badge";
+import { StarRating } from "@/components/ui/star-rating";
 
 export default function BuyerMerchantProfilePage() {
   const { id } = useParams();
@@ -16,6 +18,7 @@ export default function BuyerMerchantProfilePage() {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<MerchantProfile | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -24,14 +27,16 @@ export default function BuyerMerchantProfilePage() {
       try {
         setError("");
         setLoading(true);
-        const [profileData, productsData] = await Promise.all([
+        const [profileData, productsData, reviewsData] = await Promise.all([
           getPublicProfile(id as string),
           getPublicProductsByMerchant(id as string, 1, 50),
+          getMerchantReviews(id as string, 1, 10),
         ]);
 
         if (active) {
           setProfile(profileData);
           setProducts(productsData as unknown as Product[]);
+          setReviews(reviewsData);
         }
       } catch (err: any) {
         if (active) {
@@ -99,13 +104,31 @@ export default function BuyerMerchantProfilePage() {
                       {profile.businessName}
                     </h1>
                     {profile.verificationTier && (
-                      <VerificationBadge tier={profile.verificationTier} className="ml-2 scale-125 origin-left" />
+                      <VerificationBadge
+                        tier={profile.verificationTier}
+                        className="ml-2 scale-125 origin-left"
+                      />
                     )}
                   </div>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] mt-1">
-                    {profile.category || "General Hardware Supplier"} • Est.{" "}
-                    {profile.estYear || "N/A"}
-                  </p>
+                  <div className="flex items-center gap-4 mt-2">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em]">
+                      {profile.category || "General Hardware Supplier"} • Est.{" "}
+                      {profile.estYear || "N/A"}
+                    </p>
+                    {profile.averageRating > 0 && (
+                      <div className="flex items-center gap-2 pl-4 border-l border-slate-200 dark:border-slate-800">
+                        <StarRating
+                          rating={profile.averageRating}
+                          readOnly
+                          size="sm"
+                        />
+                        <span className="text-[10px] font-black text-navy-dark dark:text-white uppercase tracking-widest mt-0.5">
+                          {Number(profile.averageRating).toFixed(1)} (
+                          {profile.reviewCount} Reviews)
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -202,7 +225,9 @@ export default function BuyerMerchantProfilePage() {
                   </p>
                   <div className="flex items-center gap-2">
                     <VerificationBadge tier={profile.verificationTier} />
-                    {(!profile.verificationTier || profile.verificationTier === "UNVERIFIED" || profile.verificationTier === "BASIC") && (
+                    {(!profile.verificationTier ||
+                      profile.verificationTier === "UNVERIFIED" ||
+                      profile.verificationTier === "BASIC") && (
                       <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600">
                         {profile.verificationTier || "UNVERIFIED"}
                       </span>
@@ -318,6 +343,70 @@ export default function BuyerMerchantProfilePage() {
                 </p>
               </div>
             </div>
+          </div>
+
+          {/* Customer Reviews Section */}
+          <div className="lg:col-span-3 space-y-8">
+            <div className="flex items-end justify-between">
+              <div>
+                <h2 className="text-xl font-black text-navy-dark dark:text-white uppercase tracking-tight">
+                  Customer Reviews
+                </h2>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
+                  What buyers are saying about {profile.businessName}
+                </p>
+              </div>
+              {profile.averageRating > 0 && (
+                <div className="text-right">
+                  <p className="text-3xl font-black text-navy-dark dark:text-white leading-none">
+                    {Number(profile.averageRating).toFixed(1)}
+                  </p>
+                  <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                    Average Rating
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {reviews.length === 0 ? (
+              <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-12 text-center space-y-4">
+                <span className="material-symbols-outlined text-4xl text-slate-200">
+                  rate_review
+                </span>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                  No reviews yet for this merchant.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {reviews.map((rev) => (
+                  <div
+                    key={rev.id}
+                    className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col gap-4"
+                  >
+                    <div className="flex items-center justify-between">
+                      <StarRating rating={rev.rating} readOnly size="sm" />
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                        {new Date(rev.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <p className="text-sm font-medium text-slate-600 dark:text-slate-300 leading-relaxed italic italic-font-serif">
+                      "{rev.comment || "No comment provided."}"
+                    </p>
+                    <div className="mt-auto pt-4 border-t border-slate-50 dark:border-slate-700/50 flex items-center gap-2">
+                      <div className="size-6 bg-navy-dark/10 rounded-full flex items-center justify-center">
+                        <span className="material-symbols-outlined text-xs text-navy-dark">
+                          person
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-black text-navy-dark dark:text-white uppercase tracking-widest">
+                        Buyer
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
