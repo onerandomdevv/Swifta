@@ -205,7 +205,7 @@ export default function BuyerProfilePage() {
                           Real Estate Developer
                         </option>
                         <option value="wholesale">Wholesale</option>
-                        <option value="retail">Retail Hardware</option>
+                        <option value="retail">Retail Products</option>
                         <option value="manufacturing">Manufacturing</option>
                       </select>
                     </div>

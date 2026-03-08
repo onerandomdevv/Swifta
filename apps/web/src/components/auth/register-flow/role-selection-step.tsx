@@ -120,47 +120,6 @@ export function RoleSelectionStep({
             </div>
           </div>
         </label>
-
-        {/* Role Card: Supplier */}
-        <label className="relative block cursor-pointer group">
-          <input
-            type="radio"
-            name="role"
-            value={UserRole.SUPPLIER}
-            checked={role === UserRole.SUPPLIER}
-            onChange={() => onRoleSelect(UserRole.SUPPLIER)}
-            className="peer sr-only"
-          />
-          <div className="p-6 border-2 border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/50 transition-all hover:border-primary/50 peer-checked:border-primary peer-checked:ring-1 peer-checked:ring-primary shadow-sm hover:shadow-md">
-            <div className="flex items-start gap-4">
-              <div
-                className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center transition-colors ${role === UserRole.SUPPLIER ? "bg-primary text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 group-hover:text-primary"}`}
-              >
-                <span className="material-symbols-outlined text-2xl">
-                  factory
-                </span>
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                    I am a Supplier
-                  </p>
-                  {role === UserRole.SUPPLIER && (
-                    <div className="text-primary animate-in zoom-in duration-300">
-                      <span className="material-symbols-outlined text-xl">
-                        check_circle
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Manufacturer or large-scale distributor looking to sell
-                  wholesale stock to merchants.
-                </p>
-              </div>
-            </div>
-          </div>
-        </label>
       </div>
 
       <div className="pt-6 space-y-4">

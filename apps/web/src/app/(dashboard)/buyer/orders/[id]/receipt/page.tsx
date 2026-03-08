@@ -59,14 +59,16 @@ export default function OrderReceiptPage() {
   const { merchant, buyer, quote, payments } = order;
   const paymentDate = payments?.[0]?.createdAt;
   const productInfo = quote?.rfq?.product || quote?.rfq?.unlistedItemDetails;
-  
+
   const handlePrint = () => {
     window.print();
   };
 
   return (
     <div className="max-w-4xl mx-auto py-10 print:py-0">
-      <style dangerouslySetInnerHTML={{__html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         @media print {
           body * {
             visibility: hidden;
@@ -84,8 +86,10 @@ export default function OrderReceiptPage() {
             display: none !important;
           }
         }
-      `}} />
-      
+      `,
+        }}
+      />
+
       {/* Action Bar - Hidden on print */}
       <div className="flex justify-between items-center mb-8 print-hide">
         <button
@@ -95,7 +99,7 @@ export default function OrderReceiptPage() {
           <span className="material-symbols-outlined text-lg">arrow_back</span>
           Back to Order
         </button>
-        
+
         <button
           onClick={handlePrint}
           className="flex items-center gap-2 px-6 py-3 bg-navy-dark text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-navy-dark/20 hover:scale-105 active:scale-95 transition-all"
@@ -106,14 +110,18 @@ export default function OrderReceiptPage() {
       </div>
 
       {/* Printable Area */}
-      <div id="printable-receipt" className="bg-white rounded-[2rem] border border-slate-200 p-12 print:border-none print:shadow-none shadow-xl shadow-slate-100 relative">
-        
+      <div
+        id="printable-receipt"
+        className="bg-white rounded-[2rem] border border-slate-200 p-12 print:border-none print:shadow-none shadow-xl shadow-slate-100 relative"
+      >
         {/* Header */}
         <div className="flex justify-between items-start border-b border-slate-200 pb-8 mb-8">
           <div>
             <div className="flex items-center gap-3 mb-2">
               <div className="size-10 bg-navy-dark rounded-xl flex items-center justify-center">
-                <span className="material-symbols-outlined text-white font-bold">bolt</span>
+                <span className="material-symbols-outlined text-white font-bold">
+                  bolt
+                </span>
               </div>
               <h1 className="text-2xl font-black text-navy-dark font-display tracking-tight uppercase">
                 SwiftTrade
@@ -123,14 +131,17 @@ export default function OrderReceiptPage() {
               Digital Trade Infrastructure
             </p>
           </div>
-          
+
           <div className="text-right">
-            <h2 className="text-4xl font-black text-slate-200 uppercase font-display mb-2">Receipt</h2>
+            <h2 className="text-4xl font-black text-slate-200 uppercase font-display mb-2">
+              Receipt
+            </h2>
             <p className="text-sm font-black text-navy-dark uppercase tracking-widest">
               # {order.id.slice(0, 16).toUpperCase()}
             </p>
             <p className="text-xs font-bold text-slate-500 mt-1">
-              Date: {new Date(paymentDate || order.createdAt).toLocaleDateString()}
+              Date:{" "}
+              {new Date(paymentDate || order.createdAt).toLocaleDateString()}
             </p>
           </div>
         </div>
@@ -155,7 +166,7 @@ export default function OrderReceiptPage() {
               Phone: {merchant?.user?.phone || "N/A"}
             </p>
           </div>
-          
+
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
               Billed To
@@ -168,7 +179,7 @@ export default function OrderReceiptPage() {
                 {buyer.phone}
               </p>
             )}
-            
+
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 mt-4">
               Delivered To
             </p>
@@ -201,7 +212,7 @@ export default function OrderReceiptPage() {
               <tr className="border-b border-slate-100">
                 <td className="py-6 px-4">
                   <p className="font-black text-navy-dark text-sm uppercase">
-                    {productInfo?.name || "Hardware Supplies"}
+                    {productInfo?.name || "Products"}
                   </p>
                   {productInfo?.description && (
                     <p className="text-xs font-bold text-slate-500 mt-1">
@@ -221,7 +232,10 @@ export default function OrderReceiptPage() {
                 </td>
                 <td className="py-6 px-4 text-right">
                   <p className="font-black text-navy-dark text-sm">
-                    {formatKobo(BigInt(quote?.unitPriceKobo || 0) * BigInt(quote?.rfq?.quantity || 1))}
+                    {formatKobo(
+                      BigInt(quote?.unitPriceKobo || 0) *
+                        BigInt(quote?.rfq?.quantity || 1),
+                    )}
                   </p>
                 </td>
               </tr>
@@ -234,7 +248,12 @@ export default function OrderReceiptPage() {
           <div className="w-72 space-y-4">
             <div className="flex justify-between text-sm font-bold text-slate-600">
               <span>Subtotal</span>
-              <span>{formatKobo(BigInt(quote?.unitPriceKobo || 0) * BigInt(quote?.rfq?.quantity || 1))}</span>
+              <span>
+                {formatKobo(
+                  BigInt(quote?.unitPriceKobo || 0) *
+                    BigInt(quote?.rfq?.quantity || 1),
+                )}
+              </span>
             </div>
             <div className="flex justify-between text-sm font-bold text-slate-600">
               <span>Delivery Fee</span>
@@ -242,8 +261,12 @@ export default function OrderReceiptPage() {
             </div>
             <div className="h-px bg-slate-200 my-2"></div>
             <div className="flex justify-between items-center text-lg">
-              <span className="font-black text-navy-dark uppercase tracking-widest">Total</span>
-              <span className="font-black text-navy-dark">{formatKobo(order.totalAmountKobo)}</span>
+              <span className="font-black text-navy-dark uppercase tracking-widest">
+                Total
+              </span>
+              <span className="font-black text-navy-dark">
+                {formatKobo(order.totalAmountKobo)}
+              </span>
             </div>
             <div className="flex justify-between text-xs font-bold text-green-600 mt-2">
               <span>Status</span>
@@ -256,7 +279,8 @@ export default function OrderReceiptPage() {
         <div className="border-t border-slate-200 pt-8 flex justify-between items-end">
           <div className="space-y-1">
             <p className="text-xs font-bold text-slate-500">
-              Payment processed securely via <span className="text-navy-dark font-black">Paystack</span>
+              Payment processed securely via{" "}
+              <span className="text-navy-dark font-black">Paystack</span>
             </p>
             {payments?.[0] && (
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
@@ -270,7 +294,6 @@ export default function OrderReceiptPage() {
             </p>
           </div>
         </div>
-        
       </div>
     </div>
   );

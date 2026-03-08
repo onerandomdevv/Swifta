@@ -91,7 +91,7 @@ export default function NewWholesaleProductPage() {
                   <input
                     {...form.register("category")}
                     className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-sm font-bold border border-slate-100 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none text-slate-900 dark:text-white"
-                    placeholder="e.g. Building Materials"
+                    placeholder="e.g. Electronics"
                   />
                   {form.formState.errors.category && (
                     <p className="mt-1.5 text-xs text-red-500 font-bold">

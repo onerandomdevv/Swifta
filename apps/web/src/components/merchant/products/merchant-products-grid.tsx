@@ -33,7 +33,7 @@ export function MerchantProductsGrid({ products, onDelist }: Props) {
             Catalog is Empty
           </h3>
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            List your hardware products to start receiving quote requests.
+            List your products to start receiving quote requests.
           </p>
         </div>
         <Link
@@ -63,7 +63,7 @@ export function MerchantProductsGrid({ products, onDelist }: Props) {
                 />
               ) : (
                 <span className="material-symbols-outlined text-6xl text-slate-200 group-hover:scale-125 transition-transform duration-700">
-                  hardware
+                  products
                 </span>
               )}
               <div className="absolute top-6 left-6 px-3 py-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-full text-[8px] font-black uppercase tracking-widest text-navy-dark dark:text-white shadow-sm">

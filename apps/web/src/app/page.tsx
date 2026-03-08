@@ -4,29 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Logo } from "@/components/ui/logo";
 
-const SLIDE_INTERVAL = 4000;
-
-const slides = [
-  { url: "/images/hero/slide-1.jpg", alt: "Electronics and smart devices" },
-  {
-    url: "/images/hero/slide-2.jpg",
-    alt: "Fashion and apparel goods",
-  },
-  { url: "/images/hero/slide-3.jpg", alt: "Home appliances and kitchenware" },
-  { url: "/images/hero/slide-4.jpg", alt: "Packaged groceries and provisions" },
-  { url: "/images/hero/slide-5.jpg", alt: "Industrial and hardware supplies" },
-];
-
 export default function LandingPage() {
-  const [currentSlide, setCurrentSlide] = useState(0);
   const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, SLIDE_INTERVAL);
-    return () => clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -59,6 +38,12 @@ export default function LandingPage() {
                 How it Works
               </a>
               <a
+                href="#categories"
+                className="text-sm font-semibold text-white/70 hover:text-primary transition-colors"
+              >
+                Categories
+              </a>
+              <a
                 href="#why"
                 className="text-sm font-semibold text-white/70 hover:text-primary transition-colors"
               >
@@ -83,25 +68,17 @@ export default function LandingPage() {
         </header>
       </div>
 
-      {/* ─── HERO SECTION WITH SLIDESHOW ─── */}
-      <section className="relative min-h-screen flex items-center overflow-hidden bg-deep-blue">
-        {/* Slideshow background */}
-        <div className="absolute inset-0 z-0">
-          {slides.map((slide, index) => (
-            <div
-              key={index}
-              className={`absolute inset-0 transition-opacity duration-[1500ms] ease-in-out ${index === currentSlide ? "opacity-100 z-10" : "opacity-0 z-0"}`}
-            >
-              <img
-                src={slide.url}
-                alt={slide.alt}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          ))}
-          {/* Overlay */}
-          <div className="absolute inset-0 z-20 bg-deep-blue/65" />
-        </div>
+      {/* ─── HERO SECTION ─── */}
+      <section className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-br from-deep-blue via-[#0d162f] to-[#0a1124]">
+        {/* Abstract pattern background */}
+        <div
+          className="absolute inset-0 z-0 opacity-20"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)",
+            backgroundSize: "32px 32px",
+          }}
+        />
 
         {/* Hero Content */}
         <div className="max-w-7xl mx-auto px-6 relative z-30 w-full py-32 pt-40 flex flex-col items-center text-center">
@@ -114,17 +91,17 @@ export default function LandingPage() {
               Now Live in Lagos State
             </div>
 
-            <h1 className="text-6xl lg:text-8xl font-black text-white leading-[1.05] tracking-tight">
-              Nigeria&apos;s Private
+            <h1 className="text-5xl lg:text-7xl font-black text-white leading-[1.1] tracking-tight">
+              Nigeria&apos;s First
               <br />
-              <span className="text-primary">E-commerce</span>
+              <span className="text-primary">WhatsApp E-Commerce</span>
               <br />
-              Infrastructure
+              Platform
             </h1>
 
             <p className="text-xl lg:text-2xl text-white/80 max-w-2xl leading-relaxed font-medium">
-              Connect with verified merchants. Request quotes privately. Pay
-              securely with escrow protection.
+              Buy and sell anything on WhatsApp with escrow payment protection.
+              Search → Buy → Pay → Track → Delivered. All from WhatsApp.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
@@ -132,127 +109,71 @@ export default function LandingPage() {
                 href="/register"
                 className="bg-primary hover:bg-primary-dark text-white font-bold h-14 px-8 rounded-lg flex items-center justify-center gap-2 text-base shadow-xl shadow-primary/30 transition-all hover:scale-[1.02]"
               >
-                Start Buying
-                <span className="material-symbols-outlined">arrow_forward</span>
+                Start Buying →
               </Link>
               <Link
                 href="/register"
-                className="border border-white/30 text-white font-bold h-14 px-8 rounded-lg flex items-center justify-center gap-2 text-base hover:bg-white/10 transition-all"
+                className="border border-white/30 bg-white/5 text-white font-bold h-14 px-8 rounded-lg flex items-center justify-center gap-2 text-base hover:bg-white/10 transition-all"
               >
-                <span className="material-symbols-outlined">store</span>
-                List Your Products
+                Start Selling
               </Link>
+              <a
+                href="https://wa.me/2348000000000" // Replace with actual bot number later
+                target="_blank"
+                rel="noreferrer"
+                className="border border-[#25D366]/30 bg-[#25D366]/10 text-[#25D366] font-bold h-14 px-8 rounded-lg flex items-center justify-center gap-2 text-base hover:bg-[#25D366]/20 transition-all"
+              >
+                <span className="material-symbols-outlined">chat</span>
+                Chat on WhatsApp
+              </a>
             </div>
           </div>
-
-          {/* Slide indicators */}
-          <div className="flex gap-2 mt-12">
-            {slides.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentSlide(index)}
-                className={`h-1.5 rounded-full transition-all duration-500 bg-white ${index === currentSlide ? "w-8 opacity-100" : "w-2 opacity-40"}`}
-              />
-            ))}
-          </div>
         </div>
       </section>
 
-      {/* ─── HOW IT WORKS ─── */}
-      <section id="how-it-works" className="py-32 bg-[#f6f6f8]">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <p className="text-primary font-bold text-xs uppercase tracking-widest mb-3">
-              The Process
-            </p>
-            <h2 className="text-4xl font-black text-deep-blue tracking-tight">
-              How It Works
-            </h2>
-            <p className="text-slate-500 mt-4 max-w-xl mx-auto font-medium">
-              Streamlining retail and wholesale procurement from request to
-              delivery.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              {
-                icon: "forum",
-                step: "01",
-                title: "Request a Quote",
-                desc: "Post your product requirements to our network of pre-verified suppliers. Prices stay private.",
-              },
-              {
-                icon: "receipt_long",
-                step: "02",
-                title: "Get Competitive Quotes",
-                desc: "Receive multiple bids within hours. Compare pricing, quality, and delivery timelines.",
-              },
-              {
-                icon: "verified_user",
-                step: "03",
-                title: "Pay & Receive Securely",
-                desc: "Funds held in escrow until you confirm delivery and product quality at your facility.",
-              },
-            ].map((item) => (
-              <div
-                key={item.step}
-                className="bg-white border border-slate-200 rounded-lg p-8 hover:border-primary/30 hover:shadow-lg transition-all duration-300"
-              >
-                <div className="flex items-center justify-between mb-6">
-                  <div className="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                    <span className="material-symbols-outlined text-primary">
-                      {item.icon}
-                    </span>
-                  </div>
-                  <span className="text-3xl font-black text-slate-100">
-                    {item.step}
-                  </span>
-                </div>
-                <h3 className="text-lg font-black text-deep-blue mb-2">
-                  {item.title}
-                </h3>
-                <p className="text-slate-500 font-medium leading-relaxed text-sm">
-                  {item.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ─── WHY SWIFTTRADE ─── */}
+      {/* ─── VALUE PROPOSITIONS ─── */}
       <section id="why" className="py-32 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <p className="text-primary font-bold text-xs uppercase tracking-widest mb-3">
-              Platform
+              Features
             </p>
             <h2 className="text-4xl font-black text-deep-blue tracking-tight">
-              Why SwiftTrade?
+              Why use SwiftTrade?
             </h2>
-            <p className="text-slate-500 mt-4 max-w-xl mx-auto font-medium">
-              Built specifically for the unique challenges of the Nigerian
-              supply chain.
-            </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               {
                 icon: "lock",
-                title: "Escrow Protection",
-                desc: "Payments released only after you inspect and confirm delivery. Zero fraud risk.",
+                title: "Escrow-Protected Payments",
+                desc: "Your money is held securely until you confirm delivery. Zero fraud risk.",
+              },
+              {
+                icon: "chat",
+                title: "WhatsApp-Native",
+                desc: "Buy, sell, and manage your business entirely from WhatsApp. No app downloads.",
+              },
+              {
+                icon: "local_shipping",
+                title: "Tracked Delivery",
+                desc: "Real-time delivery tracking with notifications straight to your WhatsApp.",
+              },
+              {
+                icon: "account_balance",
+                title: "Instant Merchant Payouts",
+                desc: "Delivery confirmed → money in your bank account. Automatically via Paystack.",
               },
               {
                 icon: "verified",
                 title: "Verified Merchants",
-                desc: "Every supplier undergoes a rigorous 5-step background and inventory verification process.",
+                desc: "Every merchant is rated and verified. Buy with confidence.",
               },
               {
-                icon: "visibility_off",
-                title: "Private Pricing",
-                desc: "Access exclusive B2B rates hidden from the open consumer market. Your margins stay yours.",
+                icon: "photo_camera",
+                title: "AI Product Search",
+                desc: "Send a photo of what you need. Our AI finds matching products instantly.",
               },
             ].map((feat) => (
               <div
@@ -276,51 +197,204 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── CTA SECTION ─── */}
-      <section className="py-20 bg-deep-blue">
-        <div className="max-w-3xl mx-auto px-6 text-center">
-          <h2 className="text-4xl font-black text-white mb-4 tracking-tight">
-            Ready to modernize your procurement?
+      {/* ─── CATEGORIES SHOWCASE ─── */}
+      <section id="categories" className="py-24 bg-[#f6f6f8]">
+        <div className="max-w-7xl mx-auto px-6 text-center">
+          <h2 className="text-3xl font-black text-deep-blue tracking-tight mb-12">
+            Everything You Need, One Platform
           </h2>
-          <p className="text-white/60 font-medium mb-8">
-            Join hundreds of Nigerian businesses trading securely on SwiftTrade.
-          </p>
+          <div className="flex flex-wrap justify-center gap-4">
+            {[
+              "Building Materials",
+              "Electronics",
+              "Fashion",
+              "Home & Kitchen",
+              "Health & Beauty",
+              "Auto Parts",
+              "Agriculture",
+              "Food & Groceries",
+            ].map((cat) => (
+              <div
+                key={cat}
+                className="bg-white border border-slate-200 text-slate-700 font-bold px-6 py-3 rounded-full shadow-sm hover:border-primary hover:text-primary transition-all cursor-default"
+              >
+                {cat}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── HOW IT WORKS ─── */}
+      <section id="how-it-works" className="py-32 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-black text-deep-blue tracking-tight">
+              How SwiftTrade Works
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-12 lg:gap-24">
+            {/* For Buyers */}
+            <div className="bg-[#f6f6f8] rounded-2xl p-10 lg:p-12">
+              <h3 className="text-2xl font-black text-deep-blue mb-8">
+                For Buyers
+              </h3>
+              <ul className="space-y-6">
+                {[
+                  "Search for any product on web or WhatsApp",
+                  "Pay securely — your money is protected until delivery",
+                  "Track your order in real-time",
+                  "Confirm delivery with your OTP code",
+                  "Rate your experience",
+                ].map((text, idx) => (
+                  <li key={idx} className="flex items-start gap-4">
+                    <div className="h-8 w-8 rounded-full bg-primary/20 text-primary font-black flex items-center justify-center shrink-0">
+                      {idx + 1}
+                    </div>
+                    <span className="font-medium text-slate-700 mt-1">
+                      {text}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* For Merchants */}
+            <div className="bg-deep-blue rounded-2xl p-10 lg:p-12 text-white">
+              <h3 className="text-2xl font-black text-white mb-8">
+                For Merchants
+              </h3>
+              <ul className="space-y-6">
+                {[
+                  "List your products with prices",
+                  "Get orders from buyers across Lagos",
+                  "Dispatch and track deliveries",
+                  "Get paid instantly to your bank account",
+                  "Manage everything from WhatsApp",
+                ].map((text, idx) => (
+                  <li key={idx} className="flex items-start gap-4">
+                    <div className="h-8 w-8 rounded-full bg-white/20 text-white font-black flex items-center justify-center shrink-0">
+                      {idx + 1}
+                    </div>
+                    <span className="font-medium text-white/90 mt-1">
+                      {text}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── TRUST SECTION ─── */}
+      <section className="py-24 bg-[#f6f6f8]">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h2 className="text-3xl font-black text-deep-blue mb-10">
+            Trusted by merchants and buyers across Lagos
+          </h2>
+          <div className="grid sm:grid-cols-2 gap-4 text-left mx-auto w-fit">
+            <div className="flex items-center gap-3">
+              <span className="text-green-500 text-xl">✅</span>
+              <span className="font-bold text-slate-700">
+                Escrow protection on every transaction
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-green-500 text-xl">✅</span>
+              <span className="font-bold text-slate-700">
+                Verified merchants with real ratings
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-green-500 text-xl">✅</span>
+              <span className="font-bold text-slate-700">
+                OTP delivery confirmation
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-green-500 text-xl">✅</span>
+              <span className="font-bold text-slate-700">
+                Instant bank payouts
+              </span>
+            </div>
+            <div className="flex items-center gap-3 sm:col-span-2 justify-center">
+              <span className="text-green-500 text-xl">✅</span>
+              <span className="font-bold text-slate-700">
+                WhatsApp AI assistant
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── CTA SECTION ─── */}
+      <section className="py-32 bg-deep-blue">
+        <div className="max-w-3xl mx-auto px-6 text-center">
+          <h2 className="text-4xl font-black text-white mb-10 tracking-tight">
+            Ready to trade smarter?
+          </h2>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/register"
-              className="bg-primary hover:bg-primary-dark text-white font-bold h-14 px-10 rounded-lg flex items-center gap-2 transition-all shadow-xl shadow-primary/30"
+              className="bg-primary hover:bg-primary-dark text-white font-bold h-14 px-10 rounded-lg flex items-center justify-center transition-all shadow-xl shadow-primary/30"
             >
-              Create Free Account
-              <span className="material-symbols-outlined">arrow_forward</span>
+              Start Buying — Free
             </Link>
             <Link
-              href="/login"
-              className="border border-white/20 text-white font-bold h-14 px-10 rounded-lg flex items-center gap-2 hover:bg-white/10 transition-all"
+              href="/register"
+              className="bg-white hover:bg-slate-100 text-deep-blue font-bold h-14 px-10 rounded-lg flex items-center justify-center transition-all shadow-xl"
             >
-              Sign In
+              Start Selling — Free
             </Link>
+          </div>
+          <div className="mt-8">
+            <a
+              href="https://wa.me/2348000000000"
+              target="_blank"
+              rel="noreferrer"
+              className="text-white/60 hover:text-emerald-400 font-bold flex items-center justify-center gap-2 transition-colors"
+            >
+              <span className="material-symbols-outlined">chat</span>
+              Or message us on WhatsApp: Chat Now
+            </a>
           </div>
         </div>
       </section>
 
       {/* ─── FOOTER ─── */}
-      <footer className="py-8 border-t border-slate-100 bg-white">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <Logo variant="light" size="sm" />
-          <p className="text-xs text-slate-400 font-medium">
-            &copy; {new Date().getFullYear()} SwiftTrade Technologies. Built for
-            Nigeria.
-          </p>
-          <div className="flex gap-6 text-xs font-bold text-slate-400">
-            <a href="#" className="hover:text-primary transition-colors">
-              Privacy
-            </a>
-            <a href="#" className="hover:text-primary transition-colors">
-              Terms
-            </a>
-            <a href="#" className="hover:text-primary transition-colors">
-              Support
-            </a>
+      <footer className="py-12 border-t border-slate-200 bg-white">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <Logo variant="light" size="sm" />
+            <p className="text-sm font-medium text-slate-500 max-w-sm text-center md:text-left">
+              SwiftTrade is Nigeria&apos;s first WhatsApp-native e-commerce
+              platform. Buy and sell anything with escrow payment protection.
+            </p>
+          </div>
+          <div className="flex flex-col items-center md:items-end gap-2">
+            <div className="flex gap-6 text-sm font-bold text-slate-400 mb-2">
+              <a href="#" className="hover:text-primary transition-colors">
+                Privacy
+              </a>
+              <a href="#" className="hover:text-primary transition-colors">
+                Terms
+              </a>
+              <a href="#" className="hover:text-primary transition-colors">
+                Support
+              </a>
+              <a
+                href="https://wa.me/2348000000000"
+                className="text-[#25D366] hover:text-[#128C7E] flex items-center gap-1 transition-colors"
+              >
+                <span className="material-symbols-outlined text-sm">chat</span>{" "}
+                WhatsApp
+              </a>
+            </div>
+            <p className="text-xs text-slate-400 font-medium">
+              &copy; {new Date().getFullYear()} SwiftTrade Technologies.
+            </p>
           </div>
         </div>
       </footer>
