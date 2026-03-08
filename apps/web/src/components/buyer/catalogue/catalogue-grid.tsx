@@ -68,6 +68,11 @@ export function CatalogueGrid({
             <span className="absolute top-3 right-3 bg-slate-900 text-white text-[10px] font-black uppercase px-2 py-1 tracking-wider">
               {p.categoryTag}
             </span>
+            {Number(p.minOrderQuantity) === 1 && (
+              <span className="absolute top-10 right-3 bg-emerald-600 text-white text-[8px] font-black uppercase px-2 py-1 tracking-wider">
+                Individual Friendly
+              </span>
+            )}
           </div>
 
           {/* Product Details */}
@@ -85,7 +90,9 @@ export function CatalogueGrid({
                 href={`/buyer/merchants/${p.merchantProfile.id}`}
                 className="flex items-center gap-1.5 mt-3 group/m hover:opacity-80 transition-opacity"
               >
-                <VerificationBadge tier={p.merchantProfile.verificationTier as any} />
+                <VerificationBadge
+                  tier={p.merchantProfile.verificationTier as any}
+                />
                 {(p.merchantProfile.verificationTier === "VERIFIED" ||
                   p.merchantProfile.verificationTier === "TRUSTED") && (
                   <span className="text-[8px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-bold uppercase tracking-wide">

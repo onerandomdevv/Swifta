@@ -180,7 +180,7 @@ export class WhatsAppOnboardingService {
     const userType = roleId === "onboard_buyer" ? "BUYER" : "MERCHANT";
     const firstStep =
       userType === "BUYER"
-        ? OnboardingStep.BUYER_NAME
+        ? OnboardingStep.BUYER_TYPE
         : OnboardingStep.MERCHANT_BUSINESS_NAME;
 
     await this.prisma.onboardingSession.upsert({
@@ -201,9 +201,13 @@ export class WhatsAppOnboardingService {
     });
 
     if (userType === "BUYER") {
-      await this.interactiveService.sendTextMessage(
+      await this.interactiveService.sendReplyButtons(
         phone,
-        "Great! Let's set up your buyer account.\n\nWhat's your full name?",
+        "Welcome to SwiftTrade! 🔗 Let's set up your buyer account.\n\nAre you buying for a business or as an individual?",
+        [
+          { id: "buyer_type_business", title: "Business" },
+          { id: "buyer_type_individual", title: "Individual" },
+        ],
       );
     } else {
       await this.interactiveService.sendTextMessage(
@@ -225,6 +229,12 @@ export class WhatsAppOnboardingService {
     interactiveReply?: { type: string; id: string; title: string },
   ): Promise<void> {
     switch (step) {
+      case OnboardingStep.BUYER_TYPE:
+        await this.handleBuyerType(phone, sessionId, data, interactiveReply);
+        break;
+      case OnboardingStep.BUYER_BUSINESS_NAME:
+        await this.handleBuyerBusinessName(phone, sessionId, data, messageText);
+        break;
       case OnboardingStep.BUYER_NAME:
         await this.handleBuyerName(phone, sessionId, data, messageText);
         break;
@@ -244,6 +254,73 @@ export class WhatsAppOnboardingService {
         });
         await this.sendWelcome(phone);
     }
+  }
+
+  private async handleBuyerType(
+    phone: string,
+    sessionId: string,
+    data: Record<string, any>,
+    interactiveReply?: { type: string; id: string; title: string },
+  ): Promise<void> {
+    if (!interactiveReply) {
+      await this.interactiveService.sendReplyButtons(
+        phone,
+        "Please select your buyer type:",
+        [
+          { id: "buyer_type_business", title: "Business" },
+          { id: "buyer_type_individual", title: "Individual" },
+        ],
+      );
+      return;
+    }
+
+    const buyerType =
+      interactiveReply.id === "buyer_type_business" ? "BUSINESS" : "CONSUMER";
+
+    if (buyerType === "BUSINESS") {
+      await this.updateSession(sessionId, OnboardingStep.BUYER_BUSINESS_NAME, {
+        ...data,
+        buyerType,
+      });
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "What's your business name?",
+      );
+    } else {
+      await this.updateSession(sessionId, OnboardingStep.BUYER_NAME, {
+        ...data,
+        buyerType,
+      });
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "Great! What's your full name?",
+      );
+    }
+  }
+
+  private async handleBuyerBusinessName(
+    phone: string,
+    sessionId: string,
+    data: Record<string, any>,
+    messageText?: string,
+  ): Promise<void> {
+    if (!messageText || messageText.trim().length < 2) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "Please enter a valid business name (at least 2 characters).",
+      );
+      return;
+    }
+
+    await this.updateSession(sessionId, OnboardingStep.BUYER_NAME, {
+      ...data,
+      businessName: messageText.trim(),
+    });
+
+    await this.interactiveService.sendTextMessage(
+      phone,
+      "Thanks! And what's your full name?",
+    );
   }
 
   private async handleBuyerName(
@@ -445,7 +522,8 @@ export class WhatsAppOnboardingService {
             emailVerified: true,
             buyerProfile: {
               create: {
-                buyerType: "CONSUMER",
+                buyerType: data.buyerType || "BUSINESS",
+                businessName: data.businessName || null,
               },
             },
           },

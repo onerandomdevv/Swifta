@@ -20,12 +20,15 @@ export function AccountDetailsStep({
   const {
     register,
     watch,
+    setValue,
     formState: { errors },
   } = useFormContext<RegistrationFormData>();
 
   const role = watch("role");
+  const buyerType = watch("buyerType");
   const isMerchant = role === UserRole.MERCHANT;
   const isSupplier = role === UserRole.SUPPLIER;
+  const isBuyer = role === UserRole.BUYER;
 
   return (
     <div className="max-w-md w-full mx-auto animate-in fade-in slide-in-from-right-4 duration-700">
@@ -73,6 +76,49 @@ export function AccountDetailsStep({
       )}
 
       <form onSubmit={onSubmit} className="space-y-4">
+        {/* Buyer Type Selection — Buyer only */}
+        {isBuyer && (
+          <div className="mb-6">
+            <label className="block text-sm font-bold text-slate-700 mb-3">
+              I am registering as:
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() =>
+                  setValue("buyerType", "BUSINESS", { shouldValidate: true })
+                }
+                className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                  buyerType === "BUSINESS"
+                    ? "border-primary bg-primary/5 text-primary"
+                    : "border-slate-100 bg-[#f6f6f8] text-slate-500 hover:border-slate-200"
+                }`}
+              >
+                <span className="material-symbols-outlined text-xl">
+                  corporate_fare
+                </span>
+                <span className="font-bold text-sm">Business</span>
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setValue("buyerType", "CONSUMER", { shouldValidate: true })
+                }
+                className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                  buyerType === "CONSUMER"
+                    ? "border-primary bg-primary/5 text-primary"
+                    : "border-slate-100 bg-[#f6f6f8] text-slate-500 hover:border-slate-200"
+                }`}
+              >
+                <span className="material-symbols-outlined text-xl">
+                  person
+                </span>
+                <span className="font-bold text-sm">Individual</span>
+              </button>
+            </div>
+            <input type="hidden" {...register("buyerType")} />
+          </div>
+        )}
         {/* Name row: First + Middle + Last */}
         <div className="grid grid-cols-3 gap-3">
           <div>
@@ -120,8 +166,8 @@ export function AccountDetailsStep({
           </div>
         </div>
 
-        {/* Business Name — Merchant only */}
-        {isMerchant && (
+        {/* Business Name — Merchant or Business Buyer */}
+        {(isMerchant || (isBuyer && buyerType === "BUSINESS")) && (
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-1.5">
               Business Name
