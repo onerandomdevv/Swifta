@@ -120,7 +120,12 @@ export class WhatsAppService {
       const buyerId = await this.buyerAuthService.resolvePhone(phone);
       if (buyerId) {
         this.logger.log(`Routing message to Buyer Bot (Phone: ${phone})`);
-        await this.buyerService.processMessage(phone, messageText, messageId);
+        await this.buyerService.processMessage(
+          phone,
+          messageText,
+          messageId,
+          interactiveReply,
+        );
         return;
       }
 
@@ -1398,6 +1403,34 @@ export class WhatsAppService {
       this.logger.error(
         `Failed to send supplier payout notification: ${error}`,
       );
+    }
+  }
+
+  /**
+   * ⭐️ Review Prompt (Interactive) — called via BullMQ
+   */
+  async sendReviewPrompt(
+    buyerId: string,
+    orderId: string,
+    merchantName: string,
+    productName: string,
+  ): Promise<void> {
+    try {
+      const link = await this.prisma.whatsAppLink.findFirst({
+        where: { userId: buyerId, isActive: true },
+      });
+
+      if (!link) return;
+
+      const bodyText = `⭐️ *How was your order for ${productName}?*\n\nYour experience with *${merchantName}* matters! Please rate them below:`;
+
+      await this.buyerService.sendWhatsAppReviewPrompt(
+        link.phone,
+        bodyText,
+        orderId,
+      );
+    } catch (error) {
+      this.logger.error(`Failed to send review prompt to ${buyerId}: ${error}`);
     }
   }
 }

@@ -19,6 +19,8 @@ export interface Order {
   merchant?: any;
   quote?: any;
   rfq?: any;
+  product?: any;
+  review?: any;
 }
 
 export interface OrderEvent {

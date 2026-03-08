@@ -15,7 +15,7 @@ import { InventoryService } from "../inventory/inventory.service";
 import { PaymentService } from "../payment/payment.service";
 import { ReorderService } from "../reorder/reorder.service";
 import { LogisticsService } from "../logistics/logistics.service";
-import { PAYOUT_QUEUE } from "../../queue/queue.constants";
+import { PAYOUT_QUEUE, REVIEW_QUEUE } from "../../queue/queue.constants";
 import { WhatsAppService } from "../whatsapp/whatsapp.service";
 import {
   OrderStatus,
@@ -42,6 +42,7 @@ export class OrderService {
     private paymentService: PaymentService,
     private reorderService: ReorderService,
     @InjectQueue(PAYOUT_QUEUE) private payoutQueue: Queue,
+    @InjectQueue(REVIEW_QUEUE) private reviewQueue: Queue,
     private verificationService: VerificationService,
     private logisticsService: LogisticsService,
     private whatsappService: WhatsAppService,
@@ -682,6 +683,24 @@ export class OrderService {
     } catch (error) {
       this.logger.error(
         `Failed to create reorder reminder for order ${orderId}: ${error instanceof Error ? error.message : error}`,
+      );
+    }
+
+    // REVIEW PROMPT: Queue a review prompt job after 1 hour (3600 seconds)
+    try {
+      this.logger.log(`Queueing review prompt for order ${orderId} in 1 hour`);
+      await this.reviewQueue.add(
+        "send-review-prompt",
+        { orderId, buyerId },
+        {
+          delay: 3600 * 1000, // 1 hour delay
+          jobId: `review-prompt-${orderId}`,
+          removeOnComplete: true,
+        },
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to queue review prompt for order ${orderId}: ${error instanceof Error ? error.message : error}`,
       );
     }
 

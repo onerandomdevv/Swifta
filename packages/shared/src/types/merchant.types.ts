@@ -32,6 +32,8 @@ export interface MerchantProfile {
     email: string;
     phone: string;
   } | null;
+  averageRating: number;
+  reviewCount: number;
 }
 
 export interface UpdateMerchantDto {

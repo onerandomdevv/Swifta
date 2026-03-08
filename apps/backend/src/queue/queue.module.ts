@@ -9,6 +9,7 @@ import {
   PAYOUT_QUEUE,
   LOGISTICS_QUEUE,
   AUTO_CONFIRM_QUEUE,
+  REVIEW_QUEUE,
 } from "./queue.constants";
 
 @Global()
@@ -43,6 +44,7 @@ import {
       { name: PAYOUT_QUEUE },
       { name: LOGISTICS_QUEUE },
       { name: AUTO_CONFIRM_QUEUE },
+      { name: REVIEW_QUEUE },
     ),
   ],
   exports: [BullModule],
