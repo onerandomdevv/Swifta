@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { CheckCircle2 } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 
 export default function LandingPage() {
