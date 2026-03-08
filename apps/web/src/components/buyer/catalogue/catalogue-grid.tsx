@@ -25,7 +25,7 @@ export function CatalogueGrid({
         </div>
         <div>
           <h4 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
-            No materials found
+            No products found
           </h4>
           <p className="text-slate-500 font-bold text-sm tracking-wide mt-2">
             Adjust your filters or try a different search term.

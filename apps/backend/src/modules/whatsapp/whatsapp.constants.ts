@@ -33,7 +33,7 @@ export const RFQ_RESPOND_FOLLOWUP = `To provide a quote, please include:
 Example: "Quote a3f2 at 8500 per bag"`;
 
 /** First message for an unlinked phone */
-export const WELCOME_MESSAGE = `Welcome to SwiftTrade, Nigeria's digital marketplace for building and hardware materials. How would you like to use our platform?`;
+export const WELCOME_MESSAGE = `Welcome to SwiftTrade, Nigeria's digital marketplace for all your retail and wholesale needs. How would you like to use our platform?`;
 
 export const ROLE_SELECTED_MESSAGE = `Great! To link your account, please reply with your registered email address.`;
 
@@ -87,7 +87,7 @@ export const NUMBER_INTENT_MAP: Record<string, string> = {
 // ---------------------------------------------------------------------------
 // Gemini system prompt — rich with Pidgin / Yoruba-English examples
 // ---------------------------------------------------------------------------
-export const SYSTEM_PROMPT = `You are SwiftTrade Bot, a friendly AI assistant for hardware merchants in Lagos, Nigeria.
+export const SYSTEM_PROMPT = `You are SwiftTrade Bot, a friendly AI assistant for retail and wholesale merchants in Nigeria, managing products across various categories (electronics, fashion, hardware, groceries, etc.).
 
 YOUR JOB: Understand what the merchant wants and call the right function. That's it.
 
@@ -115,15 +115,15 @@ Inventory queries:
 - "what is in my store" → get_inventory
 - "check my stock" → get_inventory
 - "I want to see inventory" → get_inventory
-- "how much cement do I have" → get_inventory (productName: "cement")
+- "how many iphones do I have" → get_inventory (productName: "iphone")
 - "my goods" → get_inventory
 - "warehouse" → get_inventory
 
 Stock updates:
-- "add 50 bags cement" → update_stock (productName: "cement", quantity: 50, action: "add")
-- "I just receive 100 iron rod" → update_stock (productName: "iron rod", quantity: 100, action: "add")
+- "add 50 bags of rice" → update_stock (productName: "bags of rice", quantity: 50, action: "add")
+- "I just receive 10 hp laptops" → update_stock (productName: "hp laptops", quantity: 10, action: "add")
 - "remove 20 bags cement" → update_stock (productName: "cement", quantity: 20, action: "remove")
-- "50 blocks have been sold" → update_stock (productName: "blocks", quantity: 50, action: "remove")
+- "50 shirts have been sold" → update_stock (productName: "shirts", quantity: 50, action: "remove")
 
 Product queries:
 - "my products" → get_products

@@ -7,14 +7,14 @@ import { Logo } from "@/components/ui/logo";
 const SLIDE_INTERVAL = 4000;
 
 const slides = [
-  { url: "/images/hero/slide-1.jpg", alt: "PVC pipes and plumbing supplies" },
+  { url: "/images/hero/slide-1.jpg", alt: "Electronics and smart devices" },
   {
     url: "/images/hero/slide-2.jpg",
-    alt: "Concrete blocks and masonry materials",
+    alt: "Fashion and apparel goods",
   },
-  { url: "/images/hero/slide-3.jpg", alt: "Corrugated metal roofing sheets" },
-  { url: "/images/hero/slide-4.jpg", alt: "Industrial paint and coatings" },
-  { url: "/images/hero/slide-5.jpg", alt: "Structural steel channels" },
+  { url: "/images/hero/slide-3.jpg", alt: "Home appliances and kitchenware" },
+  { url: "/images/hero/slide-4.jpg", alt: "Packaged groceries and provisions" },
+  { url: "/images/hero/slide-5.jpg", alt: "Industrial and hardware supplies" },
 ];
 
 export default function LandingPage() {
@@ -117,7 +117,7 @@ export default function LandingPage() {
             <h1 className="text-6xl lg:text-8xl font-black text-white leading-[1.05] tracking-tight">
               Nigeria&apos;s Private
               <br />
-              <span className="text-primary">Hardware Trading</span>
+              <span className="text-primary">E-commerce</span>
               <br />
               Infrastructure
             </h1>
@@ -169,7 +169,8 @@ export default function LandingPage() {
               How It Works
             </h2>
             <p className="text-slate-500 mt-4 max-w-xl mx-auto font-medium">
-              Streamlining industrial procurement from request to delivery.
+              Streamlining retail and wholesale procurement from request to
+              delivery.
             </p>
           </div>
 
@@ -179,7 +180,7 @@ export default function LandingPage() {
                 icon: "forum",
                 step: "01",
                 title: "Request a Quote",
-                desc: "Post your hardware requirements to our network of pre-verified suppliers. Prices stay private.",
+                desc: "Post your product requirements to our network of pre-verified suppliers. Prices stay private.",
               },
               {
                 icon: "receipt_long",
@@ -232,7 +233,7 @@ export default function LandingPage() {
             </h2>
             <p className="text-slate-500 mt-4 max-w-xl mx-auto font-medium">
               Built specifically for the unique challenges of the Nigerian
-              industrial supply chain.
+              supply chain.
             </p>
           </div>
 
@@ -307,7 +308,8 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <Logo variant="light" size="sm" />
           <p className="text-xs text-slate-400 font-medium">
-            &copy; {new Date().getFullYear()} SwiftTrade Technologies. Built for Nigeria.
+            &copy; {new Date().getFullYear()} SwiftTrade Technologies. Built for
+            Nigeria.
           </p>
           <div className="flex gap-6 text-xs font-bold text-slate-400">
             <a href="#" className="hover:text-primary transition-colors">

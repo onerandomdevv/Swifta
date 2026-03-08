@@ -72,8 +72,8 @@ export function RoleSelectionStep({
                   )}
                 </div>
                 <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Sell hardware products and manage your inventory at scale with
-                  our merchant tools.
+                  Sell products and manage your retail/wholesale inventory at
+                  scale with our merchant tools.
                 </p>
               </div>
             </div>
@@ -113,8 +113,8 @@ export function RoleSelectionStep({
                   )}
                 </div>
                 <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Source quality building materials and tools for your projects
-                  from verified suppliers.
+                  Source quality products and goods for your personal or
+                  business needs from verified suppliers.
                 </p>
               </div>
             </div>
