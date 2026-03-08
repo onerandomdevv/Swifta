@@ -59,6 +59,13 @@ export class SupplierController {
     return this.supplierService.listCatalogue();
   }
 
+  @Get("recommended")
+  @Roles(UserRole.MERCHANT)
+  async getRecommendedCatalogue(@CurrentUser("sub") userId: string) {
+    const merchant = await this.supplierService.getProfile(userId);
+    return this.supplierService.getRecommendedCatalogue(merchant.id);
+  }
+
   @Get("dashboard")
   @Roles(UserRole.SUPPLIER)
   getDashboard(@CurrentUser("sub") userId: string) {

@@ -20,6 +20,55 @@ export class SupplierService {
     private whatsappService: WhatsAppService,
   ) {}
 
+  private async findMerchantCategories(merchantId: string): Promise<string[]> {
+    const products = await this.prisma.product.findMany({
+      where: { merchantId, isActive: true, deletedAt: null },
+      select: { categoryTag: true },
+      distinct: ["categoryTag"],
+    });
+    return products.map((p) => p.categoryTag);
+  }
+
+  async getRecommendedCatalogue(
+    merchantId: string,
+    page: number = 1,
+    limit: number = 50,
+  ) {
+    const merchantCategories = (
+      await this.findMerchantCategories(merchantId)
+    ).map((c) => c.trim().toLowerCase());
+
+    // Get all active supplier products (with pagination)
+    const allProducts = await this.prisma.supplierProduct.findMany({
+      where: {
+        isActive: true,
+        supplier: { isVerified: true },
+      },
+      include: {
+        supplier: {
+          select: { companyName: true, isVerified: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      skip: (page - 1) * limit,
+    });
+
+    // Map and Sort: Recommended (matching categories) first
+    return allProducts
+      .map((p) => {
+        const isMatch = merchantCategories.includes(
+          p.category.trim().toLowerCase(),
+        );
+        return { ...p, isRecommended: isMatch };
+      })
+      .sort((a, b) => {
+        if (a.isRecommended && !b.isRecommended) return -1;
+        if (!a.isRecommended && b.isRecommended) return 1;
+        return 0; // maintain default order (createdAt desc from query)
+      });
+  }
+
   async getProfile(userId: string) {
     const profile = await this.prisma.supplierProfile.findUnique({
       where: { userId },

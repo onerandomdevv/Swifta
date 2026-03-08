@@ -161,7 +161,10 @@ export class ImageSearchService {
       if (!imageResponse.ok) throw new Error("Failed to download image data");
 
       const mimeType =
-        imageResponse.headers.get("content-type") || "image/jpeg";
+        urlData.mime_type ||
+        (imageResponse.headers.get("content-type") || "image/jpeg")
+          .split(";")[0]
+          .trim();
       const arrayBuffer = await imageResponse.arrayBuffer();
       const base64Data = Buffer.from(arrayBuffer).toString("base64");
 

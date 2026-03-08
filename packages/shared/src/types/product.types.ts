@@ -1,5 +1,17 @@
 import { MerchantProfile } from "./merchant.types";
 
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  parentId?: string;
+  icon?: string;
+  isActive: boolean;
+  sortOrder: number;
+  children?: Category[];
+  productCount?: number;
+}
+
 export interface Product {
   id: string;
   merchantId: string;
@@ -7,6 +19,8 @@ export interface Product {
   description?: string;
   unit: string;
   categoryTag: string;
+  categoryId: string;
+  category?: Category;
   imageUrl?: string;
   minOrderQuantity: number;
   isActive: boolean;
@@ -24,6 +38,7 @@ export interface CreateProductDto {
   description?: string;
   unit: string;
   categoryTag: string;
+  categoryId: string;
   imageUrl?: string;
   minOrderQuantity?: number;
   warehouseLocation?: string;
@@ -32,4 +47,23 @@ export interface CreateProductDto {
 
 export type UpdateProductDto = Partial<CreateProductDto> & {
   isActive?: boolean;
+  categoryId?: string;
 };
+
+export interface SupplierProduct {
+  id: string;
+  name: string;
+  description?: string;
+  category: string;
+  unit: string;
+  wholesalePriceKobo: number;
+  minOrderQty: number;
+  isActive: boolean;
+  isRecommended?: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  supplier: {
+    companyName: string;
+    isVerified: boolean;
+  };
+}

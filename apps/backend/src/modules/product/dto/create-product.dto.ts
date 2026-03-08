@@ -23,7 +23,6 @@ export class CreateProductDto {
 
   @IsString()
   @IsNotEmpty()
-  @IsIn(PRODUCT_CATEGORIES, { message: "Invalid category" })
   categoryTag: string;
 
   @IsString()
