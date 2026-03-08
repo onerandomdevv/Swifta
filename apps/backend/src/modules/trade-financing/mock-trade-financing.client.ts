@@ -39,11 +39,14 @@ export class MockTradeFinancingClient implements TradeFinancingPartnerClient {
 
     // Give them 3x their monthly revenue as a credit limit
     const maxAmount = merchantData.averageMonthlyRevenueKobo * 3n;
+    const creditScore =
+      merchantData.averageMonthlyRevenueKobo > 100000000n ? "A+" : "B";
 
     return {
       eligible: true,
       maxAmount,
       interestRate: this.DEFAULT_INTEREST_RATE,
+      creditScore,
       reason: "Approved based on merchant revenue history.",
     };
   }

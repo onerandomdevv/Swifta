@@ -722,6 +722,7 @@ model SupplierProfile {
   user            User              @relation(fields: [userId], references: [id])
   products        SupplierProduct[]
   orders          Order[]
+  whatsappLink    WhatsAppSupplierLink?
   @@map("supplier_profiles")
 }
 
@@ -749,4 +750,14 @@ model WhatsAppBuyerLink {
   isActive  Boolean  @default(true) @map("is_active")
   buyer     User     @relation(fields: [buyerId], references: [id])
   @@map("whatsapp_buyer_links")
+}
+
+model WhatsAppSupplierLink {
+  id          String          @id @default(uuid()) @db.Uuid
+  phone       String          @unique
+  supplierId  String          @unique @map("supplier_id") @db.Uuid
+  linkedAt    DateTime        @default(now()) @map("linked_at")
+  isActive    Boolean         @default(true) @map("is_active")
+  supplier    SupplierProfile @relation(fields: [supplierId], references: [id])
+  @@map("whatsapp_supplier_links")
 }

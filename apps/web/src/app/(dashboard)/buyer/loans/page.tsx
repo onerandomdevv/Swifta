@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { getBnplLoans } from "@/lib/api/bnpl.api";
+import { getTradeFinancingLoans } from "@/lib/api/trade-financing.api";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function BuyerLoansPage() {
@@ -12,7 +12,7 @@ export default function BuyerLoansPage() {
   useEffect(() => {
     async function load() {
       try {
-        const data = await getBnplLoans();
+        const data = await getTradeFinancingLoans();
         setLoans(data as any[]);
       } catch (err: any) {
         setError(err.message || "Failed to load loans.");
@@ -43,10 +43,10 @@ export default function BuyerLoansPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold uppercase tracking-tight text-slate-900">
-            Pay Later Loans
+            Trade Financing
           </h1>
           <p className="text-sm font-medium text-slate-500 tracking-wide mt-1">
-            Manage your SwiftTrade BNPL applications
+            Manage your stock financing and B2B credit
           </p>
         </div>
       </div>
@@ -66,7 +66,8 @@ export default function BuyerLoansPage() {
             No active loans found
           </p>
           <p className="text-xs text-slate-500 mt-2 font-medium">
-            You can apply for Pay Later during checkout if you're eligible.
+            You can apply for Trade Financing during checkout if you're
+            eligible.
           </p>
         </div>
       ) : (

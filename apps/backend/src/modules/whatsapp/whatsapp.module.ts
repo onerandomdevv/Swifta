@@ -16,6 +16,8 @@ import { WhatsAppIntentService } from "./whatsapp-intent.service";
 import { WhatsAppBuyerService } from "./whatsapp-buyer.service";
 import { WhatsAppBuyerAuthService } from "./whatsapp-buyer-auth.service";
 import { WhatsAppBuyerIntentService } from "./whatsapp-buyer-intent.service";
+import { WhatsAppSupplierService } from "./whatsapp-supplier.service";
+import { WhatsAppSupplierIntentService } from "./whatsapp-supplier-intent.service";
 import { WhatsAppProcessor } from "./whatsapp.processor";
 
 /**
@@ -56,6 +58,8 @@ import { WhatsAppProcessor } from "./whatsapp.processor";
     WhatsAppBuyerService,
     WhatsAppBuyerAuthService,
     WhatsAppBuyerIntentService,
+    WhatsAppSupplierService,
+    WhatsAppSupplierIntentService,
     WhatsAppProcessor,
   ],
   exports: [WhatsAppService],

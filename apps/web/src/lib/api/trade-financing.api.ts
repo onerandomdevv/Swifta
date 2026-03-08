@@ -1,9 +1,10 @@
-import { apiClient } from "./api-client";
+import { apiClient } from "../api-client";
 
 export interface TradeFinancingEligibilityResponse {
   eligible: boolean;
   maxAmount: string; // BigInt as string from JSON
   interestRate: number;
+  creditScore?: string;
   reason?: string;
 }
 

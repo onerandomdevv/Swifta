@@ -16,6 +16,17 @@ export const MAIN_MENU = `Welcome back! 🤝 Here's what I fit help you with:
 
 Just type a number or tell me wetin you need! 🤝`;
 
+/** Supplier main menu */
+export const SUPPLIER_MAIN_MENU = `Welcome back, Supplier! 🏗️
+
+1️⃣ Today's Sales
+2️⃣ My Orders
+3️⃣ My Products
+4️⃣ Update Price
+5️⃣ My Payouts
+
+Or just tell me what you need!`;
+
 /** Friendly fallback when AI can't determine intent */
 export const FRIENDLY_FALLBACK = `I no too understand that one o 😅 But no worry, here's what I fit help you with:
 
@@ -66,17 +77,29 @@ Example: "quote a3f2 at 8500 per bag"
 Reply *2* to see your pending RFQs first.`;
 
 /** First message for an unlinked phone */
-export const WELCOME_MESSAGE = `Welcome to SwiftTrade! 🔗
+export const WELCOME_MESSAGE = `Welcome to SwiftTrade!
 
-To link your merchant account, please reply with your registered email address.`;
+Are you a:
+1️⃣ Buyer
+2️⃣ Merchant
+
+Reply 1 or 2.`;
+
+export const ROLE_SELECTED_MESSAGE = `Great! To link your account, please reply with your registered email address.`;
 
 /** Sent after looking up the email */
 export const LINK_OTP_SENT = (email: string) =>
   `I've sent a 6-digit verification code to ${email}. Please reply with the code.`;
 
 /** Sent when linking succeeds */
-export const LINK_SUCCESS = (merchantName: string) =>
-  `You're all set, ${merchantName}! 🎉\n\n${MAIN_MENU}`;
+export const LINK_SUCCESS = (merchantName: string, role: string) => {
+  if (role === "BUYER") {
+    return `You're all set, ${merchantName}! 🎉\n\nYou can now tell me what you want to buy, or say "track my order" if you have any active deliveries.`;
+  } else if (role === "SUPPLIER") {
+    return `You're all set, ${merchantName}! 🎉\n\n${SUPPLIER_MAIN_MENU}`;
+  }
+  return `You're all set, ${merchantName}! 🎉\n\n${MAIN_MENU}`;
+};
 
 /** Sent when the phone is already linked */
 export const ALREADY_LINKED = `This phone number is already linked to a merchant account.`;
@@ -91,6 +114,7 @@ export const GENERIC_ERROR = `Something went wrong on our end. Please try again 
 // Session states for multi-step flows
 // ---------------------------------------------------------------------------
 export enum SessionState {
+  AWAITING_ROLE = "AWAITING_ROLE",
   AWAITING_EMAIL = "AWAITING_EMAIL",
   AWAITING_OTP = "AWAITING_OTP",
 }

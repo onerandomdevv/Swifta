@@ -109,6 +109,7 @@ export class TradeFinancingService {
         eligible: false,
         maxAmount: 0n,
         interestRate: 0,
+        creditScore: "N/A",
         reason: "Need at least 10 completed sales orders.",
       };
     }
@@ -119,6 +120,7 @@ export class TradeFinancingService {
         eligible: false,
         maxAmount: 0n,
         interestRate: 0,
+        creditScore: "N/A",
         reason: "Average monthly revenue must be above ₦500,000.",
       };
     }
@@ -129,6 +131,7 @@ export class TradeFinancingService {
         eligible: false,
         maxAmount: 0n,
         interestRate: 0,
+        creditScore: "N/A",
         reason: "Dispute rate is too high for trade financing.",
       };
     }
@@ -163,6 +166,12 @@ export class TradeFinancingService {
     // 2. Fetch Merchant Data
     const merchantData = await this.getMerchantCreditData(userId);
 
+    if (order.supplierId === merchantData.merchantId) {
+      throw new BadRequestException(
+        "You cannot finance an order from your own supplier profile",
+      );
+    }
+
     // 3. Check Eligibility
     const eligibility = await this.partnerClient.checkEligibility(merchantData);
     if (!eligibility.eligible) {
@@ -196,9 +205,12 @@ export class TradeFinancingService {
     }
 
     // 5. Store CreditApplication in DB & Update Order via Transaction
-    const COMMISSION_PERCENTAGE = parseFloat(
+    let COMMISSION_PERCENTAGE = parseFloat(
       process.env.TRADE_FINANCING_COMMISSION_PERCENTAGE || "3",
     );
+    if (isNaN(COMMISSION_PERCENTAGE) || COMMISSION_PERCENTAGE < 0) {
+      COMMISSION_PERCENTAGE = 3;
+    }
     const commissionKobo = BigInt(
       Math.floor((Number(requestedAmount) * COMMISSION_PERCENTAGE) / 100),
     );
@@ -247,7 +259,11 @@ export class TradeFinancingService {
     const merchant = await this.prisma.merchantProfile.findUnique({
       where: { userId },
     });
-    if (!merchant) throw new NotFoundException();
+    if (!merchant) {
+      throw new NotFoundException(
+        "Merchant profile not found. Trade Financing is only for verified merchants.",
+      );
+    }
 
     return this.prisma.creditApplication.findMany({
       where: { merchantId: merchant.id },

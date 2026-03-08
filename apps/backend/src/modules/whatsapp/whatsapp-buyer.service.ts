@@ -60,11 +60,9 @@ export class WhatsAppBuyerService {
       const buyerId = await this.authService.resolvePhone(phone);
 
       if (!buyerId) {
-        const response = await this.authService.handleLinkingFlow(
-          phone,
-          messageText,
+        this.logger.error(
+          `Buyer link not found for phone ${phone} during processMessage`,
         );
-        await this.sendWhatsAppMessage(phone, response);
         return;
       }
 
@@ -72,32 +70,42 @@ export class WhatsAppBuyerService {
       const checkoutKey = `wa_pending_checkout_${buyerId}`;
       const checkoutSessionRaw = await this.redisService.get(checkoutKey);
       if (checkoutSessionRaw) {
-        const session = JSON.parse(checkoutSessionRaw);
-        const response = await this.handleCheckoutStep(
-          buyerId,
-          session,
-          messageText,
-          checkoutKey,
-        );
-        await this.sendWhatsAppMessage(phone, response);
-        return;
+        try {
+          const session = JSON.parse(checkoutSessionRaw);
+          const response = await this.handleCheckoutStep(
+            buyerId,
+            session,
+            messageText,
+            checkoutKey,
+          );
+          await this.sendWhatsAppMessage(phone, response);
+          return;
+        } catch (parseErr) {
+          this.logger.error(`Malformed checkout session for ${buyerId}`);
+          await this.redisService.del(checkoutKey);
+        }
       }
 
       // 2. Check for pending OTP confirmation (delivery completion)
       const pendingOtpKey = `${PENDING_OTP_PREFIX}${buyerId}`;
       const pendingSession = await this.redisService.get(pendingOtpKey);
       if (pendingSession) {
-        const pending = JSON.parse(pendingSession);
-        const text = messageText.trim().replace(/\s/g, "");
-        if (/^\d{6}$/.test(text)) {
-          const response = await this.handleOtpConfirmation(
-            buyerId,
-            pending.orderId,
-            text,
-            pendingOtpKey,
-          );
-          await this.sendWhatsAppMessage(phone, response);
-          return;
+        try {
+          const pending = JSON.parse(pendingSession);
+          const text = messageText.trim().replace(/\s/g, "");
+          if (/^\d{6}$/.test(text)) {
+            const response = await this.handleOtpConfirmation(
+              buyerId,
+              pending.orderId,
+              text,
+              pendingOtpKey,
+            );
+            await this.sendWhatsAppMessage(phone, response);
+            return;
+          }
+        } catch (parseErr) {
+          this.logger.error(`Malformed pending OTP session for ${buyerId}`);
+          await this.redisService.del(pendingOtpKey);
         }
       }
 

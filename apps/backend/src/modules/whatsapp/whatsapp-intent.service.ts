@@ -59,9 +59,18 @@ export class WhatsAppIntentService {
       return { functionName: "show_menu", params: {} };
     }
 
-    // 3. EVERYTHING ELSE → send to Gemini AI for intent parsing
-    //    This includes "hi", "hello", "how market", "check stock", etc.
-    //    The AI will decide the right function.
+    // 3. Wholesale / Manufacturer shortcuts (High priority in V4)
+    if (
+      lower.includes("wholesale") ||
+      lower.includes("manufacturer") ||
+      lower.includes("supplier") ||
+      lower.includes("buy stock")
+    ) {
+      this.logger.log(`Wholesale shortcut matched: "${text}"`);
+      return this.basicKeywordMatch(text);
+    }
+
+    // 4. EVERYTHING ELSE → send to Gemini AI for intent parsing
     if (this.genAI) {
       try {
         this.logger.log(`Sending to Gemini AI: "${text}"`);

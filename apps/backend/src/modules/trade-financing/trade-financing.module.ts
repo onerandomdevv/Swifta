@@ -13,9 +13,13 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
     {
       provide: "TRADE_FINANCING_PARTNER_CLIENT",
       useFactory: (config: ConfigService) => {
-        // Here we could switch based on config.get("FINANCING_PARTNER")
-        // For now, we use the Mock client as required locally.
-        return new MockTradeFinancingClient();
+        const partner = config.get("FINANCING_PARTNER") || "mock";
+        if (partner === "mock") {
+          return new MockTradeFinancingClient();
+        }
+        throw new Error(
+          `Trade Financing partner '${partner}' is not supported yet.`,
+        );
       },
       inject: [ConfigService],
     },

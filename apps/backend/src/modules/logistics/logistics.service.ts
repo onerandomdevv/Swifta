@@ -238,6 +238,15 @@ export class LogisticsService {
           newStatus,
         );
       }
+
+      // Notify Supplier
+      if (booking.order.supplierId) {
+        await this.whatsappService.sendSupplierLogisticsUpdate(
+          booking.order.supplierId,
+          booking.orderId,
+          newStatus,
+        );
+      }
     } catch (err) {
       this.logger.error(
         `Failed to send WhatsApp notification for booking ${partnerRef}`,

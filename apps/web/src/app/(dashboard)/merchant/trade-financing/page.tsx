@@ -36,7 +36,7 @@ export default function MerchantTradeFinancingPage() {
 
   const activeLoans = loans?.filter((l) => l.status === "ACTIVE") || [];
   const totalDebt = activeLoans.reduce(
-    (acc, l) => acc + BigInt(l.remainingAmountKobo),
+    (acc, l) => acc + BigInt(l.remainingAmountKobo || 0),
     BigInt(0),
   );
 
@@ -100,7 +100,7 @@ export default function MerchantTradeFinancingPage() {
               verified
             </span>
             <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">
-              Health: A+
+              Health: {eligibility?.creditScore || "N/A"}
             </p>
           </div>
           <p className="text-[10px] text-slate-500 mt-2 font-medium">

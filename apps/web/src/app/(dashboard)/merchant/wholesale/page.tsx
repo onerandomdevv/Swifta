@@ -54,17 +54,22 @@ export default function WholesaleCataloguePage() {
           window.location.href = `/merchant/orders/${data.orderId}?success=financing_approved`;
         } catch (err: any) {
           toast.error(
-            err.message || "Financing application failed. Please pay now.",
+            err.message ||
+              "Financing application failed. Redirecting to regular payment...",
           );
-          // Optionally redirect to regular payment or stay on page
+          if (data.authorizationUrl) {
+            window.location.href = data.authorizationUrl;
+            return; // Don't close modal yet if redirecting
+          }
         }
       } else {
         toast.success("Order created! Redirecting to payment...");
         if (data.authorizationUrl) {
           window.location.href = data.authorizationUrl;
+          return;
         }
+        setSelectedProduct(null);
       }
-      setSelectedProduct(null);
     },
     onError: (error: any) => {
       toast.error(error.message || "Failed to create order");

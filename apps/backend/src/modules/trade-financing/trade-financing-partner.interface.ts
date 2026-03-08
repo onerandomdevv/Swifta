@@ -19,6 +19,7 @@ export interface TradeFinancingPartnerClient {
     eligible: boolean;
     maxAmount: bigint;
     interestRate: number;
+    creditScore?: string;
     reason?: string;
   }>;
 

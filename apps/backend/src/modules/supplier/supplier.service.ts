@@ -10,12 +10,14 @@ import { UpdateSupplierProductDto } from "./dto/update-supplier-product.dto";
 import { CreateWholesaleOrderDto } from "./dto/create-wholesale-order.dto";
 import { OrderStatus } from "@hardware-os/shared";
 import { PaymentService } from "../payment/payment.service";
+import { WhatsAppService } from "../whatsapp/whatsapp.service";
 
 @Injectable()
 export class SupplierService {
   constructor(
     private prisma: PrismaService,
     private paymentService: PaymentService,
+    private whatsappService: WhatsAppService,
   ) {}
 
   async getProfile(userId: string) {
@@ -211,6 +213,29 @@ export class SupplierService {
       await this.prisma.order.delete({ where: { id: order.id } });
       throw new BadRequestException(
         "Payment initialization failed. Please try again.",
+      );
+    }
+
+    // Trigger WhatsApp notification to Supplier (outside transaction)
+    try {
+      const buyer = await this.prisma.user.findUnique({
+        where: { id: userId },
+      });
+      if (buyer) {
+        await this.whatsappService.sendSupplierNewOrder(product.supplierId, {
+          orderId: order.id,
+          buyerName: `${buyer.firstName} ${buyer.lastName}`,
+          productName: product.name,
+          quantity: dto.quantity,
+          amountKobo: totalAmountKobo,
+          deliveryAddress: dto.deliveryAddress,
+        });
+      }
+    } catch (notifierErr) {
+      // Just log, don't fail the order creation
+      console.error(
+        `Failed to send supplier WhatsApp notification for ${order.id}`,
+        notifierErr,
       );
     }
 
