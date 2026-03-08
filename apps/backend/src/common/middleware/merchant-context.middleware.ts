@@ -1,6 +1,6 @@
-import { Injectable, NestMiddleware } from '@nestjs/common';
-import { Request, Response, NextFunction } from 'express';
-import { UserRole } from '@hardware-os/shared';
+import { Injectable, NestMiddleware } from "@nestjs/common";
+import { Request, Response, NextFunction } from "express";
+import { UserRole } from "@hardware-os/shared";
 
 @Injectable()
 export class MerchantContextMiddleware implements NestMiddleware {

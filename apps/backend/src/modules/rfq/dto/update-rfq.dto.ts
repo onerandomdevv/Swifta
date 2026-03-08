@@ -1,6 +1,10 @@
-import { PartialType, OmitType } from '@nestjs/mapped-types';
-import { CreateRFQDto } from './create-rfq.dto';
+import { PartialType, OmitType } from "@nestjs/mapped-types";
+import { CreateRFQDto } from "./create-rfq.dto";
 
 export class UpdateRFQDto extends PartialType(
-  OmitType(CreateRFQDto, ['targetMerchantId', 'productId', 'unlistedItemDetails'] as const)
+  OmitType(CreateRFQDto, [
+    "targetMerchantId",
+    "productId",
+    "unlistedItemDetails",
+  ] as const),
 ) {}

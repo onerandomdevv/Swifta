@@ -182,7 +182,6 @@ export class MerchantService {
 
     // Step 5 reached: Set verification = PENDING (review & submit step)
 
-
     if (newStep !== existing.onboardingStep) {
       updateData.onboardingStep = newStep;
     }
@@ -233,7 +232,6 @@ export class MerchantService {
     // Auto-advance step 4->5 if other fields are complete and we are at step 4
     if (existing.onboardingStep === 4) {
       updateData.onboardingStep = 5;
-
     }
 
     return this.prisma.merchantProfile.update({

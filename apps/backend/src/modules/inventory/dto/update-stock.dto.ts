@@ -1,4 +1,4 @@
-import { IsInt, IsString, IsOptional, IsNotEmpty } from 'class-validator';
+import { IsInt, IsString, IsOptional, IsNotEmpty } from "class-validator";
 
 export class UpdateStockDto {
   @IsInt()

@@ -74,10 +74,7 @@ export class OrderController {
   }
 
   @Get(":id/tracking")
-  getTracking(
-    @CurrentUser() user: JwtPayload,
-    @Param("id") id: string,
-  ) {
+  getTracking(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.orderService.getTracking(id, user.sub, user.merchantId);
   }
 

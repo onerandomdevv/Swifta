@@ -1,4 +1,4 @@
-import { PaginatedResponse } from '@hardware-os/shared';
+import { PaginatedResponse } from "@hardware-os/shared";
 
 export interface PaginationParams {
   page: number;
@@ -8,7 +8,7 @@ export interface PaginationParams {
 export async function paginate<T, M>(
   model: any,
   params: PaginationParams,
-  options: any = {}
+  options: any = {},
 ): Promise<PaginatedResponse<T>> {
   const { page, limit } = params;
   const skip = (page - 1) * limit;

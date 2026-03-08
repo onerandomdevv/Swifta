@@ -74,7 +74,9 @@ export class NotificationProcessor extends WorkerHost {
               break;
             case "EMAIL_VERIFICATION":
               if (!metadata?.otp) {
-                this.logger.error(`Missing metadata.otp for EMAIL_VERIFICATION (user=${targetUserId})`);
+                this.logger.error(
+                  `Missing metadata.otp for EMAIL_VERIFICATION (user=${targetUserId})`,
+                );
                 continue;
               }
               await this.emailService.sendVerificationOTP(
@@ -83,8 +85,14 @@ export class NotificationProcessor extends WorkerHost {
               );
               break;
             case "NEW_RFQ":
-              if (!metadata?.buyerName || !metadata?.productName || metadata?.quantity == null) {
-                this.logger.error(`Missing metadata for NEW_RFQ (user=${targetUserId})`);
+              if (
+                !metadata?.buyerName ||
+                !metadata?.productName ||
+                metadata?.quantity == null
+              ) {
+                this.logger.error(
+                  `Missing metadata for NEW_RFQ (user=${targetUserId})`,
+                );
                 continue;
               }
               await this.emailService.sendNewRFQNotification(
@@ -95,8 +103,14 @@ export class NotificationProcessor extends WorkerHost {
               );
               break;
             case "QUOTE_RECEIVED":
-              if (!metadata?.merchantName || !metadata?.productName || !metadata?.totalPriceKobo) {
-                this.logger.error(`Missing metadata for QUOTE_RECEIVED (user=${targetUserId})`);
+              if (
+                !metadata?.merchantName ||
+                !metadata?.productName ||
+                !metadata?.totalPriceKobo
+              ) {
+                this.logger.error(
+                  `Missing metadata for QUOTE_RECEIVED (user=${targetUserId})`,
+                );
                 continue;
               }
               try {
@@ -107,13 +121,21 @@ export class NotificationProcessor extends WorkerHost {
                   BigInt(metadata.totalPriceKobo),
                 );
               } catch (convErr) {
-                this.logger.error(`Invalid totalPriceKobo for QUOTE_RECEIVED (user=${targetUserId}, value=${metadata.totalPriceKobo}): ${convErr}`);
+                this.logger.error(
+                  `Invalid totalPriceKobo for QUOTE_RECEIVED (user=${targetUserId}, value=${metadata.totalPriceKobo}): ${convErr}`,
+                );
                 continue;
               }
               break;
             case "QUOTE_ACCEPTED":
-              if (!metadata?.buyerName || !metadata?.orderId || !metadata?.amountKobo) {
-                this.logger.error(`Missing metadata for QUOTE_ACCEPTED (user=${targetUserId})`);
+              if (
+                !metadata?.buyerName ||
+                !metadata?.orderId ||
+                !metadata?.amountKobo
+              ) {
+                this.logger.error(
+                  `Missing metadata for QUOTE_ACCEPTED (user=${targetUserId})`,
+                );
                 continue;
               }
               try {
@@ -124,13 +146,17 @@ export class NotificationProcessor extends WorkerHost {
                   BigInt(metadata.amountKobo),
                 );
               } catch (convErr) {
-                this.logger.error(`Invalid amountKobo for QUOTE_ACCEPTED (user=${targetUserId}, value=${metadata.amountKobo}): ${convErr}`);
+                this.logger.error(
+                  `Invalid amountKobo for QUOTE_ACCEPTED (user=${targetUserId}, value=${metadata.amountKobo}): ${convErr}`,
+                );
                 continue;
               }
               break;
             case "PAYMENT_CONFIRMED":
               if (!metadata?.reference || !metadata?.amountKobo) {
-                this.logger.error(`Missing metadata for PAYMENT_CONFIRMED (user=${targetUserId})`);
+                this.logger.error(
+                  `Missing metadata for PAYMENT_CONFIRMED (user=${targetUserId})`,
+                );
                 continue;
               }
               try {
@@ -141,13 +167,17 @@ export class NotificationProcessor extends WorkerHost {
                   !!metadata.isMerchantId,
                 );
               } catch (convErr) {
-                this.logger.error(`Invalid amountKobo for PAYMENT_CONFIRMED (user=${targetUserId}, value=${metadata.amountKobo}): ${convErr}`);
+                this.logger.error(
+                  `Invalid amountKobo for PAYMENT_CONFIRMED (user=${targetUserId}, value=${metadata.amountKobo}): ${convErr}`,
+                );
                 continue;
               }
               break;
             case "ORDER_DISPATCHED":
               if (!metadata?.reference || !metadata?.otp) {
-                this.logger.error(`Missing metadata for ORDER_DISPATCHED (user=${targetUserId})`);
+                this.logger.error(
+                  `Missing metadata for ORDER_DISPATCHED (user=${targetUserId})`,
+                );
                 continue;
               }
               await this.emailService.sendOrderDispatchedNotification(
@@ -158,7 +188,9 @@ export class NotificationProcessor extends WorkerHost {
               break;
             case "DELIVERY_CONFIRMED":
               if (!metadata?.reference || !metadata?.amountKobo) {
-                this.logger.error(`Missing metadata for DELIVERY_CONFIRMED (user=${targetUserId})`);
+                this.logger.error(
+                  `Missing metadata for DELIVERY_CONFIRMED (user=${targetUserId})`,
+                );
                 continue;
               }
               try {
@@ -168,13 +200,17 @@ export class NotificationProcessor extends WorkerHost {
                   BigInt(metadata.amountKobo),
                 );
               } catch (convErr) {
-                this.logger.error(`Invalid amountKobo for DELIVERY_CONFIRMED (user=${targetUserId}, value=${metadata.amountKobo}): ${convErr}`);
+                this.logger.error(
+                  `Invalid amountKobo for DELIVERY_CONFIRMED (user=${targetUserId}, value=${metadata.amountKobo}): ${convErr}`,
+                );
                 continue;
               }
               break;
             case "PASSWORD_RESET":
               if (!metadata?.resetToken || !metadata?.frontendUrl) {
-                this.logger.error(`Missing metadata for PASSWORD_RESET (user=${targetUserId})`);
+                this.logger.error(
+                  `Missing metadata for PASSWORD_RESET (user=${targetUserId})`,
+                );
                 continue;
               }
               await this.emailService.sendPasswordResetEmail(
