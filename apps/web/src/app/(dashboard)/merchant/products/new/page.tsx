@@ -3,7 +3,8 @@
 import React, { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createProduct, uploadProductImage } from "@/lib/api/product.api";
-import { PRODUCT_CATEGORIES } from "@hardware-os/shared";
+import { getCategories } from "@/lib/api/category.api";
+import { type Category } from "@hardware-os/shared";
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -11,15 +12,29 @@ export default function NewProductPage() {
   const [loading, setLoading] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     unit: "BAGS",
     categoryTag: "",
+    categoryId: "",
     minOrderQuantity: 1,
     imageUrl: "",
     pricePerUnit: "",
   });
+
+  React.useEffect(() => {
+    async function loadCategories() {
+      try {
+        const data = await getCategories();
+        setCategories(data);
+      } catch (err) {
+        console.error("Failed to load categories", err);
+      }
+    }
+    loadCategories();
+  }, []);
 
   const getWordCount = (text: string) => {
     return text.trim() ? text.trim().split(/\s+/).length : 0;
@@ -59,6 +74,7 @@ export default function NewProductPage() {
         description: formData.description || undefined,
         unit: formData.unit,
         categoryTag: formData.categoryTag,
+        categoryId: formData.categoryId,
         minOrderQuantity: formData.minOrderQuantity,
         imageUrl: formData.imageUrl || undefined,
         pricePerUnitKobo: formData.pricePerUnit
@@ -244,17 +260,36 @@ export default function NewProductPage() {
             </label>
             <select
               required
-              value={formData.categoryTag}
-              onChange={(e) =>
-                setFormData({ ...formData, categoryTag: e.target.value })
-              }
+              value={formData.categoryId}
+              onChange={(e) => {
+                const selectedCat = categories
+                  .flatMap((c) => [c, ...(c.children || [])])
+                  .find((c) => c.id === e.target.value);
+                setFormData({
+                  ...formData,
+                  categoryId: e.target.value,
+                  categoryTag: selectedCat?.name || "",
+                });
+              }}
               className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all text-slate-400 appearance-none bg-transparent"
             >
-              <option value="" disabled>Select Category</option>
-              {PRODUCT_CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
+              <option value="" disabled>
+                Select Category
+              </option>
+              {categories.map((parent) => (
+                <React.Fragment key={parent.id}>
+                  <option
+                    value={parent.id}
+                    className="font-bold text-slate-900"
+                  >
+                    {parent.name}
+                  </option>
+                  {parent.children?.map((child) => (
+                    <option key={child.id} value={child.id}>
+                      &nbsp;&nbsp;&nbsp;{child.name}
+                    </option>
+                  ))}
+                </React.Fragment>
               ))}
             </select>
           </div>

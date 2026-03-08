@@ -2,36 +2,50 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { getCatalogue } from "@/lib/api/product.api";
-import { PRODUCT_CATEGORIES, type Product } from "@hardware-os/shared";
+import { getCategories } from "@/lib/api/category.api";
+import { type Product, type Category } from "@hardware-os/shared";
 
 import { CatalogueGrid } from "@/components/buyer/catalogue/catalogue-grid";
 import { CatalogueSkeleton } from "@/components/buyer/catalogue/catalogue-skeleton";
-
-const CATEGORIES = [
-  { label: "All Categories", tag: "All Categories" },
-  ...PRODUCT_CATEGORIES.map(cat => ({ label: cat, tag: cat }))
-];
 
 export default function BuyerCataloguePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All Categories");
+  const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const isInitialMount = useRef(true);
 
-  const fetchProducts = useCallback(async (search: string, category: string) => {
-    try {
-      setError("");
-      setLoading(true);
-      const response = await getCatalogue(search, category, 1, 50);
-      setProducts(response);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load catalogue");
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    async function loadCategories() {
+      try {
+        const data = await getCategories();
+        setCategories(data);
+      } catch (err) {
+        console.error("Failed to load categories", err);
+      }
     }
+    loadCategories();
   }, []);
+
+  const fetchProducts = useCallback(
+    async (search: string, category: string) => {
+      try {
+        setError("");
+        setLoading(true);
+        const response = await getCatalogue(search, category, 1, 50);
+        setProducts(response);
+      } catch (err: unknown) {
+        setError(
+          err instanceof Error ? err.message : "Failed to load catalogue",
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
 
   // Debounced search will handle the initial fetch since searchQuery defaults to ""
   useEffect(() => {
@@ -93,18 +107,47 @@ export default function BuyerCataloguePage() {
 
       {/* Category Tabs */}
       <nav className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex px-8 shrink-0 overflow-x-auto whitespace-nowrap">
-        {CATEGORIES.map((cat) => (
-          <button
-            key={cat.tag}
-            onClick={() => setActiveCategory(cat.tag)}
-            className={`px-6 py-4 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors ${
-              activeCategory === cat.tag
-                ? "text-primary border-primary"
-                : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-300 border-transparent"
-            }`}
-          >
-            {cat.label}
-          </button>
+        <button
+          onClick={() => setActiveCategory("All Categories")}
+          className={`px-6 py-4 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors ${
+            activeCategory === "All Categories"
+              ? "text-primary border-primary"
+              : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-300 border-transparent"
+          }`}
+        >
+          All Categories
+        </button>
+        {categories.map((cat: Category) => (
+          <div key={cat.id} className="relative group">
+            <button
+              onClick={() => setActiveCategory(cat.slug)}
+              className={`px-6 py-4 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors ${
+                activeCategory === cat.slug ||
+                cat.children?.some((c) => c.slug === activeCategory)
+                  ? "text-primary border-primary"
+                  : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-300 border-transparent"
+              }`}
+            >
+              {cat.name}
+            </button>
+            {cat.children && cat.children.length > 0 && (
+              <div className="absolute left-0 top-full hidden group-hover:block bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl z-50 min-w-[200px]">
+                {cat.children.map((sub: Category) => (
+                  <button
+                    key={sub.id}
+                    onClick={() => setActiveCategory(sub.slug)}
+                    className={`block w-full text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${
+                      activeCategory === sub.slug
+                        ? "text-primary"
+                        : "text-slate-600 dark:text-slate-400"
+                    }`}
+                  >
+                    {sub.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         ))}
       </nav>
 

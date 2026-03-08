@@ -23,7 +23,6 @@ export class UpdateProductDto {
 
   @IsOptional()
   @IsString()
-  @IsIn(PRODUCT_CATEGORIES, { message: "Invalid category" })
   categoryTag?: string;
 
   @IsOptional()

@@ -9,7 +9,8 @@ import {
   uploadProductImage,
 } from "@/lib/api/product.api";
 import { getStock, adjustStock } from "@/lib/api/inventory.api";
-import { PRODUCT_CATEGORIES, type Product } from "@hardware-os/shared";
+import { getCategories } from "@/lib/api/category.api";
+import { type Product, type Category } from "@hardware-os/shared";
 
 export default function EditProductPage() {
   const router = useRouter();
@@ -28,9 +29,12 @@ export default function EditProductPage() {
     categoryTag: "",
     minOrderQuantity: 1,
     isActive: true,
+    categoryId: "",
     warehouseLocation: "",
     imageUrl: "",
   });
+
+  const [categories, setCategories] = useState<Category[]>([]);
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -42,16 +46,20 @@ export default function EditProductPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [product, stockData] = await Promise.all([
+        const [productData, stockData, categoriesData] = await Promise.all([
           getProduct(productId) as any as Product,
-          getStock(productId).catch(() => ({ stock: 0 })), // default to 0 if stock fetch fails
+          getStock(productId).catch(() => ({ stock: 0 })),
+          getCategories(),
         ]);
 
+        const product = productData;
+        setCategories(categoriesData);
         setFormData({
           name: product.name,
           description: product.description || "",
           unit: product.unit,
           categoryTag: product.categoryTag,
+          categoryId: product.categoryId || "",
           minOrderQuantity: product.minOrderQuantity,
           isActive: product.isActive,
           warehouseLocation: product.warehouseLocation || "",
@@ -102,6 +110,7 @@ export default function EditProductPage() {
         description: formData.description || undefined,
         unit: formData.unit,
         categoryTag: formData.categoryTag,
+        categoryId: formData.categoryId,
         minOrderQuantity: formData.minOrderQuantity,
         isActive: formData.isActive,
         warehouseLocation: formData.warehouseLocation || undefined,
@@ -293,27 +302,38 @@ export default function EditProductPage() {
                 </label>
                 <div className="relative">
                   <select
-                    value={formData.categoryTag as any}
-                    onChange={(e) =>
+                    required
+                    value={formData.categoryId}
+                    onChange={(e) => {
+                      const selectedCat = categories
+                        .flatMap((c) => [c, ...(c.children || [])])
+                        .find((c) => c.id === e.target.value);
                       setFormData({
                         ...formData,
-                        categoryTag: e.target.value as any,
-                      })
-                    }
+                        categoryId: e.target.value,
+                        categoryTag: selectedCat?.name || "",
+                      });
+                    }}
                     className="w-full px-5 py-4 text-sm font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-slate-700 dark:text-slate-300 appearance-none"
                   >
-                    {PRODUCT_CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
+                    <option value="" disabled>
+                      Select Category
+                    </option>
+                    {categories.map((parent) => (
+                      <React.Fragment key={parent.id}>
+                        <option
+                          value={parent.id}
+                          className="font-bold text-slate-900"
+                        >
+                          {parent.name}
+                        </option>
+                        {parent.children?.map((child) => (
+                          <option key={child.id} value={child.id}>
+                            &nbsp;&nbsp;&nbsp;{child.name}
+                          </option>
+                        ))}
+                      </React.Fragment>
                     ))}
-                    {!PRODUCT_CATEGORIES.includes(
-                      formData.categoryTag as any,
-                    ) && (
-                      <option value={formData.categoryTag}>
-                        {formData.categoryTag} (Legacy)
-                      </option>
-                    )}
                   </select>
                   <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
                     expand_more

@@ -92,7 +92,27 @@ export class ProductService {
     };
 
     if (category) {
-      where.categoryTag = category;
+      // Check if it's a UUID
+      const isUuid =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          category,
+        );
+
+      const foundCategory = await this.prisma.category.findFirst({
+        where: isUuid ? { id: category } : { slug: category },
+        include: { children: { select: { id: true } } },
+      });
+
+      if (foundCategory) {
+        const categoryIds = [
+          foundCategory.id,
+          ...foundCategory.children.map((c) => c.id),
+        ];
+        where.categoryId = { in: categoryIds };
+      } else {
+        // Fallback to legacy categoryTag
+        where.categoryTag = category;
+      }
     }
 
     if (search) {
