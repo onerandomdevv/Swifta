@@ -3,6 +3,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   getWholesaleCatalogue,
+  getRecommendedCatalogue,
   createWholesaleOrder,
 } from "@/lib/api/supplier.api";
 import {
@@ -15,6 +16,7 @@ import { useToast } from "@/providers/toast-provider";
 import { useState, useEffect } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
+import { WholesaleCard } from "@/components/merchant/wholesale/wholesale-card";
 
 export default function WholesaleCataloguePage() {
   const toast = useToast();
@@ -35,6 +37,11 @@ export default function WholesaleCataloguePage() {
   } = useQuery({
     queryKey: ["wholesale", "catalogue"],
     queryFn: getWholesaleCatalogue,
+  });
+
+  const { data: recommended } = useQuery({
+    queryKey: ["wholesale", "recommended"],
+    queryFn: getRecommendedCatalogue,
   });
 
   useEffect(() => {
@@ -110,6 +117,30 @@ export default function WholesaleCataloguePage() {
         </p>
       </div>
 
+      {/* Recommended Section */}
+      {recommended && recommended.length > 0 && (
+        <div className="space-y-6 animate-in slide-in-from-top-4 duration-700">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-amber-500">
+              auto_awesome
+            </span>
+            <h2 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em]">
+              Recommended for you
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {recommended.slice(0, 3).map((item: any) => (
+              <WholesaleCard
+                key={item.id}
+                item={item}
+                onOrder={handleOpenOrder}
+                isRecommended
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
@@ -133,65 +164,19 @@ export default function WholesaleCataloguePage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {catalogue.map((item: any) => (
-            <div
-              key={item.id}
-              className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow group"
-            >
-              <div className="h-48 bg-slate-50 dark:bg-slate-800 relative flex items-center justify-center">
-                <span className="material-symbols-outlined text-4xl text-slate-300">
-                  inventory
-                </span>
-                <div className="absolute top-4 left-4 flex gap-2">
-                  <span className="px-2 py-1 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-md">
-                    Wholesale
-                  </span>
-                </div>
-              </div>
-              <div className="p-5 space-y-4">
-                <div>
-                  <h3 className="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">
-                    {item.name}
-                  </h3>
-                  <p className="text-xs text-slate-500 font-medium line-clamp-1">
-                    Sold by {item.supplier?.companyName || "Manufacturer"}
-                  </p>
-                </div>
-
-                <div className="flex items-end justify-between">
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                      Starting at
-                    </label>
-                    <p className="text-xl font-black text-primary tabular-nums">
-                      {formatKobo(item.wholesalePriceKobo)}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-                      Min. Order
-                    </label>
-                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                      {item.minOrderQty} {item.unit}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleOpenOrder(item)}
-                    className="flex-1 py-3 bg-primary text-white text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <span className="material-symbols-outlined text-lg">
-                      shopping_cart
-                    </span>
-                    Order Now
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="space-y-6">
+          <h2 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em]">
+            All Suppliers
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {catalogue.map((item: any) => (
+              <WholesaleCard
+                key={item.id}
+                item={item}
+                onOrder={handleOpenOrder}
+              />
+            ))}
+          </div>
         </div>
       )}
 

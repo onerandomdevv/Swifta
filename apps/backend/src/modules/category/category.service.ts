@@ -46,7 +46,7 @@ export class CategoryService {
 
   async findTree() {
     // Only get top-level categories and include their children
-    return this.prisma.category.findMany({
+    const categories = await this.prisma.category.findMany({
       where: { parentId: null, isActive: true },
       orderBy: { sortOrder: "asc" },
       include: {
@@ -55,6 +55,54 @@ export class CategoryService {
           orderBy: { sortOrder: "asc" },
         },
       },
+    });
+
+    // Manually fetch counts for each category to ensure hierarchical accuracy
+    const treeWithCounts = await Promise.all(
+      categories.map(async (cat) => {
+        const productCount = await this.prisma.product.count({
+          where: {
+            OR: [{ categoryId: cat.id }, { category: { parentId: cat.id } }],
+            isActive: true,
+            deletedAt: null,
+          },
+        });
+
+        const childrenWithCounts = await Promise.all(
+          cat.children.map(async (child) => {
+            const childCount = await this.prisma.product.count({
+              where: {
+                categoryId: child.id,
+                isActive: true,
+                deletedAt: null,
+              },
+            });
+            return { ...child, productCount: childCount };
+          }),
+        );
+
+        return { ...cat, productCount, children: childrenWithCounts };
+      }),
+    );
+
+    return treeWithCounts;
+  }
+
+  async findMerchantActiveCategories(merchantId: string) {
+    const products = await this.prisma.product.findMany({
+      where: { merchantId, isActive: true, deletedAt: null },
+      select: { categoryId: true },
+      distinct: ["categoryId"],
+    });
+
+    const categoryIds = products.map((p) => p.categoryId);
+
+    return this.prisma.category.findMany({
+      where: {
+        id: { in: categoryIds },
+        isActive: true,
+      },
+      orderBy: { name: "asc" },
     });
   }
 

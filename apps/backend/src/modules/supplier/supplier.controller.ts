@@ -59,6 +59,12 @@ export class SupplierController {
     return this.supplierService.listCatalogue();
   }
 
+  @Get("recommended")
+  @Roles(UserRole.MERCHANT)
+  getRecommendedCatalogue(@CurrentUser("sub") userId: string) {
+    return this.supplierService.getRecommendedCatalogue(userId);
+  }
+
   @Get("dashboard")
   @Roles(UserRole.SUPPLIER)
   getDashboard(@CurrentUser("sub") userId: string) {

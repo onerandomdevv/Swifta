@@ -34,3 +34,7 @@ export async function createWholesaleOrder(data: {
 export async function getSupplierDashboard(): Promise<any> {
   return apiClient.get("/supplier/dashboard");
 }
+
+export async function getRecommendedCatalogue(): Promise<any[]> {
+  return apiClient.get("/supplier/recommended");
+}
