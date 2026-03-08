@@ -61,52 +61,60 @@ export class WhatsAppBuyerService {
 
       if (!buyerId) {
         this.logger.error(
-          `Buyer link not found for phone ${phone} during processMessage`,
+          `Buyer link not found for phone ${maskPhone(phone)} during processMessage`,
         );
         return;
       }
 
-      // 1. Check for pending checkout flow (interactive state)
+      // 1. Check for pending OTP confirmation (delivery completion)
+      const pendingOtpKey = `${PENDING_OTP_PREFIX}${buyerId}`;
+      const pendingSessionRaw = await this.redisService.get(pendingOtpKey);
+      let pendingOtpSession: any = null;
+
+      if (pendingSessionRaw) {
+        try {
+          pendingOtpSession = JSON.parse(pendingSessionRaw);
+        } catch (parseErr) {
+          this.logger.error(`Malformed pending OTP session for ${buyerId}`);
+          await this.redisService.del(pendingOtpKey);
+        }
+      }
+
+      const cleanText = messageText.trim().replace(/\s/g, "");
+      if (pendingOtpSession && /^\d{6}$/.test(cleanText)) {
+        const response = await this.handleOtpConfirmation(
+          buyerId,
+          pendingOtpSession.orderId,
+          cleanText,
+          pendingOtpKey,
+        );
+        await this.sendWhatsAppMessage(phone, response);
+        return;
+      }
+
+      // 2. Check for pending checkout flow (interactive state)
       const checkoutKey = `wa_pending_checkout_${buyerId}`;
       const checkoutSessionRaw = await this.redisService.get(checkoutKey);
+      let checkoutSession: any = null;
+
       if (checkoutSessionRaw) {
         try {
-          const session = JSON.parse(checkoutSessionRaw);
-          const response = await this.handleCheckoutStep(
-            buyerId,
-            session,
-            messageText,
-            checkoutKey,
-          );
-          await this.sendWhatsAppMessage(phone, response);
-          return;
+          checkoutSession = JSON.parse(checkoutSessionRaw);
         } catch (parseErr) {
           this.logger.error(`Malformed checkout session for ${buyerId}`);
           await this.redisService.del(checkoutKey);
         }
       }
 
-      // 2. Check for pending OTP confirmation (delivery completion)
-      const pendingOtpKey = `${PENDING_OTP_PREFIX}${buyerId}`;
-      const pendingSession = await this.redisService.get(pendingOtpKey);
-      if (pendingSession) {
-        try {
-          const pending = JSON.parse(pendingSession);
-          const text = messageText.trim().replace(/\s/g, "");
-          if (/^\d{6}$/.test(text)) {
-            const response = await this.handleOtpConfirmation(
-              buyerId,
-              pending.orderId,
-              text,
-              pendingOtpKey,
-            );
-            await this.sendWhatsAppMessage(phone, response);
-            return;
-          }
-        } catch (parseErr) {
-          this.logger.error(`Malformed pending OTP session for ${buyerId}`);
-          await this.redisService.del(pendingOtpKey);
-        }
+      if (checkoutSession) {
+        const response = await this.handleCheckoutStep(
+          buyerId,
+          checkoutSession,
+          messageText,
+          checkoutKey,
+        );
+        await this.sendWhatsAppMessage(phone, response);
+        return;
       }
 
       const intent = await this.intentService.parseIntent(messageText);
@@ -164,6 +172,8 @@ export class WhatsAppBuyerService {
       return msg;
     }
 
+    // Invalid checkout step or stuck flow, clear the state
+    await this.redisService.del(key);
     return BUYER_MAIN_MENU;
   }
 

@@ -137,7 +137,7 @@ export class WhatsAppSupplierService {
       return "To update a price, tell me the product and the new price, e.g. 'Update cement to 8500'.";
     }
     // Stub for now
-    return `Price for ${productName} has been updated to ₦${newPriceNaira.toLocaleString()} successfully.`;
+    return "Feature coming soon — this action is not yet implemented.";
   }
 
   private async handlePayouts(supplierId: string): Promise<string> {
@@ -153,7 +153,7 @@ export class WhatsAppSupplierService {
       return "Which order do you want to mark as dispatched? Tell me the Order ID.";
     }
     // Stub for now
-    return `Order #${orderId} marked as dispatched successfully.`;
+    return "Feature coming soon — this action is not yet implemented.";
   }
 
   // =======================================================================

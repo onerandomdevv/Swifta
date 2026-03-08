@@ -11,6 +11,7 @@ import { WhatsAppBuyerAuthService } from "./whatsapp-buyer-auth.service";
 import { WhatsAppBuyerService } from "./whatsapp-buyer.service";
 import { TradeFinancingService } from "../trade-financing/trade-financing.service";
 import { RedisService } from "../../redis/redis.service";
+import { WhatsAppSupplierService } from "./whatsapp-supplier.service";
 import { WhatsAppIntentService, ParsedIntent } from "./whatsapp-intent.service";
 import {
   MAIN_MENU,
@@ -48,6 +49,7 @@ export class WhatsAppService {
     private buyerAuthService: WhatsAppBuyerAuthService,
     private intentService: WhatsAppIntentService,
     private buyerService: WhatsAppBuyerService,
+    private supplierService: WhatsAppSupplierService,
     private tradeFinancingService: TradeFinancingService,
     private redisService: RedisService,
   ) {
@@ -114,11 +116,21 @@ export class WhatsAppService {
       const supplierId = await this.authService.resolveSupplierPhone(phone);
       if (supplierId) {
         this.logger.log(`Routing message to Supplier Bot (Phone: ${phone})`);
-        // TODO: Pass to supplier bot once added
-        await this.sendWhatsAppMessage(
-          phone,
-          "Supplier bot features are currently under construction.",
-        );
+        try {
+          await this.supplierService.processMessage(
+            phone,
+            messageText,
+            messageId,
+          );
+        } catch (error) {
+          this.logger.error(
+            `Error processing supplier message from ${phone}: ${error instanceof Error ? error.message : error}`,
+          );
+          await this.sendWhatsAppMessage(
+            phone,
+            "Supplier bot features are currently experiencing an issue. Please try again later.",
+          );
+        }
         return;
       }
 
@@ -1015,17 +1027,11 @@ export class WhatsAppService {
     status: string,
   ): Promise<void> {
     try {
-      const supplier = await this.prisma.supplierProfile.findUnique({
-        where: { id: supplierId },
-        select: { userId: true },
+      const link = await (this.prisma as any).whatsAppSupplierLink.findUnique({
+        where: { supplierId, isActive: true },
+        select: { phone: true },
       });
-      if (!supplier) return;
-
-      const link = await this.prisma.whatsAppLink.findUnique({
-        where: { userId: supplier.userId },
-        select: { phone: true, isActive: true },
-      });
-      if (!link || !link.isActive) return;
+      if (!link) return;
 
       const shortId = orderId.slice(0, 6).toUpperCase();
       let msg = "";
@@ -1062,17 +1068,11 @@ export class WhatsAppService {
     },
   ): Promise<void> {
     try {
-      const supplier = await this.prisma.supplierProfile.findUnique({
-        where: { id: supplierId },
-        select: { userId: true },
+      const link = await (this.prisma as any).whatsAppSupplierLink.findUnique({
+        where: { supplierId, isActive: true },
+        select: { phone: true },
       });
-      if (!supplier) return;
-
-      const link = await this.prisma.whatsAppLink.findUnique({
-        where: { userId: supplier.userId },
-        select: { phone: true, isActive: true },
-      });
-      if (!link || !link.isActive) return;
+      if (!link) return;
 
       const shortId = orderData.orderId.substring(0, 8).toUpperCase();
       let msg = `🏭 *New Wholesale Order!*\n\n`;
@@ -1198,6 +1198,7 @@ export class WhatsAppService {
     const products = await this.prisma.supplierProduct.findMany({
       where: {
         isActive: true,
+        supplier: { isVerified: true },
         ...(query && { name: { contains: query, mode: "insensitive" } }),
       },
       include: { supplier: true },
@@ -1227,7 +1228,7 @@ export class WhatsAppService {
   ): Promise<string> {
     // Prisma doesn't support startsWith on UUID, so we fetch and filter
     const allProducts = await this.prisma.supplierProduct.findMany({
-      where: { isActive: true },
+      where: { isActive: true, supplier: { isVerified: true } },
       include: { supplier: true },
     });
 
@@ -1254,8 +1255,13 @@ export class WhatsAppService {
       };
       await this.redisService.set(checkoutKey, JSON.stringify(session), 3600);
 
-      const eligibility =
-        await this.tradeFinancingService.checkEligibility(merchantId);
+      const merchant = await this.prisma.merchantProfile.findUnique({
+        where: { id: merchantId },
+        select: { userId: true },
+      });
+      const eligibility = merchant
+        ? await this.tradeFinancingService.checkEligibility(merchant.userId)
+        : { eligible: false, reason: "Merchant not found", maxAmount: 0n };
 
       let msg = `✅ Order started: *${product.name}* (${qty} ${product.unit}).\n\n`;
       msg += `How would you like to pay?\n\n`;
@@ -1288,8 +1294,13 @@ export class WhatsAppService {
       if (input === "1") {
         paymentMethod = "PAY_NOW";
       } else if (input === "2") {
-        const eligibility =
-          await this.tradeFinancingService.checkEligibility(merchantId);
+        const merchant = await this.prisma.merchantProfile.findUnique({
+          where: { id: merchantId },
+          select: { userId: true },
+        });
+        const eligibility = merchant
+          ? await this.tradeFinancingService.checkEligibility(merchant.userId)
+          : { eligible: false };
         if (!eligibility.eligible)
           return "Sorry, Trade Financing is not available for your account yet. Please reply 1️⃣ to Pay Now.";
         paymentMethod = "TRADE_FINANCING";

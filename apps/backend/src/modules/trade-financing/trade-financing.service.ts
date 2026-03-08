@@ -157,6 +157,11 @@ export class TradeFinancingService {
         "Trade Financing is only available for wholesale supplier orders",
       );
     }
+    if (order.status !== "PENDING_PAYMENT") {
+      throw new BadRequestException(
+        "Financing is only available for orders with status PENDING_PAYMENT",
+      );
+    }
     if (order.creditApplication) {
       throw new BadRequestException(
         "A financing application already exists for this order",
@@ -173,7 +178,7 @@ export class TradeFinancingService {
     }
 
     // 3. Check Eligibility
-    const eligibility = await this.partnerClient.checkEligibility(merchantData);
+    const eligibility = await this.checkEligibility(userId);
     if (!eligibility.eligible) {
       throw new BadRequestException(
         `Not eligible for Trade Financing: ${eligibility.reason}`,
@@ -187,24 +192,7 @@ export class TradeFinancingService {
       );
     }
 
-    // 4. Initiate Loan with Partner
-    this.logger.log(
-      `Initiating Trade Financing for merchant ${merchantData.businessName} (Order: ${orderId})`,
-    );
-    const loanResult = await this.partnerClient.initiateLoan(
-      orderId,
-      requestedAmount,
-      tenureDays,
-      merchantData,
-    );
-
-    if (!loanResult.approved) {
-      throw new BadRequestException(
-        "Financing application was rejected by the partner.",
-      );
-    }
-
-    // 5. Store CreditApplication in DB & Update Order via Transaction
+    // 4. Create pending credit application
     let COMMISSION_PERCENTAGE = parseFloat(
       process.env.TRADE_FINANCING_COMMISSION_PERCENTAGE || "3",
     );
@@ -215,21 +203,52 @@ export class TradeFinancingService {
       Math.floor((Number(requestedAmount) * COMMISSION_PERCENTAGE) / 100),
     );
 
+    const pendingApplication = await this.prisma.creditApplication.create({
+      data: {
+        buyerId: userId,
+        merchantId: merchantData.merchantId,
+        orderId,
+        requestedAmount,
+        tenure: tenureDays,
+        status: "PENDING",
+        partnerName: process.env.FINANCING_PARTNER || "mock",
+        commissionKobo,
+        approvedAmount: 0n,
+        interestRate: 0,
+      },
+    });
+
+    // 5. Initiate Loan with Partner
+    this.logger.log(
+      `Initiating Trade Financing for merchant ${merchantData.businessName} (Order: ${orderId})`,
+    );
+    const loanResult = await this.partnerClient.initiateLoan(
+      orderId, // correlation id
+      requestedAmount,
+      tenureDays,
+      merchantData,
+    );
+
+    if (!loanResult.approved) {
+      await this.prisma.creditApplication.update({
+        where: { id: pendingApplication.id },
+        data: { status: "REJECTED" },
+      });
+      throw new BadRequestException(
+        "Financing application was rejected by the partner.",
+      );
+    }
+
+    // 6. Update CreditApplication in DB & Update Order via Transaction
     return this.prisma.$transaction(async (tx) => {
-      const application = await tx.creditApplication.create({
+      const application = await tx.creditApplication.update({
+        where: { id: pendingApplication.id },
         data: {
-          buyerId: userId, // The merchant is the 'buyer' of the wholesale goods
-          merchantId: merchantData.merchantId,
-          orderId,
-          requestedAmount,
-          tenure: tenureDays,
           status: "DISBURSED",
           partnerRef: loanResult.loanRef,
           approvedAmount: requestedAmount,
           interestRate: eligibility.interestRate,
-          partnerName: process.env.FINANCING_PARTNER || "mock",
           partnerDisbursementRef: loanResult.disbursementRef,
-          commissionKobo,
         },
       });
 

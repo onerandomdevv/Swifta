@@ -38,8 +38,13 @@ export default function WholesaleCataloguePage() {
   });
 
   useEffect(() => {
-    checkTradeFinancingEligibility().then(setEligibility).catch(console.error);
-  }, []);
+    checkTradeFinancingEligibility()
+      .then(setEligibility)
+      .catch((err) => {
+        console.error(err);
+        toast.error("Failed to check Trade Financing eligibility.");
+      });
+  }, [toast]);
 
   const orderMutation = useMutation({
     mutationFn: createWholesaleOrder,
