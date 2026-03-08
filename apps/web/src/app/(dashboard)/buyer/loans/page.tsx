@@ -83,7 +83,7 @@ export default function BuyerLoansPage() {
                     account_balance
                   </span>
                   <p className="text-xs font-black text-indigo-600 uppercase tracking-widest">
-                    {loan.partnerName || "BNPL Partner"}
+                    {loan.partnerName || "Trade Financing Partner"}
                   </p>
                 </div>
                 <h3 className="font-bold text-lg text-slate-900">
