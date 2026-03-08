@@ -146,6 +146,7 @@ model Order {
   deliveryBooking     DeliveryBooking?
   orderEvents         OrderEvent[]
   trackingEvents      OrderTracking[]
+  // CHECK constraint: (quote_id IS NOT NULL OR product_id IS NOT NULL OR supplier_product_id IS NOT NULL OR merchant_id IS NOT NULL OR supplier_id IS NOT NULL)
   user                User               @relation(fields: [buyerId], references: [id], onDelete: Cascade)
   merchantProfile     MerchantProfile?   @relation(fields: [merchantId], references: [id])
   product             Product?           @relation(fields: [productId], references: [id])
@@ -268,8 +269,8 @@ model Product {
   updatedAt         DateTime           @default(now()) @updatedAt @map("updated_at")
   deletedAt         DateTime?          @map("deleted_at")
   imageUrl          String?            @map("image_url")
-  categoryId        String?            @map("category_id") @db.Uuid // Added in V5
-  category          Category?          @relation(fields: [categoryId], references: [id])
+  categoryId        String             @map("category_id") @db.Uuid // Updated in V5 (Mandatory)
+  category          Category           @relation(fields: [categoryId], references: [id])
   pricePerUnitKobo  BigInt?            @map("price_per_unit_kobo")
   warehouseLocation String?            @map("warehouse_location")
   cartItems         CartItem[]
@@ -770,11 +771,11 @@ model Review {
   orderId     String   @unique @map("order_id") @db.Uuid
   buyerId     String   @map("buyer_id") @db.Uuid
   merchantId  String   @map("merchant_id") @db.Uuid
-  rating      Int      // 1-5
+  rating      Int      // 1-5 (CHECK constraint enforced in DB)
   comment     String?
   createdAt   DateTime @default(now()) @map("created_at")
   order       Order    @relation(fields: [orderId], references: [id])
-  buyer       BuyerProfile @relation(fields: [buyerId], references: [id])
+  buyer       BuyerProfile @relation(fields: [buyerId], references: [userId])
   merchant    MerchantProfile @relation(fields: [merchantId], references: [id])
   @@map("reviews")
 }
