@@ -48,7 +48,7 @@ export class WhatsAppSupplierService {
 
       if (!link || !link.isActive) {
         this.logger.error(
-          `Supplier link not found for phone ${phone} during processMessage`,
+          `Supplier link not found for phone ${maskPhone(phone)} during processMessage`,
         );
         return;
       }

@@ -1027,7 +1027,7 @@ export class WhatsAppService {
     status: string,
   ): Promise<void> {
     try {
-      const link = await (this.prisma as any).whatsAppSupplierLink.findUnique({
+      const link = await (this.prisma as any).whatsAppSupplierLink.findFirst({
         where: { supplierId, isActive: true },
         select: { phone: true },
       });
@@ -1068,7 +1068,7 @@ export class WhatsAppService {
     },
   ): Promise<void> {
     try {
-      const link = await (this.prisma as any).whatsAppSupplierLink.findUnique({
+      const link = await (this.prisma as any).whatsAppSupplierLink.findFirst({
         where: { supplierId, isActive: true },
         select: { phone: true },
       });
@@ -1323,6 +1323,7 @@ export class WhatsAppService {
       return msg;
     }
 
+    await this.redisService.del(key);
     return MAIN_MENU;
   }
 
@@ -1338,7 +1339,7 @@ export class WhatsAppService {
     totalNaira: number,
   ): Promise<void> {
     try {
-      const link = await (this.prisma as any).whatsAppSupplierLink.findUnique({
+      const link = await (this.prisma as any).whatsAppSupplierLink.findFirst({
         where: { supplierId, isActive: true },
         select: { phone: true },
       });
@@ -1364,7 +1365,7 @@ export class WhatsAppService {
     reference: string,
   ): Promise<void> {
     try {
-      const link = await (this.prisma as any).whatsAppSupplierLink.findUnique({
+      const link = await (this.prisma as any).whatsAppSupplierLink.findFirst({
         where: { supplierId, isActive: true },
         select: { phone: true },
       });
