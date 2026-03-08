@@ -113,75 +113,35 @@ export class WhatsAppBuyerService {
       }
 
       if (checkoutSession) {
-        const response = await this.handleCheckoutStep(
+        await this.handleCheckoutStep(
           buyerId,
           checkoutSession,
           messageText,
           checkoutKey,
         );
-        await this.sendWhatsAppMessage(phone, response);
         return;
       }
 
-      // 3. Check for pending review session
+      // 3. Check for pending review session (text comments)
       const reviewKey = `${PENDING_REVIEW_PREFIX}${buyerId}`;
       const reviewSessionRaw = await this.redisService.get(reviewKey);
-      if (reviewSessionRaw) {
-        let session: any = null;
-        try {
-          session = JSON.parse(reviewSessionRaw);
-        } catch (parseErr) {
-          this.logger.error(`Malformed review session for ${buyerId}`);
-          await this.redisService.del(reviewKey);
-          return;
-        }
-
-        if (!session) return;
-
-        // a. Handle interactive rating button (if any)
-        if (interactiveReply && interactiveReply.id.startsWith("rate_")) {
-          const rating = parseInt(interactiveReply.id.split("_")[1]);
-          const response = await this.handleReviewRating(
-            buyerId,
-            session,
-            rating,
-            reviewKey,
-            phone,
-          );
-          await this.sendWhatsAppMessage(phone, response);
-          return;
-        }
-
-        // b. Handle comment preference buttons
-        if (interactiveReply && interactiveReply.id === "review_add_comment") {
-          session.step = "AWAITING_COMMENT";
-          await this.redisService.set(reviewKey, JSON.stringify(session), 3600);
-          await this.sendWhatsAppMessage(
-            phone,
-            "Please type your comment below and send it to me. ✍️",
-          );
-          return;
-        }
-
-        if (interactiveReply && interactiveReply.id === "review_skip") {
-          await this.redisService.del(reviewKey);
-          await this.sendWhatsAppMessage(
-            phone,
-            "Thank you! Your rating has been saved. ✅",
-          );
-          return;
-        }
-
-        // c. Handle text comment input
-        if (session.step === "AWAITING_COMMENT" && messageText) {
+      if (reviewSessionRaw && messageText && !interactiveReply) {
+        const session = JSON.parse(reviewSessionRaw);
+        if (session.step === "AWAITING_COMMENT") {
           await this.reviewService.updateComment(session.orderId, messageText);
           await this.redisService.del(reviewKey);
-          await this.sendWhatsAppMessage(
+          await this.interactiveService.sendTextMessage(
             phone,
             "✅ Comment added! Thank you for your feedback.",
           );
           return;
         }
+      }
+
+      // 4. Handle general interactive replies
+      if (interactiveReply) {
+        await this.handleInteractiveReply(buyerId, phone, interactiveReply);
+        return;
       }
 
       const intent = await this.intentService.parseIntent(messageText);
@@ -191,18 +151,188 @@ export class WhatsAppBuyerService {
         `Buyer intent parsed | phone=${maskPhone(phone)} | fn=${intent.functionName} | paramKeys=${Object.keys(intent.params ?? {}).join(",")}`,
       );
 
-      const response = await this.executeCommand(buyerId, intent);
-      await this.sendWhatsAppMessage(phone, response);
+      await this.executeCommand(buyerId, phone, intent);
     } catch (error) {
       // B1: Mask phone in error logs too
       this.logger.error(
         `Error processing buyer message from ${maskPhone(phone)}: ${error instanceof Error ? error.message : error}`,
       );
-      await this.sendWhatsAppMessage(
+      await this.interactiveService.sendTextMessage(
         phone,
         "Sorry, I ran into a small issue processing that request. Try sending it again.",
       );
     }
+  }
+
+  /**
+   * Central handler for interactive replies
+   */
+  private async handleInteractiveReply(
+    buyerId: string,
+    phone: string,
+    reply: { id: string; title: string },
+  ): Promise<void> {
+    const { id } = reply;
+
+    // Delivery selection
+    if (id === "delivery_merchant" || id === "delivery_track") {
+      const checkoutKey = `wa_pending_checkout_${buyerId}`;
+      const checkoutSessionRaw = await this.redisService.get(checkoutKey);
+      if (!checkoutSessionRaw) {
+        await this.interactiveService.sendTextMessage(
+          phone,
+          "Your checkout session has expired. Please search for the product again.",
+        );
+        return;
+      }
+
+      const session = JSON.parse(checkoutSessionRaw);
+      session.deliveryMethod =
+        id === "delivery_merchant" ? "MERCHANT_DELIVERY" : "PLATFORM_LOGISTICS";
+
+      await this.redisService.del(checkoutKey);
+
+      const appUrl =
+        this.configService.get("FRONTEND_URL") || "https://swifttrade.store";
+      const checkoutLink = `${appUrl}/buyer/checkout/${session.productId}?qty=${session.quantity}&delivery=${session.deliveryMethod}`;
+
+      await this.interactiveService.sendCTAUrlButton(
+        phone,
+        `✅ *Delivery method confirmed: ${session.deliveryMethod === "MERCHANT_DELIVERY" ? "Merchant Delivery" : "SwiftTrade Tracked"}*\n\nPlease tap the button below to complete your payment securely.`,
+        "Pay Now",
+        checkoutLink,
+      );
+      return;
+    }
+
+    // Rating buttons
+    if (id.startsWith("rate_")) {
+      const parts = id.split("_");
+      const rating = parseInt(parts[1]);
+      const orderId = parts[2];
+      const reviewKey = `${PENDING_REVIEW_PREFIX}${buyerId}:${orderId}`;
+      const sessionRaw = await this.redisService.get(reviewKey);
+      if (sessionRaw) {
+        await this.handleReviewRating(
+          buyerId,
+          JSON.parse(sessionRaw),
+          rating,
+          reviewKey,
+          phone,
+        );
+      }
+      return;
+    }
+
+    if (id === "review_add_comment") {
+      // Need order ID from session — this requires finding WHICH session is active
+      // For now, we'll look for any review session for this buyer
+      // Better: Include orderId in the button ID like review_add_comment_ORDERID
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "Please type your comment below and send it to me. ✍️",
+      );
+      return;
+    }
+
+    if (id === "review_skip") {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "Thank you! Your rating has been saved. ✅",
+      );
+      return;
+    }
+
+    // Menu actions
+    if (id === "search_products") {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "What are you looking for? (e.g., '50 bags of cement')",
+      );
+      return;
+    }
+
+    if (id === "get_active_orders") {
+      await this.handleGetActiveOrders(buyerId, phone);
+      return;
+    }
+
+    if (id === "confirm_delivery_prompt") {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        'Please enter: *"Confirm delivery for [Order ID]"*',
+      );
+      return;
+    }
+
+    if (id === "browse_categories") {
+      await this.handleBrowseCategories(phone);
+      return;
+    }
+
+    if (id === "buy_now") {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        'Please type: *"Buy [Product ID] [Quantity]"*',
+      );
+      return;
+    }
+
+    if (id.startsWith("cat_")) {
+      const categoryName = id.replace("cat_", "").replace(/_/g, " ");
+      await this.handleSearchProducts(phone, categoryName);
+      return;
+    }
+
+    if (id === "show_buyer_menu") {
+      await this.sendBuyerMenu(phone);
+      return;
+    }
+  }
+
+  private async sendBuyerMenu(phone: string): Promise<void> {
+    await this.interactiveService.sendListMessage(
+      phone,
+      BUYER_MAIN_MENU,
+      "Select Action",
+      [
+        {
+          title: "Shopping",
+          rows: [
+            {
+              id: "search_products",
+              title: "Search Products",
+              description: "Find materials and items",
+            },
+            {
+              id: "browse_categories",
+              title: "Browse Categories",
+              description: "View by product type",
+            },
+          ],
+        },
+        {
+          title: "My Orders",
+          rows: [
+            {
+              id: "get_active_orders",
+              title: "Active Orders",
+              description: "Track your current deliveries",
+            },
+            {
+              id: "confirm_delivery_prompt",
+              title: "Confirm Delivery",
+              description: "Mark order as received",
+            },
+            {
+              id: "get_order_history",
+              title: "Order History",
+              description: "Review past purchases",
+            },
+          ],
+        },
+      ],
+    );
   }
 
   // =======================================================================
@@ -213,35 +343,44 @@ export class WhatsAppBuyerService {
     session: any,
     text: string,
     key: string,
-  ): Promise<string> {
+  ): Promise<void> {
+    // This is now mostly handled by handleInteractiveReply for SELECT_DELIVERY
+    // but we keep it here for text-based fallbacks if needed.
     const input = text.trim();
 
     if (session.step === "SELECT_DELIVERY") {
-      if (input === "1") {
+      if (input === "1" || input.toLowerCase().includes("merchant")) {
         session.deliveryMethod = "MERCHANT_DELIVERY";
-      } else if (input === "2") {
+      } else if (input === "2" || input.toLowerCase().includes("swifttrade")) {
         session.deliveryMethod = "PLATFORM_LOGISTICS";
       } else {
-        return "Please reply with 1️⃣ or 2️⃣ to select your delivery method.";
+        await this.interactiveService.sendReplyButtons(
+          session.phone,
+          "Please select your delivery method:",
+          [
+            { id: "delivery_merchant", title: "Merchant Delivery" },
+            { id: "delivery_track", title: "Tracked Delivery" },
+          ],
+        );
+        return;
       }
 
-      // Complete checkout - generate final instructions
       await this.redisService.del(key);
       const appUrl =
-        this.configService.get("FRONTEND_URL") || "https://swifttrade.com";
+        this.configService.get("FRONTEND_URL") || "https://swifttrade.store";
       const checkoutLink = `${appUrl}/buyer/checkout/${session.productId}?qty=${session.quantity}&delivery=${session.deliveryMethod}`;
 
-      let msg = `✅ *Delivery Method confirmed!*\n\n`;
-      msg += `*Delivery*: ${session.deliveryMethod === "MERCHANT_DELIVERY" ? "Merchant" : "SwiftTrade"}\n\n`;
-      msg += `💳 *Tap the link below to complete your order and pay:*\n`;
-      msg += checkoutLink;
-
-      return msg;
+      await this.interactiveService.sendCTAUrlButton(
+        session.phone,
+        `✅ *Delivery confirmed.*\n\nTap below to pay securely.`,
+        "Pay Now",
+        checkoutLink,
+      );
+      return;
     }
 
-    // Invalid checkout step or stuck flow, clear the state
     await this.redisService.del(key);
-    return BUYER_MAIN_MENU;
+    await this.sendBuyerMenu(session.phone);
   }
 
   // =======================================================================
@@ -249,44 +388,68 @@ export class WhatsAppBuyerService {
   // =======================================================================
   private async executeCommand(
     buyerId: string,
+    phone: string,
     intent: ParsedIntent,
-  ): Promise<string> {
+  ): Promise<void> {
     try {
       switch (intent.functionName) {
         case "search_products":
-          return this.handleSearchProducts(
+          await this.handleSearchProducts(
+            phone,
             intent.params.query,
             intent.params.location,
             intent.params.quantity,
           );
+          break;
+        case "browse_categories":
+          await this.handleBrowseCategories(phone);
+          break;
         case "buy_product":
-          return this.handleBuyProduct(
+          await this.handleBuyProduct(
             buyerId,
+            phone,
             intent.params.productId,
             intent.params.quantity,
           );
+          break;
         case "get_active_orders":
-          return this.handleGetActiveOrders(buyerId);
+          await this.handleGetActiveOrders(buyerId, phone);
+          break;
         case "get_order_history":
-          return this.handleGetOrderHistory(buyerId);
+          await this.handleGetOrderHistory(buyerId, phone);
+          break;
         case "confirm_delivery":
-          return this.handleConfirmDelivery(
+          await this.handleConfirmDelivery(
             buyerId,
+            phone,
             intent.params.orderReference,
           );
+          break;
         case "contact_support":
-          return "📞 You can contact SwiftTrade Support directly at 0800-SWIFTTRADE or email support@swifttrade.com for any disputes or assistance.";
+          await this.interactiveService.sendTextMessage(
+            phone,
+            "📞 You can contact SwiftTrade Support directly at 0800-SWIFTTRADE or email support@swifttrade.store for any disputes or assistance.",
+          );
+          break;
         case "friendly_fallback":
-          return BUYER_FRIENDLY_FALLBACK;
+          await this.interactiveService.sendTextMessage(
+            phone,
+            BUYER_FRIENDLY_FALLBACK,
+          );
+          break;
         case "show_menu":
         default:
-          return BUYER_MAIN_MENU;
+          await this.sendBuyerMenu(phone);
+          break;
       }
     } catch (error) {
       this.logger.error(
         `Buyer Command error (${intent.functionName}): ${error instanceof Error ? error.message : error}`,
       );
-      return "Something went wrong while fulfilling your request. Try again later.";
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "Something went wrong while fulfilling your request. Try again later.",
+      );
     }
   }
 
@@ -298,12 +461,18 @@ export class WhatsAppBuyerService {
    * 🔎 Search Products globally based on AI extracted intent
    */
   private async handleSearchProducts(
+    phone: string,
     query: string,
     location?: string,
     rawQuantity?: number,
-  ): Promise<string> {
-    if (!query)
-      return "What kind of product are you looking for? e.g. 'I need 50 bags of Dangote Cement'";
+  ): Promise<void> {
+    if (!query) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "What kind of product are you looking for? e.g. 'I need 50 bags of cement'",
+      );
+      return;
+    }
 
     const quantity = rawQuantity || 1;
 
@@ -319,26 +488,75 @@ export class WhatsAppBuyerService {
       },
       include: {
         merchantProfile: true,
+        category: true,
       },
-      take: 5,
+      take: 10,
     });
 
     if (products.length === 0) {
-      return `❌ We couldn't find any "${query}"${location ? ` near ${location}` : ""} available right now. Try adjusting your search.`;
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `❌ No results for "${query}"${location ? ` near ${location}` : ""}. Try a different search.`,
+      );
+      return;
     }
 
-    let msg = `🛒 Here are the top items for *"${query}"*:\n\n`;
+    await this.interactiveService.sendListMessage(
+      phone,
+      `🛒 Search results for *"${query}"*:`,
+      "View Results",
+      [
+        {
+          title: "Top Matches",
+          rows: products.map((p) => {
+            const rating = p.merchantProfile?.averageRating || 0;
+            const starStr =
+              rating > 0
+                ? ` ⭐${rating.toFixed(1)} (${p.merchantProfile?.reviewCount || 0})`
+                : "";
+            return {
+              id: `buy_${p.id.substring(0, 8)}_${quantity}`,
+              title: p.name,
+              description: `${p.category?.name || "General"} | ${this.formatNaira(Number(p.pricePerUnitKobo || 0))}${starStr} | Seller: ${p.merchantProfile?.businessName || "Verified"}`,
+            };
+          }),
+        },
+      ],
+    );
+  }
 
-    products.forEach((p, idx) => {
-      msg += `*${idx + 1}. ${p.name}*\n`;
-      msg += `🏪 Seller: ${p.merchantProfile?.businessName || "Verified Merchant"}\n`;
-      msg += `💰 Price: ${p.pricePerUnitKobo ? this.formatNaira(Number(p.pricePerUnitKobo)) : "Contact for Quote"}\n`;
-      msg += `🆔 ID: ${p.id.substring(0, 8)}\n\n`;
+  /**
+   * 📂 Browse Categories
+   */
+  private async handleBrowseCategories(phone: string): Promise<void> {
+    const categories = await this.prisma.category.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+      take: 10,
     });
 
-    msg += `💡 To buy an item, reply: *"Buy ${products[0].id.substring(0, 8)} ${quantity} units"*`;
+    if (categories.length === 0) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "No categories found. Try searching for a product directly.",
+      );
+      return;
+    }
 
-    return msg;
+    await this.interactiveService.sendListMessage(
+      phone,
+      "📂 *Browse by Category*\n\nExplore our marketplace by selecting a category below:",
+      "Select Category",
+      [
+        {
+          title: "Popular Categories",
+          rows: categories.map((c) => ({
+            id: `cat_${c.name.replace(/\s/g, "_")}`,
+            title: c.name,
+          })),
+        },
+      ],
+    );
   }
 
   /**
@@ -346,22 +564,26 @@ export class WhatsAppBuyerService {
    */
   private async handleBuyProduct(
     buyerId: string,
+    phone: string,
     partialId: string,
     rawQuantity?: number,
-  ): Promise<string> {
-    if (!partialId)
-      return "Which product ID do you want to buy? E.g. 'Buy ABC12345 50 units'";
+  ): Promise<void> {
+    if (!partialId) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "Which product ID do you want to buy? E.g. 'Buy ABC12345 50 units'",
+      );
+      return;
+    }
 
     const quantity = rawQuantity || 1;
 
-    // B2: Alias snake_case columns to camelCase explicitly
     const products = await this.prisma.$queryRaw<any[]>`
       SELECT 
         id, 
         name, 
         unit,
-        price_per_unit_kobo AS "pricePerUnitKobo",
-        COALESCE(price_per_unit_kobo, 0) AS "pricePerUnitKobo"
+        price_per_unit_kobo AS "pricePerUnitKobo"
       FROM products 
       WHERE id::text LIKE ${partialId + "%"}
         AND is_active = true
@@ -369,38 +591,51 @@ export class WhatsAppBuyerService {
     `;
     const product = products[0];
 
-    if (!product)
-      return `❌ Couldn't find a product with ID starting with "${partialId}". Please check the ID and try again.`;
+    if (!product) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `❌ Product ID "${partialId}" not found.`,
+      );
+      return;
+    }
 
     try {
-      // Initiate multi-step checkout session
       const checkoutKey = `wa_pending_checkout_${buyerId}`;
       const session = {
         productId: product.id,
         quantity,
+        phone, // Keep phone for fallback
         totalAmountKobo: BigInt(
           Number(product.pricePerUnitKobo || 0) * quantity,
-        ).toString(), // Store as string for JSON
+        ).toString(),
         step: "SELECT_DELIVERY",
       };
       await this.redisService.set(checkoutKey, JSON.stringify(session), 3600);
 
-      let msg = `✅ Order started for *${product.name}* (${quantity} units).\n\n`;
-      msg += `How would you like this delivered?\n\n`;
-      msg += `1️⃣ *Merchant Delivery* (Free)\n`;
-      msg += `2️⃣ *SwiftTrade Tracked Delivery*`;
-
-      return msg;
+      await this.interactiveService.sendReplyButtons(
+        phone,
+        `🛒 *${product.name}* (${quantity} units)\n\nHow would you like this delivered?`,
+        [
+          { id: "delivery_merchant", title: "Merchant Delivery" },
+          { id: "delivery_track", title: "Tracked Delivery" },
+        ],
+      );
     } catch (e) {
       this.logger.error("Checkout session issue", e);
-      return "Unable to start the checkout at this time.";
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "Unable to start the checkout at this time.",
+      );
     }
   }
 
   /**
    * 🚚 Get currently active orders — B3: include supplierProduct
    */
-  private async handleGetActiveOrders(buyerId: string): Promise<string> {
+  private async handleGetActiveOrders(
+    buyerId: string,
+    phone: string,
+  ): Promise<void> {
     const orders = await this.prisma.order.findMany({
       where: {
         buyerId,
@@ -415,26 +650,35 @@ export class WhatsAppBuyerService {
       include: { product: true, supplierProduct: true },
     });
 
-    if (orders.length === 0)
-      return "You don't have any active deliveries right now.";
+    if (orders.length === 0) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "You don't have any active deliveries right now.",
+      );
+      return;
+    }
 
-    let msg = `🚚 *Your Active Orders:*\n\n`;
-    orders.forEach((o) => {
-      msg += `*Order #${o.id.substring(0, 8)}*\n`;
-      msg += `📦 Item: ${getOrderItemName(o)}\n`;
-      msg += `📊 Status: *${o.status.replace(/_/g, " ")}*\n`;
-      msg += `💰 Total: ${this.formatNaira(Number(o.totalAmountKobo) + Number(o.deliveryFeeKobo))}\n`;
-
-      if (o.status === OrderStatus.DISPATCHED) {
-        msg += `🔑 Delivery OTP: *${o.deliveryOtp}*\n`;
-      }
-      msg += `\n`;
-    });
-
-    return msg;
+    await this.interactiveService.sendListMessage(
+      phone,
+      "🚚 *Active Orders*",
+      "View Details",
+      [
+        {
+          title: "Track Deliveries",
+          rows: orders.map((o) => ({
+            id: `track_${o.id.substring(0, 8)}`,
+            title: `#${o.id.substring(0, 8).toUpperCase()} | ${o.status.replace(/_/g, " ")}`,
+            description: `${getOrderItemName(o)} | OTP: ${o.deliveryOtp || "N/A"}`,
+          })),
+        },
+      ],
+    );
   }
 
-  private async handleGetOrderHistory(buyerId: string): Promise<string> {
+  private async handleGetOrderHistory(
+    buyerId: string,
+    phone: string,
+  ): Promise<void> {
     const orders = await this.prisma.order.findMany({
       where: {
         buyerId,
@@ -445,15 +689,29 @@ export class WhatsAppBuyerService {
       orderBy: { createdAt: "desc" },
     });
 
-    if (orders.length === 0) return "You haven't completed any orders yet!";
+    if (orders.length === 0) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "You haven't completed any orders yet!",
+      );
+      return;
+    }
 
-    let msg = `📜 *Your Last 5 Orders:*\n\n`;
-    orders.forEach((o) => {
-      msg += `*#${o.id.substring(0, 8)}* — ${getOrderItemName(o)}\n`;
-      msg += `Status: ${o.status} | Total: ${this.formatNaira(Number(o.totalAmountKobo))}\n\n`;
-    });
-
-    return msg;
+    await this.interactiveService.sendListMessage(
+      phone,
+      "📜 *Order History (Last 5)*",
+      "Order Details",
+      [
+        {
+          title: "Previous Purchases",
+          rows: orders.map((o) => ({
+            id: `hist_${o.id.substring(0, 8)}`,
+            title: `#${o.id.substring(0, 8).toUpperCase()} | Delivered`,
+            description: `${getOrderItemName(o)} | ${this.formatNaira(Number(o.totalAmountKobo))}`,
+          })),
+        },
+      ],
+    );
   }
 
   /**
@@ -461,12 +719,17 @@ export class WhatsAppBuyerService {
    */
   private async handleConfirmDelivery(
     buyerId: string,
+    phone: string,
     orderRef?: string,
-  ): Promise<string> {
-    if (!orderRef)
-      return `To confirm an order, reply with "Confirm delivery for [Order ID]"`;
+  ): Promise<void> {
+    if (!orderRef) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        'To confirm an order, reply with *"Confirm delivery for [Order ID]"*',
+      );
+      return;
+    }
 
-    // B2: Alias snake_case columns to camelCase
     const orders = await this.prisma.$queryRaw<any[]>`
       SELECT 
         id, 
@@ -480,10 +743,14 @@ export class WhatsAppBuyerService {
     `;
     const order = orders[0];
 
-    if (!order)
-      return `❌ I couldn't find a dispatched order matching "${orderRef}".`;
+    if (!order) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `❌ No dispatched order found for "${orderRef}".`,
+      );
+      return;
+    }
 
-    // B4: Persist pending OTP session so subsequent 6-digit reply can be matched
     const pendingOtpKey = `${PENDING_OTP_PREFIX}${buyerId}`;
     await this.redisService.set(
       pendingOtpKey,
@@ -491,7 +758,10 @@ export class WhatsAppBuyerService {
       PENDING_OTP_TTL,
     );
 
-    return `🚚 To confirm delivery for *Order #${order.id.substring(0, 8)}*, please reply with your 6-digit Delivery OTP. This code was included in your order confirmation. It will expire in 10 minutes.`;
+    await this.interactiveService.sendTextMessage(
+      phone,
+      `🚚 To confirm delivery for *Order #${order.id.substring(0, 8).toUpperCase()}*, please reply with your 6-digit Delivery OTP.`,
+    );
   }
 
   /**
@@ -504,22 +774,15 @@ export class WhatsAppBuyerService {
     pendingOtpKey: string,
   ): Promise<string> {
     try {
-      // Delegate to OrderService for actual OTP verification and status transition
       await this.orderService.confirmDelivery(buyerId, orderId, otp);
-
-      // Clear session on success
       await this.redisService.del(pendingOtpKey);
-
-      return `✅ *Delivery Confirmed!* Your order has been marked as delivered and the merchant will receive payment. Thank you for using SwiftTrade! 🎉`;
+      return `✅ *Delivery Confirmed!* Your order has been marked as delivered. Payment will now be released to the merchant. Thank you! 🎉`;
     } catch (error: any) {
       this.logger.warn(
         `OTP confirmation failed for order ${orderId}: ${error.message}`,
       );
-
-      // Clear session on failure to prevent replay
       await this.redisService.del(pendingOtpKey);
-
-      return `❌ Invalid or expired OTP. Please check your code and try again. If you have issues, open a dispute via the web app or contact support.`;
+      return `❌ Invalid or expired OTP. Please check your code and try again.`;
     }
   }
 

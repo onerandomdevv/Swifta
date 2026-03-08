@@ -6,6 +6,7 @@ import { ParsedIntent } from "./whatsapp-intent.service";
 import { RedisService } from "../../redis/redis.service";
 import { SUPPLIER_MAIN_MENU, FRIENDLY_FALLBACK } from "./whatsapp.constants";
 import { OrderStatus } from "@hardware-os/shared";
+import { WhatsAppInteractiveService } from "./whatsapp-interactive.service";
 
 // Helper to mask phone numbers — only show last 4 digits
 function maskPhone(phone: string): string {
@@ -24,6 +25,7 @@ export class WhatsAppSupplierService {
     private prisma: PrismaService,
     private intentService: WhatsAppSupplierIntentService,
     private redisService: RedisService,
+    private interactiveService: WhatsAppInteractiveService,
   ) {
     this.accessToken =
       this.configService.get<string>("WHATSAPP_ACCESS_TOKEN") || "";
@@ -38,6 +40,8 @@ export class WhatsAppSupplierService {
     phone: string,
     messageText: string,
     messageId: string,
+    interactiveType?: string,
+    interactiveId?: string,
   ): Promise<void> {
     try {
       // Find the supplier link
@@ -54,19 +58,25 @@ export class WhatsAppSupplierService {
       }
 
       const supplierId = link.supplierId;
+
+      // Handle interactive replies
+      if (interactiveId) {
+        await this.handleInteractiveReply(supplierId, phone, interactiveId);
+        return;
+      }
+
       const intent = await this.intentService.parseIntent(messageText);
 
       this.logger.debug(
         `Supplier intent parsed | phone=${maskPhone(phone)} | fn=${intent.functionName} | paramKeys=${Object.keys(intent.params ?? {}).join(",")}`,
       );
 
-      const response = await this.executeCommand(supplierId, intent);
-      await this.sendWhatsAppMessage(phone, response);
+      await this.executeCommand(supplierId, phone, intent);
     } catch (error) {
       this.logger.error(
         `Error processing supplier message from ${maskPhone(phone)}: ${error instanceof Error ? error.message : error}`,
       );
-      await this.sendWhatsAppMessage(
+      await this.interactiveService.sendTextMessage(
         phone,
         "Sorry, I ran into a small issue processing that request. Try sending it again.",
       );
@@ -74,38 +84,146 @@ export class WhatsAppSupplierService {
   }
 
   // =======================================================================
+  // Interactive Reply Handler
+  // =======================================================================
+  private async handleInteractiveReply(
+    supplierId: string,
+    phone: string,
+    interactiveId: string,
+  ): Promise<void> {
+    if (interactiveId === "show_supplier_menu") {
+      await this.sendSupplierMenu(phone);
+      return;
+    }
+
+    if (interactiveId === "get_supplier_sales") {
+      await this.handleSalesSummary(supplierId, phone);
+      return;
+    }
+
+    if (interactiveId === "get_supplier_orders") {
+      await this.handleRecentOrders(supplierId, phone);
+      return;
+    }
+
+    if (interactiveId === "get_supplier_products") {
+      await this.handleGetProducts(supplierId, phone);
+      return;
+    }
+
+    if (interactiveId === "get_supplier_payouts") {
+      await this.handlePayouts(supplierId, phone);
+      return;
+    }
+
+    if (interactiveId.startsWith("dispatch_order_")) {
+      const orderIdShort = interactiveId.replace("dispatch_order_", "");
+      await this.handleDispatchOrder(supplierId, phone, orderIdShort);
+      return;
+    }
+
+    if (interactiveId.startsWith("view_wholesale_order_")) {
+      const orderIdShort = interactiveId.replace("view_wholesale_order_", "");
+      // TODO: Implement wholesale order detail view
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `Order details for #${orderIdShort.toUpperCase()} coming soon.`,
+      );
+      return;
+    }
+
+    await this.interactiveService.sendTextMessage(phone, FRIENDLY_FALLBACK);
+  }
+
+  private async sendSupplierMenu(phone: string): Promise<void> {
+    await this.interactiveService.sendListMessage(
+      phone,
+      "🏭 *Supplier Control Center*\n\nWelcome back! What would you like to manage today?",
+      "Open Menu",
+      [
+        {
+          title: "Operations",
+          rows: [
+            {
+              id: "get_supplier_sales",
+              title: "📊 Sales Summary",
+              description: "View your revenue and performance",
+            },
+            {
+              id: "get_supplier_orders",
+              title: "📦 Active Orders",
+              description: "Manage pending fulfillments",
+            },
+            {
+              id: "get_supplier_products",
+              title: "🏪 Product List",
+              description: "View and manage your catalogue",
+            },
+          ],
+        },
+        {
+          title: "Finance & Support",
+          rows: [
+            {
+              id: "get_supplier_payouts",
+              title: "💰 Payout History",
+              description: "Track your earnings and status",
+            },
+          ],
+        },
+      ],
+    );
+  }
+
+  // =======================================================================
   // Command router
   // =======================================================================
   private async executeCommand(
     supplierId: string,
+    phone: string,
     intent: ParsedIntent,
-  ): Promise<string> {
+  ): Promise<void> {
     try {
       switch (intent.functionName) {
         case "show_menu":
-          return SUPPLIER_MAIN_MENU;
+          await this.sendSupplierMenu(phone);
+          break;
         case "get_supplier_sales":
-          return this.handleSalesSummary(supplierId);
+          await this.handleSalesSummary(supplierId, phone);
+          break;
         case "get_supplier_orders":
-          return this.handleRecentOrders(supplierId);
+          await this.handleRecentOrders(supplierId, phone);
+          break;
         case "get_supplier_products":
-          return this.handleGetProducts(supplierId);
+          await this.handleGetProducts(supplierId, phone);
+          break;
         case "update_supplier_price":
-          return this.handleUpdatePrice(
+          await this.handleUpdatePrice(
             supplierId,
+            phone,
             intent.params.productName,
             intent.params.newPriceNaira,
           );
+          break;
         case "get_supplier_payouts":
-          return this.handlePayouts(supplierId);
+          await this.handlePayouts(supplierId, phone);
+          break;
         case "dispatch_supplier_order":
-          return this.handleDispatchOrder(supplierId, intent.params.orderId);
+          await this.handleDispatchOrder(
+            supplierId,
+            phone,
+            intent.params.orderId,
+          );
+          break;
         default:
-          return SUPPLIER_MAIN_MENU;
+          await this.sendSupplierMenu(phone);
       }
     } catch (error) {
       this.logger.error(`Error executing supplier command: ${error}`);
-      return "I ran into a problem fetching that information. Please try again.";
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "I ran into a problem fetching that information. Please try again.",
+      );
     }
   }
 
@@ -113,47 +231,246 @@ export class WhatsAppSupplierService {
   // Intent Handlers
   // =======================================================================
 
-  private async handleSalesSummary(supplierId: string): Promise<string> {
-    // Stub for now
-    return "Your sales summary will be displayed here soon.";
+  private async handleSalesSummary(
+    supplierId: string,
+    phone: string,
+  ): Promise<void> {
+    const orders = await this.prisma.order.findMany({
+      where: {
+        supplierId,
+        status: { in: [OrderStatus.DELIVERED, OrderStatus.COMPLETED] },
+      },
+      select: { totalAmountKobo: true },
+    });
+
+    const totalRevenue = orders.reduce(
+      (sum, o) => sum + Number(o.totalAmountKobo || 0),
+      0,
+    );
+
+    const pendingOrders = await this.prisma.order.count({
+      where: { supplierId, status: OrderStatus.PAID },
+    });
+
+    let msg = `📊 *Supplier Performance Summary*\n\n`;
+    msg += `✅ Completed Orders: *${orders.length}*\n`;
+    msg += `💰 Total Revenue: *${this.formatNaira(totalRevenue)}*\n`;
+    msg += `📋 Pending Fulfillment: *${pendingOrders}*`;
+
+    if (pendingOrders > 0) {
+      msg += `\nYou have active orders awaiting dispatch.`;
+    }
+
+    await this.interactiveService.sendTextMessage(phone, msg);
   }
 
-  private async handleRecentOrders(supplierId: string): Promise<string> {
-    // Stub for now
-    return "Your recent orders will be displayed here soon.";
+  private async handleRecentOrders(
+    supplierId: string,
+    phone: string,
+  ): Promise<void> {
+    const orders = await this.prisma.order.findMany({
+      where: { supplierId },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      include: { product: true },
+    });
+
+    if (orders.length === 0) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "📦 You have no wholesale orders yet.",
+      );
+      return;
+    }
+
+    await this.interactiveService.sendListMessage(
+      phone,
+      "📦 *Wholesale Orders*",
+      "View Orders",
+      [
+        {
+          title: "Recent Orders",
+          rows: orders.map((o) => ({
+            id: `view_wholesale_order_${o.id.substring(0, 8)}`,
+            title: `#${o.id.slice(0, 8).toUpperCase()} - ${o.status}`,
+            description: `${o.product?.name || "Product"} | Qty: ${o.quantity} | ${this.formatNaira(Number(o.totalAmountKobo))}`,
+          })),
+        },
+      ],
+    );
   }
 
-  private async handleGetProducts(supplierId: string): Promise<string> {
-    // Stub for now
-    return "Your products will be listed here soon.";
+  private async handleGetProducts(
+    supplierId: string,
+    phone: string,
+  ): Promise<void> {
+    const products = await this.prisma.supplierProduct.findMany({
+      where: { supplierId, isActive: true },
+      take: 10,
+    });
+
+    if (products.length === 0) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "🏭 You have no active products listed in the manufacturer catalogue.",
+      );
+      return;
+    }
+
+    await this.interactiveService.sendListMessage(
+      phone,
+      "🏬 *Your Manufacturer Catalogue*",
+      "View Products",
+      [
+        {
+          title: "Active Products",
+          rows: products.map((p) => ({
+            id: `view_supplier_product_${p.id.substring(0, 8)}`,
+            title: p.name,
+            description: `Price: ${this.formatNaira(Number(p.wholesalePriceKobo))} | Min: ${p.minOrderQty} ${p.unit}`,
+          })),
+        },
+      ],
+    );
   }
 
   private async handleUpdatePrice(
     supplierId: string,
+    phone: string,
     productName?: string,
     newPriceNaira?: number,
-  ): Promise<string> {
+  ): Promise<void> {
     if (!productName || !newPriceNaira) {
-      return "To update a price, tell me the product and the new price, e.g. 'Update cement to 8500'.";
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "To update a price, tell me the product and the new price, e.g. 'Update cement to 8500'.",
+      );
+      return;
     }
-    // Stub for now
-    return "Feature coming soon — this action is not yet implemented.";
+
+    const product = await this.prisma.supplierProduct.findFirst({
+      where: {
+        supplierId,
+        name: { contains: productName, mode: "insensitive" },
+      },
+    });
+
+    if (!product) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `❌ Product "${productName}" not found in your catalogue.`,
+      );
+      return;
+    }
+
+    try {
+      await this.prisma.supplierProduct.update({
+        where: { id: product.id },
+        data: { wholesalePriceKobo: BigInt(newPriceNaira * 100) },
+      });
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `✅ *Price Updated Successfuly*\n\n${product.name} is now ${this.formatNaira(newPriceNaira * 100)}.`,
+      );
+    } catch (error) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `❌ Failed to update price. Please try again.`,
+      );
+    }
   }
 
-  private async handlePayouts(supplierId: string): Promise<string> {
-    // Stub for now
-    return "Your recent payouts will be displayed here soon.";
+  private async handlePayouts(
+    supplierId: string,
+    phone: string,
+  ): Promise<void> {
+    const payouts = await this.prisma.payout.findMany({
+      where: {
+        order: { supplierId },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    });
+
+    if (payouts.length === 0) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "💰 No payout history found.",
+      );
+      return;
+    }
+
+    let msg = `💰 *Recent Payouts*\n\n`;
+    payouts.forEach((p) => {
+      msg += `• ${this.formatNaira(Number(p.amountKobo))} - ${p.status} (${p.createdAt.toLocaleDateString()})\n`;
+    });
+
+    await this.interactiveService.sendTextMessage(phone, msg);
   }
 
   private async handleDispatchOrder(
     supplierId: string,
+    phone: string,
     orderId?: string,
-  ): Promise<string> {
+  ): Promise<void> {
     if (!orderId) {
-      return "Which order do you want to mark as dispatched? Tell me the Order ID.";
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "Which order do you want to mark as dispatched? Tell me the Order ID.",
+      );
+      return;
     }
-    // Stub for now
-    return "Feature coming soon — this action is not yet implemented.";
+
+    const activeOrders = await this.prisma.order.findMany({
+      where: {
+        supplierId,
+        status: OrderStatus.PAID,
+      },
+      select: { id: true },
+    });
+
+    const matches = activeOrders.filter((o) =>
+      o.id.toLowerCase().startsWith(orderId.toLowerCase()),
+    );
+
+    if (matches.length === 0) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `❌ Order #${orderId} not found or is not ready for dispatch.`,
+      );
+      return;
+    }
+
+    if (matches.length > 1) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `⚠️ Multiple orders (${matches.length}) match "${orderId}". Please provide a more specific reference ID.`,
+      );
+      return;
+    }
+
+    const order = matches[0];
+
+    try {
+      await this.prisma.order.update({
+        where: { id: order.id },
+        data: { status: OrderStatus.DISPATCHED },
+      });
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `✅ Order #${orderId.toUpperCase()} marked as *Dispatched*. 🚚`,
+      );
+    } catch (error) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `❌ Failed to update order status.`,
+      );
+    }
+  }
+
+  private formatNaira(kobo: number): string {
+    const naira = kobo / 100;
+    return `₦${naira.toLocaleString("en-NG", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   }
 
   // =======================================================================

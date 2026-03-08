@@ -50,6 +50,13 @@ export class WhatsAppBuyerIntentService {
     ) {
       return { functionName: "search_products", params: { query: text } };
     }
+    if (
+      lower.includes("category") ||
+      lower.includes("browse") ||
+      lower.includes("categories")
+    ) {
+      return { functionName: "browse_categories", params: {} };
+    }
     if (lower.includes("where") || lower.includes("track")) {
       return { functionName: "get_active_orders", params: {} };
     }

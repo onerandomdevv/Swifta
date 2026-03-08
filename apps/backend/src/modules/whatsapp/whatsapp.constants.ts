@@ -2,88 +2,38 @@
 // WhatsApp Bot — Constants, templates & Gemini function declarations
 // ---------------------------------------------------------------------------
 
-/** Numbered menu shown to linked merchants */
-export const MAIN_MENU = `Welcome back! 🤝 Here's what I fit help you with:
-
-1️⃣ Sales Summary — "How market?"
-2️⃣ Pending RFQs — "Any new order?"
-3️⃣ Inventory Check — "Wetin dey my store?"
-4️⃣ My Orders — "Show my orders"
-5️⃣ Update Stock — "Add 50 bags cement"
-6️⃣ My Products — "Wetin I dey sell?"
-7️⃣ Update Price — "Update cement price to 8500"
-8️⃣ My Verification — "Am I verified?"
-
-Just type a number or tell me wetin you need! 🤝`;
+/** Professional English menu for linked merchants */
+export const MAIN_MENU = `Manage your business efficiently right here on WhatsApp. Select an option from the menu or type your request naturally.`;
 
 /** Supplier main menu */
-export const SUPPLIER_MAIN_MENU = `Welcome back, Supplier! 🏗️
-
-1️⃣ Today's Sales
-2️⃣ My Orders
-3️⃣ My Products
-4️⃣ Update Price
-5️⃣ My Payouts
-
-Or just tell me what you need!`;
+export const SUPPLIER_MAIN_MENU = `Supplier Dashboard. Use the menu below to manage your wholesale operations.`;
 
 /** Friendly fallback when AI can't determine intent */
-export const FRIENDLY_FALLBACK = `I no too understand that one o 😅 But no worry, here's what I fit help you with:
-
-1️⃣ Sales Summary — "How market?"
-2️⃣ Pending RFQs — "Any new order?"
-3️⃣ Inventory Check — "Wetin dey my store?"
-4️⃣ My Orders — "Show my orders"
-5️⃣ Update Stock — "Add 50 bags cement"
-6️⃣ My Products — "Wetin I dey sell?"
-7️⃣ Update Price — "Update cement price to 8500"
-8️⃣ My Verification — "Am I verified?"
-
-Just tell me wetin you need! 🤝`;
+export const FRIENDLY_FALLBACK = `I'm not quite sure I understood that. 😅 Here is what I can help you with today:`;
 
 /** Main menu for buyers */
-export const BUYER_MAIN_MENU = `Welcome to SwiftTrade Buyer Assistant! 🛒 How I fit help you today?
-
-1️⃣ Search Products — "I need cement"
-2️⃣ Active Orders — "Where my goods dey?"
-3️⃣ Order History — "Wetin I buy before?"
-4️⃣ Contact Support — "I get issue"
-
-Just type wetin you dey find! 🤝`;
+export const BUYER_MAIN_MENU = `Welcome to your SwiftTrade Buyer Assistant. Select an option from the menu to get started:`;
 
 /** Friendly fallback for buyers */
-export const BUYER_FRIENDLY_FALLBACK = `I no too understand that one o 😅 You fit try:
-
-• "I need 50 bags cement for Lekki"
-• "Show my orders"
-• "Where is my cement?"
-
-Type *menu* to see all options.`;
+export const BUYER_FRIENDLY_FALLBACK = `I didn't quite catch that. Try using the menu or ask me questions like:
+• "I need 50 bags of cement in Lekki"
+• "Where is my order?"
+• "Show my purchase history"`;
 
 /** Follow-up when stock update is incomplete */
-export const STOCK_UPDATE_FOLLOWUP = `No wahala! Which product you wan update? And how many?
+export const STOCK_UPDATE_FOLLOWUP = `Understood. Which product would you like to update and by how much?
 
-For example: "add 50 bags cement" or "remove 10 iron rods"
-
-Say *6* if you wan see your products first.`;
+Example: "Add 50 bags of cement" or "Remove 10 iron rods"`;
 
 /** Follow-up when RFQ response is incomplete */
-export const RFQ_RESPOND_FOLLOWUP = `To respond to an RFQ, I need:
+export const RFQ_RESPOND_FOLLOWUP = `To provide a quote, please include:
 • The RFQ reference (e.g. "a3f2")
 • Your price per unit in Naira
 
-Example: "quote a3f2 at 8500 per bag"
-
-Reply *2* to see your pending RFQs first.`;
+Example: "Quote a3f2 at 8500 per bag"`;
 
 /** First message for an unlinked phone */
-export const WELCOME_MESSAGE = `Welcome to SwiftTrade!
-
-Are you a:
-1️⃣ Buyer
-2️⃣ Merchant
-
-Reply 1 or 2.`;
+export const WELCOME_MESSAGE = `Welcome to SwiftTrade, Nigeria's digital marketplace for building and hardware materials. How would you like to use our platform?`;
 
 export const ROLE_SELECTED_MESSAGE = `Great! To link your account, please reply with your registered email address.`;
 
@@ -105,10 +55,10 @@ export const LINK_SUCCESS = (merchantName: string, role: string) => {
 export const ALREADY_LINKED = `This phone number is already linked to a merchant account.`;
 
 /** Errors */
-export const EMAIL_NOT_FOUND = `I couldn't find a merchant account with that email. Please check and try again.`;
-export const INVALID_OTP = `That code doesn't match. Please check your email and try again.`;
-export const OTP_EXPIRED = `The verification code has expired. Please send your email again to get a new code.`;
-export const GENERIC_ERROR = `Something went wrong on our end. Please try again or type *menu* to see your options.`;
+export const EMAIL_NOT_FOUND = `We couldn't find an account associated with that email. Please check the spelling and try again.`;
+export const INVALID_OTP = `The code you entered is incorrect. Please check your email and try again.`;
+export const OTP_EXPIRED = `Your verification code has expired. Please provide your email again to receive a new one.`;
+export const GENERIC_ERROR = `We encountered a problem while processing your request. Please try again or type "menu" to see available options.`;
 
 // ---------------------------------------------------------------------------
 // Session states for multi-step flows
@@ -146,8 +96,8 @@ LANGUAGE: Merchants write in English, Pidgin English, Yoruba-English mix, or sho
 Sales/Revenue queries:
 - "how market" → get_sales_summary (today)
 - "how market dey be naa" → get_sales_summary (today)
-- "how much I sell today" → get_sales_summary (today)
-- "wetin I sell this week" → get_sales_summary (this_week)
+- "how much did I sell today" → get_sales_summary (today)
+- "what did I sell this week" → get_sales_summary (this_week)
 - "my sales" → get_sales_summary (today)
 - "anything for me today?" → get_sales_summary (today)
 - "how business" → get_sales_summary (today)
@@ -155,17 +105,17 @@ Sales/Revenue queries:
 
 RFQ queries:
 - "any new order?" → get_pending_rfqs
-- "anybody wan buy?" → get_pending_rfqs
+- "is there a new order?" → get_pending_rfqs
 - "check my rfq" → get_pending_rfqs
 - "pending orders" → get_pending_rfqs
 - "new request" → get_pending_rfqs
-- "who dey find goods" → get_pending_rfqs
+- "who is looking for products" → get_pending_rfqs
 
 Inventory queries:
-- "wetin dey my store" → get_inventory
+- "what is in my store" → get_inventory
 - "check my stock" → get_inventory
 - "I want to see inventory" → get_inventory
-- "how many cement I get" → get_inventory (productName: "cement")
+- "how much cement do I have" → get_inventory (productName: "cement")
 - "my goods" → get_inventory
 - "warehouse" → get_inventory
 
@@ -173,16 +123,16 @@ Stock updates:
 - "add 50 bags cement" → update_stock (productName: "cement", quantity: 50, action: "add")
 - "I just receive 100 iron rod" → update_stock (productName: "iron rod", quantity: 100, action: "add")
 - "remove 20 bags cement" → update_stock (productName: "cement", quantity: 20, action: "remove")
-- "50 blocks don sell" → update_stock (productName: "blocks", quantity: 50, action: "remove")
+- "50 blocks have been sold" → update_stock (productName: "blocks", quantity: 50, action: "remove")
 
 Product queries:
 - "my products" → get_products
-- "wetin I dey sell" → get_products
+- "what am I selling" → get_products
 - "show me my listings" → get_products
 
 RFQ responses:
 - "quote a3f2 at 8500 per bag" → respond_to_rfq (rfqReference: "a3f2", unitPriceNaira: 8500)
-- "give am price 8500 delivery 15000" → respond_to_rfq (unitPriceNaira: 8500, deliveryFeeNaira: 15000)
+- "price is 8500 and delivery is 15000" → respond_to_rfq (unitPriceNaira: 8500, deliveryFeeNaira: 15000)
 
 Orders/Dispatch queries:
 - "my orders" → get_recent_orders
