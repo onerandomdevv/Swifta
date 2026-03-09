@@ -10,6 +10,10 @@ import { NotificationChannel } from "@hardware-os/shared";
 @Processor(NOTIFICATION_QUEUE, {
   concurrency: 5,
   limiter: { max: 10, duration: 1000 },
+  drainDelay: 60000,
+  stalledInterval: 300000,
+  lockDuration: 60000,
+  metrics: null,
 })
 export class NotificationProcessor extends WorkerHost {
   private readonly logger = new Logger(NotificationProcessor.name);

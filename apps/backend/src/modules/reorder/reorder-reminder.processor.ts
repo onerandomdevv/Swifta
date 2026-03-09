@@ -6,7 +6,12 @@ import { Logger } from "@nestjs/common";
 import { REORDER_REMINDER_QUEUE } from "../../queue/queue.constants";
 import { ReorderService } from "./reorder.service";
 
-@Processor(REORDER_REMINDER_QUEUE)
+@Processor(REORDER_REMINDER_QUEUE, {
+  drainDelay: 60000,
+  stalledInterval: 300000,
+  lockDuration: 60000,
+  metrics: null,
+})
 export class ReorderReminderProcessor extends WorkerHost {
   private readonly logger = new Logger(ReorderReminderProcessor.name);
 

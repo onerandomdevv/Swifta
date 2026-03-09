@@ -7,7 +7,12 @@ import { RFQ_EXPIRY_QUEUE } from "../../queue/queue.constants";
 import { RFQService } from "./rfq.service";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
 
-@Processor(RFQ_EXPIRY_QUEUE)
+@Processor(RFQ_EXPIRY_QUEUE, {
+  drainDelay: 60000,
+  stalledInterval: 300000,
+  lockDuration: 60000,
+  metrics: null,
+})
 export class RFQExpiryProcessor extends WorkerHost {
   private readonly logger = new Logger(RFQExpiryProcessor.name);
 
