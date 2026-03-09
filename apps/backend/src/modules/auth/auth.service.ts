@@ -90,8 +90,11 @@ export class AuthService {
   }
 
   async register(dto: RegisterDto): Promise<TokenPair & { user: any }> {
+    const normalizedPhone = normalizePhone(dto.phone);
     const existingUser = await this.prisma.user.findFirst({
-      where: { OR: [{ email: dto.email }, { phone: dto.phone }] },
+      where: {
+        OR: [{ email: dto.email }, { phone: normalizedPhone }],
+      },
     });
     if (existingUser) {
       throw new ConflictException(
@@ -104,7 +107,7 @@ export class AuthService {
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
-        phone: dto.phone,
+        phone: normalizedPhone,
         firstName: dto.firstName,
         middleName: dto.middleName,
         lastName: dto.lastName,
@@ -663,13 +666,32 @@ export class AuthService {
 
   async initiateWhatsAppLogin(phone: string): Promise<{ message: string }> {
     const normalizedPhone = normalizePhone(phone);
-    const user = await this.prisma.user.findFirst({
-      where: { phone: normalizedPhone },
-      include: { merchantProfile: true, buyerProfile: true },
-    });
+
+    // 1. Resolve linked identity (Merchant, Buyer, or Supplier)
+    const [merchantLink, buyerLink, supplierLink] = await Promise.all([
+      this.prisma.whatsAppLink.findUnique({
+        where: { phone: normalizedPhone },
+        include: { user: true },
+      }),
+      this.prisma.whatsAppBuyerLink.findUnique({
+        where: { phone: normalizedPhone },
+        include: { buyer: true },
+      }),
+      this.prisma.whatsAppSupplierLink.findUnique({
+        where: { phone: normalizedPhone },
+        include: { supplier: { include: { user: true } } },
+      }),
+    ]);
+
+    const user =
+      merchantLink?.user || buyerLink?.buyer || supplierLink?.supplier?.user;
 
     if (!user) {
-      throw new NotFoundException("No account found with this phone number.");
+      this.logger.warn(
+        `WhatsApp login initiated for unlinked/non-existent phone: ${normalizedPhone}`,
+      );
+      // Return generic success to mask user existence
+      return { message: "A login code has been sent to your WhatsApp." };
     }
 
     const otp = randomInt(100000, 999999).toString();
@@ -682,7 +704,9 @@ export class AuthService {
     const message = `🔐 *SwiftTrade Login Code*\n\nYour verification code is: *${otp}*\n\nIt expires in 5 minutes. Do not share this code with anyone.`;
     await this.whatsappService.sendWhatsAppMessage(normalizedPhone, message);
 
-    this.logger.log(`WhatsApp OTP sent to ${normalizedPhone}`);
+    this.logger.log(
+      `WhatsApp OTP sent to verified identity: ${normalizedPhone}`,
+    );
 
     return { message: "A login code has been sent to your WhatsApp." };
   }
@@ -699,10 +723,52 @@ export class AuthService {
       throw new UnauthorizedException("Invalid or expired verification code.");
     }
 
-    const user = await this.prisma.user.findFirst({
-      where: { phone: normalizedPhone },
-      include: { merchantProfile: true, buyerProfile: true },
-    });
+    // Resolve linked identity again during verification
+    const [merchantLink, buyerLink, supplierLink] = await Promise.all([
+      this.prisma.whatsAppLink.findUnique({
+        where: { phone: normalizedPhone },
+        include: {
+          user: {
+            include: {
+              merchantProfile: true,
+              buyerProfile: true,
+              supplierProfile: true,
+            },
+          },
+        },
+      }),
+      this.prisma.whatsAppBuyerLink.findUnique({
+        where: { phone: normalizedPhone },
+        include: {
+          buyer: {
+            include: {
+              merchantProfile: true,
+              buyerProfile: true,
+              supplierProfile: true,
+            },
+          },
+        },
+      }),
+      this.prisma.whatsAppSupplierLink.findUnique({
+        where: { phone: normalizedPhone },
+        include: {
+          supplier: {
+            include: {
+              user: {
+                include: {
+                  merchantProfile: true,
+                  buyerProfile: true,
+                  supplierProfile: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+    const user =
+      merchantLink?.user || buyerLink?.buyer || supplierLink?.supplier?.user;
 
     if (!user) {
       throw new UnauthorizedException("User no longer exists.");
