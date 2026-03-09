@@ -2,7 +2,7 @@ import { IsPhoneNumber, IsNotEmpty, IsString, Length } from "class-validator";
 
 export class VerifyPhoneOtpDto {
   @IsNotEmpty()
-  @IsPhoneNumber()
+  @IsString()
   phone: string;
 
   @IsNotEmpty()
