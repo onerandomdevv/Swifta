@@ -13,6 +13,7 @@ import { WhatsAppBuyerService } from "./whatsapp-buyer.service";
 import { TradeFinancingService } from "../trade-financing/trade-financing.service";
 import { RedisService } from "../../redis/redis.service";
 import { WhatsAppSupplierService } from "./whatsapp-supplier.service";
+import { SupplierService } from "../supplier/supplier.service";
 import { WhatsAppIntentService, ParsedIntent } from "./whatsapp-intent.service";
 import { ImageSearchService } from "./image-search.service";
 import { WhatsAppInteractiveService } from "./whatsapp-interactive.service";
@@ -57,6 +58,8 @@ export class WhatsAppService {
     private intentService: WhatsAppIntentService,
     private buyerService: WhatsAppBuyerService,
     private supplierService: WhatsAppSupplierService,
+    @Inject(forwardRef(() => SupplierService))
+    private wholesaleSupplierService: SupplierService,
     private tradeFinancingService: TradeFinancingService,
     private imageSearchService: ImageSearchService,
     private redisService: RedisService,
@@ -1931,22 +1934,67 @@ export class WhatsAppService {
         return;
       }
 
-      // Complete - generate app link
+      // Complete - generate app link or pay stack link
       await this.redisService.del(key);
       const appUrl =
         this.configService.get("FRONTEND_URL") || "https://swifttrade.com";
-      const checkoutLink = `${appUrl}/merchant/wholesale?productId=${session.productId}&qty=${session.quantity}&pay=${paymentMethod}`;
 
-      let msg = `✅ *Wholesale Details confirmed!*\n\n`;
-      msg += `*Item*: ${session.productId.substring(0, 8)} (${session.quantity} units)\n`;
-      msg += `*Payment*: ${paymentMethod.replace(/_/g, " ")}\n\n`;
+      if (paymentMethod === "PAY_NOW") {
+        const merchant = await this.prisma.merchantProfile.findUnique({
+          where: { id: merchantId },
+          select: { userId: true, businessAddress: true },
+        });
 
-      await this.interactiveService.sendCTAUrlButton(
-        phone,
-        msg + `🔗 *Tap below to finalize this order:*`,
-        "Finalize Order",
-        checkoutLink,
-      );
+        if (!merchant) {
+          await this.interactiveService.sendTextMessage(
+            phone,
+            "❌ Merchant profile not found.",
+          );
+          return;
+        }
+
+        try {
+          const orderResponse = await this.wholesaleSupplierService.createOrder(
+            merchant.userId,
+            {
+              productId: session.productId,
+              quantity: session.quantity,
+              deliveryAddress: merchant.businessAddress || "Merchant Address",
+            },
+          );
+
+          let msg = `✅ *Wholesale Details confirmed!*\n\n`;
+          msg += `*Item*: ${session.productId.substring(0, 8)} (${session.quantity} units)\n`;
+          msg += `*Payment*: ${paymentMethod.replace(/_/g, " ")}\n\n`;
+
+          await this.interactiveService.sendCTAUrlButton(
+            phone,
+            msg + `🔗 *Tap below to securely pay via Paystack:*`,
+            "Pay Now",
+            orderResponse.authorizationUrl,
+          );
+        } catch (error: any) {
+          this.logger.error("Wholesale order creation failed", error);
+          await this.interactiveService.sendTextMessage(
+            phone,
+            `❌ Failed to initiate order: ${error.message || "Unknown error"}`,
+          );
+        }
+      } else {
+        // Trade financing usually needs a web checkout to sign terms
+        const checkoutLink = `${appUrl}/merchant/wholesale?productId=${session.productId}&qty=${session.quantity}&pay=${paymentMethod}`;
+
+        let msg = `✅ *Wholesale Details confirmed!*\n\n`;
+        msg += `*Item*: ${session.productId.substring(0, 8)} (${session.quantity} units)\n`;
+        msg += `*Payment*: ${paymentMethod.replace(/_/g, " ")}\n\n`;
+
+        await this.interactiveService.sendCTAUrlButton(
+          phone,
+          msg + `🔗 *Tap below to finalize this order:*`,
+          "Finalize Financing",
+          checkoutLink,
+        );
+      }
       return;
     }
 

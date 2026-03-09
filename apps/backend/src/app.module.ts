@@ -37,6 +37,7 @@ import { LogisticsModule } from "./modules/logistics/logistics.module";
 import { SupplierModule } from "./modules/supplier/supplier.module";
 import { CategoryModule } from "./modules/category/category.module";
 import { ReviewModule } from "./modules/review/review.module";
+import { BuyerModule } from "./modules/buyer/buyer.module";
 
 import { LoggerModule } from "./common/logger/logger.module";
 
@@ -116,6 +117,7 @@ import { APP_GUARD } from "@nestjs/core";
     SupplierModule,
     CategoryModule,
     ReviewModule,
+    BuyerModule,
   ],
   controllers: [],
   providers: [

@@ -106,12 +106,15 @@ export default function RegisterPage() {
           data.role === UserRole.BUYER && data.buyerType === "CONSUMER"
             ? ""
             : data.businessName,
-        buyerType: data.role === UserRole.BUYER ? data.buyerType : "BUSINESS",
+        buyerType:
+          data.role === UserRole.BUYER
+            ? (data.buyerType as "BUSINESS" | "CONSUMER")
+            : "BUSINESS",
         companyName: data.companyName,
         companyAddress: data.companyAddress,
         cacNumber: data.cacNumber,
         role: data.role,
-      } as RegisterDto);
+      });
 
       setStep(3);
       toast.success("Registration successful! Check your inbox.");

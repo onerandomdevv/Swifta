@@ -28,10 +28,13 @@ export default function EditProductPage() {
     unit: "",
     categoryTag: "",
     minOrderQuantity: 1,
+    minOrderQuantityConsumer: 1,
     isActive: true,
     categoryId: "",
     warehouseLocation: "",
     imageUrl: "",
+    retailPrice: "",
+    pricePerUnit: "",
   });
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -61,9 +64,16 @@ export default function EditProductPage() {
           categoryTag: product.categoryTag,
           categoryId: product.categoryId || "",
           minOrderQuantity: product.minOrderQuantity,
+          minOrderQuantityConsumer: product.minOrderQuantityConsumer || 1,
           isActive: product.isActive,
           warehouseLocation: product.warehouseLocation || "",
           imageUrl: product.imageUrl || "",
+          retailPrice: product.retailPriceKobo
+            ? (Number(product.retailPriceKobo) / 100).toString()
+            : "",
+          pricePerUnit: product.pricePerUnitKobo
+            ? (Number(product.pricePerUnitKobo) / 100).toString()
+            : "",
         });
 
         setInitialStock(stockData.stock);
@@ -112,9 +122,16 @@ export default function EditProductPage() {
         categoryTag: formData.categoryTag,
         categoryId: formData.categoryId,
         minOrderQuantity: formData.minOrderQuantity,
+        minOrderQuantityConsumer: formData.minOrderQuantityConsumer,
         isActive: formData.isActive,
         warehouseLocation: formData.warehouseLocation || undefined,
         imageUrl: formData.imageUrl || undefined,
+        pricePerUnitKobo: formData.pricePerUnit
+          ? (Number(formData.pricePerUnit) * 100).toString()
+          : undefined,
+        retailPriceKobo: formData.retailPrice
+          ? (Number(formData.retailPrice) * 100).toString()
+          : undefined,
       });
 
       // 2. Adjust stock if changed
@@ -391,10 +408,61 @@ export default function EditProductPage() {
                   Total {formData.unit.toLowerCase()}s currently available.
                 </p>
               </div>
+            </div>
+          </div>
+
+          {/* Section 3: Pricing & Consumer MOQ */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 shadow-sm space-y-6">
+            <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+              <span className="material-symbols-outlined text-primary text-xl">
+                payments
+              </span>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                Pricing & Consumer Requirements
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                  Business Price (₦)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={formData.pricePerUnit}
+                  onChange={(e) =>
+                    setFormData({ ...formData, pricePerUnit: e.target.value })
+                  }
+                  className="w-full px-5 py-4 text-sm font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all dark:text-white"
+                  placeholder="e.g. 8500"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <label className="block text-[11px] font-black text-primary uppercase tracking-widest ml-1 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-xs">
+                    person
+                  </span>
+                  Retail Price (₦) - For Consumers
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={formData.retailPrice}
+                  onChange={(e) =>
+                    setFormData({ ...formData, retailPrice: e.target.value })
+                  }
+                  className="w-full px-5 py-4 text-sm font-bold border-2 border-primary/10 dark:border-primary/20 bg-primary/5 dark:bg-primary/10 rounded-xl focus:border-primary outline-none transition-all placeholder:text-primary/30 dark:text-white"
+                  placeholder="e.g. 9000"
+                />
+              </div>
 
               <div className="space-y-3">
                 <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                  Min. Order Quantity <span className="text-red-500">*</span>
+                  Business Min. Order <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -408,6 +476,28 @@ export default function EditProductPage() {
                     })
                   }
                   className="w-full px-5 py-4 text-sm font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all dark:text-white"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <label className="block text-[11px] font-black text-primary uppercase tracking-widest ml-1 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-xs">
+                    person
+                  </span>
+                  Consumer Min. Order <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  required
+                  value={formData.minOrderQuantityConsumer}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      minOrderQuantityConsumer: parseInt(e.target.value) || 1,
+                    })
+                  }
+                  className="w-full px-5 py-4 text-sm font-bold border-2 border-primary/10 dark:border-primary/20 bg-primary/5 dark:bg-primary/10 rounded-xl focus:border-primary outline-none transition-all dark:text-white"
                 />
               </div>
             </div>

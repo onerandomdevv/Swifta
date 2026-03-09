@@ -2,7 +2,17 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { CheckCircle2 } from "lucide-react";
+import {
+  CheckCircle2,
+  ShieldCheck,
+  MessageCircle,
+  Truck,
+  Wallet,
+  FileSearch,
+  CheckCircle,
+  ChevronRight,
+  UserCheck,
+} from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 
 export default function LandingPage() {
@@ -70,63 +80,103 @@ export default function LandingPage() {
       </div>
 
       {/* ─── HERO SECTION ─── */}
-      <section className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-br from-deep-blue via-[#0d162f] to-[#0a1124]">
+      <section className="relative min-h-screen flex items-center overflow-hidden bg-white pt-20">
         {/* Abstract pattern background */}
         <div
-          className="absolute inset-0 z-0 opacity-20"
+          className="absolute inset-0 z-0 opacity-[0.03]"
           style={{
             backgroundImage:
-              "radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)",
+              "radial-gradient(circle at 2px 2px, #0f172a 1px, transparent 0)",
             backgroundSize: "32px 32px",
           }}
         />
 
-        {/* Hero Content */}
-        <div className="max-w-7xl mx-auto px-6 relative z-30 w-full py-32 pt-40 flex flex-col items-center text-center">
-          <div className="max-w-4xl flex flex-col items-center gap-8">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/20 border border-primary/30 text-white text-[11px] font-bold uppercase tracking-widest">
+        <div className="max-w-7xl mx-auto px-6 relative z-30 w-full py-16 flex flex-col-reverse lg:flex-row items-center gap-12 lg:gap-8">
+          {/* Hero Content Left */}
+          <div className="w-full lg:w-1/2 flex flex-col items-center lg:items-start text-center lg:text-left">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-[11px] font-bold uppercase tracking-widest mb-6">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
               </span>
               Now Live in Lagos State
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-white leading-[1.1] tracking-tight">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black text-navy-dark leading-[1.1] tracking-tight mb-6">
               Nigeria&apos;s First
               <br />
-              <span className="text-primary">WhatsApp E-Commerce</span>
+              <span className="text-primary bg-clip-text text-transparent bg-gradient-to-r from-primary to-green-500">
+                WhatsApp Commerce
+              </span>
               <br />
               Platform
             </h1>
 
-            <p className="text-lg lg:text-2xl text-white/80 max-w-2xl leading-relaxed font-medium px-4">
+            <p className="text-lg text-slate-500 max-w-lg leading-relaxed font-medium mb-10">
               Buy and sell anything on WhatsApp with escrow payment protection.
               Search → Buy → Pay → Track → Delivered. All from WhatsApp.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4 w-full px-4 sm:px-0">
+            <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
               <Link
                 href="/register"
-                className="w-full sm:w-auto bg-primary hover:bg-primary-dark text-white font-bold h-14 px-8 rounded-lg flex items-center justify-center gap-2 text-base shadow-xl shadow-primary/30 transition-all hover:scale-[1.02]"
+                className="w-full sm:w-auto bg-primary hover:bg-primary-dark text-white font-bold h-14 px-8 rounded-xl flex items-center justify-center gap-2 text-base shadow-lg shadow-primary/30 transition-all hover:scale-[1.02]"
               >
-                Start Buying →
-              </Link>
-              <Link
-                href="/register"
-                className="w-full sm:w-auto border border-white/30 bg-white/5 text-white font-bold h-14 px-8 rounded-lg flex items-center justify-center gap-2 text-base hover:bg-white/10 transition-all"
-              >
-                Start Selling
+                Start Buying <ChevronRight className="w-5 h-5" />
               </Link>
               <a
                 href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_BOT_NUMBER || "2349000000000"}`}
                 target="_blank"
                 rel="noreferrer"
-                className="w-full sm:w-auto border border-[#25D366]/30 bg-[#25D366]/10 text-[#25D366] font-bold h-14 px-8 rounded-lg flex items-center justify-center gap-2 text-base hover:bg-[#25D366]/20 transition-all"
+                className="w-full sm:w-auto border-2 border-slate-200 bg-white text-navy-dark hover:border-emerald-500 hover:text-emerald-600 font-bold h-14 px-8 rounded-xl flex items-center justify-center gap-2 text-base transition-all group"
               >
-                <span className="material-symbols-outlined">chat</span>
-                WhatsApp Bot
+                <MessageCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                WhatsApp AI Assistant
               </a>
+            </div>
+
+            <div className="mt-10 flex items-center gap-4 text-sm font-semibold text-slate-500">
+              <div className="flex -space-x-3">
+                <div className="w-8 h-8 rounded-full border-2 border-white bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-700">
+                  JT
+                </div>
+                <div className="w-8 h-8 rounded-full border-2 border-white bg-green-100 flex items-center justify-center text-xs font-bold text-green-700">
+                  AK
+                </div>
+                <div className="w-8 h-8 rounded-full border-2 border-white bg-orange-100 flex items-center justify-center text-xs font-bold text-orange-700">
+                  MO
+                </div>
+              </div>
+              <p>
+                Trusted by{" "}
+                <span className="text-navy-dark font-black">2,000+</span> users
+              </p>
+            </div>
+          </div>
+
+          {/* Hero Image Right */}
+          <div className="w-full lg:w-1/2 relative">
+            <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-emerald-400/20 rounded-[2rem] transform rotate-3 scale-105 z-0 blur-xl"></div>
+            <div className="relative z-10 rounded-[2rem] overflow-hidden shadow-2xl border-4 border-white">
+              <img
+                src="/images/landing/hero-trade.png"
+                alt="Young adults using SwiftTrade AI Assistant on WhatsApp"
+                className="w-full h-auto object-cover aspect-[4/3] sm:aspect-[3/2] lg:aspect-square"
+              />
+              {/* Floating Badge */}
+              <div className="absolute bottom-6 left-6 bg-white/95 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-slate-100 flex items-center gap-3 animate-in slide-in-from-bottom-4 duration-700 delay-300">
+                <div className="bg-emerald-100 text-emerald-600 p-2 rounded-lg">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-navy-dark">
+                    100% Secure
+                  </p>
+                  <p className="text-xs font-bold text-slate-500 tracking-wide uppercase">
+                    Escrow Payments
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -147,46 +197,44 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               {
-                icon: "lock",
+                icon: <ShieldCheck className="w-6 h-6" />,
                 title: "Escrow-Protected Payments",
                 desc: "Your money is held securely until you confirm delivery. Zero fraud risk.",
               },
               {
-                icon: "chat",
+                icon: <MessageCircle className="w-6 h-6" />,
                 title: "WhatsApp-Native",
                 desc: "Buy, sell, and manage your business entirely from WhatsApp. No app downloads.",
               },
               {
-                icon: "local_shipping",
+                icon: <Truck className="w-6 h-6" />,
                 title: "Tracked Delivery",
                 desc: "Real-time delivery tracking with notifications straight to your WhatsApp.",
               },
               {
-                icon: "account_balance",
+                icon: <Wallet className="w-6 h-6" />,
                 title: "Instant Merchant Payouts",
                 desc: "Delivery confirmed → money in your bank account. Automatically via Paystack.",
               },
               {
-                icon: "verified",
+                icon: <UserCheck className="w-6 h-6" />,
                 title: "Verified Merchants",
                 desc: "Every merchant is rated and verified. Buy with confidence.",
               },
               {
-                icon: "photo_camera",
+                icon: <FileSearch className="w-6 h-6" />,
                 title: "AI Product Search",
-                desc: "Send a photo of what you need. Our AI finds matching products instantly.",
+                desc: "Send a photo of what you need. Our AI assistant finds matching products instantly.",
               },
-            ].map((feat) => (
+            ].map((feat, i) => (
               <div
-                key={feat.title}
-                className="p-8 rounded-lg border border-slate-200 group hover:border-primary/30 hover:bg-primary/5 transition-all duration-300"
+                key={i}
+                className="p-8 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
               >
-                <div className="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center mb-5 group-hover:bg-primary group-hover:text-white transition-all">
-                  <span className="material-symbols-outlined text-primary group-hover:text-white">
-                    {feat.icon}
-                  </span>
+                <div className="h-14 w-14 bg-emerald-50 rounded-xl flex items-center justify-center mb-6 text-emerald-600 transition-all">
+                  {feat.icon}
                 </div>
-                <h3 className="text-lg font-black text-deep-blue mb-2">
+                <h3 className="text-xl font-black text-navy-dark mb-3">
                   {feat.title}
                 </h3>
                 <p className="text-slate-500 font-medium leading-relaxed text-sm">
@@ -235,55 +283,70 @@ export default function LandingPage() {
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-24">
-            {/* For Buyers */}
-            <div className="bg-[#f6f6f8] rounded-2xl p-6 sm:p-10 lg:p-12">
-              <h3 className="text-2xl font-black text-deep-blue mb-8">
-                For Buyers
-              </h3>
-              <ul className="space-y-6">
-                {[
-                  "Search for any product on web or WhatsApp",
-                  "Pay securely — your money is protected until delivery",
-                  "Track your order in real-time",
-                  "Confirm delivery with your OTP code",
-                  "Rate your experience",
-                ].map((text, idx) => (
-                  <li key={idx} className="flex items-start gap-4">
-                    <div className="h-8 w-8 rounded-full bg-primary/20 text-primary font-black flex items-center justify-center shrink-0">
-                      {idx + 1}
-                    </div>
-                    <span className="font-medium text-slate-700 mt-1">
-                      {text}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+            {/* Image Center */}
+            <div className="order-2 lg:order-1 relative rounded-3xl overflow-hidden shadow-2xl h-full min-h-[400px]">
+              <img
+                src="/images/landing/merchant-buyer.png"
+                alt="Merchants and Buyers trading securely on SwiftTrade"
+                className="absolute inset-0 w-full h-full object-cover"
+              />
             </div>
 
-            {/* For Merchants */}
-            <div className="bg-deep-blue rounded-2xl p-6 sm:p-10 lg:p-12 text-white">
-              <h3 className="text-2xl font-black text-white mb-8">
-                For Merchants
-              </h3>
-              <ul className="space-y-6">
-                {[
-                  "List your products with prices",
-                  "Get orders from buyers across Lagos",
-                  "Dispatch and track deliveries",
-                  "Get paid instantly to your bank account",
-                  "Manage everything from WhatsApp",
-                ].map((text, idx) => (
-                  <li key={idx} className="flex items-start gap-4">
-                    <div className="h-8 w-8 rounded-full bg-white/20 text-white font-black flex items-center justify-center shrink-0">
-                      {idx + 1}
-                    </div>
-                    <span className="font-medium text-white/90 mt-1">
-                      {text}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+            <div className="order-1 lg:order-2 flex flex-col gap-8">
+              {/* For Buyers */}
+              <div className="bg-[#f6f6f8] rounded-2xl p-8 lg:p-10 border border-slate-100 hover:border-emerald-200 transition-colors">
+                <h3 className="text-2xl font-black text-navy-dark mb-6 flex items-center gap-3">
+                  <span className="bg-emerald-100 text-emerald-600 p-2 rounded-lg">
+                    <UserCheck className="w-5 h-5" />
+                  </span>
+                  For Buyers
+                </h3>
+                <ul className="space-y-4">
+                  {[
+                    "Search for any product on web or WhatsApp using our AI Assistant",
+                    "Pay securely — your money is protected until delivery",
+                    "Track your order in real-time",
+                    "Confirm delivery with your OTP code",
+                  ].map((text, idx) => (
+                    <li key={idx} className="flex items-start gap-3">
+                      <div className="mt-0.5 text-emerald-500 shrink-0">
+                        <CheckCircle className="w-5 h-5" />
+                      </div>
+                      <span className="font-semibold text-slate-600 text-sm leading-relaxed">
+                        {text}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* For Merchants */}
+              <div className="bg-navy-dark rounded-2xl p-8 lg:p-10 border border-slate-800 hover:border-blue-500/50 transition-colors text-white">
+                <h3 className="text-2xl font-black text-white mb-6 flex items-center gap-3">
+                  <span className="bg-white/10 text-white p-2 rounded-lg">
+                    <Wallet className="w-5 h-5" />
+                  </span>
+                  For Merchants
+                </h3>
+                <ul className="space-y-4">
+                  {[
+                    "List your products with prices directly via WhatsApp",
+                    "Get orders from buyers across Lagos",
+                    "Dispatch and track deliveries seamlessly",
+                    "Get paid instantly to your bank account",
+                  ].map((text, idx) => (
+                    <li key={idx} className="flex items-start gap-3">
+                      <div className="mt-0.5 text-blue-400 shrink-0">
+                        <CheckCircle className="w-5 h-5" />
+                      </div>
+                      <span className="font-semibold text-slate-300 text-sm leading-relaxed">
+                        {text}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
         </div>
@@ -295,35 +358,45 @@ export default function LandingPage() {
           <h2 className="text-3xl font-black text-deep-blue mb-10">
             Trusted by merchants and buyers across Lagos
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-left mx-auto w-fit px-4">
-            <div className="flex items-center gap-3">
-              <span className="text-green-500 text-lg">✅</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6 text-left mx-auto w-fit px-4 border border-slate-200 bg-white p-8 sm:p-10 rounded-2xl shadow-xl shadow-slate-200/50">
+            <div className="flex items-center gap-4">
+              <div className="bg-emerald-100 text-emerald-600 p-1.5 rounded-full">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
               <span className="font-bold text-slate-700 text-sm sm:text-base">
                 Escrow protection on every transaction
               </span>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-green-500 text-xl">✅</span>
+            <div className="flex items-center gap-4">
+              <div className="bg-emerald-100 text-emerald-600 p-1.5 rounded-full">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
               <span className="font-bold text-slate-700">
                 Verified merchants with real ratings
               </span>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-green-500 text-xl">✅</span>
+            <div className="flex items-center gap-4">
+              <div className="bg-emerald-100 text-emerald-600 p-1.5 rounded-full">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
               <span className="font-bold text-slate-700">
                 OTP delivery confirmation
               </span>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-green-500 text-lg">✅</span>
+            <div className="flex items-center gap-4">
+              <div className="bg-emerald-100 text-emerald-600 p-1.5 rounded-full">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
               <span className="font-bold text-slate-700 text-sm sm:text-base">
                 Instant bank payouts
               </span>
             </div>
-            <div className="flex items-center gap-3 sm:col-span-2 justify-center">
-              <span className="text-green-500 text-lg">✅</span>
-              <span className="font-bold text-slate-700 text-sm sm:text-base">
-                WhatsApp AI assistant
+            <div className="flex items-center gap-4 sm:col-span-2 justify-center pt-2">
+              <div className="bg-primary/20 text-primary p-1.5 rounded-full">
+                <MessageCircle className="w-5 h-5" />
+              </div>
+              <span className="font-black text-navy-dark text-sm sm:text-base uppercase tracking-wider">
+                Powered by WhatsApp AI Assistant
               </span>
             </div>
           </div>

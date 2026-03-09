@@ -24,6 +24,7 @@ export interface Product {
   category?: Category;
   imageUrl?: string;
   minOrderQuantity: number;
+  minOrderQuantityConsumer: number; // Added in V5 for consumer expansion
   isActive: boolean;
   pricePerUnitKobo?: string;
   retailPriceKobo?: string; // Added in V5 for consumer expansion
@@ -44,13 +45,16 @@ export interface CreateProductDto {
   categoryId: string;
   imageUrl?: string;
   minOrderQuantity?: number;
+  minOrderQuantityConsumer?: number;
   warehouseLocation?: string;
   pricePerUnitKobo?: string;
+  retailPriceKobo?: string;
 }
 
 export type UpdateProductDto = Partial<CreateProductDto> & {
   isActive?: boolean;
   categoryId?: string;
+  retailPriceKobo?: string;
 };
 
 export interface SupplierProduct {

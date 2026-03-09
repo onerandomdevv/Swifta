@@ -5,24 +5,24 @@ import { formatKobo } from "@hardware-os/shared";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getOrders } from "@/lib/api/order.api";
-import { getMerchantRFQs } from "@/lib/api/rfq.api";
-import type { Order, RFQ } from "@hardware-os/shared";
+import { getAnalytics, MerchantAnalytics } from "@/lib/api/merchant.api";
+import type { Order } from "@hardware-os/shared";
 
 export default function MerchantAnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [orders, setOrders] = useState<Order[]>([]);
-  const [rfqs, setRfqs] = useState<RFQ[]>([]);
+  const [stats, setStats] = useState<MerchantAnalytics | null>(null);
 
   useEffect(() => {
     async function load() {
       try {
-        const [orderResponse, rfqResponse] = await Promise.all([
-          getOrders(1, 100),
-          getMerchantRFQs(1, 100),
+        const [orderResponse, analyticsResponse] = await Promise.all([
+          getOrders(1, 10), // We only need recent orders for the table
+          getAnalytics(),
         ]);
         setOrders(orderResponse);
-        setRfqs(rfqResponse);
+        setStats(analyticsResponse);
       } catch (err: unknown) {
         setError(
           err instanceof Error ? err.message : "Failed to load analytics",
@@ -34,20 +34,17 @@ export default function MerchantAnalyticsPage() {
     load();
   }, []);
 
-  const pipelineValue = orders
-    .filter((o) => o.status !== "CANCELLED" && o.status !== "DISPUTE")
-    .reduce((sum, o) => sum + BigInt(o.totalAmountKobo || 0), 0n);
-  const completedOrders = orders.filter((o) => o.status === "COMPLETED").length;
-  const totalRfqs = rfqs.length;
-  const quotedRfqs = rfqs.filter((r) => r.status === "QUOTED").length;
-  const acceptanceRate =
-    totalRfqs > 0 ? Math.round((completedOrders / totalRfqs) * 100) : 0;
+  const pipelineValue = stats ? BigInt(stats.pipelineValue) : 0n;
+  const completedOrders = stats?.completedOrders || 0;
+  const totalRfqs = stats?.totalRfqs || 0;
+  const quotedRfqs = stats?.quotedRfqs || 0;
+  const acceptanceRate = stats?.acceptanceRate || 0;
 
   const kpis = [
     {
       label: "Pipeline Value",
       value: formatKobo(pipelineValue),
-      trend: `${orders.length} orders`,
+      trend: `${stats?.totalOrders || 0} orders`,
       trendType: "up",
       subtext: "Total order value",
       icon: "info",
@@ -62,7 +59,7 @@ export default function MerchantAnalyticsPage() {
     },
     {
       label: "Open RFQs",
-      value: `${rfqs.filter((r) => r.status === "OPEN").length}`,
+      value: `${stats?.openRfqs || 0}`,
       trend: `${quotedRfqs} quoted`,
       trendType: "up",
       subtext: "Awaiting response",

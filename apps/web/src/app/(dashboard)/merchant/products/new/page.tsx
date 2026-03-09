@@ -20,8 +20,10 @@ export default function NewProductPage() {
     categoryTag: "",
     categoryId: "",
     minOrderQuantity: 1,
+    minOrderQuantityConsumer: 1,
     imageUrl: "",
     pricePerUnit: "",
+    retailPrice: "",
   });
 
   React.useEffect(() => {
@@ -76,9 +78,13 @@ export default function NewProductPage() {
         categoryTag: formData.categoryTag,
         categoryId: formData.categoryId,
         minOrderQuantity: formData.minOrderQuantity,
+        minOrderQuantityConsumer: formData.minOrderQuantityConsumer,
         imageUrl: formData.imageUrl || undefined,
         pricePerUnitKobo: formData.pricePerUnit
           ? (Number(formData.pricePerUnit) * 100).toString()
+          : undefined,
+        retailPriceKobo: formData.retailPrice
+          ? (Number(formData.retailPrice) * 100).toString()
           : undefined,
       });
       router.push("/merchant/products");
@@ -180,25 +186,41 @@ export default function NewProductPage() {
           />
         </div>
 
-        <div className="space-y-3">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-            Price per unit (₦)
-          </label>
-          <input
-            type="number"
-            min={0}
-            step={1}
-            value={formData.pricePerUnit}
-            onChange={(e) =>
-              setFormData({ ...formData, pricePerUnit: e.target.value })
-            }
-            className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white"
-            placeholder="e.g. 8500"
-          />
-          <p className="text-[10px] text-slate-500 font-bold ml-2">
-            Leave blank if you prefer buyers to request quotes instead of buying
-            directly
-          </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+              Business Price (₦)
+            </label>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={formData.pricePerUnit}
+              onChange={(e) =>
+                setFormData({ ...formData, pricePerUnit: e.target.value })
+              }
+              className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white"
+              placeholder="e.g. 8500"
+            />
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1 flex items-center gap-1">
+              <span className="material-symbols-outlined text-xs">person</span>
+              Retail Price (₦) - For Consumers
+            </label>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={formData.retailPrice}
+              onChange={(e) =>
+                setFormData({ ...formData, retailPrice: e.target.value })
+              }
+              className="w-full px-8 py-5 text-sm font-bold border-2 border-primary/10 dark:border-primary/20 bg-primary/5 dark:bg-primary/10 rounded-[1.5rem] focus:border-primary outline-none transition-all placeholder:text-primary/30 dark:text-white"
+              placeholder="e.g. 9000"
+            />
+          </div>
         </div>
 
         <div className="space-y-3">
@@ -295,23 +317,45 @@ export default function NewProductPage() {
           </div>
         </div>
 
-        <div className="space-y-3">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-            Minimum Order Quantity
-          </label>
-          <input
-            type="number"
-            min={1}
-            required
-            value={formData.minOrderQuantity}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                minOrderQuantity: parseInt(e.target.value) || 1,
-              })
-            }
-            className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all dark:text-white"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+              Business Min Order
+            </label>
+            <input
+              type="number"
+              min={1}
+              required
+              value={formData.minOrderQuantity}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  minOrderQuantity: parseInt(e.target.value) || 1,
+                })
+              }
+              className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all dark:text-white"
+            />
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1 flex items-center gap-1">
+              <span className="material-symbols-outlined text-xs">person</span>
+              Consumer Min Order
+            </label>
+            <input
+              type="number"
+              min={1}
+              required
+              value={formData.minOrderQuantityConsumer}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  minOrderQuantityConsumer: parseInt(e.target.value) || 1,
+                })
+              }
+              className="w-full px-8 py-5 text-sm font-bold border-2 border-primary/10 dark:border-primary/20 bg-primary/5 dark:bg-primary/10 rounded-[1.5rem] focus:border-primary outline-none transition-all dark:text-white"
+            />
+          </div>
         </div>
 
         <div className="pt-6 border-t border-slate-50 dark:border-slate-800 flex justify-end">

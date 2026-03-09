@@ -47,7 +47,11 @@ export default function CheckoutPage({
           return;
         }
         setProduct(response);
-        setQuantity(response.minOrderQuantity || 1);
+        const initialMin =
+          (user?.buyerType === "CONSUMER"
+            ? response.minOrderQuantityConsumer
+            : response.minOrderQuantity) || 1;
+        setQuantity(initialMin);
       } catch (err: any) {
         setError(err.message || "Failed to load product");
       } finally {
@@ -55,9 +59,12 @@ export default function CheckoutPage({
       }
     }
     fetchProduct();
-  }, [params.productId, router]);
+  }, [params.productId, router, user?.buyerType]);
 
-  const minQuantity = product?.minOrderQuantity || 1;
+  const minQuantity =
+    (user?.buyerType === "CONSUMER"
+      ? product?.minOrderQuantityConsumer
+      : product?.minOrderQuantity) || 1;
   const isBelowMin = quantity < minQuantity;
 
   const createOrderMutation = useMutation({

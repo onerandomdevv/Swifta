@@ -5,18 +5,22 @@ import { Money } from "@/components/ui/money";
 interface Props {
   activeOrdersCount: number;
   pendingQuotesCount: number;
+  totalSpendingKobo?: string;
   orders: Order[];
 }
 
 export function BuyerSummaryCards({
   activeOrdersCount,
   pendingQuotesCount,
+  totalSpendingKobo,
   orders,
 }: Props) {
   // Escrow is considered locked when it is PAID or DISPATCHED
-  const escrowLocked = orders
-    .filter((o) => o.status === "PAID" || o.status === "DISPATCHED")
-    .reduce((sum, o) => sum + BigInt(o.totalAmountKobo || 0), 0n);
+  const escrowLocked = totalSpendingKobo
+    ? BigInt(totalSpendingKobo)
+    : orders
+        .filter((o) => o.status === "PAID" || o.status === "DISPATCHED")
+        .reduce((sum, o) => sum + BigInt(o.totalAmountKobo || 0), 0n);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
