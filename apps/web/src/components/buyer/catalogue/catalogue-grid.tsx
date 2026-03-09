@@ -139,23 +139,27 @@ export function CatalogueGrid({
             )}
 
             {/* Price Details */}
-            {p.pricePerUnitKobo ? (
-              <div className="mt-3">
-                <span className="text-lg font-black text-navy-dark dark:text-emerald-400">
-                  {(Number(p.pricePerUnitKobo) / 100).toLocaleString("en-NG", {
-                    style: "currency",
-                    currency: "NGN",
-                  })}
-                </span>
-                <span className="text-[10px] text-slate-500 font-bold ml-1 uppercase tracking-widest">
-                  / {p.unit}
-                </span>
-              </div>
-            ) : (
-              <div className="mt-3 text-xs font-bold text-slate-400 italic">
-                Request Quote for Price
-              </div>
-            )}
+            {(() => {
+              const priceKobo =
+                (p as any).retailPriceKobo ?? p.pricePerUnitKobo;
+              return priceKobo ? (
+                <div className="mt-3">
+                  <span className="text-lg font-black text-navy-dark dark:text-emerald-400">
+                    {(Number(priceKobo) / 100).toLocaleString("en-NG", {
+                      style: "currency",
+                      currency: "NGN",
+                    })}
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-bold ml-1 uppercase tracking-widest">
+                    / {p.unit}
+                  </span>
+                </div>
+              ) : (
+                <div className="mt-3 text-xs font-bold text-slate-400 italic">
+                  Request Quote for Price
+                </div>
+              );
+            })()}
 
             {/* Specs Table */}
             <div className="mt-4 mb-6 border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
@@ -169,26 +173,30 @@ export function CatalogueGrid({
               </div>
             </div>
 
-            {/* CTA */}
-            {p.pricePerUnitKobo ? (
-              <Link
-                href={`/buyer/checkout/${p.id}`}
-                className={`mt-auto w-full text-white text-xs font-black py-3 uppercase tracking-widest text-center block transition-colors ${
-                  (p as any).stockAvailability === "OUT_OF_STOCK"
-                    ? "bg-slate-300 cursor-not-allowed pointer-events-none"
-                    : "bg-navy-dark hover:bg-navy"
-                }`}
-              >
-                Buy Now
-              </Link>
-            ) : (
-              <Link
-                href={`/buyer/rfqs/new?productId=${p.id}`}
-                className="mt-auto w-full bg-primary text-white text-xs font-bold py-3 uppercase tracking-widest hover:bg-orange-600 transition-colors text-center block"
-              >
-                Request Quote
-              </Link>
-            )}
+            {/* CTA — uses same priceKobo logic as display above */}
+            {(() => {
+              const priceKobo =
+                (p as any).retailPriceKobo ?? p.pricePerUnitKobo;
+              return priceKobo ? (
+                <Link
+                  href={`/buyer/checkout/${p.id}`}
+                  className={`mt-auto w-full text-white text-xs font-black py-3 uppercase tracking-widest text-center block transition-colors ${
+                    (p as any).stockAvailability === "OUT_OF_STOCK"
+                      ? "bg-slate-300 cursor-not-allowed pointer-events-none"
+                      : "bg-navy-dark hover:bg-navy"
+                  }`}
+                >
+                  Buy Now
+                </Link>
+              ) : (
+                <Link
+                  href={`/buyer/rfqs/new?productId=${p.id}`}
+                  className="mt-auto w-full bg-primary text-white text-xs font-bold py-3 uppercase tracking-widest hover:bg-orange-600 transition-colors text-center block"
+                >
+                  Request Quote
+                </Link>
+              );
+            })()}
           </div>
         </div>
       ))}

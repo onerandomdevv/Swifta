@@ -15,7 +15,7 @@ export function KanbanColumn({ title, count, colorClass, children }: Props) {
           <span className={`size-2 rounded-full ${colorClass}`}></span>
           {title} ({count})
         </h3>
-        <span className="material-symbols-outlined text-slate-400 cursor-pointer">
+        <span className="material-symbols-outlined text-slate-400">
           more_horiz
         </span>
       </div>

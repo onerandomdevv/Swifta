@@ -26,6 +26,7 @@ interface User {
   emailVerified: boolean;
   merchantId?: string;
   supplierId?: string;
+  buyerType?: "CONSUMER" | "BUSINESS";
   supplierProfile?: {
     companyName: string;
     companyAddress: string;
