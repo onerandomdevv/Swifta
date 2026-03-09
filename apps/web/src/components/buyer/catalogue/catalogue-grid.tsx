@@ -96,12 +96,12 @@ export function CatalogueGrid({
               </Link>
             )}
 
-            {/* Price Details */}
+            {/* Price Details — unified priceKobo for both CONSUMER and BUSINESS */}
             {(() => {
               const priceKobo =
                 buyerType === "CONSUMER" && p.retailPriceKobo
                   ? p.retailPriceKobo
-                  : p.pricePerUnitKobo || p.retailPriceKobo;
+                  : p.pricePerUnitKobo || (p as any).retailPriceKobo;
 
               if (priceKobo) {
                 return (
@@ -126,23 +126,29 @@ export function CatalogueGrid({
               );
             })()}
 
-            {/* CTA */}
+            {/* CTA — uses same priceKobo logic as display above */}
             <div className="mt-4">
-              {p.pricePerUnitKobo ? (
-                <Link
-                  href={`/buyer/checkout/${p.id}`}
-                  className="w-full bg-navy-dark hover:bg-navy text-white text-[10px] sm:text-xs font-black py-2.5 rounded-lg uppercase tracking-widest text-center block transition-all active:scale-95 shadow-sm"
-                >
-                  Buy
-                </Link>
-              ) : (
-                <Link
-                  href={`/buyer/rfqs/new?productId=${p.id}`}
-                  className="w-full bg-primary text-white text-[10px] sm:text-xs font-black py-2.5 rounded-lg uppercase tracking-widest hover:bg-orange-600 transition-all text-center block active:scale-95 shadow-lg shadow-primary/20"
-                >
-                  Quote
-                </Link>
-              )}
+              {(() => {
+                const priceKobo =
+                  buyerType === "CONSUMER" && p.retailPriceKobo
+                    ? p.retailPriceKobo
+                    : p.pricePerUnitKobo || (p as any).retailPriceKobo;
+                return priceKobo ? (
+                  <Link
+                    href={`/buyer/checkout/${p.id}`}
+                    className="w-full bg-navy-dark hover:bg-navy text-white text-[10px] sm:text-xs font-black py-2.5 rounded-lg uppercase tracking-widest text-center block transition-all active:scale-95 shadow-sm"
+                  >
+                    Buy
+                  </Link>
+                ) : (
+                  <Link
+                    href={`/buyer/rfqs/new?productId=${p.id}`}
+                    className="w-full bg-primary text-white text-[10px] sm:text-xs font-black py-2.5 rounded-lg uppercase tracking-widest hover:bg-orange-600 transition-all text-center block active:scale-95 shadow-lg shadow-primary/20"
+                  >
+                    Quote
+                  </Link>
+                );
+              })()}
             </div>
           </div>
         </div>

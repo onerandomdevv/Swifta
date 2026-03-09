@@ -18,11 +18,10 @@ export function KanbanColumn({ title, count, colorClass, children }: Props) {
           {title}{" "}
           <span className="text-slate-400 font-bold ml-1">({count})</span>
         </h3>
-        <button className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors text-slate-400">
-          <span className="material-symbols-outlined text-[18px]">
-            more_horiz
-          </span>
-        </button>
+        {/* Decorative icon — no action wired up */}
+        <span className="material-symbols-outlined text-slate-400 text-[18px] p-1">
+          more_horiz
+        </span>
       </div>
       <div className="space-y-3 overflow-y-auto pr-2 pb-8 no-scrollbar flex-1">
         {children}

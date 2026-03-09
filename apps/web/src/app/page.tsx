@@ -119,7 +119,7 @@ export default function LandingPage() {
                 Start Selling
               </Link>
               <a
-                href="https://wa.me/2348000000000"
+                href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_BOT_NUMBER || "2349000000000"}`}
                 target="_blank"
                 rel="noreferrer"
                 className="w-full sm:w-auto border border-[#25D366]/30 bg-[#25D366]/10 text-[#25D366] font-bold h-14 px-8 rounded-lg flex items-center justify-center gap-2 text-base hover:bg-[#25D366]/20 transition-all"

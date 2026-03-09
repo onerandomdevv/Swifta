@@ -55,7 +55,12 @@ export function KanbanOrderCard({ order, onAction }: Props) {
     return (
       <div
         className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-sm h-[180px] flex flex-col hover:border-slate-400 dark:hover:border-slate-600 transition-all cursor-pointer group active:scale-[0.98]"
+        role="button"
+        tabIndex={0}
         onClick={() => onAction(order.id)}
+        onKeyDown={(e) =>
+          (e.key === "Enter" || e.key === " ") && onAction(order.id)
+        }
       >
         <div className="flex justify-between items-start mb-2.5">
           <span className="text-[10px] font-mono text-slate-400 font-bold">
@@ -92,7 +97,8 @@ export function KanbanOrderCard({ order, onAction }: Props) {
               className="truncate max-w-[100px] text-right"
               title={order.quote?.rfq?.deliveryAddress}
             >
-              {order.quote?.rfq?.deliveryAddress?.split(",")[0] || "Lagos"}
+              {order.quote?.rfq?.deliveryAddress?.split(",")[0]?.trim() ||
+                "Unknown"}
             </span>
           </div>
         </div>
@@ -104,7 +110,12 @@ export function KanbanOrderCard({ order, onAction }: Props) {
   return (
     <div
       className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-sm hover:border-emerald-500/50 transition-all cursor-pointer active:scale-[0.98]"
+      role="button"
+      tabIndex={0}
       onClick={() => onAction(order.id)}
+      onKeyDown={(e) =>
+        (e.key === "Enter" || e.key === " ") && onAction(order.id)
+      }
     >
       <div className="flex justify-between items-start mb-2.5">
         <span className="text-[10px] font-mono text-slate-400 font-bold">
