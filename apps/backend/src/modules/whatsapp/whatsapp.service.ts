@@ -2255,7 +2255,7 @@ export class WhatsAppService {
             30 * 60,
           );
 
-          let msg = `Next, *${nextAttr.name}*:`;
+          const msg = `Next, *${nextAttr.name}*:`;
           if (nextAttr.options && nextAttr.options.length > 0) {
             const rows = nextAttr.options.slice(0, 10).map((opt: string) => ({
               id: `attr_opt_${opt.substring(0, 12)}`,

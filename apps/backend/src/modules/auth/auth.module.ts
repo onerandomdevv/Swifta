@@ -12,6 +12,7 @@ import { RedisModule } from "../../redis/redis.module";
 import { AdminModule } from "../admin/admin.module";
 import { NotificationModule } from "../notification/notification.module";
 import { EmailModule } from "../email/email.module";
+import { WhatsAppModule } from "../whatsapp/whatsapp.module";
 
 @Module({
   imports: [
@@ -24,11 +25,13 @@ import { EmailModule } from "../email/email.module";
       }),
       inject: [ConfigService],
     }),
+    ConfigModule,
     PrismaModule,
     RedisModule,
     NotificationModule,
     EmailModule,
     forwardRef(() => AdminModule),
+    forwardRef(() => WhatsAppModule),
   ],
   controllers: [AuthController, InternalAuthController],
   providers: [AuthService, JwtAccessStrategy, JwtRefreshStrategy],

@@ -64,4 +64,10 @@ export const authApi = {
 
   changePassword: (dto: any) =>
     apiClient.post<{ message: string }>("/auth/change-password", dto),
+
+  initiateWhatsAppLogin: (phone: string) =>
+    apiClient.post<{ message: string }>("/auth/whatsapp/initiate", { phone }),
+
+  verifyWhatsAppLogin: (phone: string, code: string) =>
+    apiClient.post<AuthResponse>("/auth/whatsapp/verify", { phone, code }),
 };

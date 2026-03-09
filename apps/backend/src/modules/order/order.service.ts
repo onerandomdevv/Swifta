@@ -44,6 +44,7 @@ export class OrderService {
     @InjectQueue(PAYOUT_QUEUE) private payoutQueue: Queue,
     @InjectQueue(REVIEW_QUEUE) private reviewQueue: Queue,
     private verificationService: VerificationService,
+    @Inject(forwardRef(() => LogisticsService))
     private logisticsService: LogisticsService,
     @Inject(forwardRef(() => WhatsAppService))
     private whatsappService: WhatsAppService,

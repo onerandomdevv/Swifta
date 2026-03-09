@@ -242,7 +242,13 @@ export class WhatsAppOnboardingService {
         await this.handleBuyerEmail(phone, sessionId, data, messageText);
         break;
       case OnboardingStep.BUYER_OTP:
-        await this.handleBuyerOtp(phone, sessionId, data, messageText);
+        await this.handleBuyerOtp(
+          phone,
+          sessionId,
+          data,
+          messageText,
+          interactiveReply,
+        );
         break;
       default:
         await this.interactiveService.sendTextMessage(
@@ -426,9 +432,10 @@ export class WhatsAppOnboardingService {
       otpSentAt: Date.now(),
     });
 
-    await this.interactiveService.sendTextMessage(
+    await this.interactiveService.sendReplyButtons(
       phone,
       `I've sent a 6-digit code to ${email}. Please reply with the code.`,
+      [{ id: "resend_otp", title: "Resend Code" }],
     );
   }
 
@@ -437,7 +444,13 @@ export class WhatsAppOnboardingService {
     sessionId: string,
     data: Record<string, any>,
     messageText?: string,
+    interactiveReply?: { type: string; id: string; title: string },
   ): Promise<void> {
+    if (interactiveReply?.id === "resend_otp") {
+      await this.handleBuyerEmail(phone, sessionId, data, data.email);
+      return;
+    }
+
     if (!messageText) {
       await this.interactiveService.sendTextMessage(
         phone,
@@ -544,9 +557,15 @@ export class WhatsAppOnboardingService {
       });
 
       // Send welcome with List Message
+      const welcomeMsg =
+        `You're all set, ${data.firstName}! 🎉\n\n` +
+        `🔐 *SwiftTrade Identity*: Your account is linked to this phone number. ` +
+        `You don't need a password to log in via WhatsApp.\n\n` +
+        `You can now search for products, buy securely, and track deliveries right here. What would you like to do?`;
+
       await this.interactiveService.sendListMessage(
         phone,
-        `You're all set, ${data.firstName}! 🎉\n\nYou can now search for products, buy securely, and track deliveries right here in WhatsApp.\n\nWhat would you like to do?`,
+        welcomeMsg,
         "Get Started",
         [
           {
@@ -623,7 +642,13 @@ export class WhatsAppOnboardingService {
         await this.handleMerchantEmail(phone, sessionId, data, messageText);
         break;
       case OnboardingStep.MERCHANT_OTP:
-        await this.handleMerchantOtp(phone, sessionId, data, messageText);
+        await this.handleMerchantOtp(
+          phone,
+          sessionId,
+          data,
+          messageText,
+          interactiveReply,
+        );
         break;
       case OnboardingStep.MERCHANT_BANK_SELECT:
         await this.handleMerchantBankSelect(
@@ -786,9 +811,10 @@ export class WhatsAppOnboardingService {
       otpSentAt: Date.now(),
     });
 
-    await this.interactiveService.sendTextMessage(
+    await this.interactiveService.sendReplyButtons(
       phone,
       `I've sent a 6-digit code to ${email}. Please reply with the code.`,
+      [{ id: "resend_otp", title: "Resend Code" }],
     );
   }
 
@@ -797,7 +823,13 @@ export class WhatsAppOnboardingService {
     sessionId: string,
     data: Record<string, any>,
     messageText?: string,
+    interactiveReply?: { type: string; id: string; title: string },
   ): Promise<void> {
+    if (interactiveReply?.id === "resend_otp") {
+      await this.handleMerchantEmail(phone, sessionId, data, data.email);
+      return;
+    }
+
     if (!messageText) {
       await this.interactiveService.sendTextMessage(
         phone,
@@ -1180,9 +1212,16 @@ export class WhatsAppOnboardingService {
       });
 
       // Send welcome with List Message
+      const welcomeMsg =
+        `Your merchant account is live, ${data.firstName}! 🎉\n\n` +
+        `🔐 *Identity Notice*: Your merchant account is linked to this phone number. ` +
+        `No password is needed for WhatsApp operations.\n\n` +
+        `Business: ${data.businessName}\nPayouts to: ${data.bankName} — ${data.accountName}\n\n` +
+        `What would you like to do first?`;
+
       await this.interactiveService.sendListMessage(
         phone,
-        `Your merchant account is live, ${data.firstName}! 🎉\n\nBusiness: ${data.businessName}\nPayouts to: ${data.bankName} — ${data.accountName}\n\nWhat would you like to do first?`,
+        welcomeMsg,
         "Get Started",
         [
           {
