@@ -4,7 +4,7 @@ export function BuyerQuickLinks() {
   const quickLinks = [
     {
       label: "Create New RFQ",
-      sub: "Request quotes for new hardware",
+      sub: "Request quotes for new products",
       icon: "add_box",
       color: "bg-navy-dark",
       textColor: "text-white",
@@ -66,7 +66,7 @@ export function BuyerQuickLinks() {
             Marketplace Tips
           </p>
           <h4 className="text-lg font-black leading-tight uppercase">
-            Get better rates by bundling RFQs for similar materials.
+            Get better rates by bundling RFQs for similar items.
           </h4>
         </div>
         <div className="absolute -bottom-10 -right-10 size-40 bg-white/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-[2s]"></div>

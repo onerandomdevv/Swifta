@@ -18,7 +18,7 @@ export function BuyerRFQSummary({ rfq, onEdit, onDelete }: Props) {
           </h3>
           <StatusBadge status={rfq.status} />
         </div>
-        
+
         {rfq.status === "OPEN" && (
           <div className="flex gap-2">
             {onEdit && (
@@ -36,7 +36,9 @@ export function BuyerRFQSummary({ rfq, onEdit, onDelete }: Props) {
                 className="size-8 flex items-center justify-center rounded-lg border border-red-200 dark:border-red-900/30 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                 title="Delete RFQ"
               >
-                <span className="material-symbols-outlined text-sm">delete</span>
+                <span className="material-symbols-outlined text-sm">
+                  delete
+                </span>
               </button>
             )}
           </div>
@@ -46,10 +48,12 @@ export function BuyerRFQSummary({ rfq, onEdit, onDelete }: Props) {
         {/* Display Item Details */}
         <div>
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-            Material Requested
+            Item Requested
           </p>
           <p className="text-xl font-black text-navy-dark dark:text-white">
-            {rfq.product?.name || rfq.unlistedItemDetails?.name || "Unlisted Item"}
+            {rfq.product?.name ||
+              rfq.unlistedItemDetails?.name ||
+              "Unlisted Item"}
           </p>
           {rfq.unlistedItemDetails?.description && (
             <p className="text-[11px] font-bold text-slate-500 mt-2">
@@ -64,7 +68,8 @@ export function BuyerRFQSummary({ rfq, onEdit, onDelete }: Props) {
               Quantity
             </p>
             <p className="text-2xl font-black text-navy-dark dark:text-white">
-              {rfq.quantity.toLocaleString()} {rfq.product?.unit || rfq.unlistedItemDetails?.unit || ""}
+              {rfq.quantity.toLocaleString()}{" "}
+              {rfq.product?.unit || rfq.unlistedItemDetails?.unit || ""}
             </p>
           </div>
           <div className="text-right">

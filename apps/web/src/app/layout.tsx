@@ -4,13 +4,15 @@ import Providers from "@/providers/providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SwiftTrade",
-  description: "B2B Trade Platform for Construction Materials",
+  title: "SwiftTrade — Nigeria's WhatsApp E-Commerce Platform",
+  description:
+    "Buy and sell anything on WhatsApp with escrow payment protection. Verified merchants, tracked delivery, instant payouts.",
   manifest: "/manifest.json",
   openGraph: {
-    title: "SwiftTrade",
+    title: "SwiftTrade — Nigeria's WhatsApp E-Commerce Platform",
     siteName: "SwiftTrade",
-    description: "B2B Trade Platform for Construction Materials",
+    description:
+      "Buy and sell anything on WhatsApp with escrow payment protection. Verified merchants, tracked delivery, instant payouts.",
   },
 };
 

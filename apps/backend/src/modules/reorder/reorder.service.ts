@@ -1,8 +1,13 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { NotificationTriggerService } from '../notification/notification-trigger.service';
-import { getReorderWindowDays } from './reorder.constants';
-import { RFQ_EXPIRY_HOURS } from '@hardware-os/shared';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
+import { PrismaService } from "../../prisma/prisma.service";
+import { NotificationTriggerService } from "../notification/notification-trigger.service";
+import { getReorderWindowDays } from "./reorder.constants";
+import { RFQ_EXPIRY_HOURS } from "@hardware-os/shared";
 
 @Injectable()
 export class ReorderService {
@@ -29,7 +34,9 @@ export class ReorderService {
     });
 
     if (!order?.quote?.rfq?.product) {
-      this.logger.log(`Order ${orderId} has no linked product, skipping reorder reminder`);
+      this.logger.log(
+        `Order ${orderId} has no linked product, skipping reorder reminder`,
+      );
       return;
     }
 
@@ -59,14 +66,16 @@ export class ReorderService {
       },
     });
 
-    this.logger.log(`Reorder reminder created for order ${orderId}, remind at ${remindAt.toISOString()}`);
+    this.logger.log(
+      `Reorder reminder created for order ${orderId}, remind at ${remindAt.toISOString()}`,
+    );
   }
 
   async processReminders() {
     const now = new Date();
     const reminders = await this.prisma.reorderReminder.findMany({
       where: {
-        status: 'PENDING',
+        status: "PENDING",
         remindAt: { lte: now },
       },
       include: {
@@ -91,16 +100,19 @@ export class ReorderService {
         });
 
         if (existingRFQ) {
-          this.logger.log(`Buyer already reordered for reminder ${reminder.id}, marking as REORDERED`);
+          this.logger.log(
+            `Buyer already reordered for reminder ${reminder.id}, marking as REORDERED`,
+          );
           await this.prisma.reorderReminder.update({
             where: { id: reminder.id },
-            data: { status: 'REORDERED' },
+            data: { status: "REORDERED" },
           });
           continue;
         }
 
         const daysSinceOrder = Math.floor(
-          (now.getTime() - new Date(reminder.order.createdAt).getTime()) / (1000 * 60 * 60 * 24),
+          (now.getTime() - new Date(reminder.order.createdAt).getTime()) /
+            (1000 * 60 * 60 * 24),
         );
 
         // Notify buyer
@@ -113,17 +125,20 @@ export class ReorderService {
         });
 
         // Notify merchant
-        await this.notifications.triggerMerchantReorderPrompt(reminder.merchantId, {
-          reminderId: reminder.id,
-          buyerName: `${reminder.user.firstName} ${reminder.user.lastName}`,
-          productName: reminder.productName,
-          originalQuantity: reminder.originalQuantity,
-          daysSinceOrder,
-        });
+        await this.notifications.triggerMerchantReorderPrompt(
+          reminder.merchantId,
+          {
+            reminderId: reminder.id,
+            buyerName: `${reminder.user.firstName} ${reminder.user.lastName}`,
+            productName: reminder.productName,
+            originalQuantity: reminder.originalQuantity,
+            daysSinceOrder,
+          },
+        );
 
         await this.prisma.reorderReminder.update({
           where: { id: reminder.id },
-          data: { status: 'SENT' },
+          data: { status: "SENT" },
         });
       } catch (error) {
         this.logger.error(
@@ -148,24 +163,26 @@ export class ReorderService {
     });
 
     if (!reminder) {
-      throw new NotFoundException('Reorder reminder not found');
+      throw new NotFoundException("Reorder reminder not found");
     }
 
     if (reminder.buyerId !== buyerId) {
-      throw new BadRequestException('Access denied');
+      throw new BadRequestException("Access denied");
     }
 
-    if (reminder.status === 'REORDERED') {
-      throw new BadRequestException('This reminder has already been used to create an RFQ');
+    if (reminder.status === "REORDERED") {
+      throw new BadRequestException(
+        "This reminder has already been used to create an RFQ",
+      );
     }
 
     const originalRfq = reminder.order.quote?.rfq;
     if (!originalRfq) {
-      throw new BadRequestException('Original RFQ data not found');
+      throw new BadRequestException("Original RFQ data not found");
     }
 
     const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 72); // RFQ_EXPIRY_HOURS
+    expiresAt.setHours(expiresAt.getHours() + RFQ_EXPIRY_HOURS);
 
     const rfq = await this.prisma.rfq.create({
       data: {
@@ -181,7 +198,7 @@ export class ReorderService {
 
     await this.prisma.reorderReminder.update({
       where: { id: reminderId },
-      data: { status: 'REORDERED' },
+      data: { status: "REORDERED" },
     });
 
     return rfq;
@@ -194,17 +211,20 @@ export class ReorderService {
     });
 
     if (!reminder) {
-      throw new NotFoundException('Reorder reminder not found');
+      throw new NotFoundException("Reorder reminder not found");
     }
 
     // Allow buyer or merchant to dismiss
-    if (reminder.buyerId !== userId && reminder.merchantProfile.userId !== userId) {
-      throw new BadRequestException('Access denied');
+    if (
+      reminder.buyerId !== userId &&
+      reminder.merchantProfile.userId !== userId
+    ) {
+      throw new BadRequestException("Access denied");
     }
 
     return this.prisma.reorderReminder.update({
       where: { id: reminderId },
-      data: { status: 'DISMISSED' },
+      data: { status: "DISMISSED" },
     });
   }
 }

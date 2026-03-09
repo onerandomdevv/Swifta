@@ -183,7 +183,11 @@ export class NotificationTriggerService {
       "Order Preparing",
       "📦 Your order is being prepared! The merchant is packing your goods.",
       { ...metadata },
-      [NotificationChannel.IN_APP, NotificationChannel.EMAIL, NotificationChannel.WHATSAPP],
+      [
+        NotificationChannel.IN_APP,
+        NotificationChannel.EMAIL,
+        NotificationChannel.WHATSAPP,
+      ],
     );
   }
 
@@ -197,7 +201,11 @@ export class NotificationTriggerService {
       "Order Dispatched",
       `🚚 Your order has been dispatched! Your delivery code is: ${metadata.otp}`,
       { ...metadata },
-      [NotificationChannel.IN_APP, NotificationChannel.EMAIL, NotificationChannel.WHATSAPP],
+      [
+        NotificationChannel.IN_APP,
+        NotificationChannel.EMAIL,
+        NotificationChannel.WHATSAPP,
+      ],
     );
   }
 
@@ -212,7 +220,11 @@ export class NotificationTriggerService {
       "Order In Transit",
       `📍 Your order is on the way!${noteText}`,
       { ...metadata },
-      [NotificationChannel.IN_APP, NotificationChannel.EMAIL, NotificationChannel.WHATSAPP],
+      [
+        NotificationChannel.IN_APP,
+        NotificationChannel.EMAIL,
+        NotificationChannel.WHATSAPP,
+      ],
     );
   }
 

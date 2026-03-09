@@ -189,13 +189,20 @@ export class VerificationService {
       });
 
       // Notify merchant (fire-and-forget — enqueue failure must not affect the response)
-      this.notifications.addJob(
-        request.merchant.userId,
-        "VERIFICATION_REJECTED",
-        "Verification Request Rejected",
-        `Your verification request was rejected. Reason: ${dto.rejectionReason}`,
-        { requestId },
-      ).catch((err) => this.logger.error(`Failed to enqueue rejection notification for request ${requestId}`, err));
+      this.notifications
+        .addJob(
+          request.merchant.userId,
+          "VERIFICATION_REJECTED",
+          "Verification Request Rejected",
+          `Your verification request was rejected. Reason: ${dto.rejectionReason}`,
+          { requestId },
+        )
+        .catch((err) =>
+          this.logger.error(
+            `Failed to enqueue rejection notification for request ${requestId}`,
+            err,
+          ),
+        );
 
       return {
         message: "Verification request rejected",
@@ -268,13 +275,24 @@ export class VerificationService {
     });
 
     // Notify merchant outside transaction (fire-and-forget)
-    this.notifications.addJob(
-      request.merchant.userId,
-      "VERIFICATION_APPROVED",
-      "Verification Documents Approved",
-      txResult.message,
-      { requestId, newTier: txResult.newTier, completedOrdersCount: txResult.completedOrdersCount },
-    ).catch((err) => this.logger.error(`Failed to enqueue approval notification for request ${requestId}`, err));
+    this.notifications
+      .addJob(
+        request.merchant.userId,
+        "VERIFICATION_APPROVED",
+        "Verification Documents Approved",
+        txResult.message,
+        {
+          requestId,
+          newTier: txResult.newTier,
+          completedOrdersCount: txResult.completedOrdersCount,
+        },
+      )
+      .catch((err) =>
+        this.logger.error(
+          `Failed to enqueue approval notification for request ${requestId}`,
+          err,
+        ),
+      );
 
     return {
       message: "Verification request approved",
@@ -306,8 +324,7 @@ export class VerificationService {
         where: { id: merchant.userId },
       });
 
-      const hasBankDetails =
-        merchant.bankAccountNumber && merchant.bankCode;
+      const hasBankDetails = merchant.bankAccountNumber && merchant.bankCode;
 
       if (user?.emailVerified && user?.phoneVerified && hasBankDetails) {
         await this.prisma.merchantProfile.update({
@@ -315,12 +332,19 @@ export class VerificationService {
           data: { verificationTier: VerificationTier.BASIC },
         });
 
-        this.notifications.addJob(
-          merchant.userId,
-          "TIER_UPGRADED",
-          "Verification Tier Upgraded",
-          "You have been upgraded to the BASIC verification tier! Submit your identity documents to unlock VERIFIED status and Direct Payments.",
-        ).catch((err) => this.logger.error(`Failed to enqueue BASIC tier upgrade notification for merchant ${merchantId}`, err));
+        this.notifications
+          .addJob(
+            merchant.userId,
+            "TIER_UPGRADED",
+            "Verification Tier Upgraded",
+            "You have been upgraded to the BASIC verification tier! Submit your identity documents to unlock VERIFIED status and Direct Payments.",
+          )
+          .catch((err) =>
+            this.logger.error(
+              `Failed to enqueue BASIC tier upgrade notification for merchant ${merchantId}`,
+              err,
+            ),
+          );
         return; // Upgraded to BASIC, return for now. Next order can trigger the verified check.
       }
     }
@@ -354,12 +378,19 @@ export class VerificationService {
           },
         });
 
-        this.notifications.addJob(
-          merchant.userId,
-          "TIER_UPGRADED",
-          "You are now a Verified Merchant! 🎉",
-          "Congratulations! Because you've maintained a perfect track record of 10+ completed orders, you have been upgraded to VERIFIED status. You can now offer Direct Payments to your buyers.",
-        ).catch((err) => this.logger.error(`Failed to enqueue VERIFIED tier upgrade notification for merchant ${merchantId}`, err));
+        this.notifications
+          .addJob(
+            merchant.userId,
+            "TIER_UPGRADED",
+            "You are now a Verified Merchant! 🎉",
+            "Congratulations! Because you've maintained a perfect track record of 10+ completed orders, you have been upgraded to VERIFIED status. You can now offer Direct Payments to your buyers.",
+          )
+          .catch((err) =>
+            this.logger.error(
+              `Failed to enqueue VERIFIED tier upgrade notification for merchant ${merchantId}`,
+              err,
+            ),
+          );
         this.logger.log(`Auto-upgraded merchant ${merchantId} to VERIFIED`);
       }
     }

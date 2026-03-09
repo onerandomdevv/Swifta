@@ -1,4 +1,4 @@
-import { JwtPayload } from '@hardware-os/shared';
+import { JwtPayload } from "@hardware-os/shared";
 
 declare global {
   namespace Express {

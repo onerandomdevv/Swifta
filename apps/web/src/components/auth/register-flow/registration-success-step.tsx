@@ -29,7 +29,7 @@ export function RegistrationSuccessStep({
             </h1>
             <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-8 font-medium">
               Your email has been verified and your account is now fully active.
-              Welcome to the Hardware OS trading marketplace!
+              Welcome to the SwiftTrade marketplace!
             </p>
           </div>
 
@@ -42,7 +42,7 @@ export function RegistrationSuccessStep({
                 What's next?
               </p>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                Complete your company profile to start listing hardware for
+                Complete your company profile to start listing products for
                 trade in Lagos.
               </p>
             </div>

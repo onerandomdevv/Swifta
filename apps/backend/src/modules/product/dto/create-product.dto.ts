@@ -1,4 +1,11 @@
-import { IsString, IsNotEmpty, IsOptional, IsInt, Min, IsIn } from "class-validator";
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsInt,
+  Min,
+  IsIn,
+} from "class-validator";
 import { PRODUCT_CATEGORIES } from "@hardware-os/shared";
 
 export class CreateProductDto {
@@ -16,8 +23,11 @@ export class CreateProductDto {
 
   @IsString()
   @IsNotEmpty()
-  @IsIn(PRODUCT_CATEGORIES, { message: "Invalid category" })
   categoryTag: string;
+
+  @IsString()
+  @IsNotEmpty()
+  categoryId: string;
 
   @IsOptional()
   @IsString()

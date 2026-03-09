@@ -12,5 +12,8 @@ export const REORDER_WINDOW_DAYS: Record<string, number> = {
 };
 
 export function getReorderWindowDays(categoryTag: string): number {
-  return REORDER_WINDOW_DAYS[categoryTag.toLowerCase()] || REORDER_WINDOW_DAYS.default;
+  return (
+    REORDER_WINDOW_DAYS[categoryTag.toLowerCase()] ||
+    REORDER_WINDOW_DAYS.default
+  );
 }

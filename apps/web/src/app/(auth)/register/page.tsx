@@ -50,6 +50,7 @@ export default function RegisterPage() {
       middleName: "",
       lastName: "",
       businessName: "",
+      buyerType: "BUSINESS",
       companyName: "",
       companyAddress: "",
       cacNumber: "",
@@ -101,7 +102,11 @@ export default function RegisterPage() {
         middleName: data.middleName || undefined,
         lastName: data.lastName,
         password: data.password,
-        businessName: data.businessName,
+        businessName:
+          data.role === UserRole.BUYER && data.buyerType === "CONSUMER"
+            ? ""
+            : data.businessName,
+        buyerType: data.role === UserRole.BUYER ? data.buyerType : "BUSINESS",
         companyName: data.companyName,
         companyAddress: data.companyAddress,
         cacNumber: data.cacNumber,
@@ -215,14 +220,14 @@ export default function RegisterPage() {
             <Logo variant="dark" size="lg" />
           </Link>
           <p className="text-white/70 text-base font-medium max-w-xs leading-relaxed mb-6">
-            Join Nigeria&apos;s trusted B2B hardware trade network. Verified
-            merchants, private pricing, escrow protection.
+            Join Nigeria&apos;s WhatsApp marketplace. Buy and sell anything with
+            payment protection.
           </p>
           <div className="flex flex-col gap-3">
             {[
               { icon: "lock", label: "Escrow Protection" },
               { icon: "verified", label: "Verified Merchants" },
-              { icon: "visibility_off", label: "Private Pricing" },
+              { icon: "payments", label: "Instant Payouts" },
             ].map((item) => (
               <div
                 key={item.label}
@@ -247,7 +252,7 @@ export default function RegisterPage() {
       </div>
 
       {/* ─── RIGHT: Registration Form ─── */}
-      <div className="w-full lg:w-[50%] bg-white flex flex-col h-screen overflow-y-auto">
+      <div className="w-full lg:w-[50%] bg-white flex flex-col min-h-screen lg:h-screen overflow-y-auto">
         {/* Mobile header */}
         <div className="lg:hidden flex items-center justify-between p-6 border-b border-slate-100">
           <Link href="/" className="flex items-center gap-2">
@@ -255,7 +260,7 @@ export default function RegisterPage() {
           </Link>
         </div>
 
-        <div className="flex-1 flex flex-col justify-center px-8 py-10 md:px-12 lg:px-14 xl:px-16">
+        <div className="flex-1 flex flex-col justify-center px-4 sm:px-8 py-10 md:px-12 lg:px-14 xl:px-16">
           <FormProvider {...methods}>
             {step === 1 && (
               <RoleSelectionStep

@@ -1,9 +1,16 @@
-import { Injectable, NotFoundException, BadRequestException, GoneException, Logger } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { CreateSharedQuoteDto } from './dto/create-shared-quote.dto';
-import { UpdateSharedQuoteDto } from './dto/update-shared-quote.dto';
-import { paginate } from '../../common/utils/pagination';
-import * as crypto from 'crypto';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+  GoneException,
+  Logger,
+} from "@nestjs/common";
+import { PrismaService } from "../../prisma/prisma.service";
+import { CreateSharedQuoteDto } from "./dto/create-shared-quote.dto";
+import { UpdateSharedQuoteDto } from "./dto/update-shared-quote.dto";
+import { paginate } from "../../common/utils/pagination";
+import * as crypto from "crypto";
 
 @Injectable()
 export class SharedQuoteService {
@@ -12,11 +19,14 @@ export class SharedQuoteService {
   constructor(private prisma: PrismaService) {}
 
   private generateSlug(): string {
-    return 'HW-' + crypto.randomBytes(4).toString('hex').toUpperCase();
+    return "HW-" + crypto.randomBytes(4).toString("hex").toUpperCase();
   }
 
   async create(merchantId: string, dto: CreateSharedQuoteDto) {
-    const subtotalKobo = dto.items.reduce((sum, item) => sum + item.totalKobo, 0);
+    const subtotalKobo = dto.items.reduce(
+      (sum, item) => sum + item.totalKobo,
+      0,
+    );
     const deliveryFeeKobo = dto.deliveryFeeKobo || 0;
     const totalKobo = subtotalKobo + deliveryFeeKobo;
 
@@ -45,7 +55,7 @@ export class SharedQuoteService {
       });
     } catch (error: any) {
       // Retry once on slug collision
-      if (error.code === 'P2002') {
+      if (error.code === "P2002") {
         slug = this.generateSlug();
         return this.prisma.sharedQuote.create({
           data: {
@@ -68,7 +78,12 @@ export class SharedQuoteService {
     }
   }
 
-  async listByMerchant(merchantId: string, page: number, limit: number, status?: string) {
+  async listByMerchant(
+    merchantId: string,
+    page: number,
+    limit: number,
+    status?: string,
+  ) {
     const where: any = { merchantId };
     if (status) {
       where.status = status;
@@ -79,7 +94,7 @@ export class SharedQuoteService {
       { page, limit },
       {
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         include: { merchantProfile: { select: { businessName: true } } },
       },
     );
@@ -96,12 +111,12 @@ export class SharedQuoteService {
     });
 
     if (!quote) {
-      throw new NotFoundException('Quote not found');
+      throw new NotFoundException("Quote not found");
     }
 
     // Check expiry
     if (new Date(quote.expiresAt) < new Date()) {
-      throw new GoneException('This quote has expired');
+      throw new GoneException("This quote has expired");
     }
 
     // Mark as VIEWED on first access
@@ -110,12 +125,15 @@ export class SharedQuoteService {
         where: { id: quote.id },
         data: {
           viewedAt: new Date(),
-          status: quote.status === 'DRAFT' || quote.status === 'SENT' ? 'VIEWED' : quote.status,
+          status:
+            quote.status === "DRAFT" || quote.status === "SENT"
+              ? "VIEWED"
+              : quote.status,
         },
       });
       quote.viewedAt = new Date();
-      if (quote.status === 'DRAFT' || quote.status === 'SENT') {
-        (quote as any).status = 'VIEWED';
+      if (quote.status === "DRAFT" || quote.status === "SENT") {
+        (quote as any).status = "VIEWED";
       }
     }
 
@@ -128,15 +146,15 @@ export class SharedQuoteService {
     });
 
     if (!quote) {
-      throw new NotFoundException('Shared quote not found');
+      throw new NotFoundException("Shared quote not found");
     }
 
     if (quote.merchantId !== merchantId) {
-      throw new BadRequestException('Access denied');
+      throw new ForbiddenException("Access denied");
     }
 
-    if (quote.status !== 'DRAFT') {
-      throw new BadRequestException('Only draft quotes can be updated');
+    if (quote.status !== "DRAFT") {
+      throw new BadRequestException("Only draft quotes can be updated");
     }
 
     const data: any = {};
@@ -148,8 +166,12 @@ export class SharedQuoteService {
 
     if (dto.items) {
       data.items = dto.items as any;
-      const subtotalKobo = dto.items.reduce((sum, item) => sum + item.totalKobo, 0);
-      const deliveryFeeKobo = dto.deliveryFeeKobo ?? Number(quote.deliveryFeeKobo);
+      const subtotalKobo = dto.items.reduce(
+        (sum, item) => sum + item.totalKobo,
+        0,
+      );
+      const deliveryFeeKobo =
+        dto.deliveryFeeKobo ?? Number(quote.deliveryFeeKobo);
       data.subtotalKobo = BigInt(subtotalKobo);
       data.deliveryFeeKobo = BigInt(deliveryFeeKobo);
       data.totalKobo = BigInt(subtotalKobo + deliveryFeeKobo);

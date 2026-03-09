@@ -35,6 +35,8 @@ import { PayoutModule } from "./modules/payout/payout.module";
 import { TradeFinancingModule } from "./modules/trade-financing/trade-financing.module";
 import { LogisticsModule } from "./modules/logistics/logistics.module";
 import { SupplierModule } from "./modules/supplier/supplier.module";
+import { CategoryModule } from "./modules/category/category.module";
+import { ReviewModule } from "./modules/review/review.module";
 
 import { LoggerModule } from "./common/logger/logger.module";
 
@@ -112,6 +114,8 @@ import { APP_GUARD } from "@nestjs/core";
     TradeFinancingModule,
     LogisticsModule,
     SupplierModule,
+    CategoryModule,
+    ReviewModule,
   ],
   controllers: [],
   providers: [

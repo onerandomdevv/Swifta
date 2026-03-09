@@ -45,8 +45,7 @@ export class PayoutService {
     }
 
     // Dynamic fee: 1% for DIRECT payments, 2% for ESCROW
-    const platformFeePercentage =
-      order.paymentMethod === "DIRECT" ? 1 : 2;
+    const platformFeePercentage = order.paymentMethod === "DIRECT" ? 1 : 2;
     const platformFeeKobo = Math.floor(
       subtotalKobo * (platformFeePercentage / 100),
     );

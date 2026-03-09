@@ -209,7 +209,7 @@ export function QuoteModal({
                   onChange={(e) => setTerms(e.target.value)}
                   rows={3}
                   className="w-full border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4 text-xs font-medium focus:border-slate-900 dark:focus:border-white focus:ring-0 outline-none resize-none text-slate-900 dark:text-white"
-                  placeholder="Specify any specific haulage or site access conditions..."
+                  placeholder="Specify any specific delivery or purchasing conditions..."
                 />
               </div>
             </div>

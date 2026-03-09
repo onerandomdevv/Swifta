@@ -20,12 +20,15 @@ export function AccountDetailsStep({
   const {
     register,
     watch,
+    setValue,
     formState: { errors },
   } = useFormContext<RegistrationFormData>();
 
   const role = watch("role");
+  const buyerType = watch("buyerType");
   const isMerchant = role === UserRole.MERCHANT;
   const isSupplier = role === UserRole.SUPPLIER;
+  const isBuyer = role === UserRole.BUYER;
 
   return (
     <div className="max-w-md w-full mx-auto animate-in fade-in slide-in-from-right-4 duration-700">
@@ -44,20 +47,20 @@ export function AccountDetailsStep({
         </div>
       </div>
 
-      <div className="mb-8">
-        <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">
+      <div className="mb-6 lg:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2">
           {isMerchant
             ? "Set Up Your Store"
             : isSupplier
               ? "Supplier Registration"
               : "Create Your Account"}
         </h1>
-        <p className="text-slate-500 font-medium">
+        <p className="text-sm sm:text-base text-slate-500 font-medium">
           {isMerchant
-            ? "Register your business to start selling on Lagos's premier hardware marketplace."
+            ? "Register your business to start selling on Lagos's premier wholesale and retail marketplace."
             : isSupplier
               ? "Register as a manufacturer or large distributor to reach verified merchants."
-              : "Sign up to source quality hardware from verified merchants across Lagos."}
+              : "Sign up to source quality products and goods from verified merchants across Lagos."}
         </p>
       </div>
 
@@ -73,14 +76,57 @@ export function AccountDetailsStep({
       )}
 
       <form onSubmit={onSubmit} className="space-y-4">
+        {/* Buyer Type Selection — Buyer only */}
+        {isBuyer && (
+          <div className="mb-6">
+            <label className="block text-sm font-bold text-slate-700 mb-3">
+              I am registering as:
+            </label>
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+              <button
+                type="button"
+                onClick={() =>
+                  setValue("buyerType", "BUSINESS", { shouldValidate: true })
+                }
+                className={`flex items-center justify-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-xl border-2 transition-all ${
+                  buyerType === "BUSINESS"
+                    ? "border-primary bg-primary/5 text-primary"
+                    : "border-slate-100 bg-[#f6f6f8] text-slate-500 hover:border-slate-200"
+                }`}
+              >
+                <span className="material-symbols-outlined text-xl">
+                  corporate_fare
+                </span>
+                <span className="font-bold text-sm">Business</span>
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setValue("buyerType", "CONSUMER", { shouldValidate: true })
+                }
+                className={`flex items-center justify-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-xl border-2 transition-all ${
+                  buyerType === "CONSUMER"
+                    ? "border-primary bg-primary/5 text-primary"
+                    : "border-slate-100 bg-[#f6f6f8] text-slate-500 hover:border-slate-200"
+                }`}
+              >
+                <span className="material-symbols-outlined text-xl">
+                  person
+                </span>
+                <span className="font-bold text-sm">Individual</span>
+              </button>
+            </div>
+            <input type="hidden" {...register("buyerType")} />
+          </div>
+        )}
         {/* Name row: First + Middle + Last */}
-        <div className="grid grid-cols-3 gap-3">
-          <div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="sm:col-span-1">
             <label className="block text-sm font-bold text-slate-700 mb-1.5">
               First Name
             </label>
             <input
-              className={`w-full px-3 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.firstName ? "border-red-400" : "border-slate-200"}`}
+              className={`w-full px-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.firstName ? "border-red-400" : "border-slate-200"}`}
               placeholder="John"
               type="text"
               {...register("firstName")}
@@ -91,23 +137,23 @@ export function AccountDetailsStep({
               </p>
             )}
           </div>
-          <div>
+          <div className="sm:col-span-1">
             <label className="block text-sm font-bold text-slate-700 mb-1.5">
               Middle Name
             </label>
             <input
-              className="w-full px-3 py-3 bg-[#f6f6f8] border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm"
+              className="w-full px-4 py-3 bg-[#f6f6f8] border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm"
               placeholder="Emeka (opt.)"
               type="text"
               {...register("middleName")}
             />
           </div>
-          <div>
+          <div className="sm:col-span-1">
             <label className="block text-sm font-bold text-slate-700 mb-1.5">
               Last Name
             </label>
             <input
-              className={`w-full px-3 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.lastName ? "border-red-400" : "border-slate-200"}`}
+              className={`w-full px-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.lastName ? "border-red-400" : "border-slate-200"}`}
               placeholder="Adeyemi"
               type="text"
               {...register("lastName")}
@@ -120,8 +166,8 @@ export function AccountDetailsStep({
           </div>
         </div>
 
-        {/* Business Name — Merchant only */}
-        {isMerchant && (
+        {/* Business Name — Merchant or Business Buyer */}
+        {(isMerchant || (isBuyer && buyerType === "BUSINESS")) && (
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-1.5">
               Business Name

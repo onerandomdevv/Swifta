@@ -92,13 +92,46 @@ export class ProductService {
     };
 
     if (category) {
-      where.categoryTag = category;
+      // Check if it's a UUID
+      const isUuid =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          category,
+        );
+
+      const foundCategory = await this.prisma.category.findFirst({
+        where: isUuid
+          ? { id: category, isActive: true }
+          : { slug: category, isActive: true },
+        include: {
+          children: {
+            where: { isActive: true },
+            select: { id: true },
+          },
+        },
+      });
+
+      if (foundCategory) {
+        const categoryIds = [
+          foundCategory.id,
+          ...foundCategory.children.map((c) => c.id),
+        ];
+        where.categoryId = { in: categoryIds };
+      } else {
+        // Fallback to legacy categoryTag
+        where.categoryTag = category;
+      }
     }
 
     if (search) {
       where.OR = [
         { name: { contains: search, mode: "insensitive" } },
         { description: { contains: search, mode: "insensitive" } },
+        {
+          merchantProfile: {
+            businessName: { contains: search, mode: "insensitive" },
+          },
+        },
+        { category: { name: { contains: search, mode: "insensitive" } } },
       ];
     }
 
@@ -113,6 +146,8 @@ export class ProductService {
             select: {
               id: true,
               businessName: true,
+              averageRating: true,
+              reviewCount: true,
             },
           },
           productStockCache: true, // Needed to determine stockAvailability
@@ -155,6 +190,8 @@ export class ProductService {
             id: true,
             businessName: true,
             verificationTier: true,
+            averageRating: true,
+            reviewCount: true,
           },
         },
       },
