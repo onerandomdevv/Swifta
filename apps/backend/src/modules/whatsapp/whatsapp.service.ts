@@ -23,6 +23,8 @@ import {
   STOCK_UPDATE_FOLLOWUP,
   RFQ_RESPOND_FOLLOWUP,
   META_API_VERSION,
+  ProductCreationStep,
+  PRODUCT_CREATION_SESSION_TTL,
 } from "./whatsapp.constants";
 import { RFQStatus, OrderStatus } from "@hardware-os/shared";
 
@@ -91,6 +93,15 @@ export class WhatsAppService {
           `Routing message to Merchant Bot (Merchant ID: ${merchantId})`,
         );
 
+        if (interactiveReply) {
+          await this.handleMerchantInteractiveReply(
+            merchantId,
+            phone,
+            interactiveReply,
+          );
+          return;
+        }
+
         // 1. Check for pending wholesale checkout flow
         const checkoutKey = `wa_pending_wholesale_${merchantId}`;
         const checkoutSessionRaw = await this.redisService.get(checkoutKey);
@@ -113,13 +124,29 @@ export class WhatsAppService {
           }
         }
 
-        if (interactiveReply) {
-          await this.handleMerchantInteractiveReply(
-            merchantId,
-            phone,
-            interactiveReply,
-          );
-          return;
+        // 2. Check for pending product creation flow
+        const prodCreationKey = `wa_product_creation_${merchantId}`;
+        const prodCreationSessionRaw =
+          await this.redisService.get(prodCreationKey);
+        if (prodCreationSessionRaw) {
+          try {
+            const session = JSON.parse(prodCreationSessionRaw);
+            await this.handleProductCreationStep(
+              merchantId,
+              session,
+              messageText,
+              interactiveReply,
+              imageId,
+              prodCreationKey,
+              phone,
+            );
+            return;
+          } catch (parseErr) {
+            this.logger.error(
+              `Malformed product creation session for ${merchantId}`,
+            );
+            await this.redisService.del(prodCreationKey);
+          }
         }
 
         const intent = await this.intentService.parseIntent(messageText);
@@ -232,6 +259,19 @@ export class WhatsAppService {
       await this.interactiveService.sendTextMessage(
         phone,
         `🤝 *SwiftTrade Merchant Support*\n\nYou can manage your business by using the menu or via natural language commands:\n\n• *"sales summary"* - View performance\n• *"my orders"* - Manage latest orders\n• *"check inventory"* - Monitor stock\n• *"update price of [item] to [amount]"*\n• *"add [qty] to [item] stock"*\n\nNeed more help? Visit our web dashboard or contact support at support@swifttrade.store`,
+      );
+      return;
+    }
+
+    if (id === "add_product") {
+      await this.redisService.set(
+        `wa_product_creation_${merchantId}`,
+        JSON.stringify({ step: "NAME", data: {} }), // Use string for enum if needed or import
+        30 * 60, // 30 minutes
+      );
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "Great! Let's add a new product. 🛒\n\nWhat is the *Name* of the product?",
       );
       return;
     }
@@ -555,6 +595,14 @@ export class WhatsAppService {
             intent.params.rfqReference,
             intent.params.unitPriceNaira,
             intent.params.deliveryFeeNaira,
+          );
+          break;
+        case "update_product_price":
+          await (this as any).handleUpdateProductPrice(
+            merchantId,
+            phone,
+            intent.params.productName,
+            intent.params.newPrice || intent.params.newPriceNaira,
           );
           break;
         case "update_stock":
@@ -1995,6 +2043,355 @@ export class WhatsAppService {
       );
     } catch (error) {
       this.logger.error(`Failed to send review prompt to ${buyerId}: ${error}`);
+    }
+  }
+  /**
+   * 🏪 Handle Multi-step Product Creation
+   */
+  private async handleProductCreationStep(
+    merchantId: string,
+    session: any,
+    messageText: string | undefined,
+    interactiveReply: any,
+    imageId: string | undefined,
+    sessionKey: string,
+    phone: string,
+  ): Promise<void> {
+    const { step, data } = session;
+
+    try {
+      if (step === "NAME") {
+        if (!messageText) {
+          await this.interactiveService.sendTextMessage(
+            phone,
+            "Please reply with the *Name* of the product.",
+          );
+          return;
+        }
+        data.name = messageText;
+        session.step = "CATEGORY";
+
+        // Fetch categories for selection
+        const categories = await this.prisma.category.findMany({
+          where: { isActive: true },
+          take: 10,
+        });
+        const rows = categories.map((c) => ({
+          id: `prod_cat_${c.id}`,
+          title: (c.name || "Category").substring(0, 24),
+        }));
+
+        await this.redisService.set(
+          sessionKey,
+          JSON.stringify(session),
+          30 * 60,
+        );
+        await this.interactiveService.sendListMessage(
+          phone,
+          `Product: *${data.name}*\n\nNext, select the *Category*:`,
+          "Select Category",
+          [{ title: "Categories", rows }],
+        );
+        return;
+      }
+
+      if (step === "CATEGORY") {
+        if (!interactiveReply || !interactiveReply.id.startsWith("prod_cat_")) {
+          await this.interactiveService.sendTextMessage(
+            phone,
+            "Please select a category from the list.",
+          );
+          return;
+        }
+        data.categoryId = interactiveReply.id.replace("prod_cat_", "");
+        data.categoryName = interactiveReply.title;
+
+        // NEW: Check for category attributes
+        const category = (await this.prisma.category.findUnique({
+          where: { id: data.categoryId },
+        })) as any;
+
+        const attrDefs = (category?.attributes as any[]) || [];
+        if (attrDefs.length > 0) {
+          session.step = "ATTRIBUTES";
+          data.attributeIndex = 0;
+          data.attributes = {};
+
+          const firstAttr = attrDefs[0];
+          await this.redisService.set(
+            sessionKey,
+            JSON.stringify(session),
+            30 * 60,
+          );
+
+          let msg = `Category: *${data.categoryName}*\n\n`;
+          msg += `Please provide the *${firstAttr.name}*:`;
+          if (firstAttr.options && firstAttr.options.length > 0) {
+            const rows = firstAttr.options.slice(0, 10).map((opt: string) => ({
+              id: `attr_opt_${opt.substring(0, 12)}`,
+              title: opt.substring(0, 24),
+            }));
+            await this.interactiveService.sendListMessage(
+              phone,
+              msg,
+              "Select Option",
+              [{ title: "Options", rows }],
+            );
+          } else {
+            await this.interactiveService.sendTextMessage(phone, msg);
+          }
+        } else {
+          session.step = "UNIT";
+          await this.redisService.set(
+            sessionKey,
+            JSON.stringify(session),
+            30 * 60,
+          );
+          await this.interactiveService.sendTextMessage(
+            phone,
+            "What is the *Unit* of measurement? (e.g., Bag, Piece, Set, Kg)",
+          );
+        }
+        return;
+      }
+
+      if (step === "ATTRIBUTES") {
+        const category = (await this.prisma.category.findUnique({
+          where: { id: data.categoryId },
+        })) as any;
+        const attrDefs = (category?.attributes as any[]) || [];
+        const currentIndex = data.attributeIndex || 0;
+        const currentAttr = attrDefs[currentIndex];
+
+        if (!currentAttr) {
+          // Fallback if index gets out of sync
+          session.step = "UNIT";
+          await this.redisService.set(
+            sessionKey,
+            JSON.stringify(session),
+            30 * 60,
+          );
+          await this.interactiveService.sendTextMessage(
+            phone,
+            "What is the *Unit* of measurement?",
+          );
+          return;
+        }
+
+        // Store value
+        const val = interactiveReply ? interactiveReply.title : messageText;
+        if (!val) {
+          await this.interactiveService.sendTextMessage(
+            phone,
+            `Please provide the *${currentAttr.name}*.`,
+          );
+          return;
+        }
+
+        data.attributes[currentAttr.name] = val;
+        data.attributeIndex = currentIndex + 1;
+
+        if (data.attributeIndex < attrDefs.length) {
+          const nextAttr = attrDefs[data.attributeIndex];
+          await this.redisService.set(
+            sessionKey,
+            JSON.stringify(session),
+            30 * 60,
+          );
+
+          let msg = `Next, *${nextAttr.name}*:`;
+          if (nextAttr.options && nextAttr.options.length > 0) {
+            const rows = nextAttr.options.slice(0, 10).map((opt: string) => ({
+              id: `attr_opt_${opt.substring(0, 12)}`,
+              title: opt.substring(0, 24),
+            }));
+            await this.interactiveService.sendListMessage(
+              phone,
+              msg,
+              "Select Option",
+              [{ title: "Options", rows }],
+            );
+          } else {
+            await this.interactiveService.sendTextMessage(phone, msg);
+          }
+        } else {
+          session.step = "UNIT";
+          await this.redisService.set(
+            sessionKey,
+            JSON.stringify(session),
+            30 * 60,
+          );
+          await this.interactiveService.sendTextMessage(
+            phone,
+            "Got it! What is the *Unit* of measurement? (e.g., Bag, Piece, Set, Kg)",
+          );
+        }
+        return;
+      }
+
+      if (step === "UNIT") {
+        if (!messageText) {
+          await this.interactiveService.sendTextMessage(
+            phone,
+            "Please reply with the *Unit* (e.g., Bag).",
+          );
+          return;
+        }
+        data.unit = messageText;
+        session.step = "WHOLESALE_PRICE";
+
+        await this.redisService.set(
+          sessionKey,
+          JSON.stringify(session),
+          30 * 60,
+        );
+        await this.interactiveService.sendTextMessage(
+          phone,
+          "What is the *Wholesale Price* per unit in Naira? (Numbers only)",
+        );
+        return;
+      }
+
+      if (step === "WHOLESALE_PRICE") {
+        const price = parseFloat(messageText || "");
+        if (isNaN(price)) {
+          await this.interactiveService.sendTextMessage(
+            phone,
+            "Please enter a valid *Wholesale Price* (Numbers only, e.g. 8500).",
+          );
+          return;
+        }
+        data.wholesalePriceNaira = price;
+        session.step = "RETAIL_PRICE";
+
+        await this.redisService.set(
+          sessionKey,
+          JSON.stringify(session),
+          30 * 60,
+        );
+        await this.interactiveService.sendTextMessage(
+          phone,
+          "What is the *Retail Price* (for individual consumers) in Naira? (Numbers only)",
+        );
+        return;
+      }
+
+      if (step === "RETAIL_PRICE") {
+        const price = parseFloat(messageText || "");
+        if (isNaN(price)) {
+          await this.interactiveService.sendTextMessage(
+            phone,
+            "Please enter a valid *Retail Price* (Numbers only).",
+          );
+          return;
+        }
+        data.retailPriceNaira = price;
+        session.step = "IMAGE";
+
+        await this.redisService.set(
+          sessionKey,
+          JSON.stringify(session),
+          30 * 60,
+        );
+        await this.interactiveService.sendTextMessage(
+          phone,
+          "Great! Finally, please send a *Photo* of the product (or reply 'skip' to use a placeholder).",
+        );
+        return;
+      }
+
+      if (step === "IMAGE") {
+        if (messageText?.toLowerCase() === "skip") {
+          data.imageUrl = null;
+        } else if (imageId) {
+          // Simplified placeholder logic
+          data.imageUrl = `https://graph.facebook.com/v21.0/${imageId}`;
+        } else if (!messageText) {
+          await this.interactiveService.sendTextMessage(
+            phone,
+            "Please send a photo or reply 'skip'.",
+          );
+          return;
+        }
+
+        session.step = "CONFIRMATION";
+        await this.redisService.set(
+          sessionKey,
+          JSON.stringify(session),
+          30 * 60,
+        );
+
+        let summary = `📋 *Product Summary*\n\n`;
+        summary += `Name: *${data.name}*\n`;
+        summary += `Category: *${data.categoryName}*\n`;
+        summary += `Unit: *${data.unit}*\n`;
+        summary += `Wholesale Price: *₦${data.wholesalePriceNaira}*\n`;
+        summary += `Retail Price: *₦${data.retailPriceNaira}*\n`;
+
+        if (data.attributes && Object.keys(data.attributes).length > 0) {
+          summary += `\n*Specs:*\n`;
+          for (const [key, val] of Object.entries(data.attributes)) {
+            summary += `• ${key}: ${val}\n`;
+          }
+        }
+
+        summary += `\nImage: *${data.imageUrl ? "✅ Provided" : "❌ Skipped"}*\n\n`;
+        summary += `Does everything look correct?`;
+
+        await this.interactiveService.sendReplyButtons(phone, summary, [
+          { id: "prod_confirm", title: "Confirm & Create" },
+          { id: "prod_cancel", title: "Cancel" },
+        ]);
+        return;
+      }
+
+      if (step === "CONFIRMATION") {
+        if (interactiveReply?.id === "prod_cancel") {
+          await this.redisService.del(sessionKey);
+          await this.interactiveService.sendTextMessage(
+            phone,
+            "❌ Product creation cancelled.",
+          );
+          return;
+        }
+        if (interactiveReply?.id === "prod_confirm") {
+          // Create product
+          await this.prisma.product.create({
+            data: {
+              merchantId,
+              name: data.name,
+              unit: data.unit,
+              categoryId: data.categoryId,
+              categoryTag: data.categoryName,
+              pricePerUnitKobo: BigInt(
+                Math.round(data.wholesalePriceNaira * 100),
+              ),
+              retailPriceKobo: BigInt(Math.round(data.retailPriceNaira * 100)),
+              imageUrl: data.imageUrl,
+              attributes: data.attributes || {},
+              isActive: true,
+            } as any,
+          });
+
+          await this.redisService.del(sessionKey);
+          await this.interactiveService.sendTextMessage(
+            phone,
+            `✅ *Success!* "${data.name}" is now live on SwiftTrade.`,
+          );
+          return;
+        }
+        await this.interactiveService.sendTextMessage(
+          phone,
+          "Please tap 'Confirm' or 'Cancel'.",
+        );
+      }
+    } catch (error) {
+      this.logger.error(`Error in product creation step ${step}:`, error);
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "Something went wrong. Let's try again.",
+      );
+      await this.redisService.del(sessionKey);
     }
   }
 }

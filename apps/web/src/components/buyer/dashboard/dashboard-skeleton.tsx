@@ -3,12 +3,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 export function DashboardSkeleton() {
   return (
     <div className="space-y-10 py-4 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div className="space-y-4">
-          <Skeleton className="h-12 w-96 rounded-xl" />
-          <Skeleton className="h-4 w-64" />
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
+        <div className="space-y-4 w-full md:w-auto">
+          <Skeleton className="h-10 sm:h-12 w-full sm:w-80 lg:w-96 rounded-xl" />
+          <Skeleton className="h-4 w-48 sm:w-64" />
         </div>
-        <Skeleton className="h-12 w-48 rounded-xl" />
+        <Skeleton className="h-10 sm:h-12 w-full sm:w-48 rounded-xl" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

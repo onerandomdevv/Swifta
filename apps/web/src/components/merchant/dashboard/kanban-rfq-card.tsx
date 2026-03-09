@@ -16,40 +16,47 @@ export function KanbanRfqCard({ rfq, onReview }: Props) {
 
   return (
     <div
-      className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 shadow-sm hover:border-primary transition-colors flex flex-col group cursor-pointer"
+      className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-sm hover:border-primary/50 transition-all flex flex-col group cursor-pointer active:scale-[0.98]"
       onClick={() => onReview(rfq.id)}
     >
-      <div className="flex justify-between items-start mb-2">
-        <span className="text-[10px] font-mono text-slate-400">
+      <div className="flex justify-between items-start mb-2.5">
+        <span className="text-[10px] font-mono text-slate-400 font-bold">
           #HW-{rfq.id.slice(0, 4).toUpperCase()}
         </span>
         <span
-          className={`text-[10px] px-1.5 py-0.5 font-bold rounded ${tagColor} uppercase tracking-tighter`}
+          className={`text-[9px] px-2 py-0.5 font-black rounded-lg ${tagColor} uppercase tracking-wider`}
         >
           {tagText}
         </span>
       </div>
 
       <h4
-        className="text-sm font-bold mb-1 truncate text-slate-900 dark:text-white"
+        className="text-sm font-black mb-1 text-slate-900 dark:text-white leading-tight"
         title={rfq.product.name}
       >
         {rfq.quantity} {rfq.product.unit} of {rfq.product.name}
       </h4>
 
-      <p className="text-xs text-slate-500 mb-4 truncate" title={rfq.buyerId}>
-        Buyer ID: {rfq.buyerId.split("-")[0].toUpperCase()}
+      <p className="text-[11px] text-slate-500 mb-4 font-medium flex items-center gap-1">
+        <span className="material-symbols-outlined text-[14px]">person</span>
+        Buyer: {rfq.buyerId.split("-")[0].toUpperCase()}
       </p>
 
       <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-3 mt-auto">
-        <div className="flex -space-x-2">
-          <div
-            className="size-6 rounded-full border-2 border-white dark:border-slate-900 bg-slate-200"
-            title="Assigned Agent"
-          ></div>
+        <div className="flex -space-x-1.5">
+          {[1].map((i) => (
+            <div
+              key={i}
+              className="size-6 rounded-full border-2 border-white dark:border-slate-900 bg-slate-100 flex items-center justify-center"
+            >
+              <span className="material-symbols-outlined text-[14px] text-slate-400">
+                person
+              </span>
+            </div>
+          ))}
         </div>
         <button
-          className="text-xs font-bold text-primary hover:text-primary/80 transition-colors"
+          className="text-[11px] font-black text-primary hover:text-primary-dark transition-colors uppercase tracking-wider"
           onClick={(e) => {
             e.stopPropagation();
             onReview(rfq.id);

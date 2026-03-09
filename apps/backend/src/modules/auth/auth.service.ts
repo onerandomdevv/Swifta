@@ -206,7 +206,7 @@ export class AuthService {
   async login(dto: LoginDto): Promise<TokenPair & { user: any }> {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
-      include: { merchantProfile: true },
+      include: { merchantProfile: true, buyerProfile: true },
     });
 
     if (!user) {
@@ -323,7 +323,7 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { merchantProfile: true },
+      include: { merchantProfile: true, buyerProfile: true },
     });
 
     if (!user) {
@@ -555,6 +555,9 @@ export class AuthService {
         role: user.role,
         emailVerified: user.emailVerified,
         merchantId: user.merchantProfile?.id,
+        buyerType:
+          user.buyerProfile?.buyerType ||
+          (user.role === "BUYER" ? "BUSINESS" : undefined),
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },

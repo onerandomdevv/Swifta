@@ -8,8 +8,10 @@ import { type Product, type Category } from "@hardware-os/shared";
 import { CatalogueGrid } from "@/components/buyer/catalogue/catalogue-grid";
 import { CatalogueSkeleton } from "@/components/buyer/catalogue/catalogue-skeleton";
 import { CategoryCard } from "@/components/buyer/catalogue/category-card";
+import { useAuth } from "@/providers/auth-provider";
 
 export default function BuyerCataloguePage() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -81,76 +83,45 @@ export default function BuyerCataloguePage() {
   return (
     <div className="h-full flex flex-col bg-slate-50 dark:bg-[#0f1115] animate-in fade-in duration-700">
       {/* Search Header */}
-      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-8 py-6 shrink-0 shadow-sm z-20">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white uppercase">
-              Industrial Catalogue
+      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-8 py-4 sm:py-6 shrink-0 shadow-sm z-20">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
+          <div className="text-center md:text-left">
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white uppercase">
+              Product Catalogue
             </h1>
-            <p className="text-[10px] font-bold tracking-[0.2em] text-primary uppercase">
+            <p className="text-[9px] sm:text-[10px] font-black tracking-[0.2em] text-primary uppercase mt-0.5">
               Verified Wholesale Supply
             </p>
           </div>
 
           <div className="relative flex-1 max-w-xl">
-            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
+            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-lg sm:text-xl">
               search
             </span>
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-14 pl-12 pr-4 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-primary focus:bg-white dark:focus:bg-slate-900 rounded-2xl text-sm font-medium outline-none transition-all shadow-inner"
-              placeholder="Search by product, category, or manufacturer..."
+              className="w-full h-12 sm:h-14 pl-12 pr-4 bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary focus:bg-white dark:focus:bg-slate-900 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold outline-none transition-all shadow-inner"
+              placeholder="Search products..."
             />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                <span className="material-symbols-outlined text-sm">close</span>
-              </button>
-            )}
-          </div>
-
-          <div className="hidden lg:flex items-center gap-4 text-right">
-            <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                Last Updated
-              </p>
-              <p className="text-xs font-bold text-slate-900 dark:text-white">
-                Today,{" "}
-                {new Date().toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </p>
-            </div>
           </div>
         </div>
       </header>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-7xl mx-auto px-8 py-8 space-y-8 pb-32">
+      <div className="flex-1 overflow-y-auto no-scrollbar">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8 pb-32">
           {/* Category Cards Section */}
           <section className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">
+              <h2 className="text-[10px] sm:text-xs font-black text-slate-400 uppercase tracking-widest">
                 Browse Categories
               </h2>
-              {activeCategory !== "All Categories" && (
-                <button
-                  onClick={() => setActiveCategory("All Categories")}
-                  className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline"
-                >
-                  Clear Filter
-                </button>
-              )}
             </div>
 
-            {/* Horizontal Scroll on Mobile, Grid on Desktop */}
-            <div className="flex md:grid md:grid-cols-4 lg:grid-cols-6 gap-4 overflow-x-auto pb-4 md:pb-0 scrollbar-hide">
+            {/* Horizontal Scroll on Mobile */}
+            <div className="flex sm:grid sm:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 overflow-x-auto pb-4 sm:pb-0 scroll-smooth no-scrollbar">
               <CategoryCard
                 category={
                   {
@@ -208,24 +179,21 @@ export default function BuyerCataloguePage() {
           </section>
 
           {/* Result Info & Toolbar */}
-          <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-primary">
+          <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <span className="material-symbols-outlined text-primary text-xl sm:text-2xl">
                 analytics
               </span>
-              <p className="text-sm font-bold text-slate-900 dark:text-white">
+              <p className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
                 {products.length}{" "}
-                <span className="text-slate-500 font-medium">
-                  products found
-                </span>
+                <span className="text-slate-400 font-bold ml-1">ITEMS</span>
               </p>
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="h-4 w-[1px] bg-slate-100 dark:bg-slate-800" />
               <button className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-primary transition-colors">
                 <span className="material-symbols-outlined text-lg">sort</span>
-                Popular
+                <span className="hidden sm:inline">Popular</span>
               </button>
             </div>
           </div>
@@ -236,6 +204,7 @@ export default function BuyerCataloguePage() {
               products={products}
               setSearchQuery={setSearchQuery}
               setActiveCategory={setActiveCategory}
+              buyerType={user?.buyerType as any}
             />
           </section>
         </div>

@@ -8,6 +8,7 @@ export interface Category {
   icon?: string;
   isActive: boolean;
   sortOrder: number;
+  attributes?: any; // Added in V5: List of attribute definitions
   children?: Category[];
   productCount?: number;
 }
@@ -25,6 +26,8 @@ export interface Product {
   minOrderQuantity: number;
   isActive: boolean;
   pricePerUnitKobo?: string;
+  retailPriceKobo?: string; // Added in V5 for consumer expansion
+  attributes?: any; // Added in V5: Category-specific key-value pairs
   warehouseLocation?: string;
   createdAt: Date;
   updatedAt: Date;

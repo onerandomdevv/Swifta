@@ -27,7 +27,7 @@ export default function LandingPage() {
               : "bg-transparent"
           }`}
         >
-          <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
               <Logo variant="dark" size="md" />
             </Link>
@@ -51,7 +51,7 @@ export default function LandingPage() {
                 Why Us
               </a>
             </nav>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <Link
                 href="/login"
                 className="text-sm font-bold text-white/80 px-4 py-2 border border-white/20 rounded-lg hover:border-primary hover:text-primary transition-all"
@@ -92,7 +92,7 @@ export default function LandingPage() {
               Now Live in Lagos State
             </div>
 
-            <h1 className="text-5xl lg:text-7xl font-black text-white leading-[1.1] tracking-tight">
+            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-white leading-[1.1] tracking-tight">
               Nigeria&apos;s First
               <br />
               <span className="text-primary">WhatsApp E-Commerce</span>
@@ -100,32 +100,32 @@ export default function LandingPage() {
               Platform
             </h1>
 
-            <p className="text-xl lg:text-2xl text-white/80 max-w-2xl leading-relaxed font-medium">
+            <p className="text-lg lg:text-2xl text-white/80 max-w-2xl leading-relaxed font-medium px-4">
               Buy and sell anything on WhatsApp with escrow payment protection.
               Search → Buy → Pay → Track → Delivered. All from WhatsApp.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4 w-full px-4 sm:px-0">
               <Link
                 href="/register"
-                className="bg-primary hover:bg-primary-dark text-white font-bold h-14 px-8 rounded-lg flex items-center justify-center gap-2 text-base shadow-xl shadow-primary/30 transition-all hover:scale-[1.02]"
+                className="w-full sm:w-auto bg-primary hover:bg-primary-dark text-white font-bold h-14 px-8 rounded-lg flex items-center justify-center gap-2 text-base shadow-xl shadow-primary/30 transition-all hover:scale-[1.02]"
               >
                 Start Buying →
               </Link>
               <Link
                 href="/register"
-                className="border border-white/30 bg-white/5 text-white font-bold h-14 px-8 rounded-lg flex items-center justify-center gap-2 text-base hover:bg-white/10 transition-all"
+                className="w-full sm:w-auto border border-white/30 bg-white/5 text-white font-bold h-14 px-8 rounded-lg flex items-center justify-center gap-2 text-base hover:bg-white/10 transition-all"
               >
                 Start Selling
               </Link>
               <a
-                href="https://wa.me/2348000000000" // Replace with actual bot number later
+                href="https://wa.me/2348000000000"
                 target="_blank"
                 rel="noreferrer"
-                className="border border-[#25D366]/30 bg-[#25D366]/10 text-[#25D366] font-bold h-14 px-8 rounded-lg flex items-center justify-center gap-2 text-base hover:bg-[#25D366]/20 transition-all"
+                className="w-full sm:w-auto border border-[#25D366]/30 bg-[#25D366]/10 text-[#25D366] font-bold h-14 px-8 rounded-lg flex items-center justify-center gap-2 text-base hover:bg-[#25D366]/20 transition-all"
               >
                 <span className="material-symbols-outlined">chat</span>
-                Chat on WhatsApp
+                WhatsApp Bot
               </a>
             </div>
           </div>
@@ -144,7 +144,7 @@ export default function LandingPage() {
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               {
                 icon: "lock",
@@ -235,9 +235,9 @@ export default function LandingPage() {
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-12 lg:gap-24">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-24">
             {/* For Buyers */}
-            <div className="bg-[#f6f6f8] rounded-2xl p-10 lg:p-12">
+            <div className="bg-[#f6f6f8] rounded-2xl p-6 sm:p-10 lg:p-12">
               <h3 className="text-2xl font-black text-deep-blue mb-8">
                 For Buyers
               </h3>
@@ -262,7 +262,7 @@ export default function LandingPage() {
             </div>
 
             {/* For Merchants */}
-            <div className="bg-deep-blue rounded-2xl p-10 lg:p-12 text-white">
+            <div className="bg-deep-blue rounded-2xl p-6 sm:p-10 lg:p-12 text-white">
               <h3 className="text-2xl font-black text-white mb-8">
                 For Merchants
               </h3>
@@ -295,10 +295,10 @@ export default function LandingPage() {
           <h2 className="text-3xl font-black text-deep-blue mb-10">
             Trusted by merchants and buyers across Lagos
           </h2>
-          <div className="grid sm:grid-cols-2 gap-4 text-left mx-auto w-fit">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-left mx-auto w-fit px-4">
             <div className="flex items-center gap-3">
-              <span className="text-green-500 text-xl">✅</span>
-              <span className="font-bold text-slate-700">
+              <span className="text-green-500 text-lg">✅</span>
+              <span className="font-bold text-slate-700 text-sm sm:text-base">
                 Escrow protection on every transaction
               </span>
             </div>
@@ -315,14 +315,14 @@ export default function LandingPage() {
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-green-500 text-xl">✅</span>
-              <span className="font-bold text-slate-700">
+              <span className="text-green-500 text-lg">✅</span>
+              <span className="font-bold text-slate-700 text-sm sm:text-base">
                 Instant bank payouts
               </span>
             </div>
             <div className="flex items-center gap-3 sm:col-span-2 justify-center">
-              <span className="text-green-500 text-xl">✅</span>
-              <span className="font-bold text-slate-700">
+              <span className="text-green-500 text-lg">✅</span>
+              <span className="font-bold text-slate-700 text-sm sm:text-base">
                 WhatsApp AI assistant
               </span>
             </div>
@@ -336,16 +336,16 @@ export default function LandingPage() {
           <h2 className="text-4xl font-black text-white mb-10 tracking-tight">
             Ready to trade smarter?
           </h2>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 px-4 sm:px-0">
             <Link
               href="/register"
-              className="bg-primary hover:bg-primary-dark text-white font-bold h-14 px-10 rounded-lg flex items-center justify-center transition-all shadow-xl shadow-primary/30"
+              className="w-full sm:w-auto bg-primary hover:bg-primary-dark text-white font-bold h-14 px-10 rounded-lg flex items-center justify-center transition-all shadow-xl shadow-primary/30"
             >
               Start Buying — Free
             </Link>
             <Link
               href="/register"
-              className="bg-white hover:bg-slate-100 text-deep-blue font-bold h-14 px-10 rounded-lg flex items-center justify-center transition-all shadow-xl"
+              className="w-full sm:w-auto bg-white hover:bg-slate-100 text-deep-blue font-bold h-14 px-10 rounded-lg flex items-center justify-center transition-all shadow-xl"
             >
               Start Selling — Free
             </Link>

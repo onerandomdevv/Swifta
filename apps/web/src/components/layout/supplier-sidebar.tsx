@@ -6,9 +6,15 @@ import { useAuth } from "@/providers/auth-provider";
 import { getDisplayName } from "@hardware-os/shared";
 import { Logo } from "@/components/ui/logo";
 
-export function SupplierSidebar() {
+export function SupplierSidebar({
+  variant = "desktop",
+}: {
+  variant?: "desktop" | "mobile";
+}) {
   const pathname = usePathname();
   const { logout, user } = useAuth();
+
+  const isDesktop = variant === "desktop";
 
   const navItems = [
     { label: "Dashboard", icon: "dashboard", href: "/supplier/dashboard" },
@@ -21,10 +27,14 @@ export function SupplierSidebar() {
   ];
 
   return (
-    <aside className="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col shrink-0 z-50">
-      <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center gap-3">
-        <Logo variant="light" size="sm" />
-      </div>
+    <aside
+      className={`${isDesktop ? "hidden lg:flex w-64 border-r border-slate-200 dark:border-slate-800 sticky top-0 h-screen" : "flex w-full"} flex-col bg-white dark:bg-slate-900 shrink-0 z-50`}
+    >
+      {isDesktop && (
+        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center gap-3">
+          <Logo variant="light" size="sm" />
+        </div>
+      )}
 
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {

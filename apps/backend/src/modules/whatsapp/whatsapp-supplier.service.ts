@@ -132,7 +132,44 @@ export class WhatsAppSupplierService {
       return;
     }
 
+    if (interactiveId.startsWith("view_supplier_product_")) {
+      const productIdShort = interactiveId.replace(
+        "view_supplier_product_",
+        "",
+      );
+      await this.handleViewSupplierProduct(supplierId, phone, productIdShort);
+      return;
+    }
+
     await this.interactiveService.sendTextMessage(phone, FRIENDLY_FALLBACK);
+  }
+
+  private async handleViewSupplierProduct(
+    supplierId: string,
+    phone: string,
+    productIdShort: string,
+  ): Promise<void> {
+    const products = await this.prisma.supplierProduct.findMany({
+      where: { supplierId },
+    });
+    const product = products.find((p) => p.id.startsWith(productIdShort));
+
+    if (!product) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "❌ Product details not found.",
+      );
+      return;
+    }
+
+    let msg = `🏭 *${product.name}*\n\n`;
+    msg += `Wholesale Price: *${this.formatNaira(Number(product.wholesalePriceKobo))}*\n`;
+    msg += `Min Order: *${product.minOrderQty} ${product.unit}*\n`;
+    msg += `Category: ${product.category}\n`;
+    msg += `Status: ${product.isActive ? "Active ✅" : "Inactive ⭕"}\n\n`;
+    msg += `To update price, say: "update price of ${product.name} to [price]"`;
+
+    await this.interactiveService.sendTextMessage(phone, msg);
   }
 
   private async sendSupplierMenu(phone: string): Promise<void> {

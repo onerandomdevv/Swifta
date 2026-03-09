@@ -20,13 +20,11 @@ export function DeliveryCard({ order }: Props) {
 
   switch (order.status) {
     case "PENDING_PAYMENT":
-      statusBadgeClasses =
-        "bg-red-100 text-red-800 border-red-200";
+      statusBadgeClasses = "bg-red-100 text-red-800 border-red-200";
       statusText = "Payment Required";
       break;
     case "PAID":
-      statusBadgeClasses =
-        "bg-amber-100 text-amber-800 border-amber-200";
+      statusBadgeClasses = "bg-amber-100 text-amber-800 border-amber-200";
       statusText = "Awaiting Dispatch";
       break;
     case "DISPATCHED":
@@ -44,32 +42,41 @@ export function DeliveryCard({ order }: Props) {
 
   // Determine product name via RFQ linkage (hardware-os specific structure)
   // Typically, an order wraps an RFQ which wraps a product.
-  const productName = (order as any).rfq?.product?.name || "Industrial Materials Shipment";
+  const productName =
+    (order as any).rfq?.product?.name || "Industrial Materials Shipment";
 
   return (
-    <div className="bg-white border border-slate-200 p-5 rounded flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div className="space-y-1">
-        <div className="flex items-center gap-3">
-          <span className="font-mono font-bold text-slate-900 bg-slate-100 px-2 py-1 border border-slate-200">
+    <div className="bg-white border border-slate-200 p-4 sm:p-5 rounded flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-sm">
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <span className="font-mono font-bold text-slate-900 bg-slate-100 px-2 py-1 border border-slate-200 text-xs sm:text-sm rounded">
             {shortId}
           </span>
           <span
-            className={`inline-flex items-center rounded px-2.5 py-0.5 text-xs font-bold border uppercase tracking-wider ${statusBadgeClasses}`}
+            className={`inline-flex items-center rounded px-2 py-0.5 text-[10px] sm:text-xs font-black border uppercase tracking-widest ${statusBadgeClasses}`}
           >
             {statusText}
           </span>
         </div>
-        <p className="text-slate-600 text-sm font-medium">
-          {productName} • {location}
-        </p>
+        <div>
+          <h4 className="text-slate-900 text-sm sm:text-base font-black leading-tight mb-0.5">
+            {productName}
+          </h4>
+          <p className="text-slate-500 text-xs sm:text-sm font-bold flex items-center gap-1">
+            <span className="material-symbols-outlined text-[14px]">
+              location_on
+            </span>
+            {location}
+          </p>
+        </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 w-full lg:w-auto pt-2 lg:pt-0">
         {/* Track Truck — only when dispatched */}
         {order.status === "DISPATCHED" && (
           <Link
             href={`/buyer/orders/${order.id}`}
-            className="flex-1 lg:flex-none border border-primary text-primary text-center font-bold py-2 px-6 rounded text-sm uppercase transition-colors hover:bg-primary/5"
+            className="w-full sm:w-auto border border-primary text-primary text-center font-bold py-2.5 px-6 rounded-lg text-xs uppercase tracking-widest transition-all hover:bg-primary/5 shadow-sm"
           >
             Track Truck
           </Link>
@@ -79,7 +86,7 @@ export function DeliveryCard({ order }: Props) {
         {order.status === "PENDING_PAYMENT" && (
           <Link
             href={`/buyer/orders/${order.id}`}
-            className="flex-1 lg:flex-none bg-primary text-white text-center font-bold py-2 px-6 rounded text-sm uppercase hover:bg-primary/90 transition-colors"
+            className="w-full sm:w-auto bg-primary text-white text-center font-bold py-2.5 px-6 rounded-lg text-xs uppercase tracking-widest hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
           >
             Fund Escrow
           </Link>
@@ -89,7 +96,7 @@ export function DeliveryCard({ order }: Props) {
         {order.status === "DISPATCHED" ? (
           <Link
             href={`/buyer/orders/${order.id}`}
-            className="flex-1 lg:flex-none bg-primary text-white font-bold py-2 px-6 rounded text-sm uppercase hover:bg-primary/90 transition-colors text-center"
+            className="w-full sm:w-auto bg-primary text-white font-bold py-2.5 px-6 rounded-lg text-xs uppercase tracking-widest hover:bg-primary/90 transition-all text-center shadow-lg shadow-primary/20"
           >
             Enter Delivery OTP
           </Link>
@@ -97,7 +104,7 @@ export function DeliveryCard({ order }: Props) {
           <span
             aria-disabled="true"
             role="button"
-            className="flex-1 lg:flex-none font-bold py-2 px-6 rounded text-sm uppercase text-center bg-slate-100 text-slate-400 cursor-not-allowed select-none"
+            className="w-full sm:w-auto font-bold py-2.5 px-6 rounded-lg text-xs uppercase tracking-widest text-center bg-slate-50 text-slate-300 cursor-not-allowed select-none border border-slate-100"
           >
             Enter Delivery OTP
           </span>

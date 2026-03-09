@@ -85,7 +85,7 @@ export default function LoginPage() {
           >
             <img
               src={src}
-              alt="Construction materials"
+              alt="SwiftTrade marketplace"
               className="w-full h-full object-cover"
             />
           </div>
@@ -133,7 +133,7 @@ export default function LoginPage() {
       </div>
 
       {/* ─── RIGHT: Login Form ─── */}
-      <div className="w-full lg:w-[50%] bg-white flex flex-col h-screen overflow-y-auto">
+      <div className="w-full lg:w-[50%] bg-white flex flex-col min-h-screen lg:h-screen overflow-y-auto">
         {/* Mobile header */}
         <div className="lg:hidden flex items-center justify-between p-6 border-b border-slate-100">
           <Link href="/" className="flex items-center gap-2">
@@ -141,7 +141,7 @@ export default function LoginPage() {
           </Link>
         </div>
 
-        <div className="flex-1 flex flex-col justify-center px-8 py-12 md:px-12 lg:px-14 xl:px-20">
+        <div className="flex-1 flex flex-col justify-center px-4 sm:px-8 py-12 md:px-12 lg:px-14 xl:px-20">
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-black text-deep-blue tracking-tight mb-2">
