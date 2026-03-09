@@ -99,7 +99,39 @@ async function main() {
     console.log(`🔑 Password: [HIDDEN] (Use ADMIN_BOOTSTRAP_PASSWORD)`);
   }
 
-  // 2. Seed Product Associations (Cross-Selling)
+  // 2. Seed V5 Categories
+  console.log(`\n📂 Seeding V5 Product Categories...`);
+  const categoriesToSeed = [
+    { name: "Electronics", slug: "electronics", icon: "devices" },
+    { name: "Fashion", slug: "fashion", icon: "checkroom" },
+    { name: "Home & Kitchen", slug: "home-kitchen", icon: "kitchen" },
+    { name: "Health & Beauty", slug: "health-beauty", icon: "face" },
+    { name: "Auto Parts", slug: "auto-parts", icon: "directions_car" },
+    { name: "Agriculture", slug: "agriculture", icon: "agriculture" },
+    {
+      name: "Building Materials",
+      slug: "building-materials",
+      icon: "hardware",
+    },
+    {
+      name: "Food & Groceries",
+      slug: "food-groceries",
+      icon: "local_grocery_store",
+    },
+    { name: "Other", slug: "other", icon: "category" },
+  ];
+
+  for (let i = 0; i < categoriesToSeed.length; i++) {
+    const cat = categoriesToSeed[i];
+    await prisma.category.upsert({
+      where: { slug: cat.slug },
+      update: { name: cat.name, icon: cat.icon, sortOrder: i },
+      create: { name: cat.name, slug: cat.slug, icon: cat.icon, sortOrder: i },
+    });
+  }
+  console.log(`✅ Seeded ${categoriesToSeed.length} Categories.`);
+
+  // 3. Seed Product Associations (Cross-Selling)
   console.log(`\n📦 Seeding Product Associations...`);
   const associations = [
     {
