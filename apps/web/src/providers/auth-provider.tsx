@@ -45,6 +45,8 @@ interface AuthContextType {
   register: (dto: RegisterDto) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  initiateWhatsAppLogin: (phone: string) => Promise<void>;
+  verifyWhatsAppLogin: (phone: string, code: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -129,6 +131,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [clearAuth, router]);
 
+  const initiateWhatsAppLogin = async (phone: string) => {
+    await authApi.initiateWhatsAppLogin(phone);
+  };
+
+  const verifyWhatsAppLogin = async (phone: string, code: string) => {
+    const response = await authApi.verifyWhatsAppLogin(phone, code);
+    setUser(response.user);
+  };
+
   // Initial check for session via HttpOnly cookies
   useEffect(() => {
     let mounted = true;
@@ -169,6 +180,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout: logoutFn,
         refreshUser,
+        initiateWhatsAppLogin,
+        verifyWhatsAppLogin,
       }}
     >
       {children}

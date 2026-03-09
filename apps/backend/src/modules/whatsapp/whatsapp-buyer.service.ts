@@ -11,7 +11,7 @@ import {
   BUYER_MAIN_MENU,
   BUYER_FRIENDLY_FALLBACK,
 } from "./whatsapp-buyer.constants";
-import { OrderStatus, Review } from "@hardware-os/shared";
+import { OrderStatus } from "@hardware-os/shared";
 import { ReviewService } from "../review/review.service";
 import { WhatsAppInteractiveService } from "./whatsapp-interactive.service";
 
@@ -553,9 +553,32 @@ export class WhatsAppBuyerService {
     });
 
     if (products.length === 0) {
-      await this.interactiveService.sendTextMessage(
+      await this.interactiveService.sendListMessage(
         phone,
-        `❌ No results for "${query}"${location ? ` near ${location}` : ""}. Try a different search.`,
+        `❌ No results for *"${query}"*${location ? ` near ${location}` : ""}.`,
+        "More Options",
+        [
+          {
+            title: "Try something else",
+            rows: [
+              {
+                id: "browse_categories",
+                title: "Browse Categories",
+                description: "Explore by product type",
+              },
+              {
+                id: "search_products",
+                title: "Try New Search",
+                description: "Search for a different item",
+              },
+              {
+                id: "show_buyer_menu",
+                title: "Main Menu",
+                description: "Return to home",
+              },
+            ],
+          },
+        ],
       );
       return;
     }
@@ -595,9 +618,27 @@ export class WhatsAppBuyerService {
     });
 
     if (categories.length === 0) {
-      await this.interactiveService.sendTextMessage(
+      await this.interactiveService.sendListMessage(
         phone,
-        "No categories found. Try searching for a product directly.",
+        "No categories found. What would you like to do?",
+        "More Options",
+        [
+          {
+            title: "Try something else",
+            rows: [
+              {
+                id: "search_products",
+                title: "Search Products",
+                description: "Search for materials",
+              },
+              {
+                id: "show_buyer_menu",
+                title: "Main Menu",
+                description: "Return to home",
+              },
+            ],
+          },
+        ],
       );
       return;
     }
@@ -790,10 +831,10 @@ export class WhatsAppBuyerService {
     phone: string,
     orderRef?: string,
   ): Promise<void> {
-    if (!orderRef) {
+    if (!orderRef || orderRef.length < 3) {
       await this.interactiveService.sendTextMessage(
         phone,
-        'To confirm an order, reply with *"Confirm delivery for [Order ID]"*',
+        'Please enter at least 3 characters of the Order ID. E.g. *"Confirm delivery for ABC"*.',
       );
       return;
     }
@@ -1084,9 +1125,27 @@ export class WhatsAppBuyerService {
     });
 
     if (products.length === 0) {
-      await this.interactiveService.sendTextMessage(
+      await this.interactiveService.sendListMessage(
         phone,
         `❌ No products found in the *${category.name}* category.`,
+        "Continue Options",
+        [
+          {
+            title: "Other Actions",
+            rows: [
+              {
+                id: "browse_categories",
+                title: "Browse All Categories",
+                description: "See other categories",
+              },
+              {
+                id: "search_products",
+                title: "Search Specific Item",
+                description: "Search across all categories",
+              },
+            ],
+          },
+        ],
       );
       return;
     }

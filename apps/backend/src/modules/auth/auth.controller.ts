@@ -113,6 +113,28 @@ export class AuthController {
     return this.authService.sendPhoneOtp(dto, user.sub);
   }
 
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Post("whatsapp/initiate")
+  @HttpCode(HttpStatus.OK)
+  async initiateWhatsAppLogin(@Body() dto: SendPhoneOtpDto) {
+    return this.authService.initiateWhatsAppLogin(dto.phone);
+  }
+
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post("whatsapp/verify")
+  @HttpCode(HttpStatus.OK)
+  async verifyWhatsAppLogin(
+    @Body() dto: VerifyPhoneOtpDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.verifyWhatsAppLogin(
+      dto.phone,
+      dto.code,
+    );
+    this.setCookies(res, result);
+    return { user: result.user };
+  }
+
   @UseGuards(JwtAuthGuard)
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   @Post("verify-phone-otp")

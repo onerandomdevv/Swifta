@@ -5,6 +5,8 @@ import {
   BadRequestException,
   NotFoundException,
   Logger,
+  Inject,
+  forwardRef,
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { JwtService } from "@nestjs/jwt";
@@ -25,7 +27,8 @@ import { AdminRegisterDto } from "./dto/admin-register.dto";
 import { SendPhoneOtpDto } from "./dto/send-phone-otp.dto";
 import { VerifyPhoneOtpDto } from "./dto/verify-phone-otp.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
-import { TokenPair, JwtPayload } from "@hardware-os/shared";
+import { TokenPair, JwtPayload, UserRole } from "@hardware-os/shared";
+import { WhatsAppService } from "../whatsapp/whatsapp.service";
 import AfricasTalking from "africastalking";
 
 const SALT_ROUNDS = 10;
@@ -73,6 +76,8 @@ export class AuthService {
     private redis: RedisService,
     private emailService: EmailService,
     private notificationTriggerService: NotificationTriggerService,
+    @Inject(forwardRef(() => WhatsAppService))
+    private whatsappService: WhatsAppService,
   ) {
     const atConfig = {
       apiKey: this.configService.get<string>("africastalking.apiKey"),
@@ -654,6 +659,59 @@ export class AuthService {
     this.logger.log(`Phone verified for user ${userId}`);
 
     return { message: "Phone verified successfully." };
+  }
+
+  async initiateWhatsAppLogin(phone: string): Promise<{ message: string }> {
+    const normalizedPhone = normalizePhone(phone);
+    const user = await this.prisma.user.findFirst({
+      where: { phone: normalizedPhone },
+      include: { merchantProfile: true, buyerProfile: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException("No account found with this phone number.");
+    }
+
+    const otp = randomInt(100000, 999999).toString();
+    const otpKey = `wa_login_otp:${normalizedPhone}`;
+
+    // Store in Redis for 5 minutes
+    await this.redis.set(otpKey, otp, 300);
+
+    // Send via WhatsApp
+    const message = `🔐 *SwiftTrade Login Code*\n\nYour verification code is: *${otp}*\n\nIt expires in 5 minutes. Do not share this code with anyone.`;
+    await this.whatsappService.sendWhatsAppMessage(normalizedPhone, message);
+
+    this.logger.log(`WhatsApp OTP sent to ${normalizedPhone}`);
+
+    return { message: "A login code has been sent to your WhatsApp." };
+  }
+
+  async verifyWhatsAppLogin(
+    phone: string,
+    code: string,
+  ): Promise<TokenPair & { user: any }> {
+    const normalizedPhone = normalizePhone(phone);
+    const otpKey = `wa_login_otp:${normalizedPhone}`;
+    const storedOtp = await this.redis.get(otpKey);
+
+    if (!storedOtp || storedOtp !== code) {
+      throw new UnauthorizedException("Invalid or expired verification code.");
+    }
+
+    const user = await this.prisma.user.findFirst({
+      where: { phone: normalizedPhone },
+      include: { merchantProfile: true, buyerProfile: true },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException("User no longer exists.");
+    }
+
+    // Clean up
+    await this.redis.del(otpKey);
+
+    return this.generateAndStoreTokens(user);
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
