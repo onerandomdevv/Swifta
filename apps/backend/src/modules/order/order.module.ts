@@ -18,7 +18,7 @@ import { WhatsAppModule } from "../whatsapp/whatsapp.module";
     forwardRef(() => PaymentModule),
     ReorderModule,
     VerificationModule,
-    LogisticsModule,
+    forwardRef(() => LogisticsModule),
     forwardRef(() => WhatsAppModule),
   ],
   controllers: [OrderController],

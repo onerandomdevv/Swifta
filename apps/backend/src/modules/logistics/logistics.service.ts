@@ -1,6 +1,7 @@
 import {
   Injectable,
   Inject,
+  forwardRef,
   NotFoundException,
   BadRequestException,
   ForbiddenException,
@@ -18,6 +19,7 @@ export class LogisticsService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject("LogisticsClient") private readonly client: LogisticsClient,
+    @Inject(forwardRef(() => WhatsAppService))
     private readonly whatsappService: WhatsAppService,
   ) {}
 
