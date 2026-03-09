@@ -847,18 +847,26 @@ export class WhatsAppBuyerService {
       FROM orders 
       WHERE buyer_id = ${buyerId}::uuid 
         AND id::text LIKE ${orderRef + "%"} 
-        AND status = 'DISPATCHED' 
-      LIMIT 1
+        AND status IN ('DISPATCHED', 'IN_TRANSIT')
     `;
-    const order = orders[0];
 
-    if (!order) {
+    if (orders.length === 0) {
       await this.interactiveService.sendTextMessage(
         phone,
-        `❌ No dispatched order found for "${orderRef}".`,
+        `❌ No active orders found matching *"${orderRef}"*. Please check your order ID and try again.`,
       );
       return;
     }
+
+    if (orders.length > 1) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `⚠️ Multiple orders matched *"${orderRef}"*. Please provide a few more characters to identify the exact order.`,
+      );
+      return;
+    }
+
+    const order = orders[0];
 
     const pendingOtpKey = `${PENDING_OTP_PREFIX}${buyerId}`;
     await this.redisService.set(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -82,7 +82,7 @@ export default function LoginPage() {
     }
   };
 
-  const handleWhatsAppInitiate = async (e: React.FormEvent) => {
+  const handleWhatsAppInitiate = async (e: FormEvent) => {
     e.preventDefault();
     if (!whatsappPhone) return;
     setIsWhatsAppLoading(true);
@@ -98,7 +98,7 @@ export default function LoginPage() {
     }
   };
 
-  const handleWhatsAppVerify = async (e: React.FormEvent) => {
+  const handleWhatsAppVerify = async (e: FormEvent) => {
     e.preventDefault();
     if (!whatsappOtp) return;
     setIsWhatsAppLoading(true);
