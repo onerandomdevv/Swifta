@@ -72,7 +72,26 @@ export async function submitVerificationRequest(dto: {
 export async function getVerificationStatus(): Promise<{
   tier: string;
   verifiedAt?: string;
-  pendingRequest?: { id: string; status: string; rejectionReason?: string; createdAt: string };
+  pendingRequest?: {
+    id: string;
+    status: string;
+    rejectionReason?: string;
+    createdAt: string;
+  };
 }> {
   return apiClient.get("/verification/status");
+}
+
+export interface MerchantAnalytics {
+  pipelineValue: string;
+  completedOrders: number;
+  totalRfqs: number;
+  openRfqs: number;
+  quotedRfqs: number;
+  acceptanceRate: number;
+  totalOrders: number;
+}
+
+export async function getAnalytics(): Promise<MerchantAnalytics> {
+  return apiClient.get("/merchants/me/analytics");
 }

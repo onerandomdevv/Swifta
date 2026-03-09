@@ -39,10 +39,19 @@ export class CreateProductDto {
   minOrderQuantity?: number;
 
   @IsOptional()
+  @IsInt()
+  @Min(1)
+  minOrderQuantityConsumer?: number;
+
+  @IsOptional()
   @IsString()
   warehouseLocation?: string;
 
   @IsOptional()
   @IsString()
   pricePerUnitKobo?: string;
+
+  @IsOptional()
+  @IsString()
+  retailPriceKobo?: string;
 }

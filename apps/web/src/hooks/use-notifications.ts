@@ -25,6 +25,7 @@ export interface NotificationUI {
   bg: string;
   unread: boolean;
   action?: string;
+  actionUrl?: string;
   category: "Orders" | "Financials" | "System";
 }
 
@@ -128,6 +129,8 @@ export function useNotifications(
   const {
     data: notifications = [],
     isLoading: loading,
+    isError,
+    error,
     refetch,
   } = useQuery({
     queryKey: ["notifications", "list"],
@@ -181,6 +184,8 @@ export function useNotifications(
     notifications,
     unreadCount,
     loading,
+    isError,
+    error,
     refresh: refetch,
     markAsRead: (id: string) => markAsReadMutation.mutate(id),
     markAllAsRead: () => markAllAsReadMutation.mutate(),

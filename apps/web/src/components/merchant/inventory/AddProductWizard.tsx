@@ -16,8 +16,10 @@ export type ProductDraft = {
   unit: string;
   description: string;
   minOrderQuantity: number;
+  minOrderQuantityConsumer: number;
   initialStock: number; // custom for wizard, submitted via inventory event later if needed or mapped backend
   priceKobo: number;
+  retailPriceKobo: number; // Added in V5
   deliveryTime: string;
   deliveryZones: string[];
   pickupAvailable: boolean;
@@ -31,8 +33,10 @@ const INITIAL_DRAFT: ProductDraft = {
   unit: "BAGS",
   description: "",
   minOrderQuantity: 10,
+  minOrderQuantityConsumer: 1,
   initialStock: 0,
-  priceKobo: 0, // Not saved in V1 product table directly, but mapped to quotes
+  priceKobo: 0,
+  retailPriceKobo: 0,
   deliveryTime: "Same Day",
   deliveryZones: [],
   pickupAvailable: true,
@@ -72,6 +76,13 @@ export function AddProductWizard() {
         unit: draft.unit,
         description: draft.description,
         minOrderQuantity: draft.minOrderQuantity,
+        minOrderQuantityConsumer: draft.minOrderQuantityConsumer,
+        retailPriceKobo:
+          draft.retailPriceKobo > 0
+            ? draft.retailPriceKobo.toString()
+            : undefined,
+        pricePerUnitKobo:
+          draft.priceKobo > 0 ? draft.priceKobo.toString() : undefined,
         warehouseLocation: draft.warehouseLocation || undefined,
       });
       return result;
@@ -308,20 +319,65 @@ export function AddProductWizard() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                    Base Unit Price (₦)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={draft.priceKobo / 100}
-                    onChange={(e) =>
-                      updateDraft({ priceKobo: Number(e.target.value) * 100 })
-                    }
-                    className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    placeholder="e.g. 7500"
-                  />
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                      Base Business Price (₦)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={draft.priceKobo / 100}
+                      onChange={(e) =>
+                        updateDraft({ priceKobo: Number(e.target.value) * 100 })
+                      }
+                      className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      placeholder="e.g. 7500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-primary mb-2 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">
+                        person
+                      </span>
+                      Retail Price (₦)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={draft.retailPriceKobo / 100}
+                      onChange={(e) =>
+                        updateDraft({
+                          retailPriceKobo: Number(e.target.value) * 100,
+                        })
+                      }
+                      className="w-full border border-primary/20 bg-primary/5 rounded-lg px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      placeholder="e.g. 8000"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4 grid grid-cols-2 gap-6 border-t border-slate-100 dark:border-slate-800">
+                  <div>
+                    <label className="block text-[11px] font-black text-primary uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">
+                        person
+                      </span>
+                      Consumer Min. Order
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={draft.minOrderQuantityConsumer}
+                      onChange={(e) =>
+                        updateDraft({
+                          minOrderQuantityConsumer: Number(e.target.value),
+                        })
+                      }
+                      className="w-full border border-primary/20 bg-primary/5 rounded-lg px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      placeholder="e.g. 1"
+                    />
+                  </div>
                 </div>
 
                 <div>

@@ -10,6 +10,7 @@ import { ProductModule } from "../product/product.module";
 import { TradeFinancingModule } from "../trade-financing/trade-financing.module";
 import { EmailModule } from "../email/email.module";
 import { ReviewModule } from "../review/review.module";
+import { SupplierModule } from "../supplier/supplier.module";
 import { WhatsAppController } from "./whatsapp.controller";
 import { WhatsAppService } from "./whatsapp.service";
 import { WhatsAppAuthService } from "./whatsapp-auth.service";
@@ -54,6 +55,7 @@ import { ImageSearchService } from "./image-search.service";
     TradeFinancingModule,
     EmailModule,
     forwardRef(() => ReviewModule),
+    forwardRef(() => SupplierModule),
   ],
   controllers: [WhatsAppController],
   providers: [

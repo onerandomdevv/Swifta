@@ -273,6 +273,7 @@ model Product {
   category          Category           @relation(fields: [categoryId], references: [id])
   pricePerUnitKobo  BigInt?            @map("price_per_unit_kobo")
   retailPriceKobo   BigInt?            @map("retail_price_kobo") // Added in V5 for consumer expansion
+  minOrderQuantityConsumer Int                @default(1) @map("min_order_quantity_consumer") // Added in V5 for consumer expansion
   attributes        Json?              @default("{}") // Added in V5 for category-specific attributes (e.g., size, color, specs)
   warehouseLocation String?            @map("warehouse_location")
   cartItems         CartItem[]

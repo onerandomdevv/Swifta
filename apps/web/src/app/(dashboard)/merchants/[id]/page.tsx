@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/providers/auth-provider";
 import { getPublicProfile } from "@/lib/api/merchant.api";
 import { getPublicProductsByMerchant } from "@/lib/api/product.api";
 import type { Product } from "@hardware-os/shared";
@@ -11,6 +12,7 @@ import type { Product } from "@hardware-os/shared";
 export default function MerchantProfilePage() {
   const { id } = useParams();
   const router = useRouter();
+  const { user } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,10 +26,10 @@ export default function MerchantProfilePage() {
           getPublicProfile(id as string),
           getPublicProductsByMerchant(id as string, 1, 50),
         ]);
-        
+
         const profileData = (profileRes as any).data || profileRes;
         const productsData = (productsRes as any).data || productsRes;
-        
+
         setMerchant(profileData);
         setProducts(Array.isArray(productsData) ? productsData : []);
       } catch (err: any) {
@@ -75,20 +77,24 @@ export default function MerchantProfilePage() {
 
   return (
     <div className="space-y-10 py-4 max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
-      
       {/* Merchant Profile Header */}
       <div className="bg-navy-dark rounded-[3rem] p-10 lg:p-14 relative overflow-hidden shadow-2xl flex flex-col md:flex-row items-center gap-10">
         <span className="material-symbols-outlined absolute -right-20 -bottom-20 text-[300px] text-white/5 pointer-events-none select-none z-0 transform -rotate-12">
           storefront
         </span>
-        
+
         <div className="size-32 lg:size-40 rounded-full bg-white flex items-center justify-center shadow-lg relative z-10 shrink-0">
           <span className="material-symbols-outlined text-6xl text-navy-dark">
             store
           </span>
           {isVerified && (
-            <div className="absolute -bottom-2 -right-2 bg-green-500 text-white size-10 rounded-full flex items-center justify-center border-4 border-navy-dark" title="Verified Merchant">
-              <span className="material-symbols-outlined text-xl">verified</span>
+            <div
+              className="absolute -bottom-2 -right-2 bg-green-500 text-white size-10 rounded-full flex items-center justify-center border-4 border-navy-dark"
+              title="Verified Merchant"
+            >
+              <span className="material-symbols-outlined text-xl">
+                verified
+              </span>
             </div>
           )}
         </div>
@@ -99,28 +105,40 @@ export default function MerchantProfilePage() {
               {merchant.businessName}
             </h1>
             {isVerified ? (
-               <span className="bg-green-500/20 text-green-300 border border-green-500/30 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap inline-block mx-auto md:mx-0">
-                 Verified Trust
-               </span>
+              <span className="bg-green-500/20 text-green-300 border border-green-500/30 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap inline-block mx-auto md:mx-0">
+                Verified Trust
+              </span>
             ) : (
-               <span className="bg-slate-500/20 text-slate-300 border border-slate-500/30 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap inline-block mx-auto md:mx-0">
-                 Unverified
-               </span>
+              <span className="bg-slate-500/20 text-slate-300 border border-slate-500/30 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap inline-block mx-auto md:mx-0">
+                Unverified
+              </span>
             )}
           </div>
-          
+
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 text-slate-300">
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-sm text-blue-400">location_on</span>
-              <span className="text-sm font-bold">{merchant.businessAddress || "Lagos, Nigeria"}</span>
+              <span className="material-symbols-outlined text-sm text-blue-400">
+                location_on
+              </span>
+              <span className="text-sm font-bold">
+                {merchant.businessAddress || "Lagos, Nigeria"}
+              </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-sm text-blue-400">calendar_month</span>
-              <span className="text-sm font-bold">Joined {new Date(merchant.createdAt).getFullYear()}</span>
+              <span className="material-symbols-outlined text-sm text-blue-400">
+                calendar_month
+              </span>
+              <span className="text-sm font-bold">
+                Joined {new Date(merchant.createdAt).getFullYear()}
+              </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-sm text-blue-400">inventory_2</span>
-              <span className="text-sm font-bold">{products.length} Products Listed</span>
+              <span className="material-symbols-outlined text-sm text-blue-400">
+                inventory_2
+              </span>
+              <span className="text-sm font-bold">
+                {products.length} Products Listed
+              </span>
             </div>
           </div>
         </div>
@@ -130,7 +148,9 @@ export default function MerchantProfilePage() {
             href={`/buyer/rfqs/new-custom?merchantId=${merchant.id}`}
             className="flex items-center gap-2 px-8 py-4 bg-white text-navy-dark rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all"
           >
-            <span className="material-symbols-outlined text-lg">edit_document</span>
+            <span className="material-symbols-outlined text-lg">
+              edit_document
+            </span>
             Custom Request
           </Link>
         </div>
@@ -171,14 +191,17 @@ export default function MerchantProfilePage() {
                     </p>
                   )}
                 </div>
-                
+
                 <div className="flex items-center justify-between pt-6 border-t border-slate-50 dark:border-slate-800 mt-6">
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
                       Min Order
                     </p>
                     <p className="font-black text-navy-dark dark:text-white">
-                      {product.minOrderQuantity} {product.unit}
+                      {user?.buyerType === "CONSUMER"
+                        ? product.minOrderQuantityConsumer
+                        : product.minOrderQuantity}{" "}
+                      {product.unit}
                     </p>
                   </div>
                   <Link
@@ -196,19 +219,21 @@ export default function MerchantProfilePage() {
           </div>
         ) : (
           <div className="bg-white dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 rounded-[3rem] py-24 flex flex-col items-center justify-center text-center">
-             <div className="size-20 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center mb-6">
-               <span className="material-symbols-outlined text-4xl text-slate-300">inventory_2</span>
-             </div>
-             <h3 className="text-xl font-black text-navy-dark dark:text-white uppercase tracking-tight mb-2">
-               No Products Listed
-             </h3>
-             <p className="text-xs font-bold text-slate-400">
-               This merchant hasn't made any products visible in their storefront yet.
-             </p>
+            <div className="size-20 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center mb-6">
+              <span className="material-symbols-outlined text-4xl text-slate-300">
+                inventory_2
+              </span>
+            </div>
+            <h3 className="text-xl font-black text-navy-dark dark:text-white uppercase tracking-tight mb-2">
+              No Products Listed
+            </h3>
+            <p className="text-xs font-bold text-slate-400">
+              This merchant hasn't made any products visible in their storefront
+              yet.
+            </p>
           </div>
         )}
       </div>
-
     </div>
   );
 }

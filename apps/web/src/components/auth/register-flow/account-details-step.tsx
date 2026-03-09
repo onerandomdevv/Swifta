@@ -167,10 +167,10 @@ export function AccountDetailsStep({
         </div>
 
         {/* Business Name — Merchant or Business Buyer */}
-        {(isMerchant || (isBuyer && buyerType === "BUSINESS")) && (
+        {(isMerchant || isBuyer) && (
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-1.5">
-              Business Name
+              Business Name {buyerType === "CONSUMER" && "(Optional)"}
             </label>
             <div className="relative">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
@@ -178,7 +178,11 @@ export function AccountDetailsStep({
               </span>
               <input
                 className={`w-full pl-10 pr-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.businessName ? "border-red-400" : "border-slate-200"}`}
-                placeholder="Adamu Cement Supplies"
+                placeholder={
+                  buyerType === "CONSUMER"
+                    ? "Your personal brand (optional)"
+                    : "Adamu Cement Supplies"
+                }
                 type="text"
                 {...register("businessName")}
               />
