@@ -125,8 +125,23 @@ export class AuthService {
               },
             }
           : {}),
+        ...(dto.role === "BUYER"
+          ? {
+              buyerProfile: {
+                create: {
+                  buyerType: dto.buyerType || "BUSINESS",
+                  businessName:
+                    dto.buyerType === "CONSUMER" ? "" : dto.businessName,
+                },
+              },
+            }
+          : {}),
       },
-      include: { merchantProfile: true, supplierProfile: true },
+      include: {
+        merchantProfile: true,
+        supplierProfile: true,
+        buyerProfile: true,
+      },
     });
 
     // Generate and store OTP for email verification

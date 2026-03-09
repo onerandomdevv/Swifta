@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/providers/auth-provider";
 import { createRFQ } from "@/lib/api/rfq.api";
 import { getCatalogue } from "@/lib/api/product.api";
 import type { Product, RFQ, RFQStatus } from "@hardware-os/shared";
@@ -12,6 +13,7 @@ export default function CreateRFQPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const preselectedProductId = searchParams.get("productId") || "";
 
   const [loading, setLoading] = useState(true);
@@ -25,8 +27,12 @@ export default function CreateRFQPage() {
   });
 
   const selectedProduct = products.find((p) => p.id === formData.productId);
-  const minQuantity = selectedProduct?.minOrderQuantity || 1;
-  const isBelowMin = formData.productId !== "" && formData.quantity < minQuantity;
+  const minQuantity =
+    (user?.buyerType === "CONSUMER"
+      ? selectedProduct?.minOrderQuantityConsumer
+      : selectedProduct?.minOrderQuantity) || 1;
+  const isBelowMin =
+    formData.productId !== "" && formData.quantity < minQuantity;
 
   useEffect(() => {
     async function fetchProducts() {
@@ -46,9 +52,13 @@ export default function CreateRFQPage() {
     mutationFn: createRFQ,
     onMutate: async (newRfqData) => {
       // Optimistic update
-      await queryClient.cancelQueries({ queryKey: ['buyer', 'rfqs'] });
-      const previousRfqs = queryClient.getQueryData<RFQ[]>(['buyer', 'rfqs', 'all']);
-      
+      await queryClient.cancelQueries({ queryKey: ["buyer", "rfqs"] });
+      const previousRfqs = queryClient.getQueryData<RFQ[]>([
+        "buyer",
+        "rfqs",
+        "all",
+      ]);
+
       const optimisticRfq: Partial<RFQ> = {
         id: `optimistic-${Date.now()}`,
         productId: newRfqData.productId,
@@ -62,22 +72,28 @@ export default function CreateRFQPage() {
       };
 
       if (previousRfqs) {
-        queryClient.setQueryData<RFQ[]>(['buyer', 'rfqs', 'all'], [optimisticRfq as RFQ, ...previousRfqs]);
+        queryClient.setQueryData<RFQ[]>(
+          ["buyer", "rfqs", "all"],
+          [optimisticRfq as RFQ, ...previousRfqs],
+        );
       }
       return { previousRfqs };
     },
     onError: (err: any, _, context) => {
       setError(err?.message || "Failed to create RFQ");
       if (context?.previousRfqs) {
-        queryClient.setQueryData(['buyer', 'rfqs', 'all'], context.previousRfqs);
+        queryClient.setQueryData(
+          ["buyer", "rfqs", "all"],
+          context.previousRfqs,
+        );
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['buyer', 'rfqs'] });
+      queryClient.invalidateQueries({ queryKey: ["buyer", "rfqs"] });
     },
     onSuccess: () => {
       router.push("/buyer/rfqs");
-    }
+    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -132,7 +148,9 @@ export default function CreateRFQPage() {
       <div className="max-w-4xl">
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded flex gap-3">
-            <span className="material-symbols-outlined text-red-600">error</span>
+            <span className="material-symbols-outlined text-red-600">
+              error
+            </span>
             <p className="text-xs font-bold text-red-700 uppercase tracking-wide flex items-center">
               {error}
             </p>
@@ -155,11 +173,14 @@ export default function CreateRFQPage() {
                   onChange={(e) => {
                     const newProductId = e.target.value;
                     const prod = products.find((p) => p.id === newProductId);
-                    const minQ = prod?.minOrderQuantity || 1;
-                    setFormData({ 
-                      ...formData, 
+                    const minQ =
+                      (user?.buyerType === "CONSUMER"
+                        ? prod?.minOrderQuantityConsumer
+                        : prod?.minOrderQuantity) || 1;
+                    setFormData({
+                      ...formData,
                       productId: newProductId,
-                      quantity: Math.max(formData.quantity, minQ)
+                      quantity: Math.max(formData.quantity, minQ),
                     });
                   }}
                   className="w-full bg-white border border-slate-300 rounded py-3 px-4 text-sm font-bold text-slate-900 outline-none focus:border-primary transition-all appearance-none"
@@ -167,7 +188,10 @@ export default function CreateRFQPage() {
                   <option value="">Choose a product...</option>
                   {products.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.name} ({p.categoryTag}) — Min: {p.minOrderQuantity}{" "}
+                      {p.name} ({p.categoryTag}) — Min:{" "}
+                      {user?.buyerType === "CONSUMER"
+                        ? p.minOrderQuantityConsumer
+                        : p.minOrderQuantity}{" "}
                       {p.unit}
                     </option>
                   ))}

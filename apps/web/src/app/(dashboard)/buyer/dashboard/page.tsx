@@ -8,7 +8,8 @@ import { PendingQuotes } from "@/components/buyer/dashboard/pending-quotes";
 import { ActiveDeliveries } from "@/components/buyer/dashboard/active-deliveries";
 
 export default function BuyerDashboard() {
-  const { rfqs, orders, isLoading, isError, error } = useBuyerDashboard();
+  const { rfqs, orders, stats, isLoading, isError, error } =
+    useBuyerDashboard();
 
   if (isLoading) return <DashboardSkeleton />;
 
@@ -34,8 +35,9 @@ export default function BuyerDashboard() {
   return (
     <>
       <BuyerSummaryCards
-        activeOrdersCount={activeOrders.length}
-        pendingQuotesCount={pendingQuotes.length}
+        activeOrdersCount={stats?.activeOrdersCount ?? activeOrders.length}
+        pendingQuotesCount={stats?.pendingQuotesCount ?? pendingQuotes.length}
+        totalSpendingKobo={stats?.totalSpendingKobo}
         orders={orders}
       />
 

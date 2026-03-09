@@ -35,6 +35,11 @@ export class UpdateProductDto {
   minOrderQuantity?: number;
 
   @IsOptional()
+  @IsInt()
+  @Min(1)
+  minOrderQuantityConsumer?: number;
+
+  @IsOptional()
   @IsBoolean()
   isActive?: boolean;
 
@@ -49,4 +54,8 @@ export class UpdateProductDto {
   @IsOptional()
   @IsString()
   pricePerUnitKobo?: string;
+
+  @IsOptional()
+  @IsString()
+  retailPriceKobo?: string;
 }

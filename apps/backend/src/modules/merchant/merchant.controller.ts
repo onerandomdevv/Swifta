@@ -18,9 +18,14 @@ import { Roles } from "../../common/decorators/roles.decorator";
 import { CurrentMerchant } from "../../common/decorators/current-merchant.decorator";
 import { UserRole } from "@hardware-os/shared";
 
+import { MerchantAnalyticsService } from "./merchant-analytics.service";
+
 @Controller("merchants")
 export class MerchantController {
-  constructor(private readonly merchantService: MerchantService) {}
+  constructor(
+    private readonly merchantService: MerchantService,
+    private readonly analyticsService: MerchantAnalyticsService,
+  ) {}
 
   @Get("me")
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -81,5 +86,11 @@ export class MerchantController {
   @Roles(UserRole.MERCHANT)
   async submitVerification(@CurrentMerchant() merchantId: string) {
     return this.merchantService.submitForVerification(merchantId);
+  }
+  @Get("me/analytics")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.MERCHANT)
+  async getMyAnalytics(@CurrentMerchant() merchantId: string) {
+    return this.analyticsService.getMerchantStats(merchantId);
   }
 }
