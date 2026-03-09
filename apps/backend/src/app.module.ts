@@ -46,6 +46,21 @@ import { MerchantContextMiddleware } from "./common/middleware/merchant-context.
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { APP_GUARD } from "@nestjs/core";
 
+function sanitizeRedisUrl(url: string | undefined): string | undefined {
+  if (!url) return url;
+  let cleanUrl = url.trim();
+  if (cleanUrl.startsWith("REDIS_URL=")) {
+    cleanUrl = cleanUrl.substring("REDIS_URL=".length);
+  }
+  if (cleanUrl.startsWith('"') && cleanUrl.endsWith('"')) {
+    cleanUrl = cleanUrl.substring(1, cleanUrl.length - 1);
+  }
+  if (cleanUrl.startsWith("'") && cleanUrl.endsWith("'")) {
+    cleanUrl = cleanUrl.substring(1, cleanUrl.length - 1);
+  }
+  return cleanUrl.trim();
+}
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -66,7 +81,8 @@ import { APP_GUARD } from "@nestjs/core";
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => {
-        const urlString = configService.get<string>("redis.url");
+        const rawUrl = configService.get<string>("redis.url");
+        const urlString = sanitizeRedisUrl(rawUrl);
 
         if (!urlString) {
           console.warn(
@@ -77,6 +93,7 @@ import { APP_GUARD } from "@nestjs/core";
             port: 6379,
             family: 0,
             ttl: 60 * 1000,
+            enableReadyCheck: false,
           });
           return { store };
         }
@@ -94,11 +111,12 @@ import { APP_GUARD } from "@nestjs/core";
                 : undefined,
             family: 0,
             ttl: 60 * 1000,
+            enableReadyCheck: false,
           });
           return { store };
         } catch (error: any) {
           console.error(
-            `CacheModule failed to parse REDIS_URL: ${urlString.substring(0, 10)}...`,
+            `CacheModule failed to parse REDIS_URL prefix: ${urlString.substring(0, 15)}...`,
           );
           throw new Error(
             `Invalid REDIS_URL for CacheModule: ${error.message}`,
