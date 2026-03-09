@@ -3,6 +3,8 @@ import {
   ForbiddenException,
   NotFoundException,
   BadRequestException,
+  Inject,
+  forwardRef,
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { CreateSupplierProductDto } from "./dto/create-supplier-product.dto";
@@ -16,7 +18,9 @@ import { WhatsAppService } from "../whatsapp/whatsapp.service";
 export class SupplierService {
   constructor(
     private prisma: PrismaService,
+    @Inject(forwardRef(() => PaymentService))
     private paymentService: PaymentService,
+    @Inject(forwardRef(() => WhatsAppService))
     private whatsappService: WhatsAppService,
   ) {}
 
