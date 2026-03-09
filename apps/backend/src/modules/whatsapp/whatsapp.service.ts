@@ -261,7 +261,7 @@ export class WhatsAppService {
     if (id === "menu_help") {
       await this.interactiveService.sendTextMessage(
         phone,
-        `🤝 *SwiftTrade Merchant Support*\n\nYou can manage your business by using the menu or via natural language commands:\n\n• *"sales summary"* - View performance\n• *"my orders"* - Manage latest orders\n• *"check inventory"* - Monitor stock\n• *"update price of [item] to [amount]"*\n• *"add [qty] to [item] stock"*\n\nNeed more help? Visit our web dashboard or contact support at support@swifttrade.store`,
+        `🤝 *SwiftTrade Merchant Support*\n\nYou can manage your business by using the menu or via natural language commands:\n\n• *"sales summary"* - View performance\n• *"my orders"* - Manage latest orders\n• *"check inventory"* - Monitor stock\n• *"update price of [item] to [amount]"*\n• *"add [qty] to [item] stock"*\n\nNeed more help? Visit our web dashboard or contact support at support@swifta.store`,
       );
       return;
     }

@@ -208,7 +208,7 @@ export class WhatsAppBuyerService {
       await this.redisService.del(checkoutKey);
 
       const appUrl =
-        this.configService.get("FRONTEND_URL") || "https://swifttrade.store";
+        this.configService.get("FRONTEND_URL") || "https://swifta.store";
       const checkoutLink = `${appUrl}/buyer/checkout/${session.productId}?qty=${session.quantity}&delivery=${session.deliveryMethod}`;
 
       await this.interactiveService.sendCTAUrlButton(
@@ -420,7 +420,7 @@ export class WhatsAppBuyerService {
 
       await this.redisService.del(key);
       const appUrl =
-        this.configService.get("FRONTEND_URL") || "https://swifttrade.store";
+        this.configService.get("FRONTEND_URL") || "https://swifta.store";
       const checkoutLink = `${appUrl}/buyer/checkout/${session.productId}?qty=${session.quantity}&delivery=${session.deliveryMethod}`;
 
       await this.interactiveService.sendCTAUrlButton(
@@ -481,7 +481,7 @@ export class WhatsAppBuyerService {
         case "contact_support":
           await this.interactiveService.sendTextMessage(
             phone,
-            "📞 You can contact SwiftTrade Support directly at 0800-SWIFTTRADE or email support@swifttrade.store for any disputes or assistance.",
+            "📞 You can contact SwiftTrade Support directly at 0800-SWIFTTRADE or email support@swifta.store for any disputes or assistance.",
           );
           break;
         case "friendly_fallback":
