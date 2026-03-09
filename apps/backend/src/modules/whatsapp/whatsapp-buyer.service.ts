@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, Inject, forwardRef } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../../prisma/prisma.service";
 import { OrderService } from "../order/order.service";
@@ -39,11 +39,13 @@ export class WhatsAppBuyerService {
   constructor(
     private configService: ConfigService,
     private prisma: PrismaService,
+    @Inject(forwardRef(() => OrderService))
     private orderService: OrderService,
     private productService: ProductService,
     private authService: WhatsAppBuyerAuthService,
     private intentService: WhatsAppBuyerIntentService,
     private redisService: RedisService,
+    @Inject(forwardRef(() => ReviewService))
     private reviewService: ReviewService,
     private interactiveService: WhatsAppInteractiveService,
   ) {
