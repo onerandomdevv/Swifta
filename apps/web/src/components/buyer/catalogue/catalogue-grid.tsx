@@ -8,12 +8,14 @@ interface Props {
   products: Product[];
   setSearchQuery: (val: string) => void;
   setActiveCategory: (val: string) => void;
+  buyerType?: "CONSUMER" | "BUSINESS";
 }
 
 export function CatalogueGrid({
   products,
   setSearchQuery,
   setActiveCategory,
+  buyerType = "BUSINESS",
 }: Props) {
   if (products.length === 0) {
     return (
@@ -45,14 +47,14 @@ export function CatalogueGrid({
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
       {products.map((p) => (
         <div
           key={p.id}
-          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col group hover:shadow-md transition-shadow"
+          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col group hover:shadow-md transition-shadow rounded-xl overflow-hidden shadow-sm"
         >
           {/* Product Image */}
-          <div className="relative aspect-square overflow-hidden bg-slate-100 dark:bg-slate-800">
+          <div className="relative aspect-square overflow-hidden bg-slate-50 dark:bg-slate-800/50">
             {p.imageUrl ? (
               <div
                 className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
@@ -60,143 +62,94 @@ export function CatalogueGrid({
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="material-symbols-outlined text-slate-300 dark:text-slate-600 text-[80px] group-hover:scale-105 transition-transform duration-500">
+                <span className="material-symbols-outlined text-slate-300 dark:text-slate-700 text-4xl sm:text-[80px] group-hover:scale-105 transition-transform duration-500">
                   inventory_2
                 </span>
               </div>
             )}
             {/* Category Badge */}
-            <span className="absolute top-3 right-3 bg-slate-900 text-white text-[10px] font-black uppercase px-2 py-1 tracking-wider">
+            <span className="absolute top-2 left-2 sm:top-3 sm:right-3 sm:left-auto bg-slate-900/80 backdrop-blur-sm text-white text-[8px] sm:text-[10px] font-black uppercase px-2 py-1 tracking-wider rounded-sm sm:rounded-none">
               {p.categoryTag}
             </span>
-            {Number(p.minOrderQuantity) === 1 && (
-              <span className="absolute top-10 right-3 bg-emerald-600 text-white text-[8px] font-black uppercase px-2 py-1 tracking-wider">
-                Individual Friendly
-              </span>
-            )}
           </div>
 
           {/* Product Details */}
-          <div className="p-4 flex flex-col flex-1">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase">
+          <div className="p-3 sm:p-4 flex flex-col flex-1">
+            <h3 className="text-[11px] sm:text-sm font-black text-slate-900 dark:text-slate-100 uppercase leading-tight line-clamp-2 min-h-[2.5em]">
               {p.name}
             </h3>
-            <p className="text-xs font-medium text-primary mt-1">
-              {p.description || p.categoryTag}
-            </p>
 
             {/* Merchant Info */}
             {p.merchantProfile && (
               <Link
                 href={`/buyer/merchants/${p.merchantProfile.id}`}
-                className="flex items-center gap-1.5 mt-3 group/m hover:opacity-80 transition-opacity"
+                className="flex items-center gap-1 mt-2 group/m hover:opacity-80 transition-opacity"
               >
-                <VerificationBadge
-                  tier={p.merchantProfile.verificationTier as any}
-                />
-                {(p.merchantProfile.verificationTier === "VERIFIED" ||
-                  p.merchantProfile.verificationTier === "TRUSTED") && (
-                  <span className="text-[8px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-bold uppercase tracking-wide">
-                    Direct Pay
-                  </span>
-                )}
-                <span className="text-[11px] font-bold text-primary dark:text-primary-light truncate group-hover/m:underline decoration-1 underline-offset-2">
+                <div className="shrink-0 scale-75 sm:scale-100 origin-left">
+                  <VerificationBadge
+                    tier={p.merchantProfile.verificationTier as any}
+                  />
+                </div>
+                <span className="text-[9px] sm:text-[11px] font-black text-primary dark:text-primary-light truncate group-hover/m:underline underline-offset-2 uppercase tracking-tight">
                   {p.merchantProfile.businessName}
                 </span>
-                {p.merchantProfile.averageRating !== undefined &&
-                  p.merchantProfile.averageRating > 0 && (
-                    <div className="flex items-center gap-0.5 ml-1">
-                      <span className="text-[10px] font-black text-amber-500">
-                        {Number(p.merchantProfile.averageRating).toFixed(1)}
-                      </span>
-                      <span className="material-symbols-outlined text-[10px] text-amber-400 fill-amber-400">
-                        star
-                      </span>
-                    </div>
-                  )}
               </Link>
             )}
 
-            {/* Stock Availability Badge */}
-            {(p as any).stockAvailability &&
-              (p as any).stockAvailability !== "OUT_OF_STOCK" && (
-                <span
-                  className={`inline-block mt-2 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider w-fit ${
-                    (p as any).stockAvailability === "IN_STOCK"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-yellow-100 text-yellow-700"
-                  }`}
-                >
-                  {(p as any).stockAvailability === "IN_STOCK"
-                    ? "In Stock"
-                    : "Low Stock"}
-                </span>
-              )}
-            {(p as any).stockAvailability === "OUT_OF_STOCK" && (
-              <span className="inline-block mt-2 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider w-fit bg-red-100 text-red-700">
-                Out of Stock
-              </span>
-            )}
-
-            {/* Price Details */}
+            {/* Price Details — unified priceKobo for both CONSUMER and BUSINESS */}
             {(() => {
               const priceKobo =
-                (p as any).retailPriceKobo ?? p.pricePerUnitKobo;
-              return priceKobo ? (
-                <div className="mt-3">
-                  <span className="text-lg font-black text-navy-dark dark:text-emerald-400">
-                    {(Number(priceKobo) / 100).toLocaleString("en-NG", {
-                      style: "currency",
-                      currency: "NGN",
-                    })}
-                  </span>
-                  <span className="text-[10px] text-slate-500 font-bold ml-1 uppercase tracking-widest">
-                    / {p.unit}
-                  </span>
-                </div>
-              ) : (
-                <div className="mt-3 text-xs font-bold text-slate-400 italic">
-                  Request Quote for Price
+                buyerType === "CONSUMER" && p.retailPriceKobo
+                  ? p.retailPriceKobo
+                  : p.pricePerUnitKobo || (p as any).retailPriceKobo;
+
+              if (priceKobo) {
+                return (
+                  <div className="mt-2.5">
+                    <div className="text-sm sm:text-lg font-black text-navy-dark dark:text-emerald-400">
+                      {(Number(priceKobo) / 100).toLocaleString("en-NG", {
+                        style: "currency",
+                        currency: "NGN",
+                        minimumFractionDigits: 0,
+                      })}
+                    </div>
+                    <div className="text-[8px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mt-0.5">
+                      Per {p.unit}
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <div className="mt-2.5 text-[10px] font-black text-slate-400 italic uppercase tracking-widest">
+                  Quote Required
                 </div>
               );
             })()}
-
-            {/* Specs Table */}
-            <div className="mt-4 mb-6 border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
-              <div className="grid grid-cols-2 text-[10px] p-2 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-slate-500 uppercase font-bold tracking-tighter">
-                  Min. Order
-                </span>
-                <span className="text-right font-black text-slate-900 dark:text-white">
-                  {p.minOrderQuantity} {p.unit.toUpperCase()}
-                </span>
-              </div>
-            </div>
 
             {/* CTA — uses same priceKobo logic as display above */}
-            {(() => {
-              const priceKobo =
-                (p as any).retailPriceKobo ?? p.pricePerUnitKobo;
-              return priceKobo ? (
-                <Link
-                  href={`/buyer/checkout/${p.id}`}
-                  className={`mt-auto w-full text-white text-xs font-black py-3 uppercase tracking-widest text-center block transition-colors ${
-                    (p as any).stockAvailability === "OUT_OF_STOCK"
-                      ? "bg-slate-300 cursor-not-allowed pointer-events-none"
-                      : "bg-navy-dark hover:bg-navy"
-                  }`}
-                >
-                  Buy Now
-                </Link>
-              ) : (
-                <Link
-                  href={`/buyer/rfqs/new?productId=${p.id}`}
-                  className="mt-auto w-full bg-primary text-white text-xs font-bold py-3 uppercase tracking-widest hover:bg-orange-600 transition-colors text-center block"
-                >
-                  Request Quote
-                </Link>
-              );
-            })()}
+            <div className="mt-4">
+              {(() => {
+                const priceKobo =
+                  buyerType === "CONSUMER" && p.retailPriceKobo
+                    ? p.retailPriceKobo
+                    : p.pricePerUnitKobo || (p as any).retailPriceKobo;
+                return priceKobo ? (
+                  <Link
+                    href={`/buyer/checkout/${p.id}`}
+                    className="w-full bg-navy-dark hover:bg-navy text-white text-[10px] sm:text-xs font-black py-2.5 rounded-lg uppercase tracking-widest text-center block transition-all active:scale-95 shadow-sm"
+                  >
+                    Buy
+                  </Link>
+                ) : (
+                  <Link
+                    href={`/buyer/rfqs/new?productId=${p.id}`}
+                    className="w-full bg-primary text-white text-[10px] sm:text-xs font-black py-2.5 rounded-lg uppercase tracking-widest hover:bg-orange-600 transition-all text-center block active:scale-95 shadow-lg shadow-primary/20"
+                  >
+                    Quote
+                  </Link>
+                );
+              })()}
+            </div>
           </div>
         </div>
       ))}

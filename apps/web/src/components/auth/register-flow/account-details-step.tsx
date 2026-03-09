@@ -47,15 +47,15 @@ export function AccountDetailsStep({
         </div>
       </div>
 
-      <div className="mb-8">
-        <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">
+      <div className="mb-6 lg:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2">
           {isMerchant
             ? "Set Up Your Store"
             : isSupplier
               ? "Supplier Registration"
               : "Create Your Account"}
         </h1>
-        <p className="text-slate-500 font-medium">
+        <p className="text-sm sm:text-base text-slate-500 font-medium">
           {isMerchant
             ? "Register your business to start selling on Lagos's premier wholesale and retail marketplace."
             : isSupplier
@@ -82,13 +82,13 @@ export function AccountDetailsStep({
             <label className="block text-sm font-bold text-slate-700 mb-3">
               I am registering as:
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <button
                 type="button"
                 onClick={() =>
                   setValue("buyerType", "BUSINESS", { shouldValidate: true })
                 }
-                className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                className={`flex items-center justify-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-xl border-2 transition-all ${
                   buyerType === "BUSINESS"
                     ? "border-primary bg-primary/5 text-primary"
                     : "border-slate-100 bg-[#f6f6f8] text-slate-500 hover:border-slate-200"
@@ -104,7 +104,7 @@ export function AccountDetailsStep({
                 onClick={() =>
                   setValue("buyerType", "CONSUMER", { shouldValidate: true })
                 }
-                className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                className={`flex items-center justify-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-xl border-2 transition-all ${
                   buyerType === "CONSUMER"
                     ? "border-primary bg-primary/5 text-primary"
                     : "border-slate-100 bg-[#f6f6f8] text-slate-500 hover:border-slate-200"
@@ -120,13 +120,13 @@ export function AccountDetailsStep({
           </div>
         )}
         {/* Name row: First + Middle + Last */}
-        <div className="grid grid-cols-3 gap-3">
-          <div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="sm:col-span-1">
             <label className="block text-sm font-bold text-slate-700 mb-1.5">
               First Name
             </label>
             <input
-              className={`w-full px-3 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.firstName ? "border-red-400" : "border-slate-200"}`}
+              className={`w-full px-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.firstName ? "border-red-400" : "border-slate-200"}`}
               placeholder="John"
               type="text"
               {...register("firstName")}
@@ -137,23 +137,23 @@ export function AccountDetailsStep({
               </p>
             )}
           </div>
-          <div>
+          <div className="sm:col-span-1">
             <label className="block text-sm font-bold text-slate-700 mb-1.5">
               Middle Name
             </label>
             <input
-              className="w-full px-3 py-3 bg-[#f6f6f8] border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm"
+              className="w-full px-4 py-3 bg-[#f6f6f8] border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm"
               placeholder="Emeka (opt.)"
               type="text"
               {...register("middleName")}
             />
           </div>
-          <div>
+          <div className="sm:col-span-1">
             <label className="block text-sm font-bold text-slate-700 mb-1.5">
               Last Name
             </label>
             <input
-              className={`w-full px-3 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.lastName ? "border-red-400" : "border-slate-200"}`}
+              className={`w-full px-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.lastName ? "border-red-400" : "border-slate-200"}`}
               placeholder="Adeyemi"
               type="text"
               {...register("lastName")}

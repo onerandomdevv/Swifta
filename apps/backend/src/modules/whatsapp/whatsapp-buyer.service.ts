@@ -123,18 +123,31 @@ export class WhatsAppBuyerService {
       }
 
       // 3. Check for pending review session (text comments)
-      const reviewKey = `${PENDING_REVIEW_PREFIX}${buyerId}`;
-      const reviewSessionRaw = await this.redisService.get(reviewKey);
-      if (reviewSessionRaw && messageText && !interactiveReply) {
-        const session = JSON.parse(reviewSessionRaw);
-        if (session.step === "AWAITING_COMMENT") {
-          await this.reviewService.updateComment(session.orderId, messageText);
-          await this.redisService.del(reviewKey);
-          await this.interactiveService.sendTextMessage(
-            phone,
-            "✅ Comment added! Thank you for your feedback.",
-          );
-          return;
+      // Note: We need to find if there's an active review session for ANY order for this buyer
+      // Better: In a real system, we might query Redis for keys matching `${PENDING_REVIEW_PREFIX}${buyerId}:*`
+      // For simplicity, we'll try to get the most recent one if available or use a pointer
+      const reviewSessionPointer = await this.redisService.get(
+        `review_pointer:${buyerId}`,
+      );
+      if (reviewSessionPointer && messageText && !interactiveReply) {
+        const reviewKey = `${PENDING_REVIEW_PREFIX}${buyerId}:${reviewSessionPointer}`;
+        const reviewSessionRaw = await this.redisService.get(reviewKey);
+
+        if (reviewSessionRaw) {
+          const session = JSON.parse(reviewSessionRaw);
+          if (session.step === "COMMENT_PROMPT") {
+            await this.reviewService.updateComment(
+              session.orderId,
+              messageText,
+            );
+            await this.redisService.del(reviewKey);
+            await this.redisService.del(`review_pointer:${buyerId}`);
+            await this.interactiveService.sendTextMessage(
+              phone,
+              "✅ Comment added! Thank you for your feedback.",
+            );
+            return;
+          }
         }
       }
 
@@ -213,6 +226,8 @@ export class WhatsAppBuyerService {
       const reviewKey = `${PENDING_REVIEW_PREFIX}${buyerId}:${orderId}`;
       const sessionRaw = await this.redisService.get(reviewKey);
       if (sessionRaw) {
+        // Set a pointer so we know which order the next text message belongs to
+        await this.redisService.set(`review_pointer:${buyerId}`, orderId, 600);
         await this.handleReviewRating(
           buyerId,
           JSON.parse(sessionRaw),
@@ -224,10 +239,9 @@ export class WhatsAppBuyerService {
       return;
     }
 
-    if (id === "review_add_comment") {
-      // Need order ID from session — this requires finding WHICH session is active
-      // For now, we'll look for any review session for this buyer
-      // Better: Include orderId in the button ID like review_add_comment_ORDERID
+    if (id.startsWith("review_add_comment_")) {
+      const orderId = id.replace("review_add_comment_", "");
+      await this.redisService.set(`review_pointer:${buyerId}`, orderId, 600);
       await this.interactiveService.sendTextMessage(
         phone,
         "Please type your comment below and send it to me. ✍️",
@@ -235,7 +249,12 @@ export class WhatsAppBuyerService {
       return;
     }
 
-    if (id === "review_skip") {
+    if (id.startsWith("review_skip_")) {
+      const orderId = id.replace("review_skip_", "");
+      await this.redisService.del(
+        `${PENDING_REVIEW_PREFIX}${buyerId}:${orderId}`,
+      );
+      await this.redisService.del(`review_pointer:${buyerId}`);
       await this.interactiveService.sendTextMessage(
         phone,
         "Thank you! Your rating has been saved. ✅",
@@ -254,6 +273,11 @@ export class WhatsAppBuyerService {
 
     if (id === "get_active_orders") {
       await this.handleGetActiveOrders(buyerId, phone);
+      return;
+    }
+
+    if (id === "get_order_history") {
+      await this.handleGetOrderHistory(buyerId, phone);
       return;
     }
 
@@ -278,9 +302,36 @@ export class WhatsAppBuyerService {
       return;
     }
 
+    if (id.startsWith("buy_")) {
+      const parts = id.split("_");
+      const productIdShort = parts[1];
+      const quantity = parseInt(parts[2]) || 1;
+
+      const product = await this.prisma.product.findFirst({
+        where: { id: { startsWith: productIdShort } as any },
+      });
+
+      if (product) {
+        await this.handleBuyProduct(buyerId, phone, product.id, quantity);
+      }
+      return;
+    }
+
+    if (id.startsWith("track_")) {
+      const orderIdShort = id.replace("track_", "");
+      await this.handleTrackOrder(buyerId, orderIdShort, phone);
+      return;
+    }
+
+    if (id.startsWith("hist_")) {
+      const orderIdShort = id.replace("hist_", "");
+      await this.handleShowOrderHistory(buyerId, orderIdShort, phone);
+      return;
+    }
+
     if (id.startsWith("cat_")) {
-      const categoryName = id.replace("cat_", "").replace(/_/g, " ");
-      await this.handleSearchProducts(phone, categoryName);
+      const categoryId = id.replace("cat_", "");
+      await this.handleBrowseCategory(buyerId, phone, categoryId);
       return;
     }
 
@@ -466,6 +517,12 @@ export class WhatsAppBuyerService {
     location?: string,
     rawQuantity?: number,
   ): Promise<void> {
+    const buyerId = await this.authService.resolvePhone(phone);
+    const profile = await this.prisma.buyerProfile.findUnique({
+      where: { userId: buyerId || "" },
+    });
+    const isConsumer = profile?.buyerType === "CONSUMER";
+
     if (!query) {
       await this.interactiveService.sendTextMessage(
         phone,
@@ -517,7 +574,7 @@ export class WhatsAppBuyerService {
             return {
               id: `buy_${p.id.substring(0, 8)}_${quantity}`,
               title: p.name,
-              description: `${p.category?.name || "General"} | ${this.formatNaira(Number(p.pricePerUnitKobo || 0))}${starStr} | Seller: ${p.merchantProfile?.businessName || "Verified"}`,
+              description: `${p.category?.name || "General"} | ${this.formatNaira(Number(isConsumer && (p as any).retailPriceKobo ? (p as any).retailPriceKobo : (p as any).pricePerUnitKobo || 0))}${starStr} | Seller: ${p.merchantProfile?.businessName || "Verified"}`,
             };
           }),
         },
@@ -583,7 +640,8 @@ export class WhatsAppBuyerService {
         id, 
         name, 
         unit,
-        price_per_unit_kobo AS "pricePerUnitKobo"
+        price_per_unit_kobo AS "pricePerUnitKobo",
+        retail_price_kobo AS "retailPriceKobo"
       FROM products 
       WHERE id::text LIKE ${partialId + "%"}
         AND is_active = true
@@ -599,15 +657,23 @@ export class WhatsAppBuyerService {
       return;
     }
 
+    // Resolve buyer type to determine price
+    const profile = await this.prisma.buyerProfile.findUnique({
+      where: { userId: buyerId || "" },
+    });
+    const isConsumer = profile?.buyerType === "CONSUMER";
+    const unitPriceKobo =
+      isConsumer && (product as any).retailPriceKobo
+        ? (product as any).retailPriceKobo
+        : (product as any).pricePerUnitKobo || 0;
+
     try {
       const checkoutKey = `wa_pending_checkout_${buyerId}`;
       const session = {
         productId: product.id,
         quantity,
         phone, // Keep phone for fallback
-        totalAmountKobo: BigInt(
-          Number(product.pricePerUnitKobo || 0) * quantity,
-        ).toString(),
+        totalAmountKobo: BigInt(Number(unitPriceKobo) * quantity).toString(),
         step: "SELECT_DELIVERY",
       };
       await this.redisService.set(checkoutKey, JSON.stringify(session), 3600);
@@ -873,8 +939,11 @@ export class WhatsAppBuyerService {
         phone,
         "✅ Rating saved! Would you like to add a comment about your experience?",
         [
-          { id: "review_add_comment", title: "Yes, add comment" },
-          { id: "review_skip", title: "No, thanks" },
+          {
+            id: `review_add_comment_${session.orderId}`,
+            title: "Yes, add comment",
+          },
+          { id: `review_skip_${session.orderId}`, title: "No, thanks" },
         ],
       );
 
@@ -886,5 +955,161 @@ export class WhatsAppBuyerService {
       }
       throw error;
     }
+  }
+  private async handleTrackOrder(
+    buyerId: string,
+    orderIdShort: string,
+    phone: string,
+  ): Promise<void> {
+    const orders = await this.prisma.$queryRaw<any[]>`
+      SELECT * FROM orders 
+      WHERE buyer_id = ${buyerId}::uuid 
+      AND id::text LIKE ${orderIdShort + "%"}
+      LIMIT 1
+    `;
+    const order = orders[0];
+
+    if (!order) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "❌ Order not found.",
+      );
+      return;
+    }
+
+    // Refresh with includes
+    const fullOrder = await this.prisma.order.findUnique({
+      where: { id: order.id },
+      include: { product: true, supplierProduct: true, merchantProfile: true },
+    });
+
+    if (!fullOrder) return;
+
+    let msg = `📦 *Order #${fullOrder.id.substring(0, 8).toUpperCase()} Tracking*\n\n`;
+    msg += `Status: *${fullOrder.status.replace(/_/g, " ")}*\n`;
+    msg += `Item: ${getOrderItemName(fullOrder)}\n`;
+    msg += `Seller: ${fullOrder.merchantProfile?.businessName || "Verified Merchant"}\n`;
+    if (fullOrder.deliveryAddress)
+      msg += `Address: ${fullOrder.deliveryAddress}\n`;
+    if (fullOrder.deliveryOtp) msg += `OTP: *${fullOrder.deliveryOtp}*\n`;
+
+    await this.interactiveService.sendTextMessage(phone, msg);
+  }
+
+  private async handleShowOrderHistory(
+    buyerId: string,
+    orderIdShort: string,
+    phone: string,
+  ): Promise<void> {
+    const orders = await this.prisma.$queryRaw<any[]>`
+      SELECT * FROM orders 
+      WHERE buyer_id = ${buyerId}::uuid 
+      AND id::text LIKE ${orderIdShort + "%"}
+      LIMIT 1
+    `;
+    const order = orders[0];
+
+    if (!order) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "❌ Order detail not found.",
+      );
+      return;
+    }
+
+    // Refresh with includes
+    const fullOrder = await this.prisma.order.findUnique({
+      where: { id: order.id },
+      include: { product: true, supplierProduct: true, review: true },
+    });
+
+    if (!fullOrder) return;
+
+    let msg = `📜 *Past Order Details*\n\n`;
+    msg += `ID: #${fullOrder.id.substring(0, 8).toUpperCase()}\n`;
+    msg += `Item: ${getOrderItemName(fullOrder)}\n`;
+    msg += `Amount: ${this.formatNaira(Number(fullOrder.totalAmountKobo))}\n`;
+    msg += `Date: ${fullOrder.createdAt.toLocaleDateString()}\n\n`;
+
+    if (fullOrder.review) {
+      msg += `⭐ Your Rating: ${fullOrder.review.rating}/5\n`;
+      if (fullOrder.review.comment)
+        msg += `💬 Your Comment: "${fullOrder.review.comment}"`;
+    }
+
+    await this.interactiveService.sendTextMessage(phone, msg);
+  }
+
+  private async handleBrowseCategory(
+    buyerId: string,
+    phone: string,
+    categoryId: string,
+  ): Promise<void> {
+    // We expect categoryId to be the name or actual ID
+    // Let's first try to find by ID then by slug/name
+    const category = await this.prisma.category.findFirst({
+      where: {
+        OR: [
+          { id: categoryId.length === 36 ? categoryId : undefined },
+          { name: categoryId.replace(/_/g, " ") },
+        ],
+      },
+    });
+
+    if (!category) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "❌ Category not found.",
+      );
+      return;
+    }
+
+    const profile = await this.prisma.buyerProfile.findUnique({
+      where: { userId: buyerId || "" },
+    });
+    const isConsumer = profile?.buyerType === "CONSUMER";
+
+    const products = await this.prisma.product.findMany({
+      where: {
+        categoryId: category.id,
+        isActive: true,
+      },
+      include: {
+        merchantProfile: true,
+        category: true,
+      },
+      take: 10,
+    });
+
+    if (products.length === 0) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `❌ No products found in the *${category.name}* category.`,
+      );
+      return;
+    }
+
+    await this.interactiveService.sendListMessage(
+      phone,
+      `📂 Products in *${category.name}*:`,
+      "View Products",
+      [
+        {
+          title: "Available Items",
+          rows: products.map((p) => {
+            const rating = p.merchantProfile?.averageRating || 0;
+            const starStr =
+              rating > 0
+                ? ` ⭐${rating.toFixed(1)} (${p.merchantProfile?.reviewCount || 0})`
+                : "";
+            return {
+              id: `buy_${p.id.substring(0, 8)}_1`,
+              title: p.name,
+              description: `${this.formatNaira(Number(isConsumer && (p as any).retailPriceKobo ? (p as any).retailPriceKobo : (p as any).pricePerUnitKobo || 0))}${starStr} | ${p.merchantProfile?.businessName || "Seller"}`,
+            };
+          }),
+        },
+      ],
+    );
   }
 }

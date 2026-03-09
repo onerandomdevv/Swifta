@@ -25,6 +25,7 @@ interface User {
   role: UserRole;
   emailVerified: boolean;
   merchantId?: string;
+  buyerType?: "CONSUMER" | "BUSINESS";
   supplierId?: string;
   buyerType?: "CONSUMER" | "BUSINESS";
   supplierProfile?: {
