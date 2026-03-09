@@ -5,9 +5,15 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
 import { Logo } from "@/components/ui/logo";
 
-export function BuyerSidebar() {
+export function BuyerSidebar({
+  variant = "desktop",
+}: {
+  variant?: "desktop" | "mobile";
+}) {
   const pathname = usePathname();
   const { logout } = useAuth();
+
+  const isDesktop = variant === "desktop";
 
   const navItems = [
     { label: "Dashboard", icon: "dashboard", href: "/buyer/dashboard" },
@@ -17,10 +23,14 @@ export function BuyerSidebar() {
   ];
 
   return (
-    <aside className="hidden lg:flex w-[240px] flex-col border-r border-slate-200 bg-white h-screen sticky top-0">
-      <div className="p-6">
-        <Logo variant="light" size="md" />
-      </div>
+    <aside
+      className={`${isDesktop ? "hidden lg:flex w-[240px] border-r border-slate-200 sticky top-0 h-screen" : "flex w-full"} flex-col bg-white overflow-y-auto`}
+    >
+      {isDesktop && (
+        <div className="p-6">
+          <Logo variant="light" size="md" />
+        </div>
+      )}
       <nav className="flex-1 px-4 space-y-1 flex flex-col">
         {navItems.map((item) => {
           const isActive = pathname === item.href;

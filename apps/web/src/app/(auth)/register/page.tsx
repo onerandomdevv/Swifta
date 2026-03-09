@@ -252,7 +252,7 @@ export default function RegisterPage() {
       </div>
 
       {/* ─── RIGHT: Registration Form ─── */}
-      <div className="w-full lg:w-[50%] bg-white flex flex-col h-screen overflow-y-auto">
+      <div className="w-full lg:w-[50%] bg-white flex flex-col min-h-screen lg:h-screen overflow-y-auto">
         {/* Mobile header */}
         <div className="lg:hidden flex items-center justify-between p-6 border-b border-slate-100">
           <Link href="/" className="flex items-center gap-2">
@@ -260,7 +260,7 @@ export default function RegisterPage() {
           </Link>
         </div>
 
-        <div className="flex-1 flex flex-col justify-center px-8 py-10 md:px-12 lg:px-14 xl:px-16">
+        <div className="flex-1 flex flex-col justify-center px-4 sm:px-8 py-10 md:px-12 lg:px-14 xl:px-16">
           <FormProvider {...methods}>
             {step === 1 && (
               <RoleSelectionStep

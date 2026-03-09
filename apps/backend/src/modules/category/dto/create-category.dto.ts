@@ -31,4 +31,7 @@ export class CreateCategoryDto {
   @IsInt()
   @IsOptional()
   sortOrder?: number;
+
+  @IsOptional()
+  attributes?: any;
 }

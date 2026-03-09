@@ -66,9 +66,9 @@ export default function MerchantDashboard() {
   );
 
   return (
-    <div className="h-full bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-8 overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="flex-1 overflow-x-auto">
-        <div className="flex gap-6 h-full min-w-max pb-4">
+    <div className="h-full bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-4 sm:p-6 lg:p-8 overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="flex-1 overflow-x-auto no-scrollbar">
+        <div className="flex gap-4 sm:gap-6 h-full min-w-max pb-4">
           {/* Column 1: Pending Quotes */}
           <KanbanColumn
             title="Pending Quotes"

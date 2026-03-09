@@ -416,3 +416,17 @@ export const NIGERIAN_BANKS = [
   { code: "057", name: "Zenith Bank", description: "Zenith Bank Plc" },
   { code: "other", name: "Other Bank", description: "Type your bank name" },
 ];
+
+export enum ProductCreationStep {
+  NAME = "NAME",
+  CATEGORY = "CATEGORY",
+  ATTRIBUTES = "ATTRIBUTES",
+  UNIT = "UNIT",
+  WHOLESALE_PRICE = "WHOLESALE_PRICE",
+  RETAIL_PRICE = "RETAIL_PRICE",
+  IMAGE = "IMAGE",
+  CONFIRMATION = "CONFIRMATION",
+}
+
+/** Product creation session TTL (30 minutes) */
+export const PRODUCT_CREATION_SESSION_TTL = 30 * 60;

@@ -381,6 +381,126 @@ export default function AdminCategoriesPage() {
                 </span>
               </label>
 
+              {/* Attributes Editor */}
+              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                    Product Specs / Attributes
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const attrs = [
+                        ...((editingCategory?.attributes as any[]) || []),
+                      ];
+                      attrs.push({ name: "", type: "text", options: [] });
+                      setEditingCategory({
+                        ...editingCategory,
+                        attributes: attrs,
+                      });
+                    }}
+                    className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline"
+                  >
+                    + Add Attribute
+                  </button>
+                </div>
+
+                <div className="space-y-4 max-h-48 overflow-y-auto pr-2 scrollbar-hide">
+                  {((editingCategory?.attributes as any[]) || []).map(
+                    (attr, idx) => (
+                      <div
+                        key={idx}
+                        className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl space-y-3 relative group/attr"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const attrs = [
+                              ...((editingCategory?.attributes as any[]) || []),
+                            ];
+                            attrs.splice(idx, 1);
+                            setEditingCategory({
+                              ...editingCategory,
+                              attributes: attrs,
+                            });
+                          }}
+                          className="absolute -top-2 -right-2 size-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover/attr:opacity-100 transition-opacity shadow-lg"
+                        >
+                          <span className="material-symbols-outlined text-sm">
+                            close
+                          </span>
+                        </button>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <input
+                            placeholder="Attr Name (e.g. Color)"
+                            value={attr.name}
+                            onChange={(e) => {
+                              const attrs = [
+                                ...((editingCategory?.attributes as any[]) ||
+                                  []),
+                              ];
+                              attrs[idx].name = e.target.value;
+                              setEditingCategory({
+                                ...editingCategory,
+                                attributes: attrs,
+                              });
+                            }}
+                            className="px-3 py-2 text-[11px] font-bold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg focus:border-primary outline-none"
+                          />
+                          <select
+                            value={attr.type}
+                            onChange={(e) => {
+                              const attrs = [
+                                ...((editingCategory?.attributes as any[]) ||
+                                  []),
+                              ];
+                              attrs[idx].type = e.target.value;
+                              setEditingCategory({
+                                ...editingCategory,
+                                attributes: attrs,
+                              });
+                            }}
+                            className="px-3 py-2 text-[11px] font-bold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg focus:border-primary outline-none"
+                          >
+                            <option value="text">Text Input</option>
+                            <option value="select">Selection Dropdown</option>
+                          </select>
+                        </div>
+
+                        {attr.type === "select" && (
+                          <input
+                            placeholder="Options (comma separated, e.g. Red, Blue, Green)"
+                            value={attr.options?.join(", ")}
+                            onChange={(e) => {
+                              const attrs = [
+                                ...((editingCategory?.attributes as any[]) ||
+                                  []),
+                              ];
+                              attrs[idx].options = e.target.value
+                                .split(",")
+                                .map((o) => o.trim())
+                                .filter(Boolean);
+                              setEditingCategory({
+                                ...editingCategory,
+                                attributes: attrs,
+                              });
+                            }}
+                            className="w-full px-3 py-2 text-[11px] font-bold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg focus:border-primary outline-none"
+                          />
+                        )}
+                      </div>
+                    ),
+                  )}
+                  {(!editingCategory?.attributes ||
+                    (editingCategory.attributes as any[]).length === 0) && (
+                    <p className="text-[10px] text-slate-400 italic text-center py-2">
+                      No specs defined for this category yet.
+                    </p>
+                  )}
+                </div>
+              </div>
+
               <div className="pt-4 flex gap-4">
                 <button
                   type="button"
