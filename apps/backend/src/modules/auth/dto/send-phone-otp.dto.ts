@@ -1,7 +1,7 @@
-import { IsPhoneNumber, IsNotEmpty } from "class-validator";
+import { IsString, IsNotEmpty } from "class-validator";
 
 export class SendPhoneOtpDto {
   @IsNotEmpty()
-  @IsPhoneNumber()
+  @IsString()
   phone: string;
 }
