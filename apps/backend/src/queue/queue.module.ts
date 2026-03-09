@@ -32,6 +32,7 @@ import {
                 : undefined,
             family: 0,
           },
+          prefix: "{bull}",
         };
       },
       inject: [ConfigService],

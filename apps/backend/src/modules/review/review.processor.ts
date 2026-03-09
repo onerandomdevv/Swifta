@@ -6,7 +6,12 @@ import { WhatsAppService } from "../whatsapp/whatsapp.service";
 import { REVIEW_QUEUE } from "../../queue/queue.constants";
 import { PrismaService } from "../../prisma/prisma.service";
 
-@Processor(REVIEW_QUEUE)
+@Processor(REVIEW_QUEUE, {
+  drainDelay: 60000,
+  stalledInterval: 300000,
+  lockDuration: 60000,
+  metrics: null,
+})
 export class ReviewPromptProcessor extends WorkerHost {
   private readonly logger = new Logger(ReviewPromptProcessor.name);
 

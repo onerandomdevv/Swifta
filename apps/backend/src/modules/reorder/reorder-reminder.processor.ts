@@ -6,7 +6,12 @@ import { Logger } from "@nestjs/common";
 import { REORDER_REMINDER_QUEUE } from "../../queue/queue.constants";
 import { ReorderService } from "./reorder.service";
 
-@Processor(REORDER_REMINDER_QUEUE)
+@Processor(REORDER_REMINDER_QUEUE, {
+  drainDelay: 60000,
+  stalledInterval: 300000,
+  lockDuration: 60000,
+  metrics: null,
+})
 export class ReorderReminderProcessor extends WorkerHost {
   private readonly logger = new Logger(ReorderReminderProcessor.name);
 
@@ -18,16 +23,22 @@ export class ReorderReminderProcessor extends WorkerHost {
   }
 
   async onModuleInit() {
-    await this.reorderQueue.add(
-      "process-reorder-reminders",
-      {},
-      {
-        repeat: { pattern: "0 8 * * *" }, // Daily at 8 AM
-        removeOnComplete: true,
-        removeOnFail: false,
-      },
-    );
-    this.logger.log("Reorder reminder cron job registered (daily at 8 AM)");
+    try {
+      await this.reorderQueue.add(
+        "process-reorder-reminders",
+        {},
+        {
+          repeat: { pattern: "0 8 * * *" }, // Daily at 8 AM
+          removeOnComplete: true,
+          removeOnFail: false,
+        },
+      );
+      this.logger.log("Reorder reminder cron job registered (daily at 8 AM)");
+    } catch (error) {
+      this.logger.error(
+        `Failed to register reorder reminder cron job: ${error instanceof Error ? error.message : error}`,
+      );
+    }
   }
 
   async process(job: Job<any, any, string>): Promise<any> {
