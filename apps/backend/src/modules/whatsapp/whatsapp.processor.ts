@@ -11,7 +11,12 @@ import { WHATSAPP_QUEUE } from "../../queue/queue.constants";
  *  - process-message: Incoming WhatsApp message to handle
  *  - send-rfq-notification: Proactive RFQ push notification
  */
-@Processor(WHATSAPP_QUEUE)
+@Processor(WHATSAPP_QUEUE, {
+  drainDelay: 30000, // Slightly faster polling for WhatsApp messages, but still much slower than default 5s
+  stalledInterval: 300000,
+  lockDuration: 60000,
+  metrics: null,
+})
 export class WhatsAppProcessor extends WorkerHost {
   private readonly logger = new Logger(WhatsAppProcessor.name);
 

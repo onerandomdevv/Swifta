@@ -4,7 +4,12 @@ import { PAYOUT_QUEUE } from "../../queue/queue.constants";
 import { PayoutService } from "./payout.service";
 import { Logger } from "@nestjs/common";
 
-@Processor(PAYOUT_QUEUE)
+@Processor(PAYOUT_QUEUE, {
+  drainDelay: 60000,
+  stalledInterval: 300000,
+  lockDuration: 60000,
+  metrics: null,
+})
 export class PayoutProcessor extends WorkerHost {
   private readonly logger = new Logger(PayoutProcessor.name);
 

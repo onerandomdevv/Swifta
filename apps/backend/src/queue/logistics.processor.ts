@@ -4,7 +4,12 @@ import { Logger } from "@nestjs/common";
 import { LOGISTICS_QUEUE } from "./queue.constants";
 import { LogisticsService } from "../modules/logistics/logistics.service";
 
-@Processor(LOGISTICS_QUEUE)
+@Processor(LOGISTICS_QUEUE, {
+  drainDelay: 60000,
+  stalledInterval: 300000,
+  lockDuration: 60000,
+  metrics: null,
+})
 export class LogisticsProcessor extends WorkerHost {
   private readonly logger = new Logger(LogisticsProcessor.name);
 
