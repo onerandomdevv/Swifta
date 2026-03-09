@@ -9,6 +9,7 @@ import { loginSchema, type LoginFormData } from "../../../lib/validations/auth";
 import { useAuth } from "../../../providers/auth-provider";
 import { useToast } from "../../../providers/toast-provider";
 import { UserRole } from "@hardware-os/shared";
+import { useRef } from "react";
 import { Logo } from "@/components/ui/logo";
 
 const slides = [
@@ -35,6 +36,21 @@ export default function LoginPage() {
   const [whatsappPhone, setWhatsappPhone] = useState("");
   const [whatsappOtp, setWhatsappOtp] = useState("");
   const [isWhatsAppLoading, setIsWhatsAppLoading] = useState(false);
+  
+  // OTP UI State
+  const [otpArray, setOtpArray] = useState<string[]>(Array(6).fill(""));
+  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  
+  // Resend Timer State
+  const [resendCountdown, setResendCountdown] = useState(0);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (resendCountdown > 0) {
+      timer = setInterval(() => setResendCountdown((prev) => prev - 1), 1000);
+    }
+    return () => clearInterval(timer);
+  }, [resendCountdown]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -90,12 +106,73 @@ export default function LoginPage() {
     try {
       await initiateWhatsAppLogin(whatsappPhone);
       setWhatsappStep("otp");
+      setResendCountdown(60); // Start 60s countdown
+      setOtpArray(Array(6).fill(""));
       toast.success("OTP sent to your WhatsApp!");
+      
+      // Auto-focus first OTP input after state update
+      setTimeout(() => otpInputRefs.current[0]?.focus(), 100);
     } catch (err: any) {
       setFormError(err.error || err.message || "Failed to send WhatsApp OTP");
     } finally {
       setIsWhatsAppLoading(false);
     }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCountdown > 0 || !whatsappPhone) return;
+    setIsWhatsAppLoading(true);
+    setFormError(null);
+    try {
+      await initiateWhatsAppLogin(whatsappPhone);
+      setResendCountdown(60);
+      setOtpArray(Array(6).fill(""));
+      toast.success("New OTP sent to your WhatsApp!");
+      setTimeout(() => otpInputRefs.current[0]?.focus(), 100);
+    } catch (err: any) {
+      setFormError(err.error || err.message || "Failed to resend WhatsApp OTP");
+    } finally {
+      setIsWhatsAppLoading(false);
+    }
+  };
+
+  const handleOtpChange = (index: number, value: string) => {
+    if (!/^[0-9]*$/.test(value)) return;
+
+    const newOtpArray = [...otpArray];
+    newOtpArray[index] = value;
+    setOtpArray(newOtpArray);
+    
+    // Update the actual otp string
+    const otpString = newOtpArray.join("");
+    setWhatsappOtp(otpString);
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && !otpArray[index] && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text/plain").slice(0, 6).replace(/[^0-9]/g, "");
+    if (!pastedData) return;
+
+    const newOtpArray = [...otpArray];
+    for (let i = 0; i < pastedData.length; i++) {
+        newOtpArray[i] = pastedData[i] || "";
+    }
+    setOtpArray(newOtpArray);
+    setWhatsappOtp(newOtpArray.join(""));
+    
+    const nextIndex = Math.min(pastedData.length, 5);
+    otpInputRefs.current[nextIndex]?.focus();
   };
 
   const handleWhatsAppVerify = async (e: FormEvent) => {
@@ -328,21 +405,44 @@ export default function LoginPage() {
                         Change number
                       </button>
                     </div>
-                    <input
-                      className="w-full px-4 py-3.5 bg-[#f6f6f8] border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm text-center tracking-[0.5em] font-mono text-xl"
-                      placeholder="000000"
-                      maxLength={6}
-                      value={whatsappOtp}
-                      onChange={(e) => setWhatsappOtp(e.target.value)}
-                      required
-                    />
-                    <p className="text-[11px] text-slate-400 mt-2 text-center">
-                      Please enter the 6-digit code sent to {whatsappPhone} via
-                      WhatsApp.
-                    </p>
+                    <div className="flex justify-between gap-2 mt-4 mb-2" onPaste={handleOtpPaste}>
+                      {otpArray.map((digit, index) => (
+                        <input
+                          key={index}
+                          ref={(el) => { otpInputRefs.current[index] = el; }}
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={1}
+                          value={digit}
+                          onChange={(e) => handleOtpChange(index, e.target.value)}
+                          onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                          className={`w-12 h-14 md:w-14 md:h-16 text-center text-2xl font-bold bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 ${
+                            digit ? "border-primary/50 shadow-sm" : "border-slate-200"
+                          }`}
+                          required
+                        />
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between mt-4">
+                      <p className="text-[11px] text-slate-400">
+                        Code sent to {whatsappPhone}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleResendOtp}
+                        disabled={resendCountdown > 0 || isWhatsAppLoading}
+                        className={`text-xs font-bold transition-colors ${
+                          resendCountdown > 0 
+                            ? "text-slate-400 cursor-not-allowed" 
+                            : "text-primary hover:text-primary-dark"
+                        }`}
+                      >
+                        {resendCountdown > 0 ? `Resend code in ${resendCountdown}s` : "Resend Code"}
+                      </button>
+                    </div>
                   </div>
                   <button
-                    disabled={isWhatsAppLoading}
+                    disabled={isWhatsAppLoading || whatsappOtp.length !== 6}
                     className="w-full bg-primary hover:bg-primary-dark disabled:opacity-50 text-white font-bold py-3.5 rounded-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
                     type="submit"
                   >
