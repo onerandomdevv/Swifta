@@ -81,7 +81,7 @@ export default function MerchantInventory() {
       {/* Header Area - Action Button */}
       <div className="p-8 pb-4 flex justify-end shrink-0">
         <button
-          onClick={() => router.push("/merchant/inventory/new")}
+          onClick={() => router.push("/merchant/products/new")}
           className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors"
         >
           <span className="material-symbols-outlined text-[20px]">add</span>

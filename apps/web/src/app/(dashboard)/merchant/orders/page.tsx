@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMerchantOrders } from "@/hooks/use-merchant-orders";
 import { OrderStatus } from "@hardware-os/shared";
 import type { Order } from "@hardware-os/shared";
@@ -73,6 +75,7 @@ function getStatusBadge(status: string) {
 }
 
 export default function MerchantOrdersPage() {
+  const router = useRouter();
   const { orders, loading, error } = useMerchantOrders();
   const [activeTab, setActiveTab] = useState<TabFilter>("ALL");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -151,7 +154,7 @@ export default function MerchantOrdersPage() {
           </span>
           <p className="text-red-500 font-bold">{error}</p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => router.refresh()}
             className="mt-4 px-6 py-2 bg-slate-900 text-white text-xs font-bold uppercase tracking-widest"
           >
             Retry
@@ -293,12 +296,12 @@ export default function MerchantOrdersPage() {
                         )}
                       {(order.status === OrderStatus.COMPLETED ||
                         order.status === OrderStatus.DELIVERED) && (
-                        <a
-                          href={`/buyer/orders/${order.id}/receipt`}
+                        <Link
+                          href={`/merchant/orders/${order.id}/dispatch-slip`}
                           className="text-primary text-[10px] font-bold uppercase tracking-widest underline decoration-2 underline-offset-4"
                         >
-                          View Receipt
-                        </a>
+                          View Dispatch Slip
+                        </Link>
                       )}
                     </td>
                   </tr>

@@ -81,7 +81,7 @@ export function MerchantHeader({
         </button>
 
         <button
-          onClick={() => router.push("/merchant/inventory/new")}
+          onClick={() => router.push("/merchant/products/new")}
           className="bg-primary text-white h-9 lg:h-10 px-3 lg:px-4 rounded text-[11px] lg:text-sm font-bold flex items-center gap-1.5 lg:gap-2 hover:bg-primary/90 transition-colors"
         >
           <span className="material-symbols-outlined text-base lg:text-lg">

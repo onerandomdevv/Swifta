@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getMerchantRFQs } from "@/lib/api/rfq.api";
 import { getOrders } from "@/lib/api/order.api";
 import { getMyProducts } from "@/lib/api/product.api";
+import { authApi } from "@/lib/api/auth.api";
 import type { RFQ, Order, Product } from "@hardware-os/shared";
 
 export function useMerchantDashboard() {
@@ -25,29 +26,42 @@ export function useMerchantDashboard() {
     refetchInterval: 30000,
   });
 
-  const isLoading = rfqQuery.isLoading || orderQuery.isLoading;
+  const userQuery = useQuery({
+    queryKey: ["auth", "me"],
+    queryFn: async () => {
+      const response = await authApi.me();
+      return response.user;
+    },
+    refetchInterval: 60000,
+  });
+
+  const isLoading =
+    rfqQuery.isLoading || orderQuery.isLoading || userQuery.isLoading;
 
   return {
     rfqs: rfqQuery.data || ([] as RFQ[]),
     orders: orderQuery.data || ([] as Order[]),
+    user: userQuery.data,
     isLoading,
-    isError: rfqQuery.isError || orderQuery.isError,
+    isError: rfqQuery.isError || orderQuery.isError || userQuery.isError,
     error: (() => {
       const error = rfqQuery.error || orderQuery.error;
       if (!error) return null;
       const anyErr = error as any;
-      if (typeof anyErr.error === 'string') return anyErr.error;
-      if (typeof (error as Error).message === 'string') return (error as Error).message;
+      if (typeof anyErr.error === "string") return anyErr.error;
+      if (typeof (error as Error).message === "string")
+        return (error as Error).message;
       try {
         if (anyErr.error) return JSON.stringify(anyErr.error);
       } catch (e) {
         // Fallback
       }
-      return 'Failed to load dashboard data';
+      return "Failed to load dashboard data";
     })(),
     refetch: () => {
       rfqQuery.refetch();
       orderQuery.refetch();
+      userQuery.refetch();
     },
   };
 }
@@ -70,16 +84,16 @@ export function useMerchantInventory() {
       const error = productQuery.error;
       if (!error) return null;
       const anyErr = error as any;
-      if (typeof anyErr.error === 'string') return anyErr.error;
-      if (typeof (error as Error).message === 'string') return (error as Error).message;
+      if (typeof anyErr.error === "string") return anyErr.error;
+      if (typeof (error as Error).message === "string")
+        return (error as Error).message;
       try {
         if (anyErr.error) return JSON.stringify(anyErr.error);
       } catch (e) {
         // Fallback
       }
-      return 'Failed to load inventory';
+      return "Failed to load inventory";
     })() as string | null,
     refetch: productQuery.refetch,
   };
 }
-

@@ -7,10 +7,17 @@ interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
+  description?: string;
   children: React.ReactNode;
 }
 
-export function Modal({ isOpen, onClose, title, children }: ModalProps) {
+export function Modal({
+  isOpen,
+  onClose,
+  title,
+  description,
+  children,
+}: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -48,9 +55,16 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
       >
         <div className="flex items-center justify-between p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
           {title && (
-            <h3 className="text-xl font-black text-navy-dark dark:text-white uppercase tracking-tight leading-none">
-              {title}
-            </h3>
+            <div>
+              <h3 className="text-xl font-black text-navy-dark dark:text-white uppercase tracking-tight leading-none">
+                {title}
+              </h3>
+              {description && (
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
+                  {description}
+                </p>
+              )}
+            </div>
           )}
           <button
             onClick={onClose}

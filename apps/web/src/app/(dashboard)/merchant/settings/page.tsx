@@ -10,6 +10,7 @@ import {
   getBanks,
   resolveBankAccount,
 } from "@/lib/api/merchant.api";
+import { useToast } from "@/providers/toast-provider";
 import { authApi } from "@/lib/api/auth.api";
 import { MerchantProfile, getDisplayName } from "@hardware-os/shared";
 
@@ -33,6 +34,7 @@ const defaultNotifPrefs: Record<string, NotifPref> = {
 
 export default function MerchantSettingsPage() {
   const router = useRouter();
+  const toast = useToast();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<SettingsTab>("account");
   const [profile, setProfile] = useState<MerchantProfile | null>(null);
@@ -64,11 +66,6 @@ export default function MerchantSettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
-
-  const [feedback, setFeedback] = useState<{
-    type: "success" | "error";
-    msg: string;
-  } | null>(null);
 
   useEffect(() => {
     getProfile()
@@ -102,9 +99,9 @@ export default function MerchantSettingsPage() {
     }
   }, [bankCode, bankAccountNo]);
 
-  const handleSaveProfile = async () => {
+  const handleSaveProfile = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     setSavingProfile(true);
-    setFeedback(null);
     try {
       const tasks: Promise<any>[] = [
         authApi.updateProfile({
@@ -130,13 +127,10 @@ export default function MerchantSettingsPage() {
         }
       }
       await Promise.all(tasks);
-      setFeedback({ type: "success", msg: "Profile updated successfully." });
+      toast.success("Profile updated successfully");
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err: any) {
-      setFeedback({
-        type: "error",
-        msg: err?.message || "Failed to update profile",
-      });
+      toast.error(err?.message || "Failed to update profile");
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setSavingProfile(false);
@@ -144,43 +138,33 @@ export default function MerchantSettingsPage() {
   };
 
   const handleSaveNotifPrefs = () => {
-    setFeedback({ type: "success", msg: "Notification preferences saved." });
+    toast.success("Notification preferences saved.");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleUnsupported = () => {
-    setFeedback({
-      type: "error",
-      msg: "This feature will be available in Phase 2.",
-    });
+    toast.error("This feature will be available in Phase 2.");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleChangePassword = async () => {
     if (newPassword !== confirmPassword) {
-      setFeedback({ type: "error", msg: "Passwords do not match." });
+      toast.error("Passwords do not match.");
       return;
     }
     if (newPassword.length < 8) {
-      setFeedback({
-        type: "error",
-        msg: "Password must be at least 8 characters.",
-      });
+      toast.error("Password must be at least 8 characters.");
       return;
     }
     setChangingPassword(true);
-    setFeedback(null);
     try {
       await authApi.changePassword({ currentPassword, newPassword });
-      setFeedback({ type: "success", msg: "Password updated successfully." });
+      toast.success("Password updated successfully.");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (err: any) {
-      setFeedback({
-        type: "error",
-        msg: err?.message || "Failed to update password",
-      });
+      toast.error(err?.message || "Failed to update password");
     } finally {
       setChangingPassword(false);
     }
@@ -228,10 +212,7 @@ export default function MerchantSettingsPage() {
           {tabs.map((tab) => (
             <button
               key={tab.value}
-              onClick={() => {
-                setActiveTab(tab.value);
-                setFeedback(null);
-              }}
+              onClick={() => setActiveTab(tab.value)}
               className={`flex flex-col items-center justify-center border-b-2 pb-3 pt-4 shrink-0 transition-colors ${
                 activeTab === tab.value
                   ? "border-primary text-primary"
@@ -245,19 +226,6 @@ export default function MerchantSettingsPage() {
           ))}
         </div>
       </div>
-
-      {/* Feedback */}
-      {feedback && (
-        <div
-          className={`mx-4 mt-4 p-3 text-xs font-bold uppercase tracking-wide border ${
-            feedback.type === "success"
-              ? "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900 text-emerald-600"
-              : "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900 text-red-600"
-          }`}
-        >
-          {feedback.msg}
-        </div>
-      )}
 
       {/* Tab Content */}
       <div className="flex-1 overflow-y-auto pb-24">

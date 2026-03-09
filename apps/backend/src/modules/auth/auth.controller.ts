@@ -146,6 +146,26 @@ export class AuthController {
     return this.authService.verifyPhoneOtp(dto, user.sub);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Post("whatsapp/link")
+  @HttpCode(HttpStatus.OK)
+  async initiateWhatsAppLink(
+    @CurrentUser() user: JwtPayload,
+    @Body("phone") phone: string,
+  ) {
+    return this.authService.initiateWhatsAppLink(user.sub, phone);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post("whatsapp/link/verify")
+  @HttpCode(HttpStatus.OK)
+  async verifyWhatsAppLink(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: { phone: string; code: string },
+  ) {
+    return this.authService.verifyWhatsAppLink(user.sub, dto.phone, dto.code);
+  }
+
   @Post("refresh")
   @UseGuards(JwtRefreshGuard)
   @HttpCode(HttpStatus.OK)
