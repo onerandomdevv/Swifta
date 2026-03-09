@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 
 @Injectable()
@@ -6,12 +6,17 @@ export class MerchantAnalyticsService {
   constructor(private prisma: PrismaService) {}
 
   async getMerchantStats(merchantId: string) {
+    if (!merchantId) {
+      throw new BadRequestException("Merchant claim is missing");
+    }
+
     const [orders, rfqs] = await Promise.all([
       this.prisma.order.findMany({
         where: { merchantId },
         select: {
           status: true,
           totalAmountKobo: true,
+          quoteId: true,
         },
       }),
       this.prisma.rfq.findMany({
@@ -31,12 +36,15 @@ export class MerchantAnalyticsService {
     const completedOrders = orders.filter(
       (o) => o.status === "COMPLETED",
     ).length;
+    const completedQuotedOrders = orders.filter(
+      (o) => o.status === "COMPLETED" && o.quoteId != null,
+    ).length;
     const totalRfqs = rfqs.length;
     const openRfqs = rfqs.filter((r) => r.status === "OPEN").length;
     const quotedRfqs = rfqs.filter((r) => r.status === "QUOTED").length;
 
     const acceptanceRate =
-      totalRfqs > 0 ? Math.round((completedOrders / totalRfqs) * 100) : 0;
+      totalRfqs > 0 ? Math.round((completedQuotedOrders / totalRfqs) * 100) : 0;
 
     return {
       pipelineValue: pipelineValue.toString(),

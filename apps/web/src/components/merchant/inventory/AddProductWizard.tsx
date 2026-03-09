@@ -359,23 +359,6 @@ export function AddProductWizard() {
 
                 <div className="pt-4 grid grid-cols-2 gap-6 border-t border-slate-100 dark:border-slate-800">
                   <div>
-                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                      Business Min. Order
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={draft.minOrderQuantity}
-                      onChange={(e) =>
-                        updateDraft({
-                          minOrderQuantity: Number(e.target.value),
-                        })
-                      }
-                      className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-                      placeholder="e.g. 10"
-                    />
-                  </div>
-                  <div>
                     <label className="block text-[11px] font-black text-primary uppercase tracking-widest mb-1.5 flex items-center gap-1">
                       <span className="material-symbols-outlined text-xs">
                         person

@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 
+const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_BOT_NUMBER || "";
+
 export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
 
@@ -34,29 +36,35 @@ export default function LandingPage() {
           className={`w-full transition-all duration-300 ${
             scrolled
               ? "bg-deep-blue/95 backdrop-blur-md shadow-lg shadow-black/10"
-              : "bg-transparent"
+              : "bg-white/80 backdrop-blur-sm shadow-sm"
           }`}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
-              <Logo variant="dark" size="md" />
+              <Logo variant={scrolled ? "dark" : "light"} size="md" />
             </Link>
             <nav className="hidden md:flex items-center gap-8">
               <a
                 href="#how-it-works"
-                className="text-sm font-semibold text-white/70 hover:text-primary transition-colors"
+                className={`text-sm font-semibold hover:text-primary transition-colors ${
+                  scrolled ? "text-white/70" : "text-slate-600"
+                }`}
               >
                 How it Works
               </a>
               <a
                 href="#categories"
-                className="text-sm font-semibold text-white/70 hover:text-primary transition-colors"
+                className={`text-sm font-semibold hover:text-primary transition-colors ${
+                  scrolled ? "text-white/70" : "text-slate-600"
+                }`}
               >
                 Categories
               </a>
               <a
                 href="#why"
-                className="text-sm font-semibold text-white/70 hover:text-primary transition-colors"
+                className={`text-sm font-semibold hover:text-primary transition-colors ${
+                  scrolled ? "text-white/70" : "text-slate-600"
+                }`}
               >
                 Why Us
               </a>
@@ -64,7 +72,11 @@ export default function LandingPage() {
             <div className="flex items-center gap-2 sm:gap-3">
               <Link
                 href="/login"
-                className="text-sm font-bold text-white/80 px-4 py-2 border border-white/20 rounded-lg hover:border-primary hover:text-primary transition-all"
+                className={`text-sm font-bold px-4 py-2 border rounded-lg hover:border-primary hover:text-primary transition-all ${
+                  scrolled
+                    ? "text-white/80 border-white/20"
+                    : "text-slate-700 border-slate-200"
+                }`}
               >
                 Sign In
               </Link>
@@ -124,15 +136,25 @@ export default function LandingPage() {
               >
                 Start Buying <ChevronRight className="w-5 h-5" />
               </Link>
-              <a
-                href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_BOT_NUMBER || "2349000000000"}`}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full sm:w-auto border-2 border-slate-200 bg-white text-navy-dark hover:border-emerald-500 hover:text-emerald-600 font-bold h-14 px-8 rounded-xl flex items-center justify-center gap-2 text-base transition-all group"
-              >
-                <MessageCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                WhatsApp AI Assistant
-              </a>
+              {WHATSAPP_NUMBER ? (
+                <a
+                  href={`https://wa.me/${WHATSAPP_NUMBER}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full sm:w-auto border-2 border-slate-200 bg-white text-navy-dark hover:border-emerald-500 hover:text-emerald-600 font-bold h-14 px-8 rounded-xl flex items-center justify-center gap-2 text-base transition-all group"
+                >
+                  <MessageCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                  WhatsApp AI Assistant
+                </a>
+              ) : (
+                <span
+                  aria-disabled="true"
+                  className="w-full sm:w-auto border-2 border-slate-100 bg-slate-50 text-slate-400 font-bold h-14 px-8 rounded-xl flex items-center justify-center gap-2 text-base cursor-not-allowed"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  WhatsApp AI Assistant
+                </span>
+              )}
             </div>
 
             <div className="mt-10 flex items-center gap-4 text-sm font-semibold text-slate-500">

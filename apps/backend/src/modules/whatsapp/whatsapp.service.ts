@@ -1953,13 +1953,21 @@ export class WhatsAppService {
           return;
         }
 
+        if (!merchant.businessAddress) {
+          await this.interactiveService.sendTextMessage(
+            phone,
+            "❌ Your business address is not set. Please update your profile with a valid address before placing orders.",
+          );
+          return;
+        }
+
         try {
           const orderResponse = await this.wholesaleSupplierService.createOrder(
             merchant.userId,
             {
               productId: session.productId,
               quantity: session.quantity,
-              deliveryAddress: merchant.businessAddress || "Merchant Address",
+              deliveryAddress: merchant.businessAddress,
             },
           );
 

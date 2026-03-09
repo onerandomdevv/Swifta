@@ -21,11 +21,12 @@ export class ProductService {
   ) {}
 
   async create(merchantId: string, dto: CreateProductDto) {
-    const { pricePerUnitKobo, ...rest } = dto;
+    const { pricePerUnitKobo, retailPriceKobo, ...rest } = dto;
     const product = await this.prisma.product.create({
       data: {
         merchantId,
         pricePerUnitKobo: pricePerUnitKobo ? BigInt(pricePerUnitKobo) : null,
+        retailPriceKobo: retailPriceKobo ? BigInt(retailPriceKobo) : null,
         ...rest,
       },
     });
@@ -204,11 +205,15 @@ export class ProductService {
 
   async update(merchantId: string, productId: string, dto: UpdateProductDto) {
     await this.verifyProductOwnership(merchantId, productId);
-    const { pricePerUnitKobo, ...rest } = dto;
+    const { pricePerUnitKobo, retailPriceKobo, ...rest } = dto;
     const updateData: any = { ...rest };
     if (pricePerUnitKobo !== undefined) {
       updateData.pricePerUnitKobo =
         pricePerUnitKobo === null ? null : BigInt(pricePerUnitKobo);
+    }
+    if (retailPriceKobo !== undefined) {
+      updateData.retailPriceKobo =
+        retailPriceKobo === null ? null : BigInt(retailPriceKobo);
     }
     const updated = await this.prisma.product.update({
       where: { id: productId },
