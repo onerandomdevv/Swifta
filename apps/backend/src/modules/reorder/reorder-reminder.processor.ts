@@ -18,16 +18,22 @@ export class ReorderReminderProcessor extends WorkerHost {
   }
 
   async onModuleInit() {
-    await this.reorderQueue.add(
-      "process-reorder-reminders",
-      {},
-      {
-        repeat: { pattern: "0 8 * * *" }, // Daily at 8 AM
-        removeOnComplete: true,
-        removeOnFail: false,
-      },
-    );
-    this.logger.log("Reorder reminder cron job registered (daily at 8 AM)");
+    try {
+      await this.reorderQueue.add(
+        "process-reorder-reminders",
+        {},
+        {
+          repeat: { pattern: "0 8 * * *" }, // Daily at 8 AM
+          removeOnComplete: true,
+          removeOnFail: false,
+        },
+      );
+      this.logger.log("Reorder reminder cron job registered (daily at 8 AM)");
+    } catch (error) {
+      this.logger.error(
+        `Failed to register reorder reminder cron job: ${error instanceof Error ? error.message : error}`,
+      );
+    }
   }
 
   async process(job: Job<any, any, string>): Promise<any> {

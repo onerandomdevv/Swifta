@@ -20,17 +20,23 @@ export class RFQExpiryProcessor extends WorkerHost {
   }
 
   async onModuleInit() {
-    // Register repeatable job: run every hour
-    await this.expiryQueue.add(
-      "expire-stale-rfqs",
-      {},
-      {
-        repeat: { pattern: "0 * * * *" }, // Every hour at minute 0
-        removeOnComplete: true,
-        removeOnFail: false,
-      },
-    );
-    this.logger.log("RFQ expiry cron job registered (every hour)");
+    try {
+      // Register repeatable job: run every hour
+      await this.expiryQueue.add(
+        "expire-stale-rfqs",
+        {},
+        {
+          repeat: { pattern: "0 * * * *" }, // Every hour at minute 0
+          removeOnComplete: true,
+          removeOnFail: false,
+        },
+      );
+      this.logger.log("RFQ expiry cron job registered (every hour)");
+    } catch (error) {
+      this.logger.error(
+        `Failed to register RFQ expiry cron job: ${error instanceof Error ? error.message : error}`,
+      );
+    }
   }
 
   async process(job: Job<any, any, string>): Promise<any> {
