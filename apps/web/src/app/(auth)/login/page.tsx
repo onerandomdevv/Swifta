@@ -287,16 +287,15 @@ export default function LoginPage() {
                     </label>
                     <input
                       className="w-full px-4 py-3.5 bg-[#f6f6f8] border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm"
-                      placeholder="e.g. 2348100000000"
+                      placeholder="e.g. 08100000000"
                       type="tel"
                       value={whatsappPhone}
                       onChange={(e) => setWhatsappPhone(e.target.value)}
                       required
                     />
                     <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
-                      Enter your phone number in international format (e.g.
-                      234...). We&apos;ll send a secure OTP to your WhatsApp
-                      account.
+                      Enter your phone number (e.g. 081...). We&apos;ll send a
+                      secure OTP to your WhatsApp account.
                     </p>
                   </div>
                   <button
