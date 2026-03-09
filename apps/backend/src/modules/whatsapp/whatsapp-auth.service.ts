@@ -89,7 +89,7 @@ export class WhatsAppAuthService {
    */
   async resolveSupplierPhone(phone: string): Promise<string | null> {
     try {
-      const link = await (this.prisma as any).whatsAppSupplierLink.findUnique({
+      const link = await this.prisma.whatsAppSupplierLink.findUnique({
         where: { phone },
         select: { supplierId: true, isActive: true },
       });
@@ -226,22 +226,22 @@ export class WhatsAppAuthService {
     let supplierId: string | undefined;
 
     if (actualRole === "MERCHANT") {
-      const link = await (this.prisma as any).whatsAppLink.findUnique({
+      const link = await this.prisma.whatsAppLink.findUnique({
         where: { userId: user.id },
       });
       if (link && link.phone !== phone) isLinked = true;
     } else if (actualRole === "BUYER") {
-      const link = await (this.prisma as any).whatsAppBuyerLink.findUnique({
+      const link = await this.prisma.whatsAppBuyerLink.findUnique({
         where: { buyerId: user.id },
       });
       if (link && link.phone !== phone) isLinked = true;
     } else if (actualRole === "SUPPLIER") {
-      const profile = await (this.prisma as any).supplierProfile.findUnique({
+      const profile = await this.prisma.supplierProfile.findUnique({
         where: { userId: user.id },
       });
       if (!profile) return EMAIL_NOT_FOUND;
       supplierId = profile.id; // Save for OTP step
-      const link = await (this.prisma as any).whatsAppSupplierLink.findUnique({
+      const link = await this.prisma.whatsAppSupplierLink.findUnique({
         where: { supplierId: profile.id },
       });
       if (link && link.phone !== phone) isLinked = true;
@@ -321,13 +321,13 @@ export class WhatsAppAuthService {
           create: { phone, userId: session.data.userId, isActive: true },
         });
       } else if (session.data.role === "BUYER") {
-        await (this.prisma as any).whatsAppBuyerLink.upsert({
+        await this.prisma.whatsAppBuyerLink.upsert({
           where: { phone },
           update: { buyerId: session.data.userId, isActive: true },
           create: { phone, buyerId: session.data.userId, isActive: true },
         });
       } else if (session.data.role === "SUPPLIER" && session.data.supplierId) {
-        await (this.prisma as any).whatsAppSupplierLink.upsert({
+        await this.prisma.whatsAppSupplierLink.upsert({
           where: { phone },
           update: { supplierId: session.data.supplierId, isActive: true },
           create: {
