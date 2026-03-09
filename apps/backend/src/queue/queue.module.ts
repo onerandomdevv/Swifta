@@ -12,19 +12,40 @@ import {
   REVIEW_QUEUE,
 } from "./queue.constants";
 
+function sanitizeRedisUrl(url: string | undefined): string | undefined {
+  if (!url) return url;
+  let cleanUrl = url.trim();
+  if (cleanUrl.startsWith("REDIS_URL=")) {
+    cleanUrl = cleanUrl.substring("REDIS_URL=".length);
+  }
+  if (cleanUrl.startsWith('"') && cleanUrl.endsWith('"')) {
+    cleanUrl = cleanUrl.substring(1, cleanUrl.length - 1);
+  }
+  if (cleanUrl.startsWith("'") && cleanUrl.endsWith("'")) {
+    cleanUrl = cleanUrl.substring(1, cleanUrl.length - 1);
+  }
+  return cleanUrl.trim();
+}
+
 @Global()
 @Module({
   imports: [
     BullModule.forRootAsync({
       useFactory: (configService: ConfigService) => {
-        const redisUrlString = configService.get<string>("redis.url");
+        const rawUrl = configService.get<string>("redis.url");
+        const redisUrlString = sanitizeRedisUrl(rawUrl);
 
         if (!redisUrlString) {
           console.warn(
             "REDIS_URL not found for BullMQ, falling back to localhost",
           );
           return {
-            connection: { host: "127.0.0.1", port: 6379, family: 0 },
+            connection: {
+              host: "127.0.0.1",
+              port: 6379,
+              family: 0,
+              enableReadyCheck: false,
+            },
             prefix: "{bull}",
           };
         }
@@ -42,12 +63,13 @@ import {
                   ? { rejectUnauthorized: false }
                   : undefined,
               family: 0,
+              enableReadyCheck: false,
             },
             prefix: "{bull}",
           };
         } catch (error: any) {
           console.error(
-            `BullMQ failed to parse REDIS_URL: ${redisUrlString.substring(0, 10)}...`,
+            `BullMQ failed to parse REDIS_URL prefix: ${redisUrlString.substring(0, 15)}...`,
           );
           throw new Error(
             `Invalid REDIS_URL for QueueModule: ${error.message}`,
