@@ -66,22 +66,44 @@ import { APP_GUARD } from "@nestjs/core";
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => {
-        const urlString =
-          configService.get<string>("redis.url") || "redis://127.0.0.1:6379";
-        const parsedUrl = new URL(urlString);
-        const store = await redisStore({
-          host: parsedUrl.hostname,
-          port: parseInt(parsedUrl.port, 10) || 6379,
-          password: parsedUrl.password || undefined,
-          username: parsedUrl.username || undefined,
-          tls:
-            parsedUrl.protocol === "rediss:"
-              ? { rejectUnauthorized: false }
-              : undefined,
-          family: 0,
-          ttl: 60 * 1000,
-        });
-        return { store };
+        const urlString = configService.get<string>("redis.url");
+
+        if (!urlString) {
+          console.warn(
+            "REDIS_URL not found for CacheModule, falling back to localhost",
+          );
+          const store = await redisStore({
+            host: "127.0.0.1",
+            port: 6379,
+            family: 0,
+            ttl: 60 * 1000,
+          });
+          return { store };
+        }
+
+        try {
+          const parsedUrl = new URL(urlString);
+          const store = await redisStore({
+            host: parsedUrl.hostname,
+            port: parseInt(parsedUrl.port, 10) || 6379,
+            password: parsedUrl.password || undefined,
+            username: parsedUrl.username || undefined,
+            tls:
+              parsedUrl.protocol === "rediss:"
+                ? { rejectUnauthorized: false }
+                : undefined,
+            family: 0,
+            ttl: 60 * 1000,
+          });
+          return { store };
+        } catch (error: any) {
+          console.error(
+            `CacheModule failed to parse REDIS_URL: ${urlString.substring(0, 10)}...`,
+          );
+          throw new Error(
+            `Invalid REDIS_URL for CacheModule: ${error.message}`,
+          );
+        }
       },
     }),
     ServeStaticModule.forRoot({
