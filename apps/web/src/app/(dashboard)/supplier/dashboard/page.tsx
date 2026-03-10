@@ -3,9 +3,10 @@
 import { useAuth } from "@/providers/auth-provider";
 import { useQuery } from "@tanstack/react-query";
 import { getDisplayName } from "@hardware-os/shared";
+import { WhatsAppLinkStatus } from "@/components/dashboard/whatsapp-link-status";
 
 export default function SupplierDashboardPage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
 
   // We'll add a hook for supplier stats later
   // const { data: stats } = useQuery({ ... });
@@ -34,6 +35,11 @@ export default function SupplierDashboardPage() {
           </div>
         </div>
       </div>
+
+      <WhatsAppLinkStatus
+        isLinked={!!user?.isWhatsAppLinked}
+        onSuccess={refreshUser}
+      />
 
       {/* Stats Overview Placeholder */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">

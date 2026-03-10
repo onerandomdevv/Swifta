@@ -11,7 +11,9 @@ import {
   resolveBankAccount,
   getBanks,
   requestPayout,
+  updateBankAccount,
 } from "@/lib/api/merchant.api";
+import { useToast } from "@/providers/toast-provider";
 import { OrderStatus } from "@hardware-os/shared";
 import type { Order } from "@hardware-os/shared";
 
@@ -76,6 +78,7 @@ function getStatusBadge(status: string) {
 
 export default function MerchantPayoutsPage() {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [isEditingBank, setIsEditingBank] = useState(false);
   const [formBankCode, setFormBankCode] = useState("");
   const [bankSearchQuery, setBankSearchQuery] = useState("");
@@ -160,13 +163,18 @@ export default function MerchantPayoutsPage() {
   const isVerified = (profile as any)?.verification === "VERIFIED";
 
   const updateBankMutation = useMutation({
-    mutationFn: updateProfile,
+    mutationFn: (data: { bankCode: string; bankAccountNo: string }) =>
+      updateBankAccount({
+        bankCode: data.bankCode,
+        bankAccountNumber: data.bankAccountNo,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["merchant-profile"] });
       setIsEditingBank(false);
+      toast.success("Bank details updated successfully");
     },
-    onError: (err) => {
-      alert("Failed to update bank details. Please try again.");
+    onError: (err: any) => {
+      toast.error(err?.message || "Failed to update bank details");
       console.error(err);
     },
   });
@@ -177,7 +185,6 @@ export default function MerchantPayoutsPage() {
     updateBankMutation.mutate({
       bankCode: formBankCode,
       bankAccountNo: formAccountNo,
-      bankAccountName: formAccountName,
     });
   };
 
@@ -196,19 +203,19 @@ export default function MerchantPayoutsPage() {
 
   const handleRequestPayout = () => {
     if (!summary?.escrow || summary.escrow <= 0) {
-      alert("No escrow balance available for payout.");
+      toast.error("No escrow balance available for payout.");
       return;
     }
     setIsRequestingPayout(true);
 
     requestPayout({ amount: Number(summary.escrow) })
       .then(() => {
-        alert(
+        toast.success(
           "Payout request submitted! Funds will be transferred within 24 hours.",
         );
       })
       .catch((err) => {
-        alert(
+        toast.error(
           err?.message || "Failed to submit payout request. Please try again.",
         );
       })

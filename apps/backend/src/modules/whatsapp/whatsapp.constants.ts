@@ -370,6 +370,9 @@ export const GEMINI_FUNCTION_DECLARATIONS = [
 /** Meta Graph API version */
 export const META_API_VERSION = "v21.0";
 
+/** WhatsApp Auth/OTP Template Name (configured in Meta Business Suite) */
+export const WHATSAPP_OTP_TEMPLATE = "auth_otp";
+
 /** Redis key prefix for WhatsApp sessions */
 export const WA_SESSION_PREFIX = "wa:session:";
 /** Redis key prefix for WhatsApp OTPs */

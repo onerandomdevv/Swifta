@@ -2,9 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { buyerApi, BuyerDashboardStats } from "@/lib/api/buyer.api";
 import { getMyRFQs } from "@/lib/api/rfq.api";
 import { getOrders } from "@/lib/api/order.api";
+import { useAuth } from "@/providers/auth-provider";
 import type { RFQ, Order } from "@hardware-os/shared";
 
 export function useBuyerDashboard() {
+  const { user, isLoading: isAuthLoading } = useAuth();
+
   const statsQuery = useQuery({
     queryKey: ["buyer", "dashboard", "stats"],
     queryFn: async () => {
@@ -33,7 +36,10 @@ export function useBuyerDashboard() {
   });
 
   const isLoading =
-    statsQuery.isLoading || rfqQuery.isLoading || orderQuery.isLoading;
+    statsQuery.isLoading ||
+    rfqQuery.isLoading ||
+    orderQuery.isLoading ||
+    isAuthLoading;
   const isError = statsQuery.isError || rfqQuery.isError || orderQuery.isError;
   const error = statsQuery.error || rfqQuery.error || orderQuery.error;
 
@@ -41,6 +47,7 @@ export function useBuyerDashboard() {
     stats: statsQuery.data as BuyerDashboardStats | undefined,
     rfqs: rfqQuery.data || ([] as RFQ[]),
     orders: orderQuery.data || ([] as Order[]),
+    user,
     isLoading,
     isError,
     error: (() => {

@@ -3,16 +3,17 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/providers/auth-provider";
 import { authApi } from "@/lib/api/auth.api";
+import { useToast } from "@/providers/toast-provider";
 import { getDisplayName } from "@hardware-os/shared";
 
 type Tab = "General" | "Documents" | "Billing";
 
 export default function BuyerProfilePage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
+  const toast = useToast();
 
   const [activeTab, setActiveTab] = useState<Tab>("General");
   const [isSaving, setIsSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   const [firstName, setFirstName] = useState(user?.firstName || "");
   const [middleName, setMiddleName] = useState(user?.middleName || "");
@@ -35,12 +36,12 @@ export default function BuyerProfilePage() {
   async function handleSaveChanges() {
     if (isSaving) return;
     setIsSaving(true);
-    setSaveMessage(null);
     try {
       await authApi.updateProfile({ firstName, middleName, lastName, phone });
-      setSaveMessage("Profile updated successfully.");
+      toast.success("Profile updated successfully.");
+      await refreshUser();
     } catch (err: any) {
-      setSaveMessage(err?.message || "Failed to save changes.");
+      toast.error(err?.message || "Failed to save changes.");
     } finally {
       setIsSaving(false);
     }
@@ -89,19 +90,6 @@ export default function BuyerProfilePage() {
           </div>
         </div>
       </header>
-
-      {/* Save Feedback */}
-      {saveMessage && (
-        <div
-          className={`mx-4 md:mx-8 mt-4 p-4 border text-sm font-bold uppercase tracking-wide ${
-            saveMessage.includes("success")
-              ? "bg-green-50 border-green-200 text-green-700"
-              : "bg-red-50 border-red-200 text-red-700"
-          }`}
-        >
-          {saveMessage}
-        </div>
-      )}
 
       {/* Main Content */}
       <main className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto w-full">

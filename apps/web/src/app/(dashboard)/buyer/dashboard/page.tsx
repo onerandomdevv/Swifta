@@ -6,9 +6,10 @@ import { DashboardSkeleton } from "@/components/buyer/dashboard/dashboard-skelet
 import { BuyerSummaryCards } from "@/components/buyer/dashboard/buyer-summary-cards";
 import { PendingQuotes } from "@/components/buyer/dashboard/pending-quotes";
 import { ActiveDeliveries } from "@/components/buyer/dashboard/active-deliveries";
+import { WhatsAppLinkStatus } from "@/components/dashboard/whatsapp-link-status";
 
 export default function BuyerDashboard() {
-  const { rfqs, orders, stats, isLoading, isError, error } =
+  const { rfqs, orders, stats, user, isLoading, isError, error, refetch } =
     useBuyerDashboard();
 
   if (isLoading) return <DashboardSkeleton />;
@@ -40,6 +41,13 @@ export default function BuyerDashboard() {
         totalSpendingKobo={stats?.totalSpendingKobo}
         orders={orders}
       />
+
+      <div className="mb-8">
+        <WhatsAppLinkStatus
+          isLinked={!!user?.isWhatsAppLinked}
+          onSuccess={refetch}
+        />
+      </div>
 
       <PendingQuotes quotes={pendingQuotes} />
 

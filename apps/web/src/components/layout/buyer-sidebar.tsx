@@ -28,7 +28,12 @@ export function BuyerSidebar({
     >
       {isDesktop && (
         <div className="p-6">
-          <Logo variant="light" size="md" />
+          <Link
+            href="/buyer/dashboard"
+            className="transition-opacity hover:opacity-80"
+          >
+            <Logo variant="light" size="md" />
+          </Link>
         </div>
       )}
       <nav className="flex-1 px-4 space-y-1 flex flex-col">

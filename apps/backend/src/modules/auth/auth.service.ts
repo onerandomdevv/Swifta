@@ -27,8 +27,9 @@ import { AdminRegisterDto } from "./dto/admin-register.dto";
 import { SendPhoneOtpDto } from "./dto/send-phone-otp.dto";
 import { VerifyPhoneOtpDto } from "./dto/verify-phone-otp.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
-import { TokenPair, JwtPayload, UserRole } from "@hardware-os/shared";
+import { TokenPair, JwtPayload } from "@hardware-os/shared";
 import { WhatsAppService } from "../whatsapp/whatsapp.service";
+import { WHATSAPP_OTP_TEMPLATE } from "../whatsapp/whatsapp.constants";
 import AfricasTalking from "africastalking";
 
 const SALT_ROUNDS = 10;
@@ -311,7 +312,7 @@ export class AuthService {
       // Dummy phone number, the internal users don't need phone verification for this phase
       const phonePlaceholder = `+2340000000${randomInt(100, 999)}`;
 
-      const user = await prisma.user.create({
+      await prisma.user.create({
         data: {
           firstName: dto.firstName,
           middleName: dto.middleName,
@@ -346,7 +347,15 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { merchantProfile: true, buyerProfile: true },
+      include: {
+        merchantProfile: true,
+        buyerProfile: true,
+        supplierProfile: {
+          include: { whatsappSupplierLink: true },
+        },
+        whatsappLink: true,
+        whatsappBuyerLink: true,
+      },
     });
 
     if (!user) {
@@ -366,7 +375,15 @@ export class AuthService {
   async getInternalMe(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { merchantProfile: true, adminProfile: true },
+      include: {
+        merchantProfile: true,
+        adminProfile: true,
+        supplierProfile: {
+          include: { whatsappSupplierLink: true },
+        },
+        whatsappLink: true,
+        whatsappBuyerLink: true,
+      },
     });
 
     if (!user) {
@@ -383,6 +400,11 @@ export class AuthService {
       role: user.role,
       emailVerified: user.emailVerified,
       phoneVerified: user.phoneVerified,
+      isWhatsAppLinked: !!(
+        (user as any).whatsappLink ||
+        (user as any).whatsappBuyerLink ||
+        (user as any).supplierProfile?.whatsappSupplierLink
+      ),
       merchantId: user.merchantProfile?.id,
       adminId: user.adminProfile?.id,
       createdAt: user.createdAt,
@@ -577,6 +599,11 @@ export class AuthService {
         lastName: user.lastName,
         role: user.role,
         emailVerified: user.emailVerified,
+        isWhatsAppLinked: !!(
+          user.whatsappLink ||
+          user.whatsappBuyerLink ||
+          user.supplierProfile?.whatsappSupplierLink
+        ),
         merchantId: user.merchantProfile?.id,
         buyerType:
           user.buyerProfile?.buyerType ||
@@ -700,15 +727,122 @@ export class AuthService {
     // Store in Redis for 5 minutes
     await this.redis.set(otpKey, otp, 300);
 
-    // Send via WhatsApp
-    const message = `🔐 *SwiftTrade Login Code*\n\nYour verification code is: *${otp}*\n\nIt expires in 5 minutes. Do not share this code with anyone.`;
-    await this.whatsappService.sendWhatsAppMessage(normalizedPhone, message);
+    // Send via WhatsApp Template (bypass 24h window)
+    await this.whatsappService.sendWhatsAppTemplateMessage(
+      normalizedPhone,
+      WHATSAPP_OTP_TEMPLATE,
+      [{ type: "text", text: otp }],
+    );
 
     this.logger.log(
-      `WhatsApp OTP sent to verified identity: ${normalizedPhone}`,
+      `WhatsApp Login Template sent to verified identity: ${normalizedPhone}`,
     );
 
     return { message: "A login code has been sent to your WhatsApp." };
+  }
+
+  async initiateWhatsAppLink(
+    userId: string,
+    phone: string,
+  ): Promise<{ message: string }> {
+    const normalizedPhone = normalizePhone(phone);
+
+    // 1. Check if phone is already linked to SOMEONE ELSE
+    const [merchantLink, buyerLink, supplierLink] = await Promise.all([
+      this.prisma.whatsAppLink.findUnique({
+        where: { phone: normalizedPhone },
+      }),
+      this.prisma.whatsAppBuyerLink.findUnique({
+        where: { phone: normalizedPhone },
+      }),
+      this.prisma.whatsAppSupplierLink.findUnique({
+        where: { phone: normalizedPhone },
+      }),
+    ]);
+
+    if (
+      (merchantLink && merchantLink.userId !== userId) ||
+      (buyerLink && buyerLink.buyerId !== userId) ||
+      (supplierLink &&
+        supplierLink.isActive &&
+        supplierLink.supplierId !==
+          (await this.prisma.supplierProfile.findUnique({ where: { userId } }))
+            ?.id)
+    ) {
+      throw new ConflictException(
+        "This WhatsApp number is already linked to another account.",
+      );
+    }
+
+    const otp = randomInt(100000, 999999).toString();
+    const otpKey = `wa_link_otp:${userId}:${normalizedPhone}`;
+
+    await this.redis.set(otpKey, otp, 600); // 10 mins
+
+    // Send via WhatsApp Template
+    await this.whatsappService.sendWhatsAppTemplateMessage(
+      normalizedPhone,
+      WHATSAPP_OTP_TEMPLATE,
+      [{ type: "text", text: otp }],
+    );
+
+    this.logger.log(`WhatsApp Linking Template sent to: ${normalizedPhone}`);
+
+    return { message: "Verification code sent to WhatsApp." };
+  }
+
+  async verifyWhatsAppLink(
+    userId: string,
+    phone: string,
+    code: string,
+  ): Promise<{ message: string }> {
+    const normalizedPhone = normalizePhone(phone);
+    const otpKey = `wa_link_otp:${userId}:${normalizedPhone}`;
+    const storedOtp = await this.redis.get(otpKey);
+
+    if (!storedOtp || storedOtp !== code) {
+      throw new BadRequestException("Invalid or expired verification code.");
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!user) throw new NotFoundException("User not found");
+
+    // Link based on role
+    await this.prisma.$transaction(async (tx) => {
+      if (user.role === "MERCHANT") {
+        await tx.whatsAppLink.upsert({
+          where: { userId },
+          update: { phone: normalizedPhone, isActive: true },
+          create: { userId, phone: normalizedPhone, isActive: true },
+        });
+      } else if (user.role === "BUYER") {
+        await tx.whatsAppBuyerLink.upsert({
+          where: { buyerId: userId },
+          update: { phone: normalizedPhone, isActive: true },
+          create: { buyerId: userId, phone: normalizedPhone, isActive: true },
+        });
+      } else if (user.role === "SUPPLIER") {
+        const supplier = await tx.supplierProfile.findUnique({
+          where: { userId },
+        });
+        if (supplier) {
+          await tx.whatsAppSupplierLink.upsert({
+            where: { supplierId: supplier.id },
+            update: { supplierId: supplier.id, isActive: true },
+            create: {
+              phone: normalizedPhone,
+              supplierId: supplier.id,
+              isActive: true,
+            },
+          });
+        }
+      }
+    });
+
+    await this.redis.del(otpKey);
+    return { message: "WhatsApp linked successfully." };
   }
 
   async verifyWhatsAppLogin(

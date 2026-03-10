@@ -5,7 +5,13 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getOrder, confirmDelivery, reportIssue, getTracking } from "@/lib/api/order.api";
+import { useToast } from "@/providers/toast-provider";
+import {
+  getOrder,
+  confirmDelivery,
+  reportIssue,
+  getTracking,
+} from "@/lib/api/order.api";
 import { initializePayment } from "@/lib/api/payment.api";
 import type { Order } from "@hardware-os/shared";
 import { Modal } from "@/components/ui/modal";
@@ -22,6 +28,7 @@ import { useAuth } from "@/providers/auth-provider";
 export default function BuyerOrderDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<Order | null>(null);
@@ -40,14 +47,21 @@ export default function BuyerOrderDetailsPage() {
         const [data, trackingData] = await Promise.all([
           getOrder(id as string),
           getTracking(id as string).catch((err) => {
-            if (err?.status === 404 || err?.statusCode === 404 || err?.message?.includes("404")) return [];
+            if (
+              err?.status === 404 ||
+              err?.statusCode === 404 ||
+              err?.message?.includes("404")
+            )
+              return [];
             throw err;
           }),
         ]);
         // The backend `ResponseTransformInterceptor` wraps everything in `{ data: ... }`.
         // If ApiClient unwraps it once, it might still have a nested `.data` depending on the controller return.
         const orderData = (data as any).data ? (data as any).data : data;
-        const trackingList = (trackingData as any).data ? (trackingData as any).data : trackingData;
+        const trackingList = (trackingData as any).data
+          ? (trackingData as any).data
+          : trackingData;
         setOrder(orderData as Order);
         setTrackingEvents(Array.isArray(trackingList) ? trackingList : []);
       } catch (err: any) {
@@ -100,8 +114,10 @@ export default function BuyerOrderDetailsPage() {
     try {
       const updated = await confirmDelivery(order.id, confirmingOtp);
       setOrder(updated as any as Order);
+      toast.success("Delivery confirmed successfully!");
+      router.refresh();
     } catch (err: any) {
-      setError(err?.message || "Failed to confirm delivery");
+      toast.error(err?.message || "Failed to confirm delivery");
     } finally {
       setConfirming(false);
     }
@@ -116,8 +132,10 @@ export default function BuyerOrderDetailsPage() {
       setOrder((updated as any).data || updated);
       setShowDisputeModal(false);
       setDisputeReason("");
+      toast.success("Issue reported successfully. Admin will review.");
+      router.refresh();
     } catch (err: any) {
-      setError(err?.message || "Failed to report issue");
+      toast.error(err?.message || "Failed to report issue");
     } finally {
       setReporting(false);
     }

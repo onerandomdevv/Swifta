@@ -261,7 +261,7 @@ export class WhatsAppService {
     if (id === "menu_help") {
       await this.interactiveService.sendTextMessage(
         phone,
-        `🤝 *SwiftTrade Merchant Support*\n\nYou can manage your business by using the menu or via natural language commands:\n\n• *"sales summary"* - View performance\n• *"my orders"* - Manage latest orders\n• *"check inventory"* - Monitor stock\n• *"update price of [item] to [amount]"*\n• *"add [qty] to [item] stock"*\n\nNeed more help? Visit our web dashboard or contact support at support@swifttrade.store`,
+        `🤝 *SwiftTrade Merchant Support*\n\nYou can manage your business by using the menu or via natural language commands:\n\n• *"sales summary"* - View performance\n• *"my orders"* - Manage latest orders\n• *"check inventory"* - Monitor stock\n• *"update price of [item] to [amount]"*\n• *"add [qty] to [item] stock"*\n\nNeed more help? Visit our web dashboard or contact support at support@swifta.store`,
       );
       return;
     }
@@ -1704,6 +1704,61 @@ export class WhatsAppService {
     } catch (error) {
       this.logger.error(
         `Failed to send WhatsApp message to ${phone}: ${error instanceof Error ? error.message : error}`,
+      );
+    }
+  }
+
+  /**
+   * Send a WhatsApp message using a pre-approved template.
+   * Required for initiating conversations outside the 24h window.
+   */
+  async sendWhatsAppTemplateMessage(
+    phone: string,
+    templateName: string,
+    parameters: { type: "text"; text: string }[] = [],
+  ): Promise<void> {
+    const url = `https://graph.facebook.com/${META_API_VERSION}/${this.phoneNumberId}/messages`;
+
+    try {
+      const payload = {
+        messaging_product: "whatsapp",
+        to: phone,
+        type: "template",
+        template: {
+          name: templateName,
+          language: { code: "en_US" },
+          components:
+            parameters.length > 0
+              ? [
+                  {
+                    type: "body",
+                    parameters,
+                  },
+                ]
+              : [],
+        },
+      };
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        this.logger.error(
+          `Meta Template API error (${response.status}): ${errorBody}`,
+        );
+      } else {
+        this.logger.log(`WhatsApp Template (${templateName}) sent to ${phone}`);
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to send WhatsApp template ${templateName} to ${phone}: ${error instanceof Error ? error.message : error}`,
       );
     }
   }

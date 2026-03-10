@@ -51,7 +51,9 @@ export function MerchantSidebar({
     >
       {isDesktop && (
         <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center gap-3">
-          <Logo variant="light" size="sm" />
+          <Link href="/merchant/dashboard">
+            <Logo variant="light" size="sm" />
+          </Link>
         </div>
       )}
 

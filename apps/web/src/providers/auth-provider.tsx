@@ -24,6 +24,7 @@ interface User {
   phone: string;
   role: UserRole;
   emailVerified: boolean;
+  isWhatsAppLinked?: boolean;
   merchantId?: string;
   supplierId?: string;
   buyerType?: "CONSUMER" | "BUSINESS";

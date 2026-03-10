@@ -15,7 +15,25 @@ export default function BuyerLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (user && user.role !== "BUYER") {
-      router.push("/merchant/dashboard");
+      switch (user.role) {
+        case "SUPPLIER":
+          router.push("/supplier/dashboard");
+          break;
+        case "SUPER_ADMIN":
+          router.push("/admin/dashboard");
+          break;
+        case "MERCHANT":
+          router.push("/merchant/dashboard");
+          break;
+        case "OPERATOR":
+          router.push("/operator/dashboard");
+          break;
+        case "SUPPORT":
+          router.push("/support/dashboard");
+          break;
+        default:
+          router.push("/");
+      }
     }
   }, [user, router]);
 

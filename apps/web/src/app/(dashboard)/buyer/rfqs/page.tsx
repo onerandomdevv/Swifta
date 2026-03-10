@@ -41,7 +41,11 @@ function getExpiryDisplay(rfq: RFQ) {
   if (rfq.status === "EXPIRED") {
     return (
       <span className="text-xs text-red-500">
-        Expired {new Date(rfq.expiresAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+        Expired{" "}
+        {new Date(rfq.expiresAt).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        })}
       </span>
     );
   }
@@ -50,7 +54,12 @@ function getExpiryDisplay(rfq: RFQ) {
   }
   return (
     <span className="text-xs text-slate-500">
-      Expires: {new Date(rfq.expiresAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+      Expires:{" "}
+      {new Date(rfq.expiresAt).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })}
     </span>
   );
 }
@@ -84,7 +93,7 @@ function RFQListSkeleton() {
 }
 
 export default function BuyerRFQsPage() {
-  const { rfqs, loading, error } = useBuyerRFQs();
+  const { rfqs, loading, error, refetch } = useBuyerRFQs();
   const [activeTab, setActiveTab] = useState("ALL");
 
   if (loading) return <RFQListSkeleton />;
@@ -92,10 +101,14 @@ export default function BuyerRFQsPage() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-32 text-center space-y-4">
-        <span className="material-symbols-outlined text-5xl text-red-400">error</span>
-        <p className="text-sm font-bold text-red-600 uppercase tracking-wide">{error}</p>
+        <span className="material-symbols-outlined text-5xl text-red-400">
+          error
+        </span>
+        <p className="text-sm font-bold text-red-600 uppercase tracking-wide">
+          {error}
+        </p>
         <button
-          onClick={() => window.location.reload()}
+          onClick={() => refetch()}
           className="px-6 py-2 bg-primary text-white rounded text-sm font-bold uppercase tracking-wide"
         >
           Retry
@@ -105,9 +118,7 @@ export default function BuyerRFQsPage() {
   }
 
   const filteredRFQs =
-    activeTab === "ALL"
-      ? rfqs
-      : rfqs.filter((r) => r.status === activeTab);
+    activeTab === "ALL" ? rfqs : rfqs.filter((r) => r.status === activeTab);
 
   return (
     <div className="flex flex-col">
@@ -192,7 +203,9 @@ export default function BuyerRFQsPage() {
                 {/* Product Details */}
                 <div className="lg:col-span-4 flex flex-col">
                   <span className="font-bold text-slate-900">
-                    {rfq.product?.name || rfq.unlistedItemDetails?.name || "Custom Request"}
+                    {rfq.product?.name ||
+                      rfq.unlistedItemDetails?.name ||
+                      "Custom Request"}
                   </span>
                   <span className="text-sm text-slate-500 font-mono">
                     Qty: {rfq.quantity} {rfq.product?.unit || "units"}
@@ -222,7 +235,9 @@ export default function BuyerRFQsPage() {
                     href={`/buyer/rfqs/${rfq.id}`}
                     className="size-8 flex items-center justify-center rounded border border-slate-200 hover:border-primary hover:text-primary transition-colors"
                   >
-                    <span className="material-symbols-outlined text-sm">chevron_right</span>
+                    <span className="material-symbols-outlined text-sm">
+                      chevron_right
+                    </span>
                   </Link>
                 </div>
               </div>
@@ -231,7 +246,9 @@ export default function BuyerRFQsPage() {
         ) : (
           /* Empty State */
           <div className="flex flex-col items-center justify-center py-32 text-center space-y-6 border border-slate-200 rounded bg-white">
-            <span className="material-symbols-outlined text-6xl text-slate-300">contract</span>
+            <span className="material-symbols-outlined text-6xl text-slate-300">
+              contract
+            </span>
             <div className="space-y-2">
               <h3 className="text-xl font-bold uppercase tracking-tight">
                 No Active Requests

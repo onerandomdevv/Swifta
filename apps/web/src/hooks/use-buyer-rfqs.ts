@@ -5,8 +5,8 @@ import { getMyRFQs } from "@/lib/api/rfq.api";
 import type { RFQ } from "@hardware-os/shared";
 
 export function useBuyerRFQs() {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['buyer', 'rfqs', 'all'],
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["buyer", "rfqs", "all"],
     queryFn: async () => {
       const response = await getMyRFQs();
       return response as RFQ[];
@@ -14,9 +14,10 @@ export function useBuyerRFQs() {
     refetchInterval: 30000,
   });
 
-  return { 
-    rfqs: data || [], 
-    loading: isLoading, 
-    error: error ? (error as Error).message : null 
+  return {
+    rfqs: data || [],
+    loading: isLoading,
+    error: error ? (error as Error).message : null,
+    refetch,
   };
 }
