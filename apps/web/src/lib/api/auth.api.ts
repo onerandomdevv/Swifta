@@ -12,6 +12,7 @@ export interface AuthResponse {
     lastName: string;
     role: UserRole;
     emailVerified: boolean;
+    isWhatsAppLinked?: boolean;
     merchantId?: string;
     createdAt: string;
     updatedAt: string;
@@ -70,4 +71,13 @@ export const authApi = {
 
   verifyWhatsAppLogin: (phone: string, code: string) =>
     apiClient.post<AuthResponse>("/auth/whatsapp/verify", { phone, code }),
+
+  initiateWhatsAppLink: (phone: string) =>
+    apiClient.post<{ message: string }>("/auth/whatsapp/link", { phone }),
+
+  verifyWhatsAppLink: (phone: string, code: string) =>
+    apiClient.post<{ message: string }>("/auth/whatsapp/link/verify", {
+      phone,
+      code,
+    }),
 };

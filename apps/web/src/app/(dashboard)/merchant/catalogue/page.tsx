@@ -24,7 +24,7 @@ export default function MerchantStorefrontPreview() {
 
   const handleCopyLink = () => {
     const slug = businessName.toLowerCase().replace(/\s+/g, "-");
-    const link = `swifttrade.store/store/${slug}`;
+    const link = `https://swifta.store/store/${slug}`;
     navigator.clipboard.writeText(link).then(() => {
       alert("Storefront link copied!");
     });
@@ -224,7 +224,7 @@ export default function MerchantStorefrontPreview() {
           </span>
           <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-lg">
             <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
-              swifttrade.store/store/
+              swifta.store/store/
               {businessName.toLowerCase().replace(/\s+/g, "-")}
             </span>
             <button

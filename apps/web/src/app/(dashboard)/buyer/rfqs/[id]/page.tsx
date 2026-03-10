@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { formatKobo } from "@hardware-os/shared";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/providers/toast-provider";
 import { getRFQ, updateRFQ, deleteRFQ } from "@/lib/api/rfq.api";
 import { getQuotesByRFQ, acceptQuote } from "@/lib/api/quote.api";
 import type { RFQ, Quote } from "@hardware-os/shared";
@@ -15,13 +16,14 @@ import { BuyerRFQSummary, BuyerQuotesList } from "@/components/buyer/rfqs";
 export default function BuyerRFQDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [rfq, setRfq] = useState<RFQ | null>(null);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  
+
   // Edit State
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({
@@ -52,9 +54,11 @@ export default function BuyerRFQDetailsPage() {
     setAcceptingId(quoteId);
     try {
       await acceptQuote(quoteId);
+      toast.success("Quote accepted successfully!");
       router.push("/buyer/orders");
+      router.refresh();
     } catch (err: any) {
-      setError(err?.message || "Failed to accept quote");
+      toast.error(err?.message || "Failed to accept quote");
       setAcceptingId(null);
     }
   };
@@ -77,21 +81,26 @@ export default function BuyerRFQDetailsPage() {
       const updated = await updateRFQ(id as string, editData);
       setRfq(updated);
       setIsEditing(false);
+      toast.success("RFQ updated successfully!");
+      router.refresh();
     } catch (err: any) {
-      setError(err?.message || "Failed to update RFQ");
+      toast.error(err?.message || "Failed to update RFQ");
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!confirm("Are you sure you want to completely delete this RFQ?")) return;
+    if (!confirm("Are you sure you want to completely delete this RFQ?"))
+      return;
     try {
       setIsDeleting(true);
       await deleteRFQ(id as string);
+      toast.success("RFQ deleted successfully.");
       router.push("/buyer/rfqs");
+      router.refresh();
     } catch (err: any) {
-      setError(err?.message || "Failed to delete RFQ");
+      toast.error(err?.message || "Failed to delete RFQ");
       setIsDeleting(false);
     }
   };
@@ -174,7 +183,12 @@ export default function BuyerRFQDetailsPage() {
                     min="1"
                     required
                     value={editData.quantity}
-                    onChange={(e) => setEditData({ ...editData, quantity: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setEditData({
+                        ...editData,
+                        quantity: Number(e.target.value),
+                      })
+                    }
                     className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl py-4 px-6 text-sm font-black text-navy-dark dark:text-white outline-none focus:border-primary transition-all"
                   />
                 </div>
@@ -186,7 +200,12 @@ export default function BuyerRFQDetailsPage() {
                     type="text"
                     required
                     value={editData.deliveryAddress}
-                    onChange={(e) => setEditData({ ...editData, deliveryAddress: e.target.value })}
+                    onChange={(e) =>
+                      setEditData({
+                        ...editData,
+                        deliveryAddress: e.target.value,
+                      })
+                    }
                     className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl py-4 px-6 text-sm font-black text-navy-dark dark:text-white outline-none focus:border-primary transition-all"
                   />
                 </div>
@@ -196,7 +215,9 @@ export default function BuyerRFQDetailsPage() {
                   </label>
                   <textarea
                     value={editData.notes}
-                    onChange={(e) => setEditData({ ...editData, notes: e.target.value })}
+                    onChange={(e) =>
+                      setEditData({ ...editData, notes: e.target.value })
+                    }
                     className="w-full h-32 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl py-4 px-6 text-sm font-bold text-navy-dark dark:text-white outline-none focus:border-primary transition-all resize-none"
                   />
                 </div>
@@ -218,10 +239,10 @@ export default function BuyerRFQDetailsPage() {
               </form>
             </div>
           ) : (
-            <BuyerRFQSummary 
-              rfq={rfq} 
-              onEdit={startEditing} 
-              onDelete={handleDelete} 
+            <BuyerRFQSummary
+              rfq={rfq}
+              onEdit={startEditing}
+              onDelete={handleDelete}
             />
           )}
         </div>

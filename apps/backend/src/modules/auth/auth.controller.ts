@@ -146,6 +146,28 @@ export class AuthController {
     return this.authService.verifyPhoneOtp(dto, user.sub);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Post("whatsapp/link")
+  @HttpCode(HttpStatus.OK)
+  async initiateWhatsAppLink(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: SendPhoneOtpDto,
+  ) {
+    return this.authService.initiateWhatsAppLink(user.sub, dto.phone);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post("whatsapp/link/verify")
+  @HttpCode(HttpStatus.OK)
+  async verifyWhatsAppLink(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: VerifyPhoneOtpDto,
+  ) {
+    return this.authService.verifyWhatsAppLink(user.sub, dto.phone, dto.code);
+  }
+
   @Post("refresh")
   @UseGuards(JwtRefreshGuard)
   @HttpCode(HttpStatus.OK)

@@ -203,13 +203,30 @@ export class WhatsAppService {
       this.logger.error(
         `Error processing message from ${phone}: ${error instanceof Error ? error.message : error}`,
       );
-      throw error; // Rethrow to allow BullMQ to retry
-      // Send a friendly error — never leave the user hanging
+
+      // Send a friendly error before rethrowing for BullMQ retry — only once per 5 mins
       try {
-        await this.sendWhatsAppMessage(phone, GENERIC_ERROR);
-      } catch {
-        this.logger.error(`Failed to send error message to ${phone}`);
+        const fallbackKey = `whatsapp:fallback:${messageId ?? phone}`;
+        const canSend = await this.redisService.set(
+          fallbackKey,
+          "1",
+          300,
+          true, // NX
+        );
+
+        if (canSend) {
+          await this.interactiveService.sendTextMessage(
+            phone,
+            "⚠️ We're having trouble processing your request right now. Please wait a moment while we retry, or try sending your message again.",
+          );
+        }
+      } catch (sendError) {
+        this.logger.error(
+          `Failed to send fallback error message to ${phone}: ${sendError instanceof Error ? sendError.message : sendError}`,
+        );
       }
+
+      throw error; // Rethrow to allow BullMQ to retry
     }
   }
 
@@ -261,7 +278,7 @@ export class WhatsAppService {
     if (id === "menu_help") {
       await this.interactiveService.sendTextMessage(
         phone,
-        `🤝 *SwiftTrade Merchant Support*\n\nYou can manage your business by using the menu or via natural language commands:\n\n• *"sales summary"* - View performance\n• *"my orders"* - Manage latest orders\n• *"check inventory"* - Monitor stock\n• *"update price of [item] to [amount]"*\n• *"add [qty] to [item] stock"*\n\nNeed more help? Visit our web dashboard or contact support at support@swifttrade.store`,
+        `🤝 *SwiftTrade Merchant Support*\n\nYou can manage your business by using the menu or via natural language commands:\n\n• *"sales summary"* - View performance\n• *"my orders"* - Manage latest orders\n• *"check inventory"* - Monitor stock\n• *"update price of [item] to [amount]"*\n• *"add [qty] to [item] stock"*\n\nNeed more help? Visit our web dashboard or contact support at support@swifta.store`,
       );
       return;
     }
@@ -1708,6 +1725,61 @@ export class WhatsAppService {
     }
   }
 
+  /**
+   * Send a WhatsApp message using a pre-approved template.
+   * Required for initiating conversations outside the 24h window.
+   */
+  async sendWhatsAppTemplateMessage(
+    phone: string,
+    templateName: string,
+    parameters: { type: "text"; text: string }[] = [],
+  ): Promise<void> {
+    const url = `https://graph.facebook.com/${META_API_VERSION}/${this.phoneNumberId}/messages`;
+
+    try {
+      const payload = {
+        messaging_product: "whatsapp",
+        to: phone,
+        type: "template",
+        template: {
+          name: templateName,
+          language: { code: "en_US" },
+          components:
+            parameters.length > 0
+              ? [
+                  {
+                    type: "body",
+                    parameters,
+                  },
+                ]
+              : [],
+        },
+      };
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        this.logger.error(
+          `Meta Template API error (${response.status}): ${errorBody}`,
+        );
+      } else {
+        this.logger.log(`WhatsApp Template (${templateName}) sent to ${phone}`);
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to send WhatsApp template ${templateName} to ${phone}: ${error instanceof Error ? error.message : error}`,
+      );
+    }
+  }
+
   // =======================================================================
   // Helpers
   // =======================================================================
@@ -2084,8 +2156,9 @@ export class WhatsAppService {
     productName: string,
   ): Promise<void> {
     try {
-      const link = await this.prisma.whatsAppLink.findFirst({
-        where: { userId: buyerId, isActive: true },
+      // V5: Use WhatsAppBuyerLink for proper buyer resolution
+      const link = await this.prisma.whatsAppBuyerLink.findUnique({
+        where: { buyerId },
       });
 
       if (!link) return;

@@ -1,16 +1,23 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 import { useMerchantDashboard } from "@/hooks/use-merchant-data";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dispatchOrder } from "@/lib/api/order.api";
+import { useToast } from "@/providers/toast-provider";
+import type { Order, RFQ } from "@hardware-os/shared";
 import { DashboardSkeleton } from "@/components/merchant/dashboard/dashboard-skeleton";
 import { KanbanColumn } from "@/components/merchant/dashboard/kanban-column";
 import { KanbanRfqCard } from "@/components/merchant/dashboard/kanban-rfq-card";
 import { KanbanOrderCard } from "@/components/merchant/dashboard/kanban-order-card";
+import { WhatsAppLinkStatus } from "@/components/dashboard/whatsapp-link-status";
 
 export default function MerchantDashboard() {
-  const { rfqs, orders, isLoading, isError, error } = useMerchantDashboard();
+  const { rfqs, orders, user, isLoading, isError, error, refetch } =
+    useMerchantDashboard();
+  const router = useRouter();
+  const toast = useToast();
   const queryClient = useQueryClient();
 
   const dispatchMutation = useMutation({
@@ -19,11 +26,11 @@ export default function MerchantDashboard() {
       queryClient.invalidateQueries({
         queryKey: ["merchant", "orders", "all"],
       });
+      toast.success("Order dispatched! OTP sent to buyer.");
     },
-    onError: (err) => {
+    onError: (err: any) => {
       console.error("Dispatch order failed:", err);
-      // Optional: Add toast notification error here
-      alert("Failed to generate OTP. Please try again.");
+      toast.error(err?.message || "Failed to generate OTP. Please try again.");
     },
   });
 
@@ -43,30 +50,45 @@ export default function MerchantDashboard() {
   // --- Handlers ---
   const handleReviewQuote = (id: string) => {
     // Navigate straight to the RFQ details page
-    window.location.href = `/merchant/rfqs/${id}`;
+    router.push(`/merchant/rfqs/${id}`);
   };
 
   const handleOrderAction = (id: string) => {
-    const order = orders.find((o) => o.id === id);
+    const order = orders.find((o: Order) => o.id === id);
     if (order?.status === "PAID") {
       // Trigger the backend dispatch API immediately
       dispatchMutation.mutate(id);
     } else {
       // For all other statuses, click the card to view the deeper Escrow/Logistics order tracking screen
-      window.location.href = `/merchant/orders/${id}`;
+      router.push(`/merchant/orders/${id}`);
     }
   };
 
   // --- Filtered Arrays ---
-  const pendingRfqs = rfqs.filter((r) => r.status === "OPEN");
-  const awaitingOrders = orders.filter((o) => o.status === "PAID");
-  const transitOrders = orders.filter((o) => o.status === "DISPATCHED");
+  const pendingRfqs = rfqs.filter((r: RFQ) => r.status === "OPEN");
+  const awaitingOrders = orders.filter((o: Order) => o.status === "PAID");
+  const transitOrders = orders.filter((o: Order) => o.status === "DISPATCHED");
   const completedOrders = orders.filter(
-    (o) => o.status === "DELIVERED" || o.status === "COMPLETED",
+    (o: Order) => o.status === "DELIVERED" || o.status === "COMPLETED",
   );
 
   return (
     <div className="h-full bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-4 sm:p-6 lg:p-8 overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
+            Merchant Dashboard
+          </h1>
+          <p className="text-xs text-slate-500 font-medium tracking-tight">
+            Manage your quotes and orders in real-time.
+          </p>
+        </div>
+        <WhatsAppLinkStatus
+          isLinked={!!user?.isWhatsAppLinked}
+          onSuccess={refetch}
+        />
+      </div>
+
       <div className="flex-1 overflow-x-auto no-scrollbar">
         <div className="flex gap-4 sm:gap-6 h-full min-w-max pb-4">
           {/* Column 1: Pending Quotes */}
@@ -75,7 +97,7 @@ export default function MerchantDashboard() {
             count={pendingRfqs.length}
             colorClass="bg-amber-400"
           >
-            {pendingRfqs.map((rfq) => (
+            {pendingRfqs.map((rfq: RFQ) => (
               <KanbanRfqCard
                 key={rfq.id}
                 rfq={rfq}
@@ -97,7 +119,7 @@ export default function MerchantDashboard() {
             count={awaitingOrders.length}
             colorClass="bg-blue-500"
           >
-            {awaitingOrders.map((order) => (
+            {awaitingOrders.map((order: Order) => (
               <KanbanOrderCard
                 key={order.id}
                 order={order}
@@ -119,7 +141,7 @@ export default function MerchantDashboard() {
             count={transitOrders.length}
             colorClass="bg-primary"
           >
-            {transitOrders.map((order) => (
+            {transitOrders.map((order: Order) => (
               <KanbanOrderCard
                 key={order.id}
                 order={order}
@@ -141,7 +163,7 @@ export default function MerchantDashboard() {
             count={completedOrders.length}
             colorClass="bg-emerald-500"
           >
-            {completedOrders.map((order) => (
+            {completedOrders.map((order: Order) => (
               <KanbanOrderCard
                 key={order.id}
                 order={order}

@@ -140,7 +140,19 @@ export class OrderService {
 
     if (!product) throw new NotFoundException("Product not found");
     if (!product.isActive) throw new BadRequestException("Product is inactive");
-    if (product.pricePerUnitKobo === null) {
+
+    // Resolve buyer type to determine price
+    const buyerProfile = await this.prisma.buyerProfile.findUnique({
+      where: { userId: buyerId },
+    });
+    const isConsumer = buyerProfile?.buyerType === "CONSUMER";
+
+    const resolvedPriceKobo =
+      isConsumer && product.retailPriceKobo
+        ? product.retailPriceKobo
+        : (product.wholesalePriceKobo ?? product.pricePerUnitKobo);
+
+    if (resolvedPriceKobo === null) {
       throw new BadRequestException("Product requires an RFQ");
     }
 
@@ -160,7 +172,7 @@ export class OrderService {
 
     // Dynamic platform fee: 1% for DIRECT, 2% for ESCROW
     const platformFeePercentage = paymentMethod === "DIRECT" ? 1 : 2;
-    const subtotalKobo = Number(product.pricePerUnitKobo) * quantity;
+    const subtotalKobo = Number(resolvedPriceKobo) * quantity;
     const platformFeeKobo = Math.floor(
       subtotalKobo * (platformFeePercentage / 100),
     );
@@ -195,7 +207,7 @@ export class OrderService {
           merchantId: product.merchantId,
           productId: product.id,
           quantity,
-          unitPriceKobo: product.pricePerUnitKobo,
+          unitPriceKobo: resolvedPriceKobo,
           deliveryAddress,
           totalAmountKobo,
           deliveryFeeKobo: calculatedDeliveryFeeKobo,

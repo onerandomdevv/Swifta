@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getMyProducts, deleteProduct } from "@/lib/api/product.api";
 import { useToast } from "@/providers/toast-provider";
@@ -11,22 +12,26 @@ import type { Product } from "@hardware-os/shared";
 import { MerchantProductsGrid } from "@/components/merchant/products/merchant-products-grid";
 
 export default function MerchantProductsPage() {
+  const router = useRouter();
   const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
 
-  useEffect(() => {
-    async function fetchProducts() {
-      try {
-        const response = await getMyProducts();
-        setProducts(response.filter((p) => !(p as any).isDeleted));
-      } catch (err: any) {
-        setError(err?.message || "Failed to load products");
-      } finally {
-        setLoading(false);
-      }
+  const fetchProducts = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await getMyProducts();
+      setProducts(response.filter((p) => !(p as any).isDeleted));
+    } catch (err: any) {
+      setError(err?.message || "Failed to load products");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     fetchProducts();
   }, []);
 
@@ -70,7 +75,7 @@ export default function MerchantProductsPage() {
           {error}
         </p>
         <button
-          onClick={() => window.location.reload()}
+          onClick={fetchProducts}
           className="px-6 py-3 bg-navy-dark text-white rounded-2xl text-[10px] font-black uppercase tracking-widest"
         >
           Retry

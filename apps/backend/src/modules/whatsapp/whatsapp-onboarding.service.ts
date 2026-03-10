@@ -391,7 +391,7 @@ export class WhatsAppOnboardingService {
     if (existingUser) {
       await this.interactiveService.sendTextMessage(
         phone,
-        "This email is already registered. If you already have a SwiftTrade account, please visit swifttrade.store to link your WhatsApp number, or use a different email.",
+        "This email is already registered. If you already have a SwiftTrade account, please visit swifta.store to link your WhatsApp number, or use a different email.",
       );
       return;
     }
@@ -486,7 +486,7 @@ export class WhatsAppOnboardingService {
         });
         await this.interactiveService.sendTextMessage(
           phone,
-          "Too many incorrect attempts. Please visit swifttrade.store to register instead, or try again later.",
+          "Too many incorrect attempts. Please visit swifta.store to register instead, or try again later.",
         );
         return;
       }
@@ -533,6 +533,7 @@ export class WhatsAppOnboardingService {
             passwordHash,
             role: "BUYER",
             emailVerified: true,
+            phoneVerified: true,
             buyerProfile: {
               create: {
                 buyerType: data.buyerType || "BUSINESS",
@@ -601,7 +602,7 @@ export class WhatsAppOnboardingService {
         });
         await this.interactiveService.sendTextMessage(
           phone,
-          "This email or phone number is already registered to another account. Please use different details or visit swifttrade.store.",
+          "This email or phone number is already registered to another account. Please use different details or visit swifta.store.",
         );
         return;
       }
@@ -610,7 +611,7 @@ export class WhatsAppOnboardingService {
       );
       await this.interactiveService.sendTextMessage(
         phone,
-        "Something went wrong creating your account. Please try again or visit swifttrade.store to register.",
+        "Something went wrong creating your account. Please try again or visit swifta.store to register.",
       );
     }
   }
@@ -771,7 +772,7 @@ export class WhatsAppOnboardingService {
     if (existingUser) {
       await this.interactiveService.sendTextMessage(
         phone,
-        "This email is already registered. If you already have a SwiftTrade account, please visit swifttrade.store to link your WhatsApp number, or use a different email.",
+        "This email is already registered. If you already have a SwiftTrade account, please visit swifta.store to link your WhatsApp number, or use a different email.",
       );
       return;
     }
@@ -864,7 +865,7 @@ export class WhatsAppOnboardingService {
         });
         await this.interactiveService.sendTextMessage(
           phone,
-          "Too many incorrect attempts. Please visit swifttrade.store to register instead, or try again later.",
+          "Too many incorrect attempts. Please visit swifta.store to register instead, or try again later.",
         );
         return;
       }
@@ -1186,6 +1187,7 @@ export class WhatsAppOnboardingService {
             passwordHash,
             role: "MERCHANT",
             emailVerified: true,
+            phoneVerified: true,
             merchantProfile: {
               create: {
                 businessName: data.businessName,
@@ -1262,7 +1264,7 @@ export class WhatsAppOnboardingService {
         });
         await this.interactiveService.sendTextMessage(
           phone,
-          "This email or phone number is already registered to another account. Please use different details or visit swifttrade.store.",
+          "This email or phone number is already registered to another account. Please use different details or visit swifta.store.",
         );
         return;
       }
@@ -1271,7 +1273,7 @@ export class WhatsAppOnboardingService {
       );
       await this.interactiveService.sendTextMessage(
         phone,
-        "Something went wrong creating your account. Please try again or visit swifttrade.store to register.",
+        "Something went wrong creating your account. Please try again or visit swifta.store to register.",
       );
     }
   }

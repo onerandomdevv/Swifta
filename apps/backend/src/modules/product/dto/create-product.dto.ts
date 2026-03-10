@@ -53,5 +53,9 @@ export class CreateProductDto {
 
   @IsOptional()
   @IsString()
+  wholesalePriceKobo?: string;
+
+  @IsOptional()
+  @IsString()
   retailPriceKobo?: string;
 }
