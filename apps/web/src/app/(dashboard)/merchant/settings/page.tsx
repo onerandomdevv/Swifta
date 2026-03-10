@@ -76,8 +76,8 @@ export default function MerchantSettingsPage() {
         setLastName(user?.lastName || "");
         setEmail(user?.email || "");
         setBankCode(p?.bankCode || "");
-        setBankAccountNo(p?.bankAccountNo || "");
-        setBankAccountName(p?.bankAccountName || "");
+        setBankAccountNo(p?.bankAccountNumber || "");
+        setBankAccountName(p?.settlementAccountName || "");
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -435,10 +435,10 @@ export default function MerchantSettingsPage() {
                 <div className="flex items-center justify-between p-4">
                   <div>
                     <p className="text-sm font-bold uppercase text-slate-900 dark:text-white">
-                      Payments & Payouts
+                      Payout Sent
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Transaction status updates
+                      When funds hit your settlement account
                     </p>
                   </div>
                   <div className="flex items-center gap-1">
