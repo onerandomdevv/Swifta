@@ -46,6 +46,9 @@ export function WhatsAppLinkStatus({
     try {
       await authApi.verifyWhatsAppLink(phone, otp);
       toast.success("WhatsApp linked successfully!");
+      setStep("phone");
+      setPhone("");
+      setOtp("");
       setIsModalOpen(false);
       if (onSuccess) onSuccess();
     } catch (error: any) {

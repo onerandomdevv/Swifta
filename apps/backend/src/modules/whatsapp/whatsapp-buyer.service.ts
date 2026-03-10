@@ -684,7 +684,8 @@ export class WhatsAppBuyerService {
         name, 
         unit,
         price_per_unit_kobo AS "pricePerUnitKobo",
-        retail_price_kobo AS "retailPriceKobo"
+        retail_price_kobo AS "retailPriceKobo",
+        wholesale_price_kobo AS "wholesalePriceKobo"
       FROM products 
       WHERE id::text LIKE ${partialId + "%"}
         AND is_active = true
@@ -705,10 +706,11 @@ export class WhatsAppBuyerService {
       where: { userId: buyerId || "" },
     });
     const isConsumer = profile?.buyerType === "CONSUMER";
-    const unitPriceKobo =
-      isConsumer && (product as any).retailPriceKobo
-        ? (product as any).retailPriceKobo
-        : (product as any).pricePerUnitKobo || 0;
+    const unitPriceKobo = isConsumer
+      ? ((product as any).retailPriceKobo ?? (product as any).pricePerUnitKobo)
+      : ((product as any).wholesalePriceKobo ??
+        (product as any).pricePerUnitKobo ??
+        0);
 
     try {
       const checkoutKey = `wa_pending_checkout_${buyerId}`;

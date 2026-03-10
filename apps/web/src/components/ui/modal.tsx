@@ -58,24 +58,24 @@ export function Modal({
         aria-describedby={description ? descriptionId : undefined}
       >
         <div className="flex items-center justify-between p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
-          {title && (
-            <div>
+          <div>
+            {title && (
               <h3
                 id={titleId}
                 className="text-xl font-black text-navy-dark dark:text-white uppercase tracking-tight leading-none"
               >
                 {title}
               </h3>
-              {description && (
-                <p
-                  id={descriptionId}
-                  className="text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium"
-                >
-                  {description}
-                </p>
-              )}
-            </div>
-          )}
+            )}
+            {description && (
+              <p
+                id={descriptionId}
+                className="text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium"
+              >
+                {description}
+              </p>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="size-10 flex items-center justify-center rounded-full text-slate-400 hover:text-navy-dark dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors active:scale-95"

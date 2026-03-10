@@ -830,7 +830,7 @@ export class AuthService {
         if (supplier) {
           await tx.whatsAppSupplierLink.upsert({
             where: { supplierId: supplier.id },
-            update: { supplierId: supplier.id, isActive: true },
+            update: { phone: normalizedPhone, isActive: true },
             create: {
               phone: normalizedPhone,
               supplierId: supplier.id,

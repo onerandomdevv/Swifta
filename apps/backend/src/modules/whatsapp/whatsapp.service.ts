@@ -203,13 +203,20 @@ export class WhatsAppService {
       this.logger.error(
         `Error processing message from ${phone}: ${error instanceof Error ? error.message : error}`,
       );
-      throw error; // Rethrow to allow BullMQ to retry
-      // Send a friendly error — never leave the user hanging
+
+      // Send a friendly error before rethrowing for BullMQ retry
       try {
-        await this.sendWhatsAppMessage(phone, GENERIC_ERROR);
-      } catch {
-        this.logger.error(`Failed to send error message to ${phone}`);
+        await this.interactiveService.sendTextMessage(
+          phone,
+          "⚠️ We're having trouble processing your request right now. Please wait a moment while we retry, or try sending your message again.",
+        );
+      } catch (sendError) {
+        this.logger.error(
+          `Failed to send fallback error message to ${phone}: ${sendError instanceof Error ? sendError.message : sendError}`,
+        );
       }
+
+      throw error; // Rethrow to allow BullMQ to retry
     }
   }
 
