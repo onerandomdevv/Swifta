@@ -19,12 +19,6 @@ export function MerchantSidebar({
   const navItems = [
     { label: "Dashboard", icon: "dashboard", href: "/merchant/dashboard" },
     { label: "Orders", icon: "list_alt", href: "/merchant/orders" },
-    { label: "Quotes", icon: "request_quote", href: "/merchant/quotes" },
-    {
-      label: "Quote Link",
-      icon: "link",
-      href: "/merchant/quotes/generate",
-    },
     {
       label: "Storefront Preview",
       icon: "storefront",

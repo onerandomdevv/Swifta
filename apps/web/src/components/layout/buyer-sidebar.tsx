@@ -18,7 +18,7 @@ export function BuyerSidebar({
   const navItems = [
     { label: "Dashboard", icon: "dashboard", href: "/buyer/dashboard" },
     { label: "Catalogue", icon: "inventory_2", href: "/buyer/catalogue" },
-    { label: "My RFQs", icon: "request_quote", href: "/buyer/rfqs" },
+    { label: "My Cart", icon: "shopping_cart", href: "/buyer/cart" },
     { label: "Active Orders", icon: "local_shipping", href: "/buyer/orders" },
   ];
 

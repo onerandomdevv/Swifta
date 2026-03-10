@@ -4,12 +4,11 @@ import React from "react";
 import { useBuyerDashboard } from "@/hooks/use-buyer-data";
 import { DashboardSkeleton } from "@/components/buyer/dashboard/dashboard-skeleton";
 import { BuyerSummaryCards } from "@/components/buyer/dashboard/buyer-summary-cards";
-import { PendingQuotes } from "@/components/buyer/dashboard/pending-quotes";
 import { ActiveDeliveries } from "@/components/buyer/dashboard/active-deliveries";
 import { WhatsAppLinkStatus } from "@/components/dashboard/whatsapp-link-status";
 
 export default function BuyerDashboard() {
-  const { rfqs, orders, stats, user, isLoading, isError, error, refetch } =
+  const { orders, stats, user, isLoading, isError, error, refetch } =
     useBuyerDashboard();
 
   if (isLoading) return <DashboardSkeleton />;
@@ -25,9 +24,6 @@ export default function BuyerDashboard() {
     );
   }
 
-  // Pending Quotes (Action Required): An RFQ where the merchant has provided a Quote.
-  const pendingQuotes = rfqs.filter((r) => r.status === "QUOTED");
-
   // Active Orders: Orders that are not COMPLETED or CANCELLED, but have been initialized/paid.
   const activeOrders = orders.filter(
     (o) => o.status !== "COMPLETED" && o.status !== "CANCELLED",
@@ -37,7 +33,6 @@ export default function BuyerDashboard() {
     <>
       <BuyerSummaryCards
         activeOrdersCount={stats?.activeOrdersCount ?? activeOrders.length}
-        pendingQuotesCount={stats?.pendingQuotesCount ?? pendingQuotes.length}
         totalSpendingKobo={stats?.totalSpendingKobo}
         orders={orders}
       />
@@ -48,8 +43,6 @@ export default function BuyerDashboard() {
           onSuccess={refetch}
         />
       </div>
-
-      <PendingQuotes quotes={pendingQuotes} />
 
       <ActiveDeliveries deliveries={activeOrders} />
     </>

@@ -5,14 +5,12 @@ import { Money } from "@/components/ui/money";
 
 interface Props {
   activeOrdersCount: number;
-  pendingQuotesCount: number;
   totalSpendingKobo?: string;
   orders: Order[];
 }
 
 export function BuyerSummaryCards({
   activeOrdersCount,
-  pendingQuotesCount,
   totalSpendingKobo,
   orders,
 }: Props) {
@@ -27,7 +25,7 @@ export function BuyerSummaryCards({
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       <Link
         href="/buyer/orders"
-        className="bg-white dark:bg-slate-800 p-6 border border-slate-200 dark:border-slate-700 rounded-3xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all group"
+        className="bg-white dark:bg-slate-800 p-6 border border-slate-200 dark:border-slate-700 rounded-3xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all group lg:col-span-2"
       >
         <div className="flex justify-between items-start">
           <p className="text-[10px] font-black text-slate-400 dark:text-slate-300 uppercase tracking-[0.2em]">
@@ -42,26 +40,6 @@ export function BuyerSummaryCards({
         </div>
         <p className="text-4xl font-black text-navy-dark dark:text-white mt-4">
           {activeOrdersCount.toString().padStart(2, "0")}
-        </p>
-      </Link>
-
-      <Link
-        href="/buyer/rfqs"
-        className="bg-white dark:bg-slate-800 p-6 border border-slate-200 dark:border-slate-700 rounded-3xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all group"
-      >
-        <div className="flex justify-between items-start">
-          <p className="text-[10px] font-black text-slate-400 dark:text-slate-300 uppercase tracking-[0.2em]">
-            Pending Quotes
-          </p>
-          <span
-            className="material-symbols-outlined text-slate-200 group-hover:text-primary transition-colors"
-            aria-hidden="true"
-          >
-            arrow_forward_ios
-          </span>
-        </div>
-        <p className="text-4xl font-black text-navy-dark dark:text-white mt-4">
-          {pendingQuotesCount.toString().padStart(2, "0")}
         </p>
       </Link>
 

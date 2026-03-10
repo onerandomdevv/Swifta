@@ -86,3 +86,17 @@ export const getDeliveryQuote = async (
     weightKg,
   });
 };
+
+export async function checkoutCart(payload: {
+  deliveryAddress: string;
+  paymentMethod?: "ESCROW" | "DIRECT";
+  deliveryMethod?: "MERCHANT_DELIVERY" | "PLATFORM_LOGISTICS";
+}): Promise<{
+  orderId: string;
+  authorizationUrl: string;
+  totalAmountKobo: number;
+  platformFeeKobo: number;
+  paymentMethod: string;
+}> {
+  return apiClient.post("/orders/checkout/cart", payload);
+}

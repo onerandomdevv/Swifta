@@ -29,6 +29,7 @@ import * as crypto from "crypto";
 import { VerificationService } from "../verification/verification.service";
 import { CreateDirectOrderDto } from "./dto/create-direct-order.dto";
 import { CreateTrackingDto } from "./dto/create-tracking.dto";
+import { CheckoutCartDto } from "./dto/checkout-cart.dto";
 
 @Injectable()
 export class OrderService {
@@ -286,6 +287,184 @@ export class OrderService {
       authorizationUrl: paymentData.authorization_url,
       totalAmountKobo: Number(totalAmountKobo),
       platformFeeKobo,
+      paymentMethod,
+    };
+  }
+
+  // ──────────────────────────────────────────────
+  //  CHECKOUT CART (B2C MULTI-ITEM CHECKOUT)
+  // ──────────────────────────────────────────────
+
+  async checkoutCart(buyerId: string, dto: CheckoutCartDto) {
+    const {
+      cartItemIds,
+      deliveryAddress,
+      deliveryMethod = "MERCHANT_DELIVERY",
+      paymentMethod: requestedMethod,
+    } = dto;
+
+    if (!cartItemIds || cartItemIds.length === 0) {
+      throw new BadRequestException("No cart items provided for checkout.");
+    }
+
+    // Fetch the cart items with products and ensuring they belong to the buyer
+    const items = await this.prisma.cartItem.findMany({
+      where: {
+        id: { in: cartItemIds },
+        buyerId: buyerId,
+      },
+      include: {
+        product: {
+          include: { merchantProfile: true, productStockCache: true },
+        },
+      },
+    });
+
+    if (items.length !== cartItemIds.length) {
+      throw new BadRequestException(
+        "One or more cart items are invalid or do not belong to you.",
+      );
+    }
+
+    // Ensure all items are from the SAME MERCHANT because Escrow Payouts are 1-to-1 Order-to-Merchant
+    const merchantIds = new Set(items.map((item) => item.product.merchantId));
+    if (merchantIds.size > 1) {
+      throw new BadRequestException(
+        "Cart checkout is restricted to one merchant per order. Please split your checkout.",
+      );
+    }
+
+    const merchantId = items[0].product.merchantId;
+    const merchantProfile = items[0].product.merchantProfile;
+    if (!merchantProfile) {
+      throw new BadRequestException(
+        "Merchant profile not found for these items.",
+      );
+    }
+
+    const buyerProfile = await this.prisma.buyerProfile.findUnique({
+      where: { userId: buyerId },
+    });
+    const isConsumer = buyerProfile?.buyerType === "CONSUMER";
+
+    let subtotalKobo = 0n;
+    const jsonItems = [];
+
+    // Validations and calculations
+    for (const item of items) {
+      const product = item.product;
+      if (!product.isActive || product.deletedAt) {
+        throw new BadRequestException(
+          `Product ${product.name} is no longer available.`,
+        );
+      }
+      if (
+        !product.productStockCache ||
+        product.productStockCache.stock < item.quantity
+      ) {
+        throw new BadRequestException(
+          `Insufficient stock for ${product.name}.`,
+        );
+      }
+
+      const resolvedPriceKobo =
+        isConsumer && product.retailPriceKobo
+          ? BigInt(product.retailPriceKobo)
+          : BigInt(
+              product.wholesalePriceKobo ?? product.pricePerUnitKobo ?? 0n,
+            );
+
+      if (resolvedPriceKobo === 0n) {
+        throw new BadRequestException(
+          `Product ${product.name} requires an RFQ.`,
+        );
+      }
+
+      subtotalKobo += resolvedPriceKobo * BigInt(item.quantity);
+
+      jsonItems.push({
+        productId: product.id,
+        quantity: item.quantity,
+        unitPriceKobo: resolvedPriceKobo.toString(),
+        name: product.name,
+      });
+    }
+
+    // Determine payment method and platform fee
+    const merchantTier = merchantProfile.verificationTier;
+    const isVerifiedMerchant =
+      merchantTier === "VERIFIED" || merchantTier === "TRUSTED";
+    const paymentMethod =
+      requestedMethod === "DIRECT" && isVerifiedMerchant ? "DIRECT" : "ESCROW";
+    const platformFeePercentage = paymentMethod === "DIRECT" ? 1 : 2;
+    const platformFeeKobo = BigInt(
+      Math.floor(Number(subtotalKobo) * (platformFeePercentage / 100)),
+    );
+
+    let calculatedDeliveryFeeKobo = 0n;
+    if (
+      deliveryMethod === "PLATFORM_LOGISTICS" &&
+      merchantProfile.businessAddress
+    ) {
+      // Very rough estimate of 10kg per cart item total for now
+      const estimatedWeightKg = 10 * items.length;
+      try {
+        const quote = await this.logisticsService.getQuote(
+          merchantProfile.businessAddress,
+          deliveryAddress,
+          estimatedWeightKg,
+        );
+        calculatedDeliveryFeeKobo = BigInt(quote.costKobo);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.logger.warn(`Logistics quote failed: ${msg}`);
+      }
+    }
+
+    const totalAmountKobo =
+      subtotalKobo + platformFeeKobo + calculatedDeliveryFeeKobo;
+    const idempotencyKey = `cart-checkout-${buyerId}-${Date.now()}`;
+
+    // Create the order
+    const order = await this.prisma.$transaction(async (tx) => {
+      const newOrder = await tx.order.create({
+        data: {
+          buyerId,
+          merchantId,
+          deliveryAddress,
+          totalAmountKobo,
+          deliveryFeeKobo: calculatedDeliveryFeeKobo,
+          currency: "NGN",
+          status: OrderStatus.PENDING_PAYMENT,
+          paymentMethod,
+          deliveryMethod,
+          items: jsonItems, // Save the snapshot of items here
+          quoteId: null,
+          idempotencyKey,
+          payoutStatus: "PENDING",
+        },
+      });
+
+      // Clear the checked-out cart items
+      await tx.cartItem.deleteMany({
+        where: { id: { in: cartItemIds } },
+      });
+
+      return newOrder;
+    });
+
+    // Generate Payment Link
+    const paymentData = await this.paymentService.initialize(
+      buyerId,
+      { orderId: order.id },
+      `init-cart-${order.id}`,
+    );
+
+    return {
+      orderId: order.id,
+      authorizationUrl: paymentData.authorization_url,
+      totalAmountKobo: Number(totalAmountKobo),
+      platformFeeKobo: Number(platformFeeKobo),
       paymentMethod,
     };
   }

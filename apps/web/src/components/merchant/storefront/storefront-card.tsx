@@ -43,7 +43,7 @@ export function StorefrontCard({ product }: StorefrontCardProps) {
           className="w-full py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-xl text-[11px] font-black uppercase tracking-widest cursor-not-allowed mb-1"
           disabled
         >
-          Request Quote
+          Add to Cart
         </button>
         <p className="text-[9px] text-center text-slate-400 italic">
           Visible to buyers only
