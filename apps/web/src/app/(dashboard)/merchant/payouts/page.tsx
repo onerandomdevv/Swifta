@@ -155,12 +155,15 @@ export default function MerchantPayoutsPage() {
     bank.name.toLowerCase().includes(bankSearchQuery.toLowerCase()),
   );
 
-  const hasBankInfo = !!(profile as any)?.bankAccountNo;
+  const hasBankInfo = !!(profile as any)?.bankAccountNumber;
   const bankName = resolveBankName((profile as any)?.bankCode, banksList);
-  const accountNo = maskAccountNo((profile as any)?.bankAccountNo);
-  const accountName = (profile as any)?.bankAccountName || "Not configured";
+  const accountNo = maskAccountNo((profile as any)?.bankAccountNumber);
+  const accountName =
+    (profile as any)?.settlementAccountName || "Not configured";
   const businessName = (profile as any)?.businessName || "Merchant";
-  const isVerified = (profile as any)?.verification === "VERIFIED";
+  const isVerified =
+    (profile as any)?.verificationTier === "VERIFIED" ||
+    (profile as any)?.verificationTier === "TRUSTED";
 
   const updateBankMutation = useMutation({
     mutationFn: (data: { bankCode: string; bankAccountNo: string }) =>

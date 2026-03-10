@@ -51,7 +51,8 @@ export default function WholesaleCataloguePage() {
         console.error(err);
         toast.error("Failed to check Trade Financing eligibility.");
       });
-  }, [toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const orderMutation = useMutation({
     mutationFn: createWholesaleOrder,
