@@ -43,7 +43,10 @@ export class WhatsAppLoggerService {
     await this.redis.hIncrBy(key, event, 1);
   }
 
-  private maskPhone(phone: string): string {
+  private maskPhone(phone: any): string {
+    if (phone == null || typeof phone !== "string") {
+      return "****";
+    }
     if (phone.length <= 4) return "****";
     return `****${phone.slice(-4)}`;
   }
