@@ -60,6 +60,15 @@ export class ProductService {
         ...rest,
         stockCache: productStockCache,
         isDeleted: product.deletedAt !== null,
+        pricePerUnitKobo: product.pricePerUnitKobo
+          ? product.pricePerUnitKobo.toString()
+          : null,
+        wholesalePriceKobo: product.wholesalePriceKobo
+          ? product.wholesalePriceKobo.toString()
+          : null,
+        retailPriceKobo: product.retailPriceKobo
+          ? product.retailPriceKobo.toString()
+          : null,
       };
     });
 
@@ -71,7 +80,7 @@ export class ProductService {
     page: number,
     limit: number,
   ): Promise<PaginatedResponse<Product>> {
-    return paginate(
+    const response = await paginate(
       this.prisma.product,
       { page, limit },
       {
@@ -83,6 +92,21 @@ export class ProductService {
         orderBy: { createdAt: "desc" },
       },
     );
+
+    response.data = response.data.map((product: any) => ({
+      ...product,
+      pricePerUnitKobo: product.pricePerUnitKobo
+        ? product.pricePerUnitKobo.toString()
+        : null,
+      wholesalePriceKobo: product.wholesalePriceKobo
+        ? product.wholesalePriceKobo.toString()
+        : null,
+      retailPriceKobo: product.retailPriceKobo
+        ? product.retailPriceKobo.toString()
+        : null,
+    }));
+
+    return response;
   }
 
   async catalogue(

@@ -16,8 +16,8 @@ export interface MerchantProfile {
   distributionCenter?: string;
   warehouseCapacity?: string;
   bankCode?: string;
-  bankAccountNo?: string;
-  bankAccountName?: string;
+  bankAccountNumber?: string;
+  settlementAccountName?: string;
   verificationTier: VerificationTier;
   verifiedAt?: Date;
   onboardingStep: number;
@@ -49,6 +49,6 @@ export interface UpdateMerchantDto {
   distributionCenter?: string;
   warehouseCapacity?: string;
   bankCode?: string;
-  bankAccountNo?: string;
-  bankAccountName?: string;
+  bankAccountNumber?: string;
+  settlementAccountName?: string;
 }

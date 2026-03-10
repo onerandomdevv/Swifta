@@ -12,8 +12,12 @@ import {
 
 export default function MerchantVerificationPage() {
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<Awaited<ReturnType<typeof getProfile>> | null>(null);
-  const [verificationData, setVerificationData] = useState<Awaited<ReturnType<typeof getVerificationStatus>> | null>(null);
+  const [profile, setProfile] = useState<Awaited<
+    ReturnType<typeof getProfile>
+  > | null>(null);
+  const [verificationData, setVerificationData] = useState<Awaited<
+    ReturnType<typeof getVerificationStatus>
+  > | null>(null);
 
   // Form State
   const [idType, setIdType] = useState("NIN");
@@ -40,7 +44,9 @@ export default function MerchantVerificationPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!idUrl) {
-      setError("Please provide a valid Government ID Link (Cloudinary expected)");
+      setError(
+        "Please provide a valid Government ID Link (Cloudinary expected)",
+      );
       return;
     }
 
@@ -56,7 +62,9 @@ export default function MerchantVerificationPage() {
       setVerificationData(newStatus);
       setSubmitting(false);
     } catch (err: any) {
-      setError(err?.error || err?.message || "Failed to submit verification request");
+      setError(
+        err?.error || err?.message || "Failed to submit verification request",
+      );
       setSubmitting(false);
     }
   };
@@ -75,18 +83,14 @@ export default function MerchantVerificationPage() {
     );
   }
 
-  const {
-    businessName,
-    cacNumber,
-    bankAccountNo,
-    onboardingStep,
-  } = profile || {};
+  const { businessName, cacNumber, bankAccountNumber, onboardingStep } =
+    profile || {};
 
   const tier = verificationData?.tier || "UNVERIFIED";
   const pendingRequest = verificationData?.pendingRequest;
 
   const isIncomplete =
-    !profile || (onboardingStep ?? 0) < 5 || !cacNumber || !bankAccountNo;
+    !profile || (onboardingStep ?? 0) < 5 || !cacNumber || !bankAccountNumber;
 
   const getTierColor = (t: string) => {
     switch (t) {
@@ -110,7 +114,8 @@ export default function MerchantVerificationPage() {
             Trust & Verification
           </h1>
           <p className="text-slate-500 font-bold text-sm tracking-wide">
-            Secure your merchant account to enable Direct Payments and higher trust.
+            Secure your merchant account to enable Direct Payments and higher
+            trust.
           </p>
         </div>
         <div className="flex flex-col items-end gap-2">
@@ -119,7 +124,7 @@ export default function MerchantVerificationPage() {
           </p>
           <div
             className={`px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-dashed ${getTierColor(
-              tier
+              tier,
             )}`}
           >
             {tier}
@@ -138,7 +143,8 @@ export default function MerchantVerificationPage() {
             </h2>
             <p className="text-slate-500 text-sm max-w-lg mx-auto font-medium leading-relaxed">
               You must complete your business profile, including bank details
-              and KYC data, before your account can submit documents for verification.
+              and KYC data, before your account can submit documents for
+              verification.
             </p>
           </div>
           <Link
@@ -153,30 +159,35 @@ export default function MerchantVerificationPage() {
           {tier === "VERIFIED" || tier === "TRUSTED" ? (
             <div className="bg-emerald-50 dark:bg-emerald-900/10 border-2 border-emerald-100 dark:border-emerald-900/20 rounded-[2rem] p-8 text-center space-y-6">
               <div className="size-16 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-500">
-                <span className="material-symbols-outlined text-3xl">verified</span>
+                <span className="material-symbols-outlined text-3xl">
+                  verified
+                </span>
               </div>
               <div className="space-y-2">
                 <h2 className="text-2xl font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-tight">
                   You are {tier}
                 </h2>
                 <p className="text-emerald-600 dark:text-emerald-500 text-sm max-w-lg mx-auto font-medium leading-relaxed">
-                  Congratulations! Your documents have been approved and you've met the platform requirements.
-                  You can now accept Direct Payments from buyers.
+                  Congratulations! Your documents have been approved and you've
+                  met the platform requirements. You can now accept Direct
+                  Payments from buyers.
                 </p>
               </div>
             </div>
           ) : pendingRequest ? (
             <div className="bg-blue-50 dark:bg-blue-900/10 border-2 border-blue-100 dark:border-blue-900/20 rounded-[2rem] p-8 text-center space-y-6">
               <div className="size-16 mx-auto rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-500">
-                <span className="material-symbols-outlined text-3xl">hourglass_empty</span>
+                <span className="material-symbols-outlined text-3xl">
+                  hourglass_empty
+                </span>
               </div>
               <div className="space-y-2">
                 <h2 className="text-xl font-black text-blue-800 dark:text-blue-400 uppercase tracking-tight">
                   Verification Pending
                 </h2>
                 <p className="text-blue-600 dark:text-blue-500 text-sm max-w-lg mx-auto font-medium leading-relaxed">
-                  We have received your verification documents. Our team is currently reviewing them. 
-                  This usually takes 24-48 hours.
+                  We have received your verification documents. Our team is
+                  currently reviewing them. This usually takes 24-48 hours.
                 </p>
               </div>
             </div>
@@ -207,7 +218,9 @@ export default function MerchantVerificationPage() {
                       value={idType}
                       onChange={(e) => setIdType(e.target.value)}
                     >
-                      <option value="NIN">National Identity Number (NIN)</option>
+                      <option value="NIN">
+                        National Identity Number (NIN)
+                      </option>
                       <option value="VOTERS_CARD">Voter's Card</option>
                       <option value="PASSPORT">International Passport</option>
                     </select>
