@@ -6,15 +6,14 @@ import { useMerchantDashboard } from "@/hooks/use-merchant-data";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dispatchOrder } from "@/lib/api/order.api";
 import { useToast } from "@/providers/toast-provider";
-import type { Order, RFQ } from "@hardware-os/shared";
+import type { Order } from "@hardware-os/shared";
 import { DashboardSkeleton } from "@/components/merchant/dashboard/dashboard-skeleton";
 import { KanbanColumn } from "@/components/merchant/dashboard/kanban-column";
-import { KanbanRfqCard } from "@/components/merchant/dashboard/kanban-rfq-card";
 import { KanbanOrderCard } from "@/components/merchant/dashboard/kanban-order-card";
 import { WhatsAppLinkStatus } from "@/components/dashboard/whatsapp-link-status";
 
 export default function MerchantDashboard() {
-  const { rfqs, orders, user, isLoading, isError, error, refetch } =
+  const { orders, user, isLoading, isError, error, refetch } =
     useMerchantDashboard();
   const router = useRouter();
   const toast = useToast();
@@ -48,10 +47,6 @@ export default function MerchantDashboard() {
   }
 
   // --- Handlers ---
-  const handleReviewQuote = (id: string) => {
-    // Navigate straight to the RFQ details page
-    router.push(`/merchant/rfqs/${id}`);
-  };
 
   const handleOrderAction = (id: string) => {
     const order = orders.find((o: Order) => o.id === id);
@@ -65,7 +60,7 @@ export default function MerchantDashboard() {
   };
 
   // --- Filtered Arrays ---
-  const pendingRfqs = rfqs.filter((r: RFQ) => r.status === "OPEN");
+  const newOrders = orders.filter((o: Order) => o.status === "PENDING_PAYMENT");
   const awaitingOrders = orders.filter((o: Order) => o.status === "PAID");
   const transitOrders = orders.filter((o: Order) => o.status === "DISPATCHED");
   const completedOrders = orders.filter(
@@ -80,7 +75,7 @@ export default function MerchantDashboard() {
             Merchant Dashboard
           </h1>
           <p className="text-xs text-slate-500 font-medium tracking-tight">
-            Manage your quotes and orders in real-time.
+            Manage your orders in real-time.
           </p>
         </div>
         <WhatsAppLinkStatus
@@ -91,23 +86,23 @@ export default function MerchantDashboard() {
 
       <div className="flex-1 overflow-x-auto no-scrollbar">
         <div className="flex gap-4 sm:gap-6 h-full min-w-max pb-4">
-          {/* Column 1: Pending Quotes */}
+          {/* Column 1: New Orders (Pending Payment) */}
           <KanbanColumn
-            title="Pending Quotes"
-            count={pendingRfqs.length}
+            title="New Orders"
+            count={newOrders.length}
             colorClass="bg-amber-400"
           >
-            {pendingRfqs.map((rfq: RFQ) => (
-              <KanbanRfqCard
-                key={rfq.id}
-                rfq={rfq}
-                onReview={handleReviewQuote}
+            {newOrders.map((order: Order) => (
+              <KanbanOrderCard
+                key={order.id}
+                order={order}
+                onAction={handleOrderAction}
               />
             ))}
-            {pendingRfqs.length === 0 && (
+            {newOrders.length === 0 && (
               <div className="flex flex-col items-center justify-center h-32 text-slate-400 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg">
                 <span className="text-[10px] font-bold uppercase tracking-widest">
-                  Inbox Zero
+                  No new orders
                 </span>
               </div>
             )}

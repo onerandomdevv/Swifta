@@ -38,6 +38,7 @@ import { SupplierModule } from "./modules/supplier/supplier.module";
 import { CategoryModule } from "./modules/category/category.module";
 import { ReviewModule } from "./modules/review/review.module";
 import { BuyerModule } from "./modules/buyer/buyer.module";
+import { CartModule } from "./modules/cart/cart.module";
 
 import { LoggerModule } from "./common/logger/logger.module";
 
@@ -158,6 +159,7 @@ function sanitizeRedisUrl(url: string | undefined): string | undefined {
     CategoryModule,
     ReviewModule,
     BuyerModule,
+    CartModule,
   ],
   controllers: [],
   providers: [

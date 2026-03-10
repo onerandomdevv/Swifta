@@ -134,19 +134,31 @@ export function CatalogueGrid({
                     ? p.retailPriceKobo
                     : p.pricePerUnitKobo || (p as any).retailPriceKobo;
                 return priceKobo ? (
-                  <Link
-                    href={`/buyer/checkout/${p.id}`}
-                    className="w-full bg-navy-dark hover:bg-navy text-white text-[10px] sm:text-xs font-black py-2.5 rounded-lg uppercase tracking-widest text-center block transition-all active:scale-95 shadow-sm"
+                  <button
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      try {
+                        const { addToCart } =
+                          await import("@/lib/api/cart.api");
+                        const { toast } = await import("sonner");
+                        await addToCart(p.id, 1);
+                        toast.success(`${p.name} added to cart`);
+                      } catch (err: any) {
+                        const { toast } = await import("sonner");
+                        toast.error(err.message || "Failed to add to cart");
+                      }
+                    }}
+                    className="w-full bg-primary hover:bg-orange-600 text-white text-[10px] sm:text-xs font-black py-2.5 rounded-lg uppercase tracking-widest text-center block transition-all active:scale-95 shadow-sm"
                   >
-                    Buy
-                  </Link>
+                    Add to Cart
+                  </button>
                 ) : (
-                  <Link
-                    href={`/buyer/rfqs/new?productId=${p.id}`}
-                    className="w-full bg-primary text-white text-[10px] sm:text-xs font-black py-2.5 rounded-lg uppercase tracking-widest hover:bg-orange-600 transition-all text-center block active:scale-95 shadow-lg shadow-primary/20"
+                  <button
+                    disabled
+                    className="w-full bg-slate-100 dark:bg-slate-800 text-slate-400 text-[10px] sm:text-xs font-black py-2.5 rounded-lg uppercase tracking-widest text-center block cursor-not-allowed"
                   >
-                    Quote
-                  </Link>
+                    Unavailable
+                  </button>
                 );
               })()}
             </div>

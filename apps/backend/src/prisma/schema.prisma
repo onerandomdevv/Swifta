@@ -142,6 +142,7 @@ model Order {
   disputeWindowEndsAt DateTime?          @map("dispute_window_ends_at")
   supplierId          String?            @map("supplier_id") @db.Uuid
   supplierProductId   String?            @map("supplier_product_id") @db.Uuid
+  items               Json?              @map("items") // Store snapshot of cart items [ {productId, quantity, unitPriceKobo} ]
   creditApplication   CreditApplication?
   deliveryBooking     DeliveryBooking?
   orderEvents         OrderEvent[]
@@ -257,32 +258,32 @@ model ProductStockCache {
 }
 
 model Product {
-  id                String             @id @default(uuid()) @db.Uuid
-  merchantId        String             @map("merchant_id") @db.Uuid
-  name              String
-  description       String?
-  unit              String
-  categoryTag       String             @map("category_tag")
-  minOrderQuantity  Int                @default(1) @map("min_order_quantity")
-  isActive          Boolean            @default(true) @map("is_active")
-  createdAt         DateTime           @default(now()) @map("created_at")
-  updatedAt         DateTime           @default(now()) @updatedAt @map("updated_at")
-  deletedAt         DateTime?          @map("deleted_at")
-  imageUrl          String?            @map("image_url")
-  categoryId        String             @map("category_id") @db.Uuid // Updated in V5 (Mandatory)
-  category          Category           @relation(fields: [categoryId], references: [id])
-  pricePerUnitKobo  BigInt?            @map("price_per_unit_kobo")
-  wholesalePriceKobo BigInt?           @map("wholesale_price_kobo") // Added in V5 for business pricing
-  retailPriceKobo   BigInt?            @map("retail_price_kobo") // Added in V5 for consumer expansion
+  id                       String             @id @default(uuid()) @db.Uuid
+  merchantId               String             @map("merchant_id") @db.Uuid
+  name                     String
+  description              String?
+  unit                     String
+  categoryTag              String             @map("category_tag")
+  minOrderQuantity         Int                @default(1) @map("min_order_quantity")
+  isActive                 Boolean            @default(true) @map("is_active")
+  createdAt                DateTime           @default(now()) @map("created_at")
+  updatedAt                DateTime           @default(now()) @updatedAt @map("updated_at")
+  deletedAt                DateTime?          @map("deleted_at")
+  imageUrl                 String?            @map("image_url")
+  categoryId               String             @map("category_id") @db.Uuid // Updated in V5 (Mandatory)
+  category                 Category           @relation(fields: [categoryId], references: [id])
+  pricePerUnitKobo         BigInt?            @map("price_per_unit_kobo")
+  wholesalePriceKobo       BigInt?            @map("wholesale_price_kobo") // Added in V5 for business pricing
+  retailPriceKobo          BigInt?            @map("retail_price_kobo") // Added in V5 for consumer expansion
   minOrderQuantityConsumer Int                @default(1) @map("min_order_quantity_consumer") // Added in V5 for consumer expansion
-  attributes        Json?              @default("{}") // Added in V5 for category-specific attributes (e.g., size, color, specs)
-  warehouseLocation String?            @map("warehouse_location")
-  cartItems         CartItem[]
-  inventoryEvents   InventoryEvent[]
-  orders            Order[]
-  productStockCache ProductStockCache?
-  merchantProfile   MerchantProfile    @relation(fields: [merchantId], references: [id])
-  rfqs              Rfq[]
+  attributes               Json?              @default("{}") // Added in V5 for category-specific attributes (e.g., size, color, specs)
+  warehouseLocation        String?            @map("warehouse_location")
+  cartItems                CartItem[]
+  inventoryEvents          InventoryEvent[]
+  orders                   Order[]
+  productStockCache        ProductStockCache?
+  merchantProfile          MerchantProfile    @relation(fields: [merchantId], references: [id])
+  rfqs                     Rfq[]
 
   @@index([categoryTag])
   @@index([merchantId])
@@ -290,47 +291,55 @@ model Product {
 }
 
 model Quote {
-  id              String          @id @default(uuid()) @db.Uuid
-  rfqId           String          @map("rfq_id") @db.Uuid
-  merchantId      String          @map("merchant_id") @db.Uuid
-  unitPriceKobo   BigInt          @map("unit_price_kobo")
-  totalPriceKobo  BigInt          @map("total_price_kobo")
-  deliveryFeeKobo BigInt          @default(0) @map("delivery_fee_kobo")
-  currency        String          @default("NGN")
+  id              String           @id @default(uuid()) @db.Uuid
+  rfqId           String           @map("rfq_id") @db.Uuid
+  merchantId      String?          @map("merchant_id") @db.Uuid
+  supplierId      String?          @map("supplier_id") @db.Uuid
+  unitPriceKobo   BigInt           @map("unit_price_kobo")
+  totalPriceKobo  BigInt           @map("total_price_kobo")
+  deliveryFeeKobo BigInt           @default(0) @map("delivery_fee_kobo")
+  currency        String           @default("NGN")
   notes           String?
-  validUntil      DateTime        @map("valid_until")
-  status          QuoteStatus     @default(PENDING)
-  createdAt       DateTime        @default(now()) @map("created_at")
-  updatedAt       DateTime        @default(now()) @updatedAt @map("updated_at")
+  validUntil      DateTime         @map("valid_until")
+  status          QuoteStatus      @default(PENDING)
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @default(now()) @updatedAt @map("updated_at")
   order           Order?
-  merchantProfile MerchantProfile @relation(fields: [merchantId], references: [id])
-  rfq             Rfq             @relation(fields: [rfqId], references: [id])
+  merchantProfile MerchantProfile? @relation(fields: [merchantId], references: [id])
+  supplierProfile SupplierProfile? @relation(fields: [supplierId], references: [id])
+  rfq             Rfq              @relation(fields: [rfqId], references: [id])
 
   @@index([merchantId])
+  @@index([supplierId])
   @@index([rfqId])
   @@map("quotes")
 }
 
 model Rfq {
-  id                  String          @id @default(uuid()) @db.Uuid
-  buyerId             String          @map("buyer_id") @db.Uuid
-  productId           String?         @map("product_id") @db.Uuid
-  merchantId          String          @map("merchant_id") @db.Uuid
+  id                  String           @id @default(uuid()) @db.Uuid
+  buyerId             String           @map("buyer_id") @db.Uuid
+  productId           String?          @map("product_id") @db.Uuid
+  supplierProductId   String?          @map("supplier_product_id") @db.Uuid
+  merchantId          String?          @map("merchant_id") @db.Uuid
+  supplierId          String?          @map("supplier_id") @db.Uuid
   quantity            Int
-  deliveryAddress     String          @map("delivery_address")
+  deliveryAddress     String           @map("delivery_address")
   notes               String?
-  status              RFQStatus       @default(OPEN)
-  expiresAt           DateTime        @map("expires_at")
-  createdAt           DateTime        @default(now()) @map("created_at")
-  updatedAt           DateTime        @default(now()) @updatedAt @map("updated_at")
-  unlistedItemDetails Json?           @map("unlisted_item_details")
+  status              RFQStatus        @default(OPEN)
+  expiresAt           DateTime         @map("expires_at")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @default(now()) @updatedAt @map("updated_at")
+  unlistedItemDetails Json?            @map("unlisted_item_details")
   quotes              Quote[]
-  user                User            @relation(fields: [buyerId], references: [id], onDelete: Cascade)
-  merchantProfile     MerchantProfile @relation(fields: [merchantId], references: [id])
-  product             Product?        @relation(fields: [productId], references: [id])
+  user                User             @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  merchantProfile     MerchantProfile? @relation(fields: [merchantId], references: [id])
+  supplierProfile     SupplierProfile? @relation(fields: [supplierId], references: [id])
+  product             Product?         @relation(fields: [productId], references: [id])
+  supplierProduct     SupplierProduct? @relation(fields: [supplierProductId], references: [id])
 
   @@index([buyerId])
   @@index([merchantId])
+  @@index([supplierId])
   @@index([status])
   @@map("rfqs")
 }
@@ -557,17 +566,19 @@ model DeliveryBooking {
 }
 
 model SupplierProfile {
-  id             String            @id @default(uuid()) @db.Uuid
-  userId         String            @unique @map("user_id") @db.Uuid
-  companyName    String            @map("company_name")
-  companyAddress String            @map("company_address")
-  cacNumber      String?           @map("cac_number")
-  createdAt      DateTime          @default(now()) @map("created_at")
-  isVerified     Boolean           @default(false) @map("is_verified")
-  orders         Order[]
-  products       SupplierProduct[]
-  user           User              @relation(fields: [userId], references: [id])
+  id                   String                @id @default(uuid()) @db.Uuid
+  userId               String                @unique @map("user_id") @db.Uuid
+  companyName          String                @map("company_name")
+  companyAddress       String                @map("company_address")
+  cacNumber            String?               @map("cac_number")
+  createdAt            DateTime              @default(now()) @map("created_at")
+  isVerified           Boolean               @default(false) @map("is_verified")
+  orders               Order[]
+  products             SupplierProduct[]
+  user                 User                  @relation(fields: [userId], references: [id])
   whatsappSupplierLink WhatsAppSupplierLink?
+  Quote                Quote[]
+  Rfq                  Rfq[]
 
   @@map("supplier_profiles")
 }
@@ -585,6 +596,7 @@ model SupplierProduct {
   isActive           Boolean         @default(true) @map("is_active")
   orders             Order[]
   supplier           SupplierProfile @relation(fields: [supplierId], references: [id])
+  Rfq                Rfq[]
 
   @@map("supplier_products")
 }
@@ -757,57 +769,60 @@ enum DeliveryStatus {
 // ─── V5 Models ───────────────────────────────────────────────────────────────
 
 model Category {
-  id          String     @id @default(uuid()) @db.Uuid
-  name        String     @unique
-  slug        String     @unique
-  parentId    String?    @map("parent_id") @db.Uuid
-  icon        String?
-  attributes  Json?      @default("[]") // List of attribute definitions
-  isActive    Boolean    @default(true)
-  sortOrder   Int        @default(0)
-  createdAt   DateTime   @default(now()) @map("created_at")
-  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id])
-  children    Category[] @relation("CategoryTree")
-  products    Product[]
+  id         String     @id @default(uuid()) @db.Uuid
+  name       String     @unique
+  slug       String     @unique
+  parentId   String?    @map("parent_id") @db.Uuid
+  icon       String?
+  attributes Json?      @default("[]") // List of attribute definitions
+  isActive   Boolean    @default(true)
+  sortOrder  Int        @default(0)
+  createdAt  DateTime   @default(now()) @map("created_at")
+  parent     Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children   Category[] @relation("CategoryTree")
+  products   Product[]
+
   @@map("categories")
 }
 
 model Review {
-  id          String   @id @default(uuid()) @db.Uuid
-  orderId     String   @unique @map("order_id") @db.Uuid
-  buyerId     String   @map("buyer_id") @db.Uuid
-  merchantId  String   @map("merchant_id") @db.Uuid
-  rating      Int      // 1-5 (CHECK constraint enforced in DB)
-  comment     String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  order       Order    @relation(fields: [orderId], references: [id])
-  buyer       BuyerProfile @relation(fields: [buyerId], references: [userId])
-  merchant    MerchantProfile @relation(fields: [merchantId], references: [id])
+  id         String          @id @default(uuid()) @db.Uuid
+  orderId    String          @unique @map("order_id") @db.Uuid
+  buyerId    String          @map("buyer_id") @db.Uuid
+  merchantId String          @map("merchant_id") @db.Uuid
+  rating     Int // 1-5 (CHECK constraint enforced in DB)
+  comment    String?
+  createdAt  DateTime        @default(now()) @map("created_at")
+  order      Order           @relation(fields: [orderId], references: [id])
+  buyer      BuyerProfile    @relation(fields: [buyerId], references: [userId])
+  merchant   MerchantProfile @relation(fields: [merchantId], references: [id])
+
   @@map("reviews")
 }
 
 model OnboardingSession {
   id        String   @id @default(uuid()) @db.Uuid
   phone     String   @unique
-  userType  String   // "BUYER" or "MERCHANT"
-  step      String   // current onboarding step
-  data      Json     @default("{}")  // collected data so far
+  userType  String // "BUYER" or "MERCHANT"
+  step      String // current onboarding step
+  data      Json     @default("{}") // collected data so far
   expiresAt DateTime @map("expires_at")
   createdAt DateTime @default(now()) @map("created_at")
+
   @@map("onboarding_sessions")
 }
 
 model BuyerProfile {
-  id               String            @id @default(uuid()) @db.Uuid
-  userId           String            @unique @map("user_id") @db.Uuid
-  businessName     String?           @map("business_name")
-  businessAddress  String?           @map("business_address")
-  buyerType        String            @default("BUSINESS") @map("buyer_type") // "BUSINESS" or "CONSUMER"
-  onboardingStep   Int               @default(1) @map("onboarding_step")
-  createdAt        DateTime          @default(now()) @map("created_at")
-  updatedAt        DateTime          @default(now()) @updatedAt @map("updated_at")
-  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  reviews          Review[]
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @unique @map("user_id") @db.Uuid
+  businessName    String?  @map("business_name")
+  businessAddress String?  @map("business_address")
+  buyerType       String   @default("BUSINESS") @map("buyer_type") // "BUSINESS" or "CONSUMER"
+  onboardingStep  Int      @default(1) @map("onboarding_step")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviews         Review[]
 
   @@map("buyer_profiles")
 }
