@@ -9,12 +9,22 @@ export class RedisService {
     return this.redis.get(key);
   }
 
-  async set(key: string, value: string, ttl?: number): Promise<void> {
+  async set(
+    key: string,
+    value: string,
+    ttl?: number,
+    nx?: boolean,
+  ): Promise<boolean> {
+    const args: any[] = [key, value];
     if (ttl) {
-      await this.redis.set(key, value, "EX", ttl);
-    } else {
-      await this.redis.set(key, value);
+      args.push("EX", ttl);
     }
+    if (nx) {
+      args.push("NX");
+    }
+
+    const res = await (this.redis.set as any)(...args);
+    return res === "OK";
   }
 
   async del(key: string): Promise<void> {

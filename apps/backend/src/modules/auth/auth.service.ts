@@ -839,6 +839,11 @@ export class AuthService {
           });
         }
       }
+      // Also mark phone as verified on the main user record
+      await tx.user.update({
+        where: { id: userId },
+        data: { phoneVerified: true },
+      });
     });
 
     await this.redis.del(otpKey);

@@ -35,16 +35,17 @@ export function useMerchantDashboard() {
     refetchInterval: 60000,
   });
 
-  const isLoading = rfqQuery.isLoading || orderQuery.isLoading;
+  const isLoading =
+    rfqQuery.isLoading || orderQuery.isLoading || userQuery.isLoading;
 
   return {
     rfqs: rfqQuery.data || ([] as RFQ[]),
     orders: orderQuery.data || ([] as Order[]),
     user: userQuery.data,
     isLoading,
-    isError: rfqQuery.isError || orderQuery.isError,
+    isError: rfqQuery.isError || orderQuery.isError || userQuery.isError,
     error: (() => {
-      const error = rfqQuery.error || orderQuery.error;
+      const error = rfqQuery.error || orderQuery.error || userQuery.error;
       if (!error) return null;
       const anyErr = error as any;
       if (typeof anyErr.error === "string") return anyErr.error;
