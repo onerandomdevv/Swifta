@@ -707,7 +707,9 @@ export class WhatsAppBuyerService {
     });
     const isConsumer = profile?.buyerType === "CONSUMER";
     const unitPriceKobo = isConsumer
-      ? ((product as any).retailPriceKobo ?? (product as any).pricePerUnitKobo)
+      ? ((product as any).retailPriceKobo ??
+        (product as any).wholesalePriceKobo ??
+        (product as any).pricePerUnitKobo)
       : ((product as any).wholesalePriceKobo ??
         (product as any).pricePerUnitKobo ??
         0);

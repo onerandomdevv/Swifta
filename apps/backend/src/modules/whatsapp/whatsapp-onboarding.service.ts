@@ -533,6 +533,7 @@ export class WhatsAppOnboardingService {
             passwordHash,
             role: "BUYER",
             emailVerified: true,
+            phoneVerified: true,
             buyerProfile: {
               create: {
                 buyerType: data.buyerType || "BUSINESS",
@@ -1186,6 +1187,7 @@ export class WhatsAppOnboardingService {
             passwordHash,
             role: "MERCHANT",
             emailVerified: true,
+            phoneVerified: true,
             merchantProfile: {
               create: {
                 businessName: data.businessName,

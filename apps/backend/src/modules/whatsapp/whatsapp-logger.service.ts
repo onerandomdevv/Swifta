@@ -35,10 +35,17 @@ export class WhatsAppLoggerService {
   }
 
   async logSessionEvent(type: string, userId: string, event: string) {
-    this.logger.log(`Session [${type}] for ${userId}: ${event}`);
+    this.logger.log(
+      `Session [${type}] for ${this.maskPhone(userId)}: ${event}`,
+    );
     // Optional: store session drop-off points in Redis
     const key = `${this.METRICS_PREFIX}sessions:${type}:dropoffs`;
     await this.redis.hIncrBy(key, event, 1);
+  }
+
+  private maskPhone(phone: string): string {
+    if (phone.length <= 4) return "****";
+    return `****${phone.slice(-4)}`;
   }
 
   async getMetrics(category: string, subCategory: string) {

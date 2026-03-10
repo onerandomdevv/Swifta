@@ -204,12 +204,22 @@ export class WhatsAppService {
         `Error processing message from ${phone}: ${error instanceof Error ? error.message : error}`,
       );
 
-      // Send a friendly error before rethrowing for BullMQ retry
+      // Send a friendly error before rethrowing for BullMQ retry — only once per 5 mins
       try {
-        await this.interactiveService.sendTextMessage(
-          phone,
-          "⚠️ We're having trouble processing your request right now. Please wait a moment while we retry, or try sending your message again.",
+        const fallbackKey = `whatsapp:fallback:${messageId ?? phone}`;
+        const canSend = await this.redisService.set(
+          fallbackKey,
+          "1",
+          300,
+          true, // NX
         );
+
+        if (canSend) {
+          await this.interactiveService.sendTextMessage(
+            phone,
+            "⚠️ We're having trouble processing your request right now. Please wait a moment while we retry, or try sending your message again.",
+          );
+        }
       } catch (sendError) {
         this.logger.error(
           `Failed to send fallback error message to ${phone}: ${sendError instanceof Error ? sendError.message : sendError}`,
@@ -2146,8 +2156,9 @@ export class WhatsAppService {
     productName: string,
   ): Promise<void> {
     try {
-      const link = await this.prisma.whatsAppLink.findFirst({
-        where: { userId: buyerId, isActive: true },
+      // V5: Use WhatsAppBuyerLink for proper buyer resolution
+      const link = await this.prisma.whatsAppBuyerLink.findUnique({
+        where: { buyerId },
       });
 
       if (!link) return;
