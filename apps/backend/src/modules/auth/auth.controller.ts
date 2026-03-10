@@ -147,6 +147,7 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
   @Post("whatsapp/link")
   @HttpCode(HttpStatus.OK)
   async initiateWhatsAppLink(
@@ -157,6 +158,7 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post("whatsapp/link/verify")
   @HttpCode(HttpStatus.OK)
   async verifyWhatsAppLink(

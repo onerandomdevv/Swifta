@@ -27,7 +27,7 @@ import { AdminRegisterDto } from "./dto/admin-register.dto";
 import { SendPhoneOtpDto } from "./dto/send-phone-otp.dto";
 import { VerifyPhoneOtpDto } from "./dto/verify-phone-otp.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
-import { TokenPair, JwtPayload, UserRole } from "@hardware-os/shared";
+import { TokenPair, JwtPayload } from "@hardware-os/shared";
 import { WhatsAppService } from "../whatsapp/whatsapp.service";
 import { WHATSAPP_OTP_TEMPLATE } from "../whatsapp/whatsapp.constants";
 import AfricasTalking from "africastalking";
@@ -312,7 +312,7 @@ export class AuthService {
       // Dummy phone number, the internal users don't need phone verification for this phase
       const phonePlaceholder = `+2340000000${randomInt(100, 999)}`;
 
-      const user = await prisma.user.create({
+      await prisma.user.create({
         data: {
           firstName: dto.firstName,
           middleName: dto.middleName,
@@ -347,7 +347,15 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { merchantProfile: true, buyerProfile: true },
+      include: {
+        merchantProfile: true,
+        buyerProfile: true,
+        supplierProfile: {
+          include: { whatsappSupplierLink: true },
+        },
+        whatsappLink: true,
+        whatsappBuyerLink: true,
+      },
     });
 
     if (!user) {
@@ -367,7 +375,15 @@ export class AuthService {
   async getInternalMe(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { merchantProfile: true, adminProfile: true },
+      include: {
+        merchantProfile: true,
+        adminProfile: true,
+        supplierProfile: {
+          include: { whatsappSupplierLink: true },
+        },
+        whatsappLink: true,
+        whatsappBuyerLink: true,
+      },
     });
 
     if (!user) {
@@ -384,7 +400,11 @@ export class AuthService {
       role: user.role,
       emailVerified: user.emailVerified,
       phoneVerified: user.phoneVerified,
-      isWhatsAppLinked: !!(user.whatsappLink || user.whatsappBuyerLink),
+      isWhatsAppLinked: !!(
+        (user as any).whatsappLink ||
+        (user as any).whatsappBuyerLink ||
+        (user as any).supplierProfile?.whatsappSupplierLink
+      ),
       merchantId: user.merchantProfile?.id,
       adminId: user.adminProfile?.id,
       createdAt: user.createdAt,
@@ -579,6 +599,11 @@ export class AuthService {
         lastName: user.lastName,
         role: user.role,
         emailVerified: user.emailVerified,
+        isWhatsAppLinked: !!(
+          user.whatsappLink ||
+          user.whatsappBuyerLink ||
+          user.supplierProfile?.whatsappSupplierLink
+        ),
         merchantId: user.merchantProfile?.id,
         buyerType:
           user.buyerProfile?.buyerType ||
@@ -738,7 +763,11 @@ export class AuthService {
     if (
       (merchantLink && merchantLink.userId !== userId) ||
       (buyerLink && buyerLink.buyerId !== userId) ||
-      (supplierLink && supplierLink.isActive)
+      (supplierLink &&
+        supplierLink.isActive &&
+        supplierLink.supplierId !==
+          (await this.prisma.supplierProfile.findUnique({ where: { userId } }))
+            ?.id)
     ) {
       throw new ConflictException(
         "This WhatsApp number is already linked to another account.",
@@ -800,7 +829,7 @@ export class AuthService {
         });
         if (supplier) {
           await tx.whatsAppSupplierLink.upsert({
-            where: { phone: normalizedPhone },
+            where: { supplierId: supplier.id },
             update: { supplierId: supplier.id, isActive: true },
             create: {
               phone: normalizedPhone,

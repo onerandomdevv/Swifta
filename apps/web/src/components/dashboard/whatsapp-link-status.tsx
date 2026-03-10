@@ -94,6 +94,7 @@ export function WhatsAppLinkStatus({
           setIsModalOpen(false);
           setStep("phone");
           setOtp("");
+          setPhone("");
         }}
         title="Connect WhatsApp"
         description={

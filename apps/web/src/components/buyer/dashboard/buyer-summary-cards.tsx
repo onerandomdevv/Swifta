@@ -68,7 +68,7 @@ export function BuyerSummaryCards({
           className="text-3xl font-black text-white mt-4 block relative z-10"
         />
         <span className="material-symbols-outlined absolute -right-4 -bottom-4 text-7xl text-white/5 group-hover:scale-110 transition-transform duration-700">
-          lock_open
+          lock
         </span>
       </div>
     </div>

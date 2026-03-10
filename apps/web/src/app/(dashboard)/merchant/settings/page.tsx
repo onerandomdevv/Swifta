@@ -12,7 +12,7 @@ import {
 } from "@/lib/api/merchant.api";
 import { useToast } from "@/providers/toast-provider";
 import { authApi } from "@/lib/api/auth.api";
-import { MerchantProfile, getDisplayName } from "@hardware-os/shared";
+import { MerchantProfile } from "@hardware-os/shared";
 
 type SettingsTab = "account" | "notifications" | "security";
 
@@ -138,7 +138,7 @@ export default function MerchantSettingsPage() {
   };
 
   const handleSaveNotifPrefs = () => {
-    toast.success("Notification preferences saved.");
+    toast.info("Notification preferences updated locally.");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -152,8 +152,8 @@ export default function MerchantSettingsPage() {
       toast.error("Passwords do not match.");
       return;
     }
-    if (newPassword.length < 8) {
-      toast.error("Password must be at least 8 characters.");
+    if (newPassword.length < 12) {
+      toast.error("Password must be at least 12 characters.");
       return;
     }
     setChangingPassword(true);

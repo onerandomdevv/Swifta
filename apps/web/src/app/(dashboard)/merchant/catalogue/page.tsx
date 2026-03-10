@@ -24,7 +24,7 @@ export default function MerchantStorefrontPreview() {
 
   const handleCopyLink = () => {
     const slug = businessName.toLowerCase().replace(/\s+/g, "-");
-    const link = `swifta.store/store/${slug}`;
+    const link = `https://swifta.store/store/${slug}`;
     navigator.clipboard.writeText(link).then(() => {
       alert("Storefront link copied!");
     });

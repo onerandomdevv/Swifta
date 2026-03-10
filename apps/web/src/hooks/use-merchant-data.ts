@@ -45,7 +45,7 @@ export function useMerchantDashboard() {
     isLoading,
     isError: rfqQuery.isError || orderQuery.isError || userQuery.isError,
     error: (() => {
-      const error = rfqQuery.error || orderQuery.error;
+      const error = rfqQuery.error || orderQuery.error || userQuery.error;
       if (!error) return null;
       const anyErr = error as any;
       if (typeof anyErr.error === "string") return anyErr.error;

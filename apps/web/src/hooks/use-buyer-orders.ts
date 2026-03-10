@@ -5,8 +5,8 @@ import { getOrders } from "@/lib/api/order.api";
 import type { Order } from "@hardware-os/shared";
 
 export function useBuyerOrders() {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['buyer', 'orders', 'all'],
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["buyer", "orders", "all"],
     queryFn: async () => {
       const response = await getOrders();
       return response as Order[];
@@ -14,9 +14,10 @@ export function useBuyerOrders() {
     refetchInterval: 30000,
   });
 
-  return { 
-    orders: data || [], 
-    loading: isLoading, 
-    error: error ? (error as Error).message : null 
+  return {
+    orders: data || [],
+    loading: isLoading,
+    error: error ? (error as Error).message : null,
+    refetch,
   };
 }

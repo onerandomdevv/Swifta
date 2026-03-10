@@ -71,7 +71,7 @@ function OrdersPageSkeleton() {
 }
 
 export default function BuyerOrdersPage() {
-  const { orders, loading, error } = useBuyerOrders();
+  const { orders, loading, error, refetch } = useBuyerOrders();
   const [activeTab, setActiveTab] = useState("ALL");
 
   if (loading) return <OrdersPageSkeleton />;
@@ -86,7 +86,7 @@ export default function BuyerOrdersPage() {
           {error}
         </p>
         <button
-          onClick={() => window.location.reload()}
+          onClick={() => refetch()}
           className="px-6 py-3 bg-primary text-white rounded font-bold uppercase tracking-wide"
         >
           Retry
