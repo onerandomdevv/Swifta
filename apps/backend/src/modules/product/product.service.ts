@@ -21,11 +21,15 @@ export class ProductService {
   ) {}
 
   async create(merchantId: string, dto: CreateProductDto) {
-    const { pricePerUnitKobo, retailPriceKobo, ...rest } = dto;
+    const { pricePerUnitKobo, wholesalePriceKobo, retailPriceKobo, ...rest } =
+      dto;
     const product = await this.prisma.product.create({
       data: {
         merchantId,
         pricePerUnitKobo: pricePerUnitKobo ? BigInt(pricePerUnitKobo) : null,
+        wholesalePriceKobo: wholesalePriceKobo
+          ? BigInt(wholesalePriceKobo)
+          : null,
         retailPriceKobo: retailPriceKobo ? BigInt(retailPriceKobo) : null,
         ...rest,
       },
@@ -86,6 +90,7 @@ export class ProductService {
     category: string = "",
     page: number,
     limit: number,
+    buyerType?: string,
   ): Promise<PaginatedResponse<Product>> {
     const where: any = {
       isActive: true,
@@ -160,6 +165,17 @@ export class ProductService {
     response.data = response.data.map((product: any) => {
       const { productStockCache, ...rest } = product;
 
+      let resolvedPrice = product.retailPriceKobo;
+      if (buyerType === "BUSINESS") {
+        resolvedPrice = product.wholesalePriceKobo || product.pricePerUnitKobo;
+      } else {
+        // For CONSUMER or GUEST, prefer retail, then wholesale, then legacy
+        resolvedPrice =
+          product.retailPriceKobo ||
+          product.wholesalePriceKobo ||
+          product.pricePerUnitKobo;
+      }
+
       let stockAvailability = "OUT_OF_STOCK";
       if (productStockCache?.currentStock > 10) {
         stockAvailability = "IN_STOCK";
@@ -172,8 +188,13 @@ export class ProductService {
 
       return {
         ...rest,
-        pricePerUnitKobo: product.pricePerUnitKobo
-          ? product.pricePerUnitKobo.toString()
+        // we overwrite pricePerUnitKobo with the resolved price for compatibility
+        pricePerUnitKobo: resolvedPrice ? resolvedPrice.toString() : null,
+        wholesalePriceKobo: product.wholesalePriceKobo
+          ? product.wholesalePriceKobo.toString()
+          : null,
+        retailPriceKobo: product.retailPriceKobo
+          ? product.retailPriceKobo.toString()
           : null,
         stockAvailability,
       };
@@ -182,7 +203,7 @@ export class ProductService {
     return response;
   }
 
-  async getById(id: string) {
+  async getById(id: string, buyerType?: string) {
     const product = await this.prisma.product.findUnique({
       where: { id },
       include: {
@@ -200,16 +221,42 @@ export class ProductService {
     if (!product || product.deletedAt) {
       throw new NotFoundException("Product not found");
     }
-    return product;
+
+    // Resolve price for single product view
+    let resolvedPrice = product.retailPriceKobo;
+    if (buyerType === "BUSINESS") {
+      resolvedPrice = product.wholesalePriceKobo || product.pricePerUnitKobo;
+    } else {
+      resolvedPrice =
+        product.retailPriceKobo ||
+        product.wholesalePriceKobo ||
+        product.pricePerUnitKobo;
+    }
+
+    return {
+      ...product,
+      pricePerUnitKobo: resolvedPrice ? resolvedPrice.toString() : null,
+      wholesalePriceKobo: product.wholesalePriceKobo
+        ? product.wholesalePriceKobo.toString()
+        : null,
+      retailPriceKobo: product.retailPriceKobo
+        ? product.retailPriceKobo.toString()
+        : null,
+    };
   }
 
   async update(merchantId: string, productId: string, dto: UpdateProductDto) {
     await this.verifyProductOwnership(merchantId, productId);
-    const { pricePerUnitKobo, retailPriceKobo, ...rest } = dto;
+    const { pricePerUnitKobo, wholesalePriceKobo, retailPriceKobo, ...rest } =
+      dto;
     const updateData: any = { ...rest };
     if (pricePerUnitKobo !== undefined) {
       updateData.pricePerUnitKobo =
         pricePerUnitKobo === null ? null : BigInt(pricePerUnitKobo);
+    }
+    if (wholesalePriceKobo !== undefined) {
+      updateData.wholesalePriceKobo =
+        wholesalePriceKobo === null ? null : BigInt(wholesalePriceKobo);
     }
     if (retailPriceKobo !== undefined) {
       updateData.retailPriceKobo =

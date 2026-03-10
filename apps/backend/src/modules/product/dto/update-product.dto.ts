@@ -57,5 +57,9 @@ export class UpdateProductDto {
 
   @IsOptional()
   @IsString()
+  wholesalePriceKobo?: string;
+
+  @IsOptional()
+  @IsString()
   retailPriceKobo?: string;
 }

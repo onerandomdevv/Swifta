@@ -152,9 +152,9 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async initiateWhatsAppLink(
     @CurrentUser() user: JwtPayload,
-    @Body("phone") phone: string,
+    @Body() dto: SendPhoneOtpDto,
   ) {
-    return this.authService.initiateWhatsAppLink(user.sub, phone);
+    return this.authService.initiateWhatsAppLink(user.sub, dto.phone);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -163,7 +163,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async verifyWhatsAppLink(
     @CurrentUser() user: JwtPayload,
-    @Body() dto: { phone: string; code: string },
+    @Body() dto: VerifyPhoneOtpDto,
   ) {
     return this.authService.verifyWhatsAppLink(user.sub, dto.phone, dto.code);
   }

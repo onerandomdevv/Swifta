@@ -24,6 +24,7 @@ import { WhatsAppOnboardingService } from "./whatsapp-onboarding.service";
 import { WhatsAppInteractiveService } from "./whatsapp-interactive.service";
 import { WhatsAppProcessor } from "./whatsapp.processor";
 import { ImageSearchService } from "./image-search.service";
+import { WhatsAppLoggerService } from "./whatsapp-logger.service";
 
 /**
  * WhatsApp Bot Module
@@ -71,6 +72,7 @@ import { ImageSearchService } from "./image-search.service";
     WhatsAppInteractiveService,
     WhatsAppProcessor,
     ImageSearchService,
+    WhatsAppLoggerService,
   ],
   exports: [WhatsAppService],
 })

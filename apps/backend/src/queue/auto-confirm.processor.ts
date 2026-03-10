@@ -7,10 +7,10 @@ import { PayoutService } from "../modules/payout/payout.service";
 import { WhatsAppService } from "../modules/whatsapp/whatsapp.service";
 import { OrderStatus } from "@hardware-os/shared";
 
-const AUTO_CONFIRM_HOURS = 72;
-const REMINDER_24H = 24;
-const REMINDER_48H = 48;
-const DISPUTE_WINDOW_HOURS = 48;
+const AUTO_CONFIRM_HOURS = 168; // 7 days
+const REMINDER_3DAYS = 72;
+const REMINDER_5DAYS = 120;
+const DISPUTE_WINDOW_HOURS = 48; // Additional window after auto-confirm
 
 @Injectable()
 @Processor(AUTO_CONFIRM_QUEUE, {
@@ -49,8 +49,10 @@ export class AutoConfirmProcessor extends WorkerHost {
    * D: Send 24h reminder to buyers who haven't confirmed delivery
    */
   private async send24hReminders() {
-    const cutoffDate = new Date(Date.now() - REMINDER_24H * 60 * 60 * 1000);
-    const twoDaysCutoff = new Date(Date.now() - REMINDER_48H * 60 * 60 * 1000);
+    const cutoffDate = new Date(Date.now() - REMINDER_3DAYS * 60 * 60 * 1000);
+    const twoDaysCutoff = new Date(
+      Date.now() - REMINDER_5DAYS * 60 * 60 * 1000,
+    );
 
     const orders = await this.prisma.order.findMany({
       where: {
@@ -77,7 +79,7 @@ export class AutoConfirmProcessor extends WorkerHost {
       try {
         await this.whatsappService.sendWhatsAppMessage(
           phone,
-          `⏰ *Delivery Reminder*\n\nYour order #${order.id.substring(0, 8)} for *${itemName}* was dispatched 24 hours ago. If it has arrived, please confirm delivery with your OTP code to complete the transaction.\n\nIf there's an issue with delivery, open a dispute via the SwiftTrade app before the payment is released.`,
+          `⏰ *Delivery Reminder*\n\nYour order #${order.id.substring(0, 8)} for *${itemName}* was dispatched 72 hours ago. If it has arrived, please confirm delivery with your OTP code to complete the transaction.\n\nIf there's an issue with delivery, open a dispute via the SwiftTrade app before the payment is released.`,
         );
       } catch (err) {
         this.logger.warn(
@@ -91,7 +93,7 @@ export class AutoConfirmProcessor extends WorkerHost {
    * D: Send 48h final warning to buyers who haven't confirmed delivery
    */
   private async send48hWarnings() {
-    const cutoffDate = new Date(Date.now() - REMINDER_48H * 60 * 60 * 1000);
+    const cutoffDate = new Date(Date.now() - REMINDER_5DAYS * 60 * 60 * 1000);
     const threeDaysCutoff = new Date(
       Date.now() - AUTO_CONFIRM_HOURS * 60 * 60 * 1000,
     );
@@ -121,7 +123,7 @@ export class AutoConfirmProcessor extends WorkerHost {
       try {
         await this.whatsappService.sendWhatsAppMessage(
           phone,
-          `⚠️ *Final Reminder — Action Required*\n\nYour order #${order.id.substring(0, 8)} for *${itemName}* has been dispatched for 48 hours.\n\n*If you do not confirm or dispute within 24 hours, the order will be auto-confirmed and the merchant will be paid automatically.*\n\nPlease confirm delivery with your OTP or open a dispute on the SwiftTrade app.`,
+          `⚠️ *Final Reminder — Action Required*\n\nYour order #${order.id.substring(0, 8)} for *${itemName}* has been dispatched for 5 days.\n\n*If you do not confirm or dispute within 48 hours, the order will be auto-confirmed and the merchant will be paid automatically.*\n\nPlease confirm delivery with your OTP or open a dispute on the SwiftTrade app.`,
         );
       } catch (err) {
         this.logger.warn(
@@ -200,6 +202,14 @@ export class AutoConfirmProcessor extends WorkerHost {
             await this.whatsappService.sendWhatsAppMessage(
               order.user.phone,
               `✅ *Order Auto-Confirmed*\n\nYour order #${order.id.substring(0, 8)} for *${itemName}* has been automatically confirmed after ${AUTO_CONFIRM_HOURS} hours.\n\nIf you did not receive your goods, you can open a dispute within the next ${DISPUTE_WINDOW_HOURS} hours via the SwiftTrade app. After that, the payment will be released to the merchant.\n\nThank you for using SwiftTrade! 🙏`,
+            );
+
+            // Trigger V5 Review Prompt
+            await this.whatsappService.sendReviewPrompt(
+              order.buyerId,
+              order.id,
+              order.merchantProfile?.businessName || "the merchant",
+              itemName,
             );
           } catch (err) {
             this.logger.warn(`Buyer notification failed for order ${order.id}`);

@@ -24,4 +24,16 @@ export class RedisService {
   async exists(key: string): Promise<number> {
     return this.redis.exists(key);
   }
+
+  async hIncrBy(
+    key: string,
+    field: string,
+    increment: number,
+  ): Promise<number> {
+    return this.redis.hincrby(key, field, increment);
+  }
+
+  async hGetAll(key: string): Promise<Record<string, string>> {
+    return this.redis.hgetall(key);
+  }
 }

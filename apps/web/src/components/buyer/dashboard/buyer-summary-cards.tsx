@@ -27,13 +27,16 @@ export function BuyerSummaryCards({
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       <Link
         href="/buyer/orders"
-        className="bg-white p-6 border border-slate-200 rounded-3xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all group"
+        className="bg-white dark:bg-slate-800 p-6 border border-slate-200 dark:border-slate-700 rounded-3xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all group"
       >
         <div className="flex justify-between items-start">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+          <p className="text-[10px] font-black text-slate-400 dark:text-slate-300 uppercase tracking-[0.2em]">
             Active Orders
           </p>
-          <span className="material-symbols-outlined text-slate-200 group-hover:text-primary transition-colors">
+          <span
+            className="material-symbols-outlined text-slate-200 group-hover:text-primary transition-colors"
+            aria-hidden="true"
+          >
             arrow_forward_ios
           </span>
         </div>
@@ -44,13 +47,16 @@ export function BuyerSummaryCards({
 
       <Link
         href="/buyer/rfqs"
-        className="bg-white p-6 border border-slate-200 rounded-3xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all group"
+        className="bg-white dark:bg-slate-800 p-6 border border-slate-200 dark:border-slate-700 rounded-3xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all group"
       >
         <div className="flex justify-between items-start">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+          <p className="text-[10px] font-black text-slate-400 dark:text-slate-300 uppercase tracking-[0.2em]">
             Pending Quotes
           </p>
-          <span className="material-symbols-outlined text-slate-200 group-hover:text-primary transition-colors">
+          <span
+            className="material-symbols-outlined text-slate-200 group-hover:text-primary transition-colors"
+            aria-hidden="true"
+          >
             arrow_forward_ios
           </span>
         </div>
