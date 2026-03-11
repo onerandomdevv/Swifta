@@ -27,7 +27,7 @@ interface User {
   isWhatsAppLinked?: boolean;
   merchantId?: string;
   supplierId?: string;
-  buyerType?: "CONSUMER" | "BUSINESS";
+  buyerType?: "CONSUMER";
   supplierProfile?: {
     companyName: string;
     companyAddress: string;

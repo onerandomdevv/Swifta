@@ -536,7 +536,7 @@ export class WhatsAppOnboardingService {
             phoneVerified: true,
             buyerProfile: {
               create: {
-                buyerType: data.buyerType || "BUSINESS",
+                buyerType: data.buyerType || "CONSUMER",
                 businessName: data.businessName || null,
               },
             },

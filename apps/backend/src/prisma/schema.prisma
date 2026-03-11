@@ -844,7 +844,7 @@ model BuyerProfile {
   userId          String   @unique @map("user_id") @db.Uuid
   businessName    String?  @map("business_name")
   businessAddress String?  @map("business_address")
-  buyerType       String   @default("BUSINESS") @map("buyer_type") // "BUSINESS" or "CONSUMER"
+  buyerType       String   @default("CONSUMER") @map("buyer_type") // "BUSINESS" or "CONSUMER"
   onboardingStep  Int      @default(1) @map("onboarding_step")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
