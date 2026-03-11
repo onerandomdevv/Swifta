@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { VerificationBadge } from "@/components/ui/verification-badge";
 import { StarRating } from "@/components/ui/star-rating";
 import { toast } from "sonner";
-import { InstantCheckoutModal } from "@/components/buyer/checkout/instant-checkout-modal";
 
 export default function PremiumProductDetails() {
   const { id } = useParams();
@@ -23,8 +22,7 @@ export default function PremiumProductDetails() {
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<"specs" | "reviews" | "shipping">("specs");
   
-  // Instant checkout state
-  const [isCheckoutOpen, setCheckoutOpen] = useState(false);
+
 
   useEffect(() => {
     let active = true;
@@ -321,19 +319,7 @@ export default function PremiumProductDetails() {
         )}
       </div>
 
-      {/* 7. Sticky Bottom Box */}
-      {isCheckoutOpen && merchant && (
-        <InstantCheckoutModal
-          isOpen={isCheckoutOpen}
-          onClose={() => setCheckoutOpen(false)}
-          product={{
-            ...product,
-            minOrderQuantityConsumer: product.minOrderQuantityConsumer || 1,
-            minOrderQuantity: product.minOrderQuantity || 50,
-          }}
-          merchant={merchant as any}
-        />
-      )}
+
 
       {/* Absolute Bottom Action Bar Fixed to screen */}
       <div className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 p-4 sm:px-8 z-50">
@@ -358,7 +344,7 @@ export default function PremiumProductDetails() {
           </button>
 
           <button 
-            onClick={() => setCheckoutOpen(true)}
+            onClick={() => router.push(`/buyer/checkout/${product.id}`)}
             className="flex-[2] bg-primary hover:bg-orange-600 text-white font-black text-[11px] sm:text-sm uppercase tracking-widest h-14 rounded-2xl shadow-xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-2"
           >
             <span className="material-symbols-outlined text-[18px]">bolt</span>

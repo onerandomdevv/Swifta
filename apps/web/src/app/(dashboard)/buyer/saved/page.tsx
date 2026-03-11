@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { getWishlist, toggleWishlist } from "@/lib/api/wishlist.api";
 import { type Product } from "@hardware-os/shared";
 import { ProductFeedCard } from "@/components/buyer/catalogue/product-feed-card";
@@ -10,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function BuyerSavedPage() {
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
-  const [quickBuyProduct, setQuickBuyProduct] = useState<Product | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     async function fetchSaved() {
@@ -101,7 +102,7 @@ export default function BuyerSavedPage() {
             <ProductFeedCard
               key={product.id}
               product={product}
-              onQuickBuy={() => setQuickBuyProduct(product)}
+              onQuickBuy={() => router.push(`/buyer/checkout/${product.id}`)}
               isSaved={true}
               onToggleSave={handleToggleSave}
             />
@@ -109,43 +110,6 @@ export default function BuyerSavedPage() {
         </div>
       )}
 
-      {/* ─── Quick Buy Modal ─── */}
-      {quickBuyProduct && (
-        <LazyInstantCheckoutModal
-          product={quickBuyProduct}
-          onClose={() => setQuickBuyProduct(null)}
-        />
-      )}
     </div>
   );
-}
-
-function LazyInstantCheckoutModal({
-  product,
-  onClose,
-}: {
-  product: Product;
-  onClose: () => void;
-}) {
-  const [Modal, setModal] = useState<React.ComponentType<any> | null>(null);
-
-  useEffect(() => {
-    import("@/components/buyer/checkout/instant-checkout-modal").then((mod) => {
-      setModal(() => mod.InstantCheckoutModal);
-    });
-  }, []);
-
-  if (!Modal) {
-    return (
-      <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-8">
-          <span className="material-symbols-outlined text-primary text-3xl animate-spin">
-            progress_activity
-          </span>
-        </div>
-      </div>
-    );
-  }
-
-  return <Modal product={product} onClose={onClose} />;
 }

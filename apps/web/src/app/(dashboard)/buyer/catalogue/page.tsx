@@ -11,6 +11,7 @@ import {
   type MerchantProfile,
 } from "@hardware-os/shared";
 import { useAuth } from "@/providers/auth-provider";
+import { useRouter } from "next/navigation";
 
 import { ExploreSearchBar } from "@/components/buyer/catalogue/explore-search-bar";
 import { CategoryStoriesBar } from "@/components/buyer/catalogue/category-stories-bar";
@@ -20,6 +21,7 @@ import { ExploreSkeleton } from "@/components/buyer/catalogue/explore-skeleton";
 
 export default function BuyerCataloguePage() {
   const { user } = useAuth();
+  const router = useRouter();
 
   // ─── State ───
   const [loading, setLoading] = useState(true);
@@ -33,8 +35,7 @@ export default function BuyerCataloguePage() {
   const [sortBy, setSortBy] = useState<"newest" | "price_asc" | "price_desc" | "rating">("newest");
   const [showSortMenu, setShowSortMenu] = useState(false);
 
-  // Quick-buy modal state
-  const [quickBuyProduct, setQuickBuyProduct] = useState<Product | null>(null);
+
 
   // Wishlist state
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
@@ -129,7 +130,7 @@ export default function BuyerCataloguePage() {
 
   // ─── Quick Buy handler ───
   function handleQuickBuy(product: Product) {
-    setQuickBuyProduct(product);
+    router.push(`/buyer/checkout/${product.id}`);
   }
 
   // ─── Wishlist toggle handler ───
@@ -320,53 +321,6 @@ export default function BuyerCataloguePage() {
         </div>
       )}
 
-      {/* ─── Quick Buy Modal (lazy-loaded) ─── */}
-      {quickBuyProduct && (
-        <LazyInstantCheckoutModal
-          product={quickBuyProduct}
-          onClose={() => setQuickBuyProduct(null)}
-        />
-      )}
     </div>
-  );
-}
-
-/**
- * Lazy-load the InstantCheckoutModal to avoid bloating the bundle.
- */
-function LazyInstantCheckoutModal({
-  product,
-  onClose,
-}: {
-  product: Product;
-  onClose: () => void;
-}) {
-  const [Modal, setModal] = useState<React.ComponentType<any> | null>(null);
-
-  useEffect(() => {
-    import("@/components/buyer/checkout/instant-checkout-modal").then((mod) => {
-      setModal(() => mod.InstantCheckoutModal);
-    });
-  }, []);
-
-  if (!Modal) {
-    return (
-      <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-8">
-          <span className="material-symbols-outlined text-primary text-3xl animate-spin">
-            progress_activity
-          </span>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <Modal 
-      product={product} 
-      merchant={product.merchantProfile} 
-      onClose={onClose} 
-      isOpen={true} 
-    />
   );
 }
