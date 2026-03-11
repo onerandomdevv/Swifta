@@ -1043,15 +1043,19 @@ export class OrderService {
     } else if (order.items) {
       // Cart Checkout (Multi-item)
       const items = order.items as any[];
-      for (const item of items) {
-        if (item.productId && item.quantity) {
-          await this.inventoryService.releaseStock(
-            item.productId,
-            order.merchantId as string,
-            Number(item.quantity),
-            orderId,
-          );
-        }
+      const releasePayload = items
+        .filter((item) => item.productId && item.quantity)
+        .map((item) => ({
+          productId: item.productId,
+          quantity: Number(item.quantity),
+        }));
+
+      if (releasePayload.length > 0) {
+        await this.inventoryService.releaseStockBatch(
+          releasePayload,
+          order.merchantId as string,
+          orderId,
+        );
       }
     }
 

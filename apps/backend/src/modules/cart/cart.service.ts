@@ -97,6 +97,17 @@ export class CartService {
       );
     }
 
+    const priceKobo =
+      priceType === PriceType.WHOLESALE
+        ? (product.wholesalePriceKobo ?? product.pricePerUnitKobo)
+        : (product.retailPriceKobo ?? product.pricePerUnitKobo);
+
+    if (!priceKobo) {
+      throw new BadRequestException(
+        `Product does not have a valid price for the ${priceType} tier.`,
+      );
+    }
+
     // Upsert the cart item: if it exists for this SPECIFIC priceType, add quantity
     const existingItem = await this.prisma.cartItem.findFirst({
       where: {
