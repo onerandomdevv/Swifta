@@ -1,5 +1,5 @@
 import { apiClient } from "../api-client";
-import type { Order, OrderStatus } from "@hardware-os/shared";
+import type { Order, OrderStatus, PriceType } from "@hardware-os/shared";
 
 export interface OrderTrackingEvent {
   id: string;
@@ -73,6 +73,7 @@ export interface CreateDirectOrderData {
   };
   paymentMethod?: "ESCROW" | "DIRECT";
   deliveryMethod?: "MERCHANT_DELIVERY" | "PLATFORM_LOGISTICS";
+  priceType?: PriceType;
 }
 
 export async function createDirectOrder(payload: CreateDirectOrderData): Promise<{

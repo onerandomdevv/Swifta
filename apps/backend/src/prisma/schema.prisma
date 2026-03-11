@@ -200,7 +200,7 @@ model CartItem {
   buyer     User      @relation("UserCartItems", fields: [buyerId], references: [id], onDelete: Cascade)
   product   Product   @relation(fields: [productId], references: [id])
 
-  @@unique([buyerId, productId])
+  @@unique([buyerId, productId, priceType])
   @@map("cart_items")
 }
 

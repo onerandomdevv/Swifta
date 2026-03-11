@@ -97,9 +97,15 @@ export class CartService {
       );
     }
 
-    // Upsert the cart item: if it exists, add quantity and update priceType
+    // Upsert the cart item: if it exists for this SPECIFIC priceType, add quantity
     const existingItem = await this.prisma.cartItem.findUnique({
-      where: { buyerId_productId: { buyerId, productId: dto.productId } },
+      where: {
+        buyerId_productId_priceType: {
+          buyerId,
+          productId: dto.productId,
+          priceType,
+        },
+      },
     });
 
     if (existingItem) {
@@ -108,7 +114,6 @@ export class CartService {
         where: { id: existingItem.id },
         data: {
           quantity: newQty,
-          priceType, // Update to the latest selected type
         },
       });
     }

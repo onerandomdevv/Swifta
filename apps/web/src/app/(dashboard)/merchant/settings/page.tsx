@@ -29,172 +29,39 @@ const defaultNotifPrefs: Record<string, NotifPref> = {
   "Payout Sent": { email: true, sms: true, push: true },
 };
 
+const SectionHeader = ({ icon, title, subtitle }: { icon: string, title: string, subtitle: string }) => (
+  <div className="mb-6">
+    <div className="flex items-center gap-3 mb-1">
+      <span className="p-2 bg-primary/10 text-primary rounded-xl material-symbols-outlined text-sm">
+        {icon}
+      </span>
+      <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase">
+        {title}
+      </h2>
+    </div>
+    <p className="text-slate-500 text-sm font-medium">{subtitle}</p>
+  </div>
+);
+
+const Card = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
+  <div className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-6 sm:p-8 shadow-sm ${className}`}>
+    {children}
+  </div>
+);
+
+const Input = ({ label, ...props }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) => (
+  <div className="space-y-1.5">
+    <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">
+      {label}
+    </label>
+    <input
+      {...props}
+      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-3 text-sm font-bold text-navy-dark dark:text-white outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all disabled:opacity-50"
+    />
+  </div>
+);
+
 export default function MerchantSettingsPage() {
-  const router = useRouter();
-  const toast = useToast();
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<SettingsTab>("account");
-  const [profile, setProfile] = useState<MerchantProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  // Account tab state
-  const [firstName, setFirstName] = useState("");
-  const [middleName, setMiddleName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-
-  // Banking state
-  const [bankCode, setBankCode] = useState("");
-  const [bankAccountNo, setBankAccountNo] = useState("");
-  const [bankAccountName, setBankAccountName] = useState("");
-  const [banksList, setBanksList] = useState<{ name: string; code: string }[]>(
-    [],
-  );
-  const [resolvingAccount, setResolvingAccount] = useState(false);
-  const [savingProfile, setSavingProfile] = useState(false);
-  const [notifPrefs, setNotifPrefs] = useState(defaultNotifPrefs);
-
-  // Security tab state
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [changingPassword, setChangingPassword] = useState(false);
-
-  useEffect(() => {
-    getProfile()
-      .then((p) => {
-        setProfile(p);
-        setFirstName(user?.firstName || "");
-        setMiddleName(user?.middleName || "");
-        setLastName(user?.lastName || "");
-        setEmail(user?.email || "");
-        setPhone(user?.phone || "");
-        setBankCode(p?.bankCode || "");
-        setBankAccountNo(p?.bankAccountNumber || "");
-        setBankAccountName(p?.settlementAccountName || "");
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-
-    getBanks()
-      .then((fetchedBanks) => setBanksList(fetchedBanks || []))
-      .catch(() => {});
-  }, [user]);
-
-  useEffect(() => {
-    if (bankCode && bankAccountNo.length === 10) {
-      setResolvingAccount(true);
-      setBankAccountName("");
-      resolveBankAccount(bankAccountNo, bankCode)
-        .then((res) => setBankAccountName(res.accountName))
-        .catch(() => setBankAccountName("Resolution failed. Check details."))
-        .finally(() => setResolvingAccount(false));
-    }
-  }, [bankCode, bankAccountNo]);
-
-  const handleSaveProfile = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    setSavingProfile(true);
-    try {
-      const tasks: Promise<any>[] = [
-        authApi.updateProfile({
-          firstName,
-          middleName,
-          lastName,
-          phone,
-        }),
-      ];
-      if (profile) {
-        tasks.push(
-          updateProfile({
-            businessName: profile.businessName,
-          }).then((updated) => setProfile(updated)),
-        );
-        if (bankCode && bankAccountNo && bankAccountName) {
-          tasks.push(
-            updateBankAccount({
-              bankCode,
-              bankAccountNumber: bankAccountNo,
-            }),
-          );
-        }
-      }
-      await Promise.all(tasks);
-      toast.success("Profile updated successfully");
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to update profile");
-    } finally {
-      setSavingProfile(false);
-    }
-  };
-
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newPassword !== confirmPassword) {
-      toast.error("Passwords do not match.");
-      return;
-    }
-    setChangingPassword(true);
-    try {
-      await authApi.changePassword({ currentPassword, newPassword });
-      toast.success("Password updated successfully.");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to update password");
-    } finally {
-      setChangingPassword(false);
-    }
-  };
-
-  const toggleNotif = (event: string, channel: keyof NotifPref) => {
-    setNotifPrefs((prev) => ({
-      ...prev,
-      [event]: { ...prev[event], [channel]: !prev[event][channel] },
-    }));
-  };
-
-  if (loading) {
-    return (
-      <div className="h-full bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  const SectionHeader = ({ icon, title, subtitle }: { icon: string, title: string, subtitle: string }) => (
-    <div className="mb-6">
-      <div className="flex items-center gap-3 mb-1">
-        <span className="p-2 bg-primary/10 text-primary rounded-xl material-symbols-outlined text-sm">
-          {icon}
-        </span>
-        <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase">
-          {title}
-        </h2>
-      </div>
-      <p className="text-slate-500 text-sm font-medium">{subtitle}</p>
-    </div>
-  );
-
-  const Card = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
-    <div className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-6 sm:p-8 shadow-sm ${className}`}>
-      {children}
-    </div>
-  );
-
-  const Input = ({ label, ...props }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) => (
-    <div className="space-y-1.5">
-      <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">
-        {label}
-      </label>
-      <input
-        {...props}
-        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-3 text-sm font-bold text-navy-dark dark:text-white outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all disabled:opacity-50"
-      />
-    </div>
-  );
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">

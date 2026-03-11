@@ -85,6 +85,7 @@ export function InstantCheckoutModal({ isOpen, onClose, product, merchant }: Pro
         deliveryDetails,
         paymentMethod: "ESCROW",
         deliveryMethod,
+        priceType: purchaseType as any,
       });
       
       toast.success("Order Created! Redirecting to payment...");

@@ -207,8 +207,33 @@ export class OrderService {
 
     const idempotencyKey = `direct-order-${productId}-${buyerId}-${Date.now()}`;
 
-    // Create the order
+    // Create the order with reservation
     const order = await this.prisma.$transaction(async (tx) => {
+      // 1. Atomic reservation
+      const updateResult = await tx.productStockCache.updateMany({
+        where: {
+          productId: product.id,
+          stock: { gte: quantity },
+        },
+        data: { stock: { decrement: quantity } },
+      });
+
+      if (updateResult.count === 0) {
+        throw new BadRequestException("Insufficient stock");
+      }
+
+      // 2. Inventory Event
+      await tx.inventoryEvent.create({
+        data: {
+          productId: product.id,
+          merchantId: product.merchantId,
+          eventType: InventoryEventType.ORDER_RESERVED,
+          quantity: quantity,
+          notes: `Direct purchase reservation (buyer: ${buyerId})`,
+        },
+      });
+
+      // 3. Create order
       const newOrder = await tx.order.create({
         data: {
           buyerId,
@@ -433,22 +458,21 @@ export class OrderService {
 
     // Create the order atomically with inventory reservation
     const order = await this.prisma.$transaction(async (tx) => {
-      // 1. Double check and decrement stock
+      // 1. Atomic: check and decrement stock
       for (const item of items) {
-        const cache = await tx.productStockCache.findUnique({
-          where: { productId: item.productId },
+        const updateResult = await tx.productStockCache.updateMany({
+          where: {
+            productId: item.productId,
+            stock: { gte: item.quantity },
+          },
+          data: { stock: { decrement: item.quantity } },
         });
 
-        if (!cache || cache.stock < item.quantity) {
+        if (updateResult.count === 0) {
           throw new BadRequestException(
             `Insufficient stock for ${item.product.name}.`,
           );
         }
-
-        await tx.productStockCache.update({
-          where: { productId: item.productId },
-          data: { stock: { decrement: item.quantity } },
-        });
 
         // Log inventory event
         await tx.inventoryEvent.create({
@@ -997,18 +1021,42 @@ export class OrderService {
       { cancelledBy: isBuyer ? "buyer" : "merchant" },
     );
 
-    // Release reserved stock
-    const quote = await this.prisma.quote.findUnique({
-      where: { id: order.quoteId },
-      include: { rfq: true },
-    });
-    if (quote?.rfq) {
+    // Release reserved stock for different order types
+    if (order.quoteId) {
+      // Legacy Quote Flow
+      const quote = await this.prisma.quote.findUnique({
+        where: { id: order.quoteId },
+        include: { rfq: true },
+      });
+      if (quote?.rfq) {
+        await this.inventoryService.releaseStock(
+          quote.rfq.productId,
+          order.merchantId as string,
+          quote.rfq.quantity,
+          orderId,
+        );
+      }
+    } else if (order.productId && order.quantity) {
+      // Direct Purchase
       await this.inventoryService.releaseStock(
-        quote.rfq.productId,
-        order.merchantId,
-        quote.rfq.quantity,
+        order.productId,
+        order.merchantId as string,
+        order.quantity,
         orderId,
       );
+    } else if (order.items) {
+      // Cart Checkout (Multi-item)
+      const items = order.items as any[];
+      for (const item of items) {
+        if (item.productId && item.quantity) {
+          await this.inventoryService.releaseStock(
+            item.productId,
+            order.merchantId as string,
+            Number(item.quantity),
+            orderId,
+          );
+        }
+      }
     }
 
     // Notify both parties
