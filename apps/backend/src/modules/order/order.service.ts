@@ -17,7 +17,13 @@ import { ReorderService } from "../reorder/reorder.service";
 import { LogisticsService } from "../logistics/logistics.service";
 import { PAYOUT_QUEUE, REVIEW_QUEUE } from "../../queue/queue.constants";
 import { WhatsAppService } from "../whatsapp/whatsapp.service";
-import { OrderStatus, PaginatedResponse, PriceType } from "@hardware-os/shared";
+import {
+  InventoryEventType,
+  Order,
+  OrderStatus,
+  PaginatedResponse,
+  PriceType,
+} from "@hardware-os/shared";
 
 import { paginate } from "../../common/utils/pagination";
 import { validateTransition, getNextStates } from "./order-state-machine";
