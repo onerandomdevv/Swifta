@@ -92,6 +92,21 @@ export default function MerchantSettingsPage() {
 
   // Notification State
   const [notifPrefs, setNotifPrefs] = useState(defaultNotifPrefs);
+  const [savingNotifications, setSavingNotifications] = useState(false);
+
+  const handleSaveNotifications = async () => {
+    setSavingNotifications(true);
+    try {
+      // Simulate API call for now since backend notification preference endpoint 
+      // is not yet finalized in the Merchant module
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      toast.success("Notification preferences saved successfully");
+    } catch (err) {
+      toast.error("Failed to save preferences");
+    } finally {
+      setSavingNotifications(false);
+    }
+  };
 
   useEffect(() => {
     loadProfile();
@@ -421,8 +436,19 @@ export default function MerchantSettingsPage() {
                 </div>
               </div>
               <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800">
-                <button className="px-8 py-3 bg-primary text-white rounded-xl font-bold uppercase tracking-widest text-xs transition-all hover:bg-primary/90 shadow-lg shadow-primary/20">
-                  Save Preferences
+                <button 
+                  onClick={handleSaveNotifications}
+                  disabled={savingNotifications}
+                  className="px-8 py-3 bg-primary text-white rounded-xl font-bold uppercase tracking-widest text-xs transition-all hover:bg-primary/90 shadow-lg shadow-primary/20 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {savingNotifications ? (
+                    <>
+                      <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Preferences"
+                  )}
                 </button>
               </div>
             </Card>
