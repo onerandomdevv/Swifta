@@ -79,15 +79,6 @@ export const baseRegistrationSchema = z
         });
       }
     }
-    if (data.role === UserRole.BUYER && data.buyerType === "BUSINESS") {
-      if (!data.businessName || !data.businessName.trim()) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Business name is required for business accounts.",
-          path: ["businessName"],
-        });
-      }
-    }
   });
 
 export type LoginFormData = z.infer<typeof loginSchema>;
