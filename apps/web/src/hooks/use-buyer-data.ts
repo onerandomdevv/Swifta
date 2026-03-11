@@ -1,9 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { buyerApi, BuyerDashboardStats } from "@/lib/api/buyer.api";
-import { getMyRFQs } from "@/lib/api/rfq.api";
 import { getOrders } from "@/lib/api/order.api";
 import { useAuth } from "@/providers/auth-provider";
-import type { RFQ, Order } from "@hardware-os/shared";
+import type { Order } from "@hardware-os/shared";
 
 export function useBuyerDashboard() {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -13,15 +12,6 @@ export function useBuyerDashboard() {
     queryFn: async () => {
       // The API client returns the unwrapped data directly
       return await buyerApi.getDashboardStats();
-    },
-    refetchInterval: 30000,
-  });
-
-  const rfqQuery = useQuery({
-    queryKey: ["buyer", "rfqs", "all"],
-    queryFn: async () => {
-      const data = await getMyRFQs(1, 100);
-      return Array.isArray(data) ? data : [];
     },
     refetchInterval: 30000,
   });
@@ -36,16 +26,12 @@ export function useBuyerDashboard() {
   });
 
   const isLoading =
-    statsQuery.isLoading ||
-    rfqQuery.isLoading ||
-    orderQuery.isLoading ||
-    isAuthLoading;
-  const isError = statsQuery.isError || rfqQuery.isError || orderQuery.isError;
-  const error = statsQuery.error || rfqQuery.error || orderQuery.error;
+    statsQuery.isLoading || orderQuery.isLoading || isAuthLoading;
+  const isError = statsQuery.isError || orderQuery.isError;
+  const error = statsQuery.error || orderQuery.error;
 
   return {
     stats: statsQuery.data as BuyerDashboardStats | undefined,
-    rfqs: rfqQuery.data || ([] as RFQ[]),
     orders: orderQuery.data || ([] as Order[]),
     user,
     isLoading,
@@ -65,7 +51,6 @@ export function useBuyerDashboard() {
     })(),
     refetch: () => {
       statsQuery.refetch();
-      rfqQuery.refetch();
       orderQuery.refetch();
     },
   };

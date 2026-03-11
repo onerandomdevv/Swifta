@@ -4,6 +4,9 @@ import Providers from "@/providers/providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || "https://swifttrade.store",
+  ),
   title: "SwiftTrade — Nigeria's WhatsApp E-Commerce Platform",
   description:
     "Buy and sell anything on WhatsApp with escrow payment protection. Verified merchants, tracked delivery, instant payouts.",

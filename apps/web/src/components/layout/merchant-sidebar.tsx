@@ -18,23 +18,26 @@ export function MerchantSidebar({
 
   const navItems = [
     { label: "Dashboard", icon: "dashboard", href: "/merchant/dashboard" },
-    { label: "Orders", icon: "list_alt", href: "/merchant/orders" },
-    { label: "Quotes", icon: "request_quote", href: "/merchant/quotes" },
     {
-      label: "Quote Link",
-      icon: "link",
-      href: "/merchant/quotes/generate",
-    },
-    {
-      label: "Storefront Preview",
+      label: "Business Page",
       icon: "storefront",
-      href: "/merchant/catalogue",
+      href: `/buyer/merchants/${user?.merchantId}`,
     },
-    { label: "Inventory", icon: "inventory_2", href: "/merchant/inventory" },
+    { label: "Orders", icon: "list_alt", href: "/merchant/orders" },
+    {
+      label: "Products & Stock",
+      icon: "inventory_2",
+      href: "/merchant/products",
+    },
     {
       label: "Buy Wholesale",
       icon: "factory",
       href: "/merchant/wholesale",
+    },
+    {
+      label: "Trade Financing",
+      icon: "loyalty",
+      href: "/merchant/trade-financing",
     },
     { label: "Payouts", icon: "payments", href: "/merchant/payouts" },
     {

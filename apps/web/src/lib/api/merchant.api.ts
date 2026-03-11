@@ -77,6 +77,9 @@ export async function getVerificationStatus(): Promise<{
     status: string;
     rejectionReason?: string;
     createdAt: string;
+    governmentIdUrl?: string;
+    cacCertUrl?: string;
+    idType?: string;
   };
 }> {
   return apiClient.get("/verification/status");

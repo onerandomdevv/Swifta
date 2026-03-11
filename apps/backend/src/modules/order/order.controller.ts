@@ -19,6 +19,7 @@ import { CurrentMerchant } from "../../common/decorators/current-merchant.decora
 import { UserRole, JwtPayload } from "@hardware-os/shared";
 import { CreateDirectOrderDto } from "./dto/create-direct-order.dto";
 import { CreateTrackingDto } from "./dto/create-tracking.dto";
+import { CheckoutCartDto } from "./dto/checkout-cart.dto";
 
 @Controller("orders")
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -53,6 +54,12 @@ export class OrderController {
     @Body() dto: CreateDirectOrderDto,
   ) {
     return this.orderService.createDirectOrder(user.sub, dto);
+  }
+
+  @Post("checkout/cart")
+  @Roles(UserRole.BUYER)
+  checkoutCart(@CurrentUser() user: JwtPayload, @Body() dto: CheckoutCartDto) {
+    return this.orderService.checkoutCart(user.sub, dto);
   }
 
   @Get(":id")

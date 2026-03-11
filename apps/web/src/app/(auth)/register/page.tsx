@@ -169,7 +169,9 @@ export default function RegisterPage() {
           ? "/merchant/dashboard"
           : role === UserRole.SUPPLIER
             ? "/supplier/dashboard"
-            : "/buyer/dashboard";
+            : role === UserRole.BUYER
+              ? "/buyer/dashboard"
+              : "/admin/dashboard";
       setTimeout(() => {
         router.push(dashboardPath);
       }, 2000);

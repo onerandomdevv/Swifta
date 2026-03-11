@@ -1,22 +1,13 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { getMerchantRFQs } from "@/lib/api/rfq.api";
 import { getOrders } from "@/lib/api/order.api";
 import { getMyProducts } from "@/lib/api/product.api";
+import { getAnalytics } from "@/lib/api/merchant.api";
 import { authApi } from "@/lib/api/auth.api";
-import type { RFQ, Order, Product } from "@hardware-os/shared";
+import type { Order, Product } from "@hardware-os/shared";
 
 export function useMerchantDashboard() {
-  const rfqQuery = useQuery({
-    queryKey: ["merchant", "rfqs", "recent"],
-    queryFn: async () => {
-      const data = await getMerchantRFQs(1, 5);
-      return Array.isArray(data) ? data : [];
-    },
-    refetchInterval: 30000,
-  });
-
   const orderQuery = useQuery({
     queryKey: ["merchant", "orders", "all"],
     queryFn: async () => {
@@ -24,6 +15,12 @@ export function useMerchantDashboard() {
       return Array.isArray(data) ? data : [];
     },
     refetchInterval: 30000,
+  });
+
+  const analyticsQuery = useQuery({
+    queryKey: ["merchant", "analytics"],
+    queryFn: getAnalytics,
+    refetchInterval: 60000,
   });
 
   const userQuery = useQuery({
@@ -35,17 +32,16 @@ export function useMerchantDashboard() {
     refetchInterval: 60000,
   });
 
-  const isLoading =
-    rfqQuery.isLoading || orderQuery.isLoading || userQuery.isLoading;
+  const isLoading = orderQuery.isLoading || userQuery.isLoading || analyticsQuery.isLoading;
 
   return {
-    rfqs: rfqQuery.data || ([] as RFQ[]),
     orders: orderQuery.data || ([] as Order[]),
+    analytics: analyticsQuery.data || null,
     user: userQuery.data,
     isLoading,
-    isError: rfqQuery.isError || orderQuery.isError || userQuery.isError,
+    isError: orderQuery.isError || userQuery.isError || analyticsQuery.isError,
     error: (() => {
-      const error = rfqQuery.error || orderQuery.error || userQuery.error;
+      const error = orderQuery.error || userQuery.error || analyticsQuery.error;
       if (!error) return null;
       const anyErr = error as any;
       if (typeof anyErr.error === "string") return anyErr.error;
@@ -59,9 +55,9 @@ export function useMerchantDashboard() {
       return "Failed to load dashboard data";
     })(),
     refetch: () => {
-      rfqQuery.refetch();
       orderQuery.refetch();
       userQuery.refetch();
+      analyticsQuery.refetch();
     },
   };
 }

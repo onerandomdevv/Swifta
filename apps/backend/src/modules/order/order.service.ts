@@ -18,17 +18,20 @@ import { LogisticsService } from "../logistics/logistics.service";
 import { PAYOUT_QUEUE, REVIEW_QUEUE } from "../../queue/queue.constants";
 import { WhatsAppService } from "../whatsapp/whatsapp.service";
 import {
-  OrderStatus,
-  OTP_LENGTH,
-  PaginatedResponse,
+  InventoryEventType,
   Order,
+  OrderStatus,
+  PaginatedResponse,
+  PriceType,
 } from "@hardware-os/shared";
+
 import { paginate } from "../../common/utils/pagination";
 import { validateTransition, getNextStates } from "./order-state-machine";
 import * as crypto from "crypto";
 import { VerificationService } from "../verification/verification.service";
 import { CreateDirectOrderDto } from "./dto/create-direct-order.dto";
 import { CreateTrackingDto } from "./dto/create-tracking.dto";
+import { CheckoutCartDto } from "./dto/checkout-cart.dto";
 
 @Injectable()
 export class OrderService {
@@ -130,6 +133,7 @@ export class OrderService {
       productId,
       quantity,
       deliveryAddress,
+      deliveryDetails,
       paymentMethod: requestedMethod,
       deliveryMethod = "MERCHANT_DELIVERY",
     } = dto;
@@ -199,8 +203,33 @@ export class OrderService {
 
     const idempotencyKey = `direct-order-${productId}-${buyerId}-${Date.now()}`;
 
-    // Create the order
+    // Create the order with reservation
     const order = await this.prisma.$transaction(async (tx) => {
+      // 1. Atomic reservation
+      const updateResult = await tx.productStockCache.updateMany({
+        where: {
+          productId: product.id,
+          stock: { gte: quantity },
+        },
+        data: { stock: { decrement: quantity } },
+      });
+
+      if (updateResult.count === 0) {
+        throw new BadRequestException("Insufficient stock");
+      }
+
+      // 2. Inventory Event
+      await tx.inventoryEvent.create({
+        data: {
+          productId: product.id,
+          merchantId: product.merchantId,
+          eventType: InventoryEventType.ORDER_RESERVED,
+          quantity: quantity,
+          notes: `Direct purchase reservation (buyer: ${buyerId})`,
+        },
+      });
+
+      // 3. Create order
       const newOrder = await tx.order.create({
         data: {
           buyerId,
@@ -209,6 +238,7 @@ export class OrderService {
           quantity,
           unitPriceKobo: resolvedPriceKobo,
           deliveryAddress,
+          deliveryDetails: deliveryDetails ? (deliveryDetails as any) : null,
           totalAmountKobo,
           deliveryFeeKobo: calculatedDeliveryFeeKobo,
           currency: "NGN",
@@ -286,6 +316,222 @@ export class OrderService {
       authorizationUrl: paymentData.authorization_url,
       totalAmountKobo: Number(totalAmountKobo),
       platformFeeKobo,
+      paymentMethod,
+    };
+  }
+
+  // ──────────────────────────────────────────────
+  //  CHECKOUT CART (B2C MULTI-ITEM CHECKOUT)
+  // ──────────────────────────────────────────────
+
+  async checkoutCart(buyerId: string, dto: CheckoutCartDto) {
+    const {
+      cartItemIds,
+      deliveryAddress,
+      deliveryDetails,
+      deliveryMethod = "MERCHANT_DELIVERY",
+      paymentMethod: requestedMethod,
+    } = dto;
+
+    if (!cartItemIds || cartItemIds.length === 0) {
+      throw new BadRequestException("No cart items provided for checkout.");
+    }
+
+    // Fetch the cart items with products and ensuring they belong to the buyer
+    const items = await this.prisma.cartItem.findMany({
+      where: {
+        id: { in: cartItemIds },
+        buyerId: buyerId,
+      },
+      include: {
+        product: {
+          include: { merchantProfile: true, productStockCache: true },
+        },
+      },
+    });
+
+    if (items.length !== cartItemIds.length) {
+      throw new BadRequestException(
+        "One or more cart items are invalid or do not belong to you.",
+      );
+    }
+
+    // Ensure all items are from the SAME MERCHANT because Escrow Payouts are 1-to-1 Order-to-Merchant
+    const merchantIds = new Set(items.map((item) => item.product.merchantId));
+    if (merchantIds.size > 1) {
+      throw new BadRequestException(
+        "Cart checkout is restricted to one merchant per order. Please split your checkout.",
+      );
+    }
+
+    const merchantId = items[0].product.merchantId;
+    const merchantProfile = items[0].product.merchantProfile;
+    if (!merchantProfile) {
+      throw new BadRequestException(
+        "Merchant profile not found for these items.",
+      );
+    }
+
+    await this.prisma.buyerProfile.findUnique({
+      where: { userId: buyerId },
+    });
+
+    let subtotalKobo = 0n;
+    const jsonItems = [];
+
+    // Validations and calculations
+    for (const item of items) {
+      const product = item.product;
+      if (!product.isActive || product.deletedAt) {
+        throw new BadRequestException(
+          `Product ${product.name} is no longer available.`,
+        );
+      }
+
+      // Logic: Retail vs Wholesale price selection based on item.priceType
+      const isWholesale = item.priceType === PriceType.WHOLESALE;
+      const minQty = isWholesale
+        ? product.minOrderQuantity
+        : product.minOrderQuantityConsumer;
+
+      if (item.quantity < minQty) {
+        throw new BadRequestException(
+          `Quantity for ${product.name} (${item.quantity}) is below the minimum for ${item.priceType} (${minQty})`,
+        );
+      }
+
+      const resolvedPriceKobo = isWholesale
+        ? (product.wholesalePriceKobo ?? product.pricePerUnitKobo ?? 0n)
+        : (product.retailPriceKobo ?? product.pricePerUnitKobo ?? 0n);
+
+      if (resolvedPriceKobo === 0n) {
+        throw new BadRequestException(
+          `Product ${product.name} does not have a valid ${item.priceType} price.`,
+        );
+      }
+
+      subtotalKobo += BigInt(resolvedPriceKobo) * BigInt(item.quantity);
+
+      jsonItems.push({
+        productId: product.id,
+        quantity: item.quantity,
+        unitPriceKobo: resolvedPriceKobo.toString(),
+        name: product.name,
+        priceType: item.priceType,
+      });
+    }
+
+    // Determine payment method and platform fee
+    const merchantTier = merchantProfile.verificationTier;
+    const isVerifiedMerchant =
+      merchantTier === "VERIFIED" || merchantTier === "TRUSTED";
+    const paymentMethod =
+      requestedMethod === "DIRECT" && isVerifiedMerchant ? "DIRECT" : "ESCROW";
+    const platformFeePercentage = paymentMethod === "DIRECT" ? 1 : 2;
+    const platformFeeKobo = BigInt(
+      Math.floor(Number(subtotalKobo) * (platformFeePercentage / 100)),
+    );
+
+    let calculatedDeliveryFeeKobo = 0n;
+    if (
+      deliveryMethod === "PLATFORM_LOGISTICS" &&
+      merchantProfile.businessAddress
+    ) {
+      // Very rough estimate of 10kg per cart item total for now
+      const estimatedWeightKg = 10 * items.length;
+      // No try-catch here: let logistics errors propagate to the user
+      const quote = await this.logisticsService.getQuote(
+        merchantProfile.businessAddress,
+        deliveryAddress,
+        estimatedWeightKg,
+      );
+      calculatedDeliveryFeeKobo = BigInt(quote.costKobo);
+    }
+
+    const totalAmountKobo =
+      subtotalKobo + platformFeeKobo + calculatedDeliveryFeeKobo;
+    const idempotencyKey = `cart-checkout-${buyerId}-${Date.now()}`;
+
+    // Create the order atomically with inventory reservation
+    const order = await this.prisma.$transaction(async (tx) => {
+      // 1. Atomic: check and decrement stock
+      for (const item of items) {
+        const updateResult = await tx.productStockCache.updateMany({
+          where: {
+            productId: item.productId,
+            stock: { gte: item.quantity },
+          },
+          data: { stock: { decrement: item.quantity } },
+        });
+
+        if (updateResult.count === 0) {
+          throw new BadRequestException(
+            `Insufficient stock for ${item.product.name}.`,
+          );
+        }
+
+        // Log inventory event
+        await tx.inventoryEvent.create({
+          data: {
+            productId: item.productId,
+            merchantId: merchantId as string,
+            eventType: InventoryEventType.ORDER_RESERVED,
+            quantity: item.quantity,
+            notes: `Reserved for cart checkout (buyer: ${buyerId})`,
+          },
+        });
+      }
+
+      // 2. Create the order
+      const newOrder = await tx.order.create({
+        data: {
+          buyerId,
+          merchantId,
+          deliveryAddress,
+          deliveryDetails: deliveryDetails ? (deliveryDetails as any) : null,
+          totalAmountKobo,
+          deliveryFeeKobo: calculatedDeliveryFeeKobo,
+          currency: "NGN",
+          status: OrderStatus.PENDING_PAYMENT,
+          paymentMethod,
+          deliveryMethod: deliveryMethod as any,
+          items: jsonItems,
+          quoteId: null,
+          idempotencyKey,
+          payoutStatus: "PENDING",
+        },
+      });
+
+      // 3. Create initial order event (audit trail)
+      await tx.orderEvent.create({
+        data: {
+          orderId: newOrder.id,
+          toStatus: OrderStatus.PENDING_PAYMENT,
+          triggeredBy: buyerId,
+          metadata: { action: "cart_checkout", items: jsonItems },
+        },
+      });
+
+      // 4. Clear the checked-out cart items
+      await tx.cartItem.deleteMany({
+        where: { id: { in: cartItemIds } },
+      });
+
+      return newOrder;
+    });
+
+    // Generate Payment Link
+    const paymentData = await this.paymentService.initialize(
+      buyerId,
+      { orderId: order.id },
+      `init-cart-${order.id}`,
+    );
+
+    return {
+      orderId: order.id,
+      authorizationUrl: paymentData.authorization_url,
+      totalAmountKobo: Number(totalAmountKobo),
+      platformFeeKobo: Number(platformFeeKobo),
       paymentMethod,
     };
   }
@@ -771,18 +1017,46 @@ export class OrderService {
       { cancelledBy: isBuyer ? "buyer" : "merchant" },
     );
 
-    // Release reserved stock
-    const quote = await this.prisma.quote.findUnique({
-      where: { id: order.quoteId },
-      include: { rfq: true },
-    });
-    if (quote?.rfq) {
+    // Release reserved stock for different order types
+    if (order.quoteId) {
+      // Legacy Quote Flow
+      const quote = await this.prisma.quote.findUnique({
+        where: { id: order.quoteId },
+        include: { rfq: true },
+      });
+      if (quote?.rfq) {
+        await this.inventoryService.releaseStock(
+          quote.rfq.productId,
+          order.merchantId as string,
+          quote.rfq.quantity,
+          orderId,
+        );
+      }
+    } else if (order.productId && order.quantity) {
+      // Direct Purchase
       await this.inventoryService.releaseStock(
-        quote.rfq.productId,
-        order.merchantId,
-        quote.rfq.quantity,
+        order.productId,
+        order.merchantId as string,
+        order.quantity,
         orderId,
       );
+    } else if (order.items) {
+      // Cart Checkout (Multi-item)
+      const items = order.items as any[];
+      const releasePayload = items
+        .filter((item) => item.productId && item.quantity)
+        .map((item) => ({
+          productId: item.productId,
+          quantity: Number(item.quantity),
+        }));
+
+      if (releasePayload.length > 0) {
+        await this.inventoryService.releaseStockBatch(
+          releasePayload,
+          order.merchantId as string,
+          orderId,
+        );
+      }
     }
 
     // Notify both parties

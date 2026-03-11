@@ -56,4 +56,19 @@ export class UpdateMerchantDto {
   @IsOptional()
   @IsString()
   settlementAccountName?: string;
+
+  @IsOptional()
+  @IsString()
+  profileImage?: string;
+
+  @IsOptional()
+  @IsString()
+  coverImage?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  socialLinks?: Record<string, string>;
 }

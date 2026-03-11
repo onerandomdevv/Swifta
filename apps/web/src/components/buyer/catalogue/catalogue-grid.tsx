@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import type { Product } from "@hardware-os/shared";
+import { PriceType, type Product } from "@hardware-os/shared";
 import { VerificationBadge } from "@/components/ui/verification-badge";
 import { StarRating } from "@/components/ui/star-rating";
 
@@ -8,14 +8,12 @@ interface Props {
   products: Product[];
   setSearchQuery: (val: string) => void;
   setActiveCategory: (val: string) => void;
-  buyerType?: "CONSUMER" | "BUSINESS";
 }
 
 export function CatalogueGrid({
   products,
   setSearchQuery,
   setActiveCategory,
-  buyerType = "BUSINESS",
 }: Props) {
   if (products.length === 0) {
     return (
@@ -96,63 +94,112 @@ export function CatalogueGrid({
               </Link>
             )}
 
-            {/* Price Details — unified priceKobo for both CONSUMER and BUSINESS */}
-            {(() => {
-              const priceKobo =
-                buyerType === "CONSUMER" && p.retailPriceKobo
-                  ? p.retailPriceKobo
-                  : p.pricePerUnitKobo || (p as any).retailPriceKobo;
+            {/* Price Details */}
+            <div className="mt-3 space-y-2">
+              {p.retailPriceKobo && (
+                <div className="flex justify-between items-end border-b border-slate-50 dark:border-slate-800 pb-1">
+                  <div>
+                    <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                      Retail
+                    </div>
+                    <div className="text-[10px] sm:text-xs font-bold text-slate-500">
+                      Min: {p.minOrderQuantityConsumer} {p.unit}
+                    </div>
+                  </div>
+                  <div className="text-sm font-black text-slate-900 dark:text-slate-100">
+                    {(Number(p.retailPriceKobo) / 100).toLocaleString("en-NG", {
+                      style: "currency",
+                      currency: "NGN",
+                      minimumFractionDigits: 0,
+                    })}
+                  </div>
+                </div>
+              )}
 
-              if (priceKobo) {
-                return (
-                  <div className="mt-2.5">
-                    <div className="text-sm sm:text-lg font-black text-navy-dark dark:text-emerald-400">
-                      {(Number(priceKobo) / 100).toLocaleString("en-NG", {
+              {p.wholesalePriceKobo && (
+                <div className="flex justify-between items-end">
+                  <div>
+                    <div className="text-[8px] font-black text-primary uppercase tracking-widest">
+                      Wholesale
+                    </div>
+                    <div className="text-[10px] sm:text-xs font-bold text-slate-500">
+                      Min: {p.minOrderQuantity} {p.unit}
+                    </div>
+                  </div>
+                  <div className="text-sm font-black text-primary">
+                    {(Number(p.wholesalePriceKobo) / 100).toLocaleString(
+                      "en-NG",
+                      {
                         style: "currency",
                         currency: "NGN",
                         minimumFractionDigits: 0,
-                      })}
-                    </div>
-                    <div className="text-[8px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mt-0.5">
-                      Per {p.unit}
-                    </div>
+                      },
+                    )}
                   </div>
-                );
-              }
-              return (
-                <div className="mt-2.5 text-[10px] font-black text-slate-400 italic uppercase tracking-widest">
+                </div>
+              )}
+
+              {!p.retailPriceKobo && !p.wholesalePriceKobo && (
+                <div className="text-[10px] font-black text-slate-400 italic uppercase tracking-widest py-2">
                   Quote Required
                 </div>
-              );
-            })()}
+              )}
+            </div>
 
-            {/* CTA — uses same priceKobo logic as display above */}
-            <div className="mt-4">
-              {(() => {
-                const priceKobo =
-                  buyerType === "CONSUMER" && p.retailPriceKobo
-                    ? p.retailPriceKobo
-                    : p.pricePerUnitKobo || (p as any).retailPriceKobo;
-                return priceKobo ? (
-                  <Link
-                    href={`/buyer/checkout/${p.id}`}
-                    className="w-full bg-navy-dark hover:bg-navy text-white text-[10px] sm:text-xs font-black py-2.5 rounded-lg uppercase tracking-widest text-center block transition-all active:scale-95 shadow-sm"
+            {/* CTA Container */}
+            <div className="mt-4 flex flex-col gap-2">
+              <Link
+                href={`/buyer/products/${p.id}`}
+                className="w-full bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 hover:border-primary text-slate-900 dark:text-white text-[9px] sm:text-[10px] font-black py-2 rounded-lg uppercase tracking-widest text-center transition-all active:scale-95 flex items-center justify-center gap-1"
+              >
+                <span className="material-symbols-outlined text-[14px]">visibility</span>
+                View Product details
+              </Link>
+              <div className="grid grid-cols-2 gap-2">
+                {p.retailPriceKobo && (
+                  <button
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      handleAdd(p, PriceType.RETAIL, p.minOrderQuantityConsumer);
+                    }}
+                    className="w-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white text-[8px] sm:text-[9px] font-black py-2 rounded-lg uppercase tracking-widest text-center transition-all active:scale-95 flex items-center justify-center gap-1"
                   >
-                    Buy
-                  </Link>
+                    <span className="material-symbols-outlined text-[14px]">add_shopping_cart</span>
+                    Retail
+                  </button>
+                )}
+
+                {p.wholesalePriceKobo ? (
+                  <button
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      handleAdd(p, PriceType.WHOLESALE, p.minOrderQuantity);
+                    }}
+                    className="w-full bg-primary/10 hover:bg-primary text-primary hover:text-white dark:bg-primary-dark/20 dark:hover:bg-primary dark:text-primary-light text-[8px] sm:text-[9px] font-black py-2 rounded-lg uppercase tracking-widest text-center transition-all active:scale-95 flex items-center justify-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">add_shopping_cart</span>
+                    Wholesale
+                  </button>
                 ) : (
-                  <Link
-                    href={`/buyer/rfqs/new?productId=${p.id}`}
-                    className="w-full bg-primary text-white text-[10px] sm:text-xs font-black py-2.5 rounded-lg uppercase tracking-widest hover:bg-orange-600 transition-all text-center block active:scale-95 shadow-lg shadow-primary/20"
-                  >
-                    Quote
-                  </Link>
-                );
-              })()}
+                  <div className="w-full" /> 
+                )}
+              </div>
             </div>
           </div>
         </div>
       ))}
     </div>
   );
+}
+
+async function handleAdd(product: Product, priceType: PriceType, qty: number) {
+  try {
+    const { addToCart } = await import("@/lib/api/cart.api");
+    const { toast } = await import("sonner");
+    await addToCart(product.id, qty, priceType);
+    toast.success(`${product.name} added as ${priceType.toLowerCase()}`);
+  } catch (err: any) {
+    const { toast } = await import("sonner");
+    toast.error(err.message || "Failed to add to cart");
+  }
 }

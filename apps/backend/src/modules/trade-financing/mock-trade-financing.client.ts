@@ -53,9 +53,9 @@ export class MockTradeFinancingClient implements TradeFinancingPartnerClient {
 
   async initiateLoan(
     orderId: string,
-    amount: bigint,
-    tenure: number,
-    merchantData: MerchantCreditData,
+    _amount: bigint,
+    _tenure: number,
+    _merchantData: MerchantCreditData,
   ) {
     this.logger.debug(`Mock trade financing initiated for order ${orderId}`);
 

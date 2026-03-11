@@ -69,6 +69,21 @@ export function BuyerOrderActions({
         </div>
       )}
 
+      {/* Contact Merchant - Only if MERCHANT_DELIVERY & Paid */}
+      {order.deliveryMethod === "MERCHANT_DELIVERY" && ["PAID", "DISPATCHED"].includes(order.status) && (
+        <div className="mb-6">
+          <a
+            href={`https://wa.me/${order.merchant?.phone?.replace(/\D/g, '') || ""}?text=${encodeURIComponent(`Hello ${order.merchant?.businessName}, I'm following up on my SwiftTrade Order #${order.id.slice(0, 8)}.`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-4 bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all hover:scale-[1.02] active:scale-95"
+          >
+            <span className="material-symbols-outlined text-lg">chat</span>
+            Contact Merchant on WhatsApp
+          </a>
+        </div>
+      )}
+
       {/* Confirm Delivery - only for DISPATCHED */}
       {order.status === "DISPATCHED" && (
         <div className="bg-background-light dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm flex flex-col items-center">

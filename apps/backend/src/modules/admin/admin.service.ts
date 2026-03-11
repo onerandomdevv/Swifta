@@ -5,7 +5,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
-import { VerificationStatus, OrderStatus, UserRole } from "@hardware-os/shared";
+import { OrderStatus, UserRole } from "@hardware-os/shared";
 import * as bcrypt from "bcrypt";
 import { RedisService } from "../../redis/redis.service";
 import { AuditLogService } from "./audit-log.service";
@@ -1027,7 +1027,7 @@ export class AdminService {
       throw new NotFoundException("Supplier profile not found.");
     }
 
-    const updated = await this.prisma.supplierProfile.update({
+    await this.prisma.supplierProfile.update({
       where: { id: supplierId },
       data: { isVerified: true },
     });

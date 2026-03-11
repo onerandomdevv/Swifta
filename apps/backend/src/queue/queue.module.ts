@@ -45,6 +45,7 @@ function sanitizeRedisUrl(url: string | undefined): string | undefined {
               port: 6379,
               family: 0,
               enableReadyCheck: false,
+              maxRetriesPerRequest: null,
             },
             prefix: "{bull}",
           };
@@ -64,6 +65,7 @@ function sanitizeRedisUrl(url: string | undefined): string | undefined {
                   : undefined,
               family: 0,
               enableReadyCheck: false,
+              maxRetriesPerRequest: null,
             },
             prefix: "{bull}",
           };
