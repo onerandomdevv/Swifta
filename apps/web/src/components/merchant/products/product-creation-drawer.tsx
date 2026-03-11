@@ -26,6 +26,7 @@ export function ProductCreationDrawer({
   const [currentStep, setCurrentStep] = useState<Step>("VISUALS");
   const [categories, setCategories] = useState<Category[]>([]);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [wholesaleEnabled, setWholesaleEnabled] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -35,8 +36,8 @@ export function ProductCreationDrawer({
     minOrderQuantity: 1,
     minOrderQuantityConsumer: 1,
     imageUrl: "",
-    pricePerUnit: "",
     retailPrice: "",
+    wholesaleDiscountPercent: 15,
   });
 
   useEffect(() => {
@@ -60,9 +61,10 @@ export function ProductCreationDrawer({
         minOrderQuantity: 1,
         minOrderQuantityConsumer: 1,
         imageUrl: "",
-        pricePerUnit: "",
         retailPrice: "",
+        wholesaleDiscountPercent: 15,
       });
+      setWholesaleEnabled(false);
       setCurrentStep("VISUALS");
     }
   }, [isOpen]);
@@ -88,6 +90,12 @@ export function ProductCreationDrawer({
     }
   };
 
+  // Compute wholesale price for display
+  const retailPriceNum = Number(formData.retailPrice) || 0;
+  const calculatedWholesalePrice = wholesaleEnabled && retailPriceNum > 0
+    ? Math.round(retailPriceNum * (1 - formData.wholesaleDiscountPercent / 100))
+    : 0;
+
   const createMutation = useMutation({
     mutationFn: () =>
       createProduct({
@@ -96,14 +104,14 @@ export function ProductCreationDrawer({
         unit: formData.unit,
         categoryTag: formData.categoryTag,
         categoryId: formData.categoryId,
-        minOrderQuantity: formData.minOrderQuantity,
+        minOrderQuantity: wholesaleEnabled ? formData.minOrderQuantity : 1,
         minOrderQuantityConsumer: formData.minOrderQuantityConsumer,
         imageUrl: formData.imageUrl || undefined,
-        pricePerUnitKobo: formData.pricePerUnit
-          ? (Number(formData.pricePerUnit) * 100).toString()
-          : undefined,
         retailPriceKobo: formData.retailPrice
           ? (Number(formData.retailPrice) * 100).toString()
+          : undefined,
+        wholesaleDiscountPercent: wholesaleEnabled
+          ? formData.wholesaleDiscountPercent
           : undefined,
       }),
     onSuccess: () => {
@@ -264,7 +272,7 @@ export function ProductCreationDrawer({
             <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-500">
               <div className="space-y-4">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                  Material Denomiation
+                  Material Denomination
                 </label>
                 <input
                   autoFocus
@@ -316,70 +324,120 @@ export function ProductCreationDrawer({
           )}
 
           {currentStep === "PRICING" && (
-            <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-500">
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                    Wholesale Settlement
-                  </label>
-                   <div className="relative">
-                     <span className="absolute left-6 top-1/2 -translate-y-1/2 text-lg font-black text-navy-dark/20 font-mono">₦</span>
-                     <input
-                      type="number"
-                      value={formData.pricePerUnit}
-                      onChange={(e) => setFormData({ ...formData, pricePerUnit: e.target.value })}
-                      placeholder="8,500"
-                      className="w-full p-6 pl-12 text-2xl font-black border-2 border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 rounded-[1.5rem] focus:border-navy-dark dark:focus:border-primary transition-all outline-none tabular-nums dark:text-white"
-                    />
-                   </div>
-                   <p className="text-[10px] font-bold text-slate-400 ml-1">B2B Trade Pricing</p>
+            <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+              {/* Retail Price — always visible */}
+              <div className="space-y-4">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                  Retail Price (₦)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-6 top-1/2 -translate-y-1/2 text-lg font-black text-navy-dark/20 font-mono">₦</span>
+                  <input
+                    type="number"
+                    value={formData.retailPrice}
+                    onChange={(e) => setFormData({ ...formData, retailPrice: e.target.value })}
+                    placeholder="9,000"
+                    className="w-full p-6 pl-12 text-2xl font-black border-2 border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 rounded-[1.5rem] focus:border-navy-dark dark:focus:border-primary transition-all outline-none tabular-nums dark:text-white"
+                  />
                 </div>
-
-                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">
-                    Consumer Settlement
-                  </label>
-                   <div className="relative">
-                     <span className="absolute left-6 top-1/2 -translate-y-1/2 text-lg font-black text-primary/20 font-mono">₦</span>
-                     <input
-                      type="number"
-                      value={formData.retailPrice}
-                      onChange={(e) => setFormData({ ...formData, retailPrice: e.target.value })}
-                      placeholder="9,000"
-                      className="w-full p-6 pl-12 text-2xl font-black border-2 border-primary/5 dark:border-primary/20 bg-primary/5 dark:bg-primary/10 rounded-[1.5rem] focus:border-primary transition-all outline-none tabular-nums dark:text-white"
-                    />
-                   </div>
-                   <p className="text-[10px] font-bold text-primary/60 ml-1 italic font-mono">Retail Premium</p>
-                </div>
+                <p className="text-[10px] font-bold text-slate-400 ml-1">Standard price per {formData.unit.toLowerCase()}</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-6 pt-6 border-t border-slate-100 dark:border-slate-800">
-                <div className="space-y-4">
-                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                     Wholesale Threshold
-                   </label>
-                   <input
-                    type="number"
-                    min={1}
-                    value={formData.minOrderQuantity}
-                    onChange={(e) => setFormData({ ...formData, minOrderQuantity: parseInt(e.target.value) || 1 })}
-                    className="w-full p-6 text-sm font-black border-2 border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 rounded-[1.5rem] focus:border-navy-dark transition-all outline-none text-navy-dark dark:text-white"
-                  />
-                   <p className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Minimum Trade Volume</p>
-                </div>
+              {/* Min Retail Order */}
+              <div className="space-y-4">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                  Minimum Order Quantity
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  value={formData.minOrderQuantityConsumer}
+                  onChange={(e) => setFormData({ ...formData, minOrderQuantityConsumer: parseInt(e.target.value) || 1 })}
+                  className="w-full p-6 text-sm font-black border-2 border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 rounded-[1.5rem] focus:border-navy-dark transition-all outline-none text-navy-dark dark:text-white"
+                />
+                <p className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Smallest order a buyer can place</p>
+              </div>
 
-                <div className="space-y-4">
-                   <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">
-                     Consumer Threshold
-                   </label>
-                   <input
-                    type="number"
-                    min={1}
-                    value={formData.minOrderQuantityConsumer}
-                    onChange={(e) => setFormData({ ...formData, minOrderQuantityConsumer: parseInt(e.target.value) || 1 })}
-                    className="w-full p-6 text-sm font-black border-2 border-primary/5 dark:border-primary/20 bg-primary/5 rounded-[1.5rem] focus:border-primary transition-all outline-none text-primary"
-                  />
-                   <p className="text-[10px] font-bold text-primary/60 ml-1 italic font-mono uppercase">Smallest Retail Slice</p>
+              {/* Wholesale Toggle */}
+              <div className="border-t border-slate-100 dark:border-slate-800 pt-8">
+                <div className="p-6 rounded-[1.5rem] border-2 border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/30">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className={`size-12 rounded-2xl flex items-center justify-center transition-colors ${wholesaleEnabled ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 dark:bg-slate-700 text-slate-400"}`}>
+                        <span className="material-symbols-outlined text-xl">local_offer</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-tight">
+                          Enable Wholesale
+                        </p>
+                        <p className="text-[10px] font-bold text-slate-400 mt-0.5">
+                          Offer a bulk discount for larger orders
+                        </p>
+                      </div>
+                    </div>
+                    <label className="relative flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={wholesaleEnabled}
+                        onChange={(e) => setWholesaleEnabled(e.target.checked)}
+                      />
+                      <div className={`block w-14 h-8 rounded-full transition-colors ${wholesaleEnabled ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"}`}></div>
+                      <div className={`absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform shadow-sm ${wholesaleEnabled ? "translate-x-6" : ""}`}></div>
+                    </label>
+                  </div>
+
+                  {/* Wholesale fields — revealed on toggle */}
+                  {wholesaleEnabled && (
+                    <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-700 space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-3">
+                          <label className="text-[10px] font-black text-emerald-600 uppercase tracking-widest ml-1">
+                            Discount %
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              min={1}
+                              max={99}
+                              value={formData.wholesaleDiscountPercent}
+                              onChange={(e) => setFormData({ ...formData, wholesaleDiscountPercent: Math.min(99, Math.max(1, parseInt(e.target.value) || 1)) })}
+                              className="w-full p-5 pr-10 text-lg font-black border-2 border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-xl focus:border-emerald-500 transition-all outline-none tabular-nums text-emerald-700 dark:text-emerald-400"
+                            />
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-400 font-black">%</span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <label className="text-[10px] font-black text-emerald-600 uppercase tracking-widest ml-1">
+                            Min. Qty
+                          </label>
+                          <input
+                            type="number"
+                            min={2}
+                            value={formData.minOrderQuantity}
+                            onChange={(e) => setFormData({ ...formData, minOrderQuantity: Math.max(2, parseInt(e.target.value) || 2) })}
+                            className="w-full p-5 text-lg font-black border-2 border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-xl focus:border-emerald-500 transition-all outline-none tabular-nums text-emerald-700 dark:text-emerald-400"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Calculated wholesale price */}
+                      {retailPriceNum > 0 && (
+                        <div className="p-5 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/30 flex items-center justify-between">
+                          <div>
+                            <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Wholesale Price</p>
+                            <p className="text-[10px] font-bold text-emerald-500/70 mt-0.5">
+                              Auto-calculated: {formData.wholesaleDiscountPercent}% off ₦{retailPriceNum.toLocaleString()}
+                            </p>
+                          </div>
+                          <p className="text-2xl font-black text-emerald-700 dark:text-emerald-400 tabular-nums">
+                            ₦{calculatedWholesalePrice.toLocaleString()}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -408,9 +466,10 @@ export function ProductCreationDrawer({
                     minOrderQuantity: 1,
                     minOrderQuantityConsumer: 1,
                     imageUrl: "",
-                    pricePerUnit: "",
                     retailPrice: "",
+                    wholesaleDiscountPercent: 15,
                   });
+                  setWholesaleEnabled(false);
                 }}
                 className="px-10 py-5 bg-navy-dark text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] flex items-center gap-3 transition-all hover:scale-105 active:scale-95"
               >

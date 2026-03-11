@@ -29,6 +29,7 @@ export interface Product {
   pricePerUnitKobo?: string;
   retailPriceKobo?: string; // Added in V5 for consumer expansion
   wholesalePriceKobo?: string; // Added in V5 for per-item wholesale pricing
+  wholesaleDiscountPercent?: number | null; // Added in V5 — discount % off retail for wholesale
   attributes?: any; // Added in V5: Category-specific key-value pairs
 
   warehouseLocation?: string;
@@ -51,12 +52,14 @@ export interface CreateProductDto {
   warehouseLocation?: string;
   pricePerUnitKobo?: string;
   retailPriceKobo?: string;
+  wholesaleDiscountPercent?: number;
 }
 
 export type UpdateProductDto = Partial<CreateProductDto> & {
   isActive?: boolean;
   categoryId?: string;
   retailPriceKobo?: string;
+  wholesaleEnabled?: boolean;
 };
 
 export interface SupplierProduct {
