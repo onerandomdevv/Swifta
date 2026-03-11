@@ -41,7 +41,7 @@ export class ReorderReminderProcessor extends WorkerHost {
     }
   }
 
-  async process(job: Job<any, any, string>): Promise<any> {
+  async process(_job: Job<any, any, string>): Promise<any> {
     this.logger.log("Running reorder reminder check...");
     const count = await this.reorderService.processReminders();
     this.logger.log(`Processed ${count} reorder reminders`);

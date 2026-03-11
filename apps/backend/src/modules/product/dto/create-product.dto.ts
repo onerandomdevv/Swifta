@@ -1,12 +1,4 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsOptional,
-  IsInt,
-  Min,
-  IsIn,
-} from "class-validator";
-import { PRODUCT_CATEGORIES } from "@hardware-os/shared";
+import { IsString, IsNotEmpty, IsOptional, IsInt, Min } from "class-validator";
 
 export class CreateProductDto {
   @IsString()

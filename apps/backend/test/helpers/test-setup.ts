@@ -1,9 +1,9 @@
-import { INestApplication } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
-import { AppModule } from '../../src/app.module';
-import { PrismaService } from '../../src/prisma/prisma.service';
-import { JwtService } from '@nestjs/jwt';
-import { UserRole } from '@hardware-os/shared';
+import { INestApplication } from "@nestjs/common";
+import { Test, TestingModule } from "@nestjs/testing";
+import { AppModule } from "../../src/app.module";
+import { PrismaService } from "../../src/prisma/prisma.service";
+import { JwtService } from "@nestjs/jwt";
+import { UserRole } from "@hardware-os/shared";
 
 export class TestSetup {
   public app: INestApplication;
@@ -34,8 +34,8 @@ export class TestSetup {
       data: {
         email,
         phone: `+234${Math.floor(1000000000 + Math.random() * 900000000)}`,
-        passwordHash: 'hashed_password', // Bypassing bcrypt for raw DB seed
-        fullName: 'Test Buyer',
+        passwordHash: "hashed_password", // Bypassing bcrypt for raw DB seed
+        fullName: "Test Buyer",
         role: UserRole.BUYER,
         emailVerified: true,
       },
@@ -43,7 +43,10 @@ export class TestSetup {
 
     const token = this.jwtService.sign(
       { sub: user.id, email: user.email, role: user.role },
-      { secret: process.env.JWT_ACCESS_SECRET || 'fallback-secret', expiresIn: '15m' }
+      {
+        secret: process.env.JWT_ACCESS_SECRET || "fallback-secret",
+        expiresIn: "15m",
+      },
     );
 
     return { user, token };
@@ -55,17 +58,17 @@ export class TestSetup {
       data: {
         email,
         phone: `+234${Math.floor(1000000000 + Math.random() * 900000000)}`,
-        passwordHash: 'hashed_password', // Bypassing bcrypt for raw DB seed
-        fullName: 'Test Merchant',
+        passwordHash: "hashed_password", // Bypassing bcrypt for raw DB seed
+        fullName: "Test Merchant",
         role: UserRole.MERCHANT,
         emailVerified: true,
         merchantProfile: {
           create: {
-            businessName: 'Golden Path Cement Co.',
-            businessAddress: '123 E2E Street, Lagos',
-            businessType: 'SUPPLIER',
-            cacNumber: 'RC123456',
-            verification: 'VERIFIED',
+            businessName: "Golden Path Cement Co.",
+            businessAddress: "123 E2E Street, Lagos",
+            businessType: "SUPPLIER",
+            cacNumber: "RC123456",
+            verification: "VERIFIED",
           },
         },
       },
@@ -75,8 +78,16 @@ export class TestSetup {
     });
 
     const token = this.jwtService.sign(
-      { sub: user.id, email: user.email, role: user.role, merchantId: user.merchantProfile?.id },
-      { secret: process.env.JWT_ACCESS_SECRET || 'fallback-secret', expiresIn: '15m' }
+      {
+        sub: user.id,
+        email: user.email,
+        role: user.role,
+        merchantId: user.merchantProfile?.id,
+      },
+      {
+        secret: process.env.JWT_ACCESS_SECRET || "fallback-secret",
+        expiresIn: "15m",
+      },
     );
 
     return { user, merchantProfile: user.merchantProfile, token };

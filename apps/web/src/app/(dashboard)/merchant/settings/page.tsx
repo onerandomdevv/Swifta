@@ -62,6 +62,148 @@ const Input = ({ label, ...props }: { label: string } & React.InputHTMLAttribute
 );
 
 export default function MerchantSettingsPage() {
+  const router = useRouter();
+  const { user, refreshUser } = useAuth();
+  const toast = useToast();
+
+  const [activeTab, setActiveTab] = useState<SettingsTab>("account");
+  const [profile, setProfile] = useState<MerchantProfile | null>(null);
+
+  // Identity State
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [middleName, setMiddleName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  // Settlement State
+  const [bankCode, setBankCode] = useState("");
+  const [bankAccountNo, setBankAccountNo] = useState("");
+  const [bankAccountName, setBankAccountName] = useState("");
+  const [banksList, setBanksList] = useState<{ name: string; code: string }[]>([]);
+  const [resolvingAccount, setResolvingAccount] = useState(false);
+
+  // Security State
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+
+  // Notification State
+  const [notifPrefs, setNotifPrefs] = useState(defaultNotifPrefs);
+
+  useEffect(() => {
+    loadProfile();
+    loadBanks();
+  }, []);
+
+  useEffect(() => {
+    if (bankCode && bankAccountNo.length === 10) {
+      resolveBank();
+    }
+  }, [bankCode, bankAccountNo]);
+
+  const loadProfile = async () => {
+    try {
+      const data = await getProfile();
+      setProfile(data);
+      if (user) {
+        setFirstName(user.firstName || "");
+        setLastName(user.lastName || "");
+        setMiddleName(user.middleName || "");
+        setEmail(user.email || "");
+        setPhone(user.phone || "");
+      }
+      if (data.bankCode) setBankCode(data.bankCode);
+      if (data.bankAccountNumber) setBankAccountNo(data.bankAccountNumber);
+      if (data.settlementAccountName) setBankAccountName(data.settlementAccountName);
+    } catch (err) {
+      toast.error("Failed to load profile");
+    }
+  };
+
+  const loadBanks = async () => {
+    try {
+      const banks = await getBanks();
+      setBanksList(banks);
+    } catch (err) {
+      console.error("Failed to load banks");
+    }
+  };
+
+  const resolveBank = async () => {
+    setResolvingAccount(true);
+    try {
+      const response = await resolveBankAccount(bankAccountNo, bankCode);
+      setBankAccountName(response.accountName);
+    } catch (err) {
+      setBankAccountName("Resolution failed");
+    } finally {
+      setResolvingAccount(false);
+    }
+  };
+
+  const handleSaveProfile = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    setSavingProfile(true);
+    try {
+      // Update User Profile
+      await authApi.updateProfile({
+        firstName,
+        lastName,
+        middleName,
+        phone,
+      });
+
+      // Update Bank details if provided
+      if (bankCode && bankAccountNo && bankAccountName && !bankAccountName.includes("failed")) {
+        await updateBankAccount({
+          bankCode,
+          bankAccountNumber: bankAccountNo,
+        });
+      }
+
+      toast.success("Profile updated successfully");
+      refreshUser();
+    } catch (err) {
+      toast.error("Failed to update profile");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      return toast.error("Passwords do not match");
+    }
+    setChangingPassword(true);
+    try {
+      await authApi.changePassword({ 
+        currentPassword, 
+        newPassword 
+      });
+      toast.success("Password updated successfully");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to update password");
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
+  const toggleNotif = (event: string, channel: keyof NotifPref) => {
+    setNotifPrefs(prev => ({
+      ...prev,
+      [event]: {
+        ...prev[event],
+        [channel]: !prev[event][channel]
+      }
+    }));
+  };
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">

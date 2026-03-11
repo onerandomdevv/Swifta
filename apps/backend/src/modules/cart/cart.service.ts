@@ -98,13 +98,11 @@ export class CartService {
     }
 
     // Upsert the cart item: if it exists for this SPECIFIC priceType, add quantity
-    const existingItem = await this.prisma.cartItem.findUnique({
+    const existingItem = await this.prisma.cartItem.findFirst({
       where: {
-        buyerId_productId_priceType: {
-          buyerId,
-          productId: dto.productId,
-          priceType,
-        },
+        buyerId,
+        productId: dto.productId,
+        priceType,
       },
     });
 
