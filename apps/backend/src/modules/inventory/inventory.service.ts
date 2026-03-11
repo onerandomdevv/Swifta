@@ -42,6 +42,35 @@ export class InventoryService {
     );
   }
 
+  async releaseStockBatch(
+    items: { productId: string; quantity: number }[],
+    merchantId: string,
+    orderId: string,
+  ) {
+    await this.prisma.$transaction(async (tx) => {
+      for (const item of items) {
+        // 1. Record event
+        await tx.inventoryEvent.create({
+          data: {
+            productId: item.productId,
+            merchantId,
+            eventType: InventoryEventType.ORDER_RELEASED,
+            quantity: item.quantity,
+            referenceId: orderId,
+            notes: "Order cancellation release (batch)",
+          },
+        });
+
+        // 2. Update stock cache atomically
+        await tx.productStockCache.upsert({
+          where: { productId: item.productId },
+          create: { productId: item.productId, stock: item.quantity },
+          update: { stock: { increment: item.quantity } },
+        });
+      }
+    });
+  }
+
   async manualAdjustment(
     merchantId: string,
     productId: string,

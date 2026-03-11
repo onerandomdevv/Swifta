@@ -32,8 +32,12 @@ export interface MerchantProfile {
     email: string;
     phone: string;
   } | null;
+  profileImage?: string;
+  coverImage?: string;
   averageRating?: number;
   reviewCount: number;
+  description?: string;
+  socialLinks?: Record<string, string>;
 }
 
 export interface UpdateMerchantDto {
@@ -51,4 +55,8 @@ export interface UpdateMerchantDto {
   bankCode?: string;
   bankAccountNumber?: string;
   settlementAccountName?: string;
+  profileImage?: string;
+  coverImage?: string;
+  description?: string;
+  socialLinks?: Record<string, string>;
 }

@@ -1,12 +1,4 @@
-import {
-  IsOptional,
-  IsString,
-  IsInt,
-  Min,
-  IsBoolean,
-  IsIn,
-} from "class-validator";
-import { PRODUCT_CATEGORIES } from "@hardware-os/shared";
+import { IsOptional, IsString, IsInt, Min, IsBoolean } from "class-validator";
 
 export class UpdateProductDto {
   @IsOptional()

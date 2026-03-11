@@ -18,14 +18,11 @@ import { WhatsAppIntentService, ParsedIntent } from "./whatsapp-intent.service";
 import { ImageSearchService } from "./image-search.service";
 import { WhatsAppInteractiveService } from "./whatsapp-interactive.service";
 import {
-  MAIN_MENU,
   GENERIC_ERROR,
   FRIENDLY_FALLBACK,
   STOCK_UPDATE_FOLLOWUP,
   RFQ_RESPOND_FOLLOWUP,
   META_API_VERSION,
-  ProductCreationStep,
-  PRODUCT_CREATION_SESSION_TTL,
 } from "./whatsapp.constants";
 import { RFQStatus, OrderStatus } from "@hardware-os/shared";
 

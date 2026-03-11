@@ -8,6 +8,7 @@ interface ModalProps {
   onClose: () => void;
   title?: string;
   description?: string;
+  className?: string;
   children: React.ReactNode;
 }
 
@@ -16,6 +17,7 @@ export function Modal({
   onClose,
   title,
   description,
+  className,
   children,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
@@ -51,7 +53,7 @@ export function Modal({
       />
       <div
         ref={modalRef}
-        className="relative bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] shadow-2xl w-full max-w-xl mx-4 overflow-hidden animate-in zoom-in-95 duration-300 transform transition-all"
+        className={className || "relative bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] shadow-2xl w-full max-w-xl mx-4 overflow-hidden animate-in zoom-in-95 duration-300 transform transition-all"}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}

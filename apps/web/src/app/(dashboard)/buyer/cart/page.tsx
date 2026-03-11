@@ -43,20 +43,17 @@ export default function BuyerCartPage() {
     refetchOnWindowFocus: false,
   });
 
-  // Since cart checkout is restricted to one merchant per order on backend:
-  // Technically we already enforce this when adding to cart.
-  const merchantProfile = cart?.items?.[0]?.product?.merchantProfile as any;
-  const merchantTier = merchantProfile?.verificationTier;
+  // Render variables
+  const cartItems = cart?.items || [];
+  const subtotalKobo = Number(cart?.subtotalKobo || 0);
+
+  // Since checkout is restricted to one merchant:
+  const firstItem = cartItems[0];
+  const merchantName = firstItem?.product?.merchantName || "Merchant";
+  const merchantTier = firstItem?.product?.merchantTier;
   const isVerifiedMerchant =
     merchantTier === "VERIFIED" || merchantTier === "TRUSTED";
   const showPaymentMethodSection = isVerifiedMerchant;
-
-  // Render variables
-  const cartItems = cart?.items || [];
-  const subtotalKobo = cartItems.reduce(
-    (sum, item) => sum + Number(item.priceAtAddedKobo) * item.quantity,
-    0,
-  );
 
   const createOrderMutation = useMutation({
     mutationFn: checkoutCart,
@@ -84,16 +81,16 @@ export default function BuyerCartPage() {
         return;
       }
 
-      const pickupAddress = merchantProfile?.businessAddress;
+      const pickupAddress = firstItem?.product?.merchantAddress; // We should add merchantAddress to getCart if needed for quoting
       if (!pickupAddress) return;
 
       setIsQuoting(true);
       try {
-        // Very basic estimate calculation, assuming standard weight
+        // Estimate weight based on item unit
         const estimatedWeightKg = cartItems.reduce(
           (sum, item) =>
             sum +
-            (item.product.unit.toLowerCase() === "bag" ? 50 : 10) *
+            (item.product.unit?.toLowerCase() === "bag" ? 50 : 10) *
               item.quantity,
           0,
         );
@@ -112,27 +109,33 @@ export default function BuyerCartPage() {
 
     const delayDebounceFn = setTimeout(() => fetchQuote(), 800);
     return () => clearTimeout(delayDebounceFn);
-  }, [
-    deliveryMethod,
-    deliveryAddress,
-    cartItems,
-    merchantProfile?.businessAddress,
-  ]);
+  }, [deliveryMethod, deliveryAddress, cartItems, merchantName]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (cartItems.length === 0) return;
     setError(null);
     createOrderMutation.mutate({
+      cartItemIds: cartItems.map((i) => i.id),
       deliveryAddress,
       paymentMethod: isVerifiedMerchant ? paymentMethod : "ESCROW",
       deliveryMethod,
     });
   };
 
-  const handleUpdateQuantity = async (itemId: string, newQuantity: number) => {
+  const handleUpdateQuantity = async (item: any, newQuantity: number) => {
     try {
-      await updateCartItem(itemId, newQuantity);
+      const minQty =
+        item.priceType === "WHOLESALE"
+          ? item.product.minOrderQuantity
+          : item.product.minOrderQuantityConsumer;
+
+      if (newQuantity < minQty) {
+        toast.error(`Minimum quantity for ${item.priceType} is ${minQty}`);
+        return;
+      }
+
+      await updateCartItem(item.id, newQuantity);
       refetchCart();
     } catch (err: any) {
       toast.error(err.message || "Failed to update quantity");
@@ -266,20 +269,31 @@ export default function BuyerCartPage() {
                   {/* Details */}
                   <div className="flex-1 space-y-2">
                     <div className="flex justify-between items-start gap-4">
-                      <Link
-                        href={`/buyer/catalogue`}
-                        className="text-sm font-black uppercase tracking-tight hover:text-primary transition-colors text-slate-900"
-                      >
-                        {item.product.name}
-                      </Link>
+                      <div className="space-y-1">
+                        <Link
+                          href={`/buyer/catalogue`}
+                          className="text-sm font-black uppercase tracking-tight hover:text-primary transition-colors text-slate-900"
+                        >
+                          {item.product.name}
+                        </Link>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${
+                              item.priceType === "WHOLESALE"
+                                ? "bg-primary/10 text-primary"
+                                : "bg-slate-100 text-slate-600"
+                            }`}
+                          >
+                            {item.priceType}
+                          </span>
+                        </div>
+                      </div>
                       <p className="font-mono font-bold text-slate-900">
-                        {formatMoney(
-                          Number(item.priceAtAddedKobo) * item.quantity,
-                        )}
+                        {formatMoney(Number(item.itemTotalKobo))}
                       </p>
                     </div>
                     <p className="text-xs text-slate-500 font-bold">
-                      {formatMoney(Number(item.priceAtAddedKobo))} per{" "}
+                      {formatMoney(Number(item.product.priceKobo))} per{" "}
                       {item.product.unit}
                     </p>
                     <div className="flex items-center gap-4 pt-2">
@@ -287,11 +301,17 @@ export default function BuyerCartPage() {
                         <button
                           type="button"
                           onClick={() =>
-                            handleUpdateQuantity(item.id, item.quantity - 1)
+                            handleUpdateQuantity(item, item.quantity - 1)
                           }
-                          disabled={item.quantity <= 1}
+                          disabled={
+                            item.quantity <=
+                            (item.priceType === "WHOLESALE"
+                              ? item.product.minOrderQuantity
+                              : item.product.minOrderQuantityConsumer)
+                          }
                           className="px-3 py-1 bg-slate-50 hover:bg-slate-100 disabled:opacity-50 transition-colors"
                         >
+
                           -
                         </button>
                         <span className="px-4 py-1 font-mono text-sm font-bold bg-white border-x border-slate-300">
@@ -300,13 +320,14 @@ export default function BuyerCartPage() {
                         <button
                           type="button"
                           onClick={() =>
-                            handleUpdateQuantity(item.id, item.quantity + 1)
+                            handleUpdateQuantity(item, item.quantity + 1)
                           }
                           className="px-3 py-1 bg-slate-50 hover:bg-slate-100 transition-colors"
                         >
                           +
                         </button>
                       </div>
+
                       <button
                         type="button"
                         onClick={() => handleRemoveItem(item.id)}
@@ -526,8 +547,9 @@ export default function BuyerCartPage() {
           <div className="space-y-4">
             <div>
               <p className="text-xs text-primary font-bold uppercase tracking-wider mt-1">
-                {merchantProfile?.businessName || "Verified Merchant"}
+                {merchantName || "Verified Merchant"}
               </p>
+
               <p className="text-xs text-slate-400 mt-1">
                 {cartItems.length} item{cartItems.length !== 1 && "s"} in cart
               </p>

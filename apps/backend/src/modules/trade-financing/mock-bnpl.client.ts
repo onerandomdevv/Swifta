@@ -54,9 +54,9 @@ export class MockBnplClient implements BnplPartnerClient {
 
   async initiateLoan(
     orderId: string,
-    amount: bigint,
-    tenure: number,
-    buyerData: BuyerCreditData,
+    _amount: bigint,
+    _tenure: number,
+    _buyerData: BuyerCreditData,
   ) {
     this.logger.debug(`Mock loan initiated for order ${orderId}`);
 

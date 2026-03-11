@@ -39,12 +39,12 @@ export class MockLogisticsClient implements LogisticsClient {
   }
 
   async bookPickup(
-    orderId: string,
-    pickup: string,
-    delivery: string,
-    contactPhone: string,
+    _orderId: string,
+    _pickup: string,
+    _delivery: string,
+    _contactPhone: string,
   ): Promise<{ bookingRef: string; trackingUrl: string }> {
-    const bookingRef = `MOCK-LOG-${Date.now().toString().slice(-6)}-${orderId.slice(0, 4)}`;
+    const bookingRef = `MOCK-LOG-${Date.now().toString().slice(-6)}-${_orderId.slice(0, 4)}`;
     return {
       bookingRef,
       trackingUrl: `https://track.mocklogistics.com/${bookingRef}`,
@@ -52,7 +52,7 @@ export class MockLogisticsClient implements LogisticsClient {
   }
 
   async getStatus(
-    bookingRef: string,
+    _bookingRef: string,
   ): Promise<{ status: DeliveryStatus; location?: string; eta?: Date }> {
     // In a real app we'd fetch this from the partner API.
     // For the mock, we simulate it advancing or default to PICKUP_SCHEDULED.

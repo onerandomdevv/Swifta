@@ -5,7 +5,7 @@ export interface PaginationParams {
   limit: number;
 }
 
-export async function paginate<T, M>(
+export async function paginate<T>(
   model: any,
   params: PaginationParams,
   options: any = {},

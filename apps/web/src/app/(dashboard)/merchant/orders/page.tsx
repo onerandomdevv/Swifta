@@ -74,6 +74,8 @@ function getStatusBadge(status: string) {
   }
 }
 
+import { StatusBadge } from "@/components/ui/status-badge";
+
 export default function MerchantOrdersPage() {
   const router = useRouter();
   const { orders, loading, error } = useMerchantOrders();
@@ -148,187 +150,204 @@ export default function MerchantOrdersPage() {
   if (error) {
     return (
       <div className="h-full bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-8 flex items-center justify-center">
-        <div className="text-center">
-          <span className="material-symbols-outlined text-5xl text-red-400 mb-4">
-            error
-          </span>
-          <p className="text-red-500 font-bold">{error}</p>
+        <div className="flex flex-col items-center justify-center py-24 text-center space-y-4">
+          <div className="w-20 h-20 rounded-full bg-red-50 flex items-center justify-center">
+            <span className="material-symbols-outlined text-4xl text-red-400">
+              error
+            </span>
+          </div>
+          <div>
+            <h3 className="text-xl font-black text-slate-900 tracking-tight tracking-tight uppercase">Failed to load orders</h3>
+            <p className="text-slate-500 max-w-xs mx-auto mt-1">{error}</p>
+          </div>
           <button
             onClick={() => router.refresh()}
-            className="mt-4 px-6 py-2 bg-slate-900 text-white text-xs font-bold uppercase tracking-widest"
+            className="px-8 py-3 bg-primary text-white rounded-xl font-bold uppercase tracking-widest text-xs transition-all hover:bg-primary/90 shadow-lg shadow-primary/20"
           >
-            Retry
+            Try Again
           </button>
         </div>
       </div>
     );
   }
 
+  const kpis = [
+    {
+      label: "Total Orders",
+      value: orders.length,
+      icon: "list_alt",
+      color: "text-primary",
+    },
+    {
+      label: "Awaiting Dispatch",
+      value: paidCount,
+      icon: "local_shipping",
+      color: "text-amber-500",
+      highlight: paidCount > 0
+    },
+    {
+      label: "Disputes / Issues",
+      value: filteredOrders.filter(o => o.status === OrderStatus.DISPUTE).length,
+      icon: "report_problem",
+      color: "text-rose-500",
+    },
+  ];
+
   return (
-    <div className="h-full bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="h-full max-w-[1600px] mx-auto w-full p-4 md:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 overflow-y-auto no-scrollbar">
       {/* Header */}
-      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-8 py-6 flex flex-col md:flex-row md:items-center justify-between gap-6 shrink-0">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Merchant Orders Console
-          </h2>
-          <p className="text-sm text-slate-500">
-            Logistics & Order Management Center
+      <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 shrink-0">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="px-3 py-1 bg-navy-dark text-white rounded-full text-[10px] font-black uppercase tracking-widest">
+              Manager Console
+            </span>
+          </div>
+          <h1 className="text-4xl font-black text-navy-dark dark:text-white tracking-tight uppercase font-display">
+            Order Intelligence
+          </h1>
+          <p className="text-slate-500 font-bold text-sm tracking-wide">
+            Track fulfillment, manage logistics, and handle payouts.
           </p>
         </div>
-        <div className="flex gap-4">
-          <div className="border-l-4 border-primary bg-slate-50 dark:bg-slate-800 px-5 py-2">
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-              Active Orders
-            </p>
-            <p className="text-xl font-bold text-slate-900 dark:text-white">
-              {orders.length}
-            </p>
-          </div>
-          <div className="border-l-4 border-orange-500 bg-orange-50 dark:bg-orange-900/10 px-5 py-2">
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-              Awaiting Dispatch
-            </p>
-            <div className="flex items-baseline gap-2">
-              <p className="text-xl font-bold text-orange-500">{paidCount}</p>
-              {paidCount > 0 && (
-                <span className="text-[10px] font-black text-rose-600 uppercase tracking-tighter">
-                  (Action Required)
-                </span>
-              )}
+
+        <div className="flex items-center gap-4">
+          {kpis.slice(1).map((kpi, idx) => (
+            <div
+              key={idx}
+              className={`hidden md:block border-l-4 ${kpi.highlight ? 'border-amber-500 bg-amber-50' : 'border-slate-200 bg-white'} dark:bg-slate-900 px-5 py-2`}
+            >
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                {kpi.label}
+              </p>
+              <p className={`text-xl font-black tracking-tighter ${kpi.highlight ? 'text-amber-600' : 'text-slate-900 dark:text-white'}`}>
+                {kpi.value}
+              </p>
             </div>
-          </div>
+          ))}
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden p-8">
-        {/* Tab Filters */}
-        <div className="flex items-center border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 mb-6 overflow-x-auto">
+      {/* Main Content Area */}
+      <main className="space-y-6">
+        {/* Tab Navigation */}
+        <div className="flex items-center gap-1 border-b border-slate-100 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl p-1 rounded-2xl w-fit">
           {tabs.map((tab) => (
             <button
               key={tab.value}
               onClick={() => setActiveTab(tab.value)}
-              className={`px-6 py-4 text-xs font-bold uppercase tracking-widest border-b-2 whitespace-nowrap transition-colors ${
+              className={`px-5 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl ${
                 activeTab === tab.value
-                  ? "border-primary text-primary"
-                  : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
+                  ? "bg-navy-dark text-white shadow-lg shadow-navy-dark/20"
+                  : "text-slate-400 hover:text-navy-dark dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800"
               }`}
             >
-              {tab.label}
-              {tab.count !== undefined && tab.count > 0 && (
-                <span
-                  className={`ml-1 text-[10px] px-1.5 py-0.5 ${
-                    tab.value === "PAID"
-                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-                  }`}
-                >
-                  {tab.count}
-                </span>
-              )}
+              <span className="flex items-center gap-2">
+                {tab.label}
+                {tab.count !== undefined && tab.count > 0 && (
+                  <span className={`size-4 flex items-center justify-center text-[8px] rounded-full ${
+                    tab.value === "PAID" ? 'bg-orange-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600'
+                  }`}>
+                    {tab.count}
+                  </span>
+                )}
+              </span>
             </button>
           ))}
         </div>
 
-        {/* Orders Table */}
-        <div className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-auto">
-          {filteredOrders.length > 0 ? (
-            <table className="w-full text-left border-collapse min-w-[1000px]">
+        {/* Spacious Data Table */}
+        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
               <thead>
-                <tr className="bg-slate-50 dark:bg-slate-950/50 border-b border-slate-200 dark:border-slate-800">
-                  <th className="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                    Date
-                  </th>
-                  <th className="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                    Order ID
-                  </th>
-                  <th className="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                    Total (₦)
-                  </th>
-                  <th className="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">
-                    Actions
-                  </th>
+                <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Order ID</th>
+                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap text-center">Date</th>
+                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Status</th>
+                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap text-right">Value (₦)</th>
+                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {filteredOrders.map((order) => (
-                  <tr
-                    key={order.id}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer"
-                    onClick={() => setSelectedOrderId(order.id)}
-                  >
-                    <td className="px-6 py-4 text-xs text-slate-700 dark:text-slate-300">
-                      {formatDate(order.createdAt)}
-                    </td>
-                    <td className="px-6 py-4 text-xs font-mono font-bold text-primary">
-                      ORD-{order.id.slice(0, 6).toUpperCase()}
-                    </td>
-                    <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white">
-                      {formatKobo(
-                        Number(order.totalAmountKobo) +
-                          Number(order.deliveryFeeKobo),
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      {getStatusBadge(order.status)}
-                    </td>
-                    <td
-                      className="px-6 py-4 text-right"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {order.status === OrderStatus.PAID && (
-                        <button
-                          onClick={() => setSelectedOrderId(order.id)}
-                          className="bg-orange-500 text-white text-[10px] font-bold px-4 py-2 uppercase tracking-widest hover:bg-orange-600 transition-colors"
-                        >
-                          Dispatch
-                        </button>
-                      )}
-                      {order.status === OrderStatus.DISPATCHED &&
-                        order.deliveryOtp && (
-                          <div className="inline-block bg-slate-100 dark:bg-slate-800 px-3 py-1.5 font-mono text-[11px] font-bold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
-                            OTP: {order.deliveryOtp}
-                          </div>
-                        )}
-                      {(order.status === OrderStatus.COMPLETED ||
-                        order.status === OrderStatus.DELIVERED) && (
-                        <Link
-                          href={`/merchant/orders/${order.id}/dispatch-slip`}
-                          className="text-primary text-[10px] font-bold uppercase tracking-widest underline decoration-2 underline-offset-4"
-                        >
-                          View Dispatch Slip
-                        </Link>
-                      )}
+              <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+                {filteredOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-8 py-24 text-center">
+                      <div className="flex flex-col items-center justify-center space-y-4 opacity-30 grayscale">
+                        <span className="material-symbols-outlined text-6xl">inventory_2</span>
+                        <p className="text-xs font-black uppercase tracking-widest">No matching records found</p>
+                      </div>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredOrders.map((order) => (
+                    <tr
+                      key={order.id}
+                      className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all group cursor-pointer"
+                      onClick={() => setSelectedOrderId(order.id)}
+                    >
+                      <td className="px-8 py-6">
+                        <div className="flex items-center gap-3">
+                          <div className="size-8 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center font-black text-[10px] text-slate-400">
+                            #{order.id.slice(0, 2).toUpperCase()}
+                          </div>
+                          <span className="text-xs font-black text-navy-dark dark:text-white tracking-widest uppercase">
+                            ORD-{order.id.slice(0, 6).toUpperCase()}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-8 py-6 text-center">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                          {formatDate(order.createdAt)}
+                        </span>
+                      </td>
+                      <td className="px-8 py-6">
+                        <StatusBadge status={order.status} className="w-fit" />
+                      </td>
+                      <td className="px-8 py-6 text-right">
+                        <div className="text-xs font-black text-navy-dark dark:text-white tabular-nums tracking-widest">
+                          {formatKobo(
+                            Number(order.totalAmountKobo) +
+                              Number(order.deliveryFeeKobo),
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-8 py-6 text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-3">
+                          {order.status === OrderStatus.PAID && (
+                            <button
+                              onClick={() => setSelectedOrderId(order.id)}
+                              className="px-5 py-2 bg-orange-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-orange-500/20 hover:scale-105 transition-all"
+                            >
+                              Dispatch
+                            </button>
+                          )}
+                          <Link
+                            href={`/merchant/orders/${order.id}`}
+                            className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors text-slate-400 hover:text-navy-dark dark:hover:text-white"
+                          >
+                            <span className="material-symbols-outlined text-xl">open_in_new</span>
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
-          ) : (
-            <div className="py-16 text-center">
-              <span className="material-symbols-outlined text-4xl text-slate-300 mb-3">
-                list_alt
-              </span>
-              <p className="text-slate-500 font-medium text-sm">
-                No orders in this category.
-              </p>
-            </div>
-          )}
+          </div>
         </div>
 
-        {/* Pagination Footer */}
-        <div className="mt-4 flex justify-between items-center text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-          <p>
-            Showing {filteredOrders.length} of {orders.length} Total Orders
+        {/* Context Sidebar Hint */}
+        <div className="flex items-center gap-2 p-4 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-2xl">
+          <span className="material-symbols-outlined text-blue-500 text-lg">info</span>
+          <p className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest">
+            Showing {filteredOrders.length} records. Click any row to view full details and print dispatch slips.
           </p>
         </div>
       </main>
 
-      {/* Order Details Side-Drawer */}
+      {/* Side Components */}
       {selectedOrderId && (
         <OrderDrawer
           orderId={selectedOrderId}
@@ -337,7 +356,6 @@ export default function MerchantOrdersPage() {
         />
       )}
 
-      {/* Dispatch Confirmation Modal */}
       {dispatchedOrder && (
         <DispatchModal
           order={dispatchedOrder}
@@ -347,3 +365,4 @@ export default function MerchantOrdersPage() {
     </div>
   );
 }
+

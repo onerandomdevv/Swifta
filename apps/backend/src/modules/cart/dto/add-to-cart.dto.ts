@@ -1,4 +1,13 @@
-import { IsNotEmpty, IsNumber, IsString, IsUUID, Min } from "class-validator";
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Min,
+} from "class-validator";
+import { PriceType } from "@hardware-os/shared";
 
 export class AddToCartDto {
   @IsString()
@@ -10,4 +19,8 @@ export class AddToCartDto {
   @IsNotEmpty()
   @Min(1)
   quantity: number;
+
+  @IsEnum(PriceType)
+  @IsOptional()
+  priceType?: PriceType;
 }

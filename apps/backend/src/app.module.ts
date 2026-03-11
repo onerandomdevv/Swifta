@@ -39,6 +39,7 @@ import { CategoryModule } from "./modules/category/category.module";
 import { ReviewModule } from "./modules/review/review.module";
 import { BuyerModule } from "./modules/buyer/buyer.module";
 import { CartModule } from "./modules/cart/cart.module";
+import { WishlistModule } from "./modules/wishlist/wishlist.module";
 
 import { LoggerModule } from "./common/logger/logger.module";
 
@@ -160,6 +161,7 @@ function sanitizeRedisUrl(url: string | undefined): string | undefined {
     ReviewModule,
     BuyerModule,
     CartModule,
+    WishlistModule,
   ],
   controllers: [],
   providers: [

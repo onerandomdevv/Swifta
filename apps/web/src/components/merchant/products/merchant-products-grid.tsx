@@ -7,9 +7,10 @@ import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 interface Props {
   products: Product[];
   onDelist: (productId: string) => Promise<void>;
+  onAddClick?: () => void;
 }
 
-export function MerchantProductsGrid({ products, onDelist }: Props) {
+export function MerchantProductsGrid({ products, onDelist, onAddClick }: Props) {
   const router = useRouter();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -36,12 +37,12 @@ export function MerchantProductsGrid({ products, onDelist }: Props) {
             List your products to start receiving quote requests.
           </p>
         </div>
-        <Link
-          href="/merchant/products/new"
+        <button
+          onClick={onAddClick}
           className="px-8 py-4 bg-navy-dark text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-navy-dark/10 transition-all hover:scale-105 active:scale-95"
         >
           Add First Listing
-        </Link>
+        </button>
       </div>
     );
   }

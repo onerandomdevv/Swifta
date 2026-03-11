@@ -1,4 +1,4 @@
-import { Processor, WorkerHost, OnWorkerEvent } from "@nestjs/bullmq";
+import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Job } from "bullmq";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Queue } from "bullmq";
@@ -44,7 +44,7 @@ export class RFQExpiryProcessor extends WorkerHost {
     }
   }
 
-  async process(job: Job<any, any, string>): Promise<any> {
+  async process(_job: Job<any, any, string>): Promise<any> {
     this.logger.log("Running RFQ expiry check...");
 
     const expiredBuyerIds = await this.rfqService.expireStaleRFQs();
