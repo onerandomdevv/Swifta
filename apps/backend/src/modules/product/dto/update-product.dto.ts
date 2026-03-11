@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsInt, Min, IsBoolean } from "class-validator";
+import { IsOptional, IsString, IsInt, IsNumber, IsBoolean, Min, Max } from "class-validator";
 
 export class UpdateProductDto {
   @IsOptional()
@@ -49,9 +49,15 @@ export class UpdateProductDto {
 
   @IsOptional()
   @IsString()
-  wholesalePriceKobo?: string;
+  retailPriceKobo?: string;
 
   @IsOptional()
-  @IsString()
-  retailPriceKobo?: string;
+  @IsNumber()
+  @Min(1)
+  @Max(99)
+  wholesaleDiscountPercent?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  wholesaleEnabled?: boolean;
 }

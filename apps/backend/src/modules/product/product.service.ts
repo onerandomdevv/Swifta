@@ -21,16 +21,25 @@ export class ProductService {
   ) {}
 
   async create(merchantId: string, dto: CreateProductDto) {
-    const { pricePerUnitKobo, wholesalePriceKobo, retailPriceKobo, ...rest } =
+    const { pricePerUnitKobo, retailPriceKobo, wholesaleDiscountPercent, ...rest } =
       dto;
+
+    // Auto-compute wholesale price from retail price and discount
+    let computedWholesaleKobo: bigint | null = null;
+    if (retailPriceKobo && wholesaleDiscountPercent && wholesaleDiscountPercent > 0) {
+      const retailBigInt = BigInt(retailPriceKobo);
+      computedWholesaleKobo = BigInt(
+        Math.round(Number(retailBigInt) * (1 - wholesaleDiscountPercent / 100)),
+      );
+    }
+
     const product = await this.prisma.product.create({
       data: {
         merchantId,
         pricePerUnitKobo: pricePerUnitKobo ? BigInt(pricePerUnitKobo) : null,
-        wholesalePriceKobo: wholesalePriceKobo
-          ? BigInt(wholesalePriceKobo)
-          : null,
         retailPriceKobo: retailPriceKobo ? BigInt(retailPriceKobo) : null,
+        wholesalePriceKobo: computedWholesaleKobo,
+        wholesaleDiscountPercent: wholesaleDiscountPercent ?? null,
         ...rest,
       },
     });
@@ -69,6 +78,7 @@ export class ProductService {
         retailPriceKobo: product.retailPriceKobo
           ? product.retailPriceKobo.toString()
           : null,
+        wholesaleDiscountPercent: product.wholesaleDiscountPercent ?? null,
       };
     });
 
@@ -104,6 +114,7 @@ export class ProductService {
       retailPriceKobo: product.retailPriceKobo
         ? product.retailPriceKobo.toString()
         : null,
+      wholesaleDiscountPercent: product.wholesaleDiscountPercent ?? null,
     }));
 
     return response;
@@ -277,26 +288,58 @@ export class ProductService {
       retailPriceKobo: product.retailPriceKobo
         ? product.retailPriceKobo.toString()
         : null,
+      wholesaleDiscountPercent: product.wholesaleDiscountPercent ?? null,
     };
   }
 
   async update(merchantId: string, productId: string, dto: UpdateProductDto) {
     await this.verifyProductOwnership(merchantId, productId);
-    const { pricePerUnitKobo, wholesalePriceKobo, retailPriceKobo, ...rest } =
-      dto;
+    const {
+      pricePerUnitKobo,
+      retailPriceKobo,
+      wholesaleDiscountPercent,
+      wholesaleEnabled,
+      ...rest
+    } = dto;
     const updateData: any = { ...rest };
+
     if (pricePerUnitKobo !== undefined) {
       updateData.pricePerUnitKobo =
         pricePerUnitKobo === null ? null : BigInt(pricePerUnitKobo);
-    }
-    if (wholesalePriceKobo !== undefined) {
-      updateData.wholesalePriceKobo =
-        wholesalePriceKobo === null ? null : BigInt(wholesalePriceKobo);
     }
     if (retailPriceKobo !== undefined) {
       updateData.retailPriceKobo =
         retailPriceKobo === null ? null : BigInt(retailPriceKobo);
     }
+
+    // Handle wholesale toggle
+    if (wholesaleEnabled === false) {
+      // Wholesale toggled OFF — clear all wholesale data
+      updateData.wholesalePriceKobo = null;
+      updateData.wholesaleDiscountPercent = null;
+    } else if (
+      wholesaleDiscountPercent !== undefined &&
+      wholesaleDiscountPercent > 0
+    ) {
+      // Wholesale ON with a discount — compute wholesale price
+      // Use the new retail price if provided, otherwise fetch the existing one
+      let retailValue: bigint;
+      if (retailPriceKobo) {
+        retailValue = BigInt(retailPriceKobo);
+      } else {
+        const existing = await this.prisma.product.findUnique({
+          where: { id: productId },
+          select: { retailPriceKobo: true },
+        });
+        retailValue = existing?.retailPriceKobo ?? BigInt(0);
+      }
+
+      updateData.wholesaleDiscountPercent = wholesaleDiscountPercent;
+      updateData.wholesalePriceKobo = BigInt(
+        Math.round(Number(retailValue) * (1 - wholesaleDiscountPercent / 100)),
+      );
+    }
+
     const updated = await this.prisma.product.update({
       where: { id: productId },
       data: updateData,

@@ -20,6 +20,7 @@ export default function EditProductPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [wholesaleEnabled, setWholesaleEnabled] = useState(false);
 
   // Product state
   const [formData, setFormData] = useState({
@@ -34,7 +35,7 @@ export default function EditProductPage() {
     warehouseLocation: "",
     imageUrl: "",
     retailPrice: "",
-    pricePerUnit: "",
+    wholesaleDiscountPercent: 15,
   });
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -57,6 +58,23 @@ export default function EditProductPage() {
 
         const product = productData;
         setCategories(categoriesData);
+
+        // Derive wholesale state from existing data
+        const hasWholesale = !!(product.wholesalePriceKobo && Number(product.wholesalePriceKobo) > 0);
+        setWholesaleEnabled(hasWholesale);
+
+        // Compute discount % from existing wholesale/retail prices if available
+        let discountPercent = 15;
+        if (hasWholesale && product.wholesaleDiscountPercent) {
+          discountPercent = product.wholesaleDiscountPercent;
+        } else if (hasWholesale && product.retailPriceKobo && product.wholesalePriceKobo) {
+          const retail = Number(product.retailPriceKobo);
+          const wholesale = Number(product.wholesalePriceKobo);
+          if (retail > 0) {
+            discountPercent = Math.round((1 - wholesale / retail) * 100);
+          }
+        }
+
         setFormData({
           name: product.name,
           description: product.description || "",
@@ -71,9 +89,7 @@ export default function EditProductPage() {
           retailPrice: product.retailPriceKobo
             ? (Number(product.retailPriceKobo) / 100).toString()
             : "",
-          pricePerUnit: product.pricePerUnitKobo
-            ? (Number(product.pricePerUnitKobo) / 100).toString()
-            : "",
+          wholesaleDiscountPercent: discountPercent,
         });
 
         setInitialStock(stockData.stock);
@@ -108,6 +124,12 @@ export default function EditProductPage() {
     }
   };
 
+  // Compute wholesale price for display
+  const retailPriceNum = Number(formData.retailPrice) || 0;
+  const calculatedWholesalePrice = wholesaleEnabled && retailPriceNum > 0
+    ? Math.round(retailPriceNum * (1 - formData.wholesaleDiscountPercent / 100))
+    : 0;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -121,16 +143,17 @@ export default function EditProductPage() {
         unit: formData.unit,
         categoryTag: formData.categoryTag,
         categoryId: formData.categoryId,
-        minOrderQuantity: formData.minOrderQuantity,
+        minOrderQuantity: wholesaleEnabled ? formData.minOrderQuantity : 1,
         minOrderQuantityConsumer: formData.minOrderQuantityConsumer,
         isActive: formData.isActive,
         warehouseLocation: formData.warehouseLocation || undefined,
         imageUrl: formData.imageUrl || undefined,
-        pricePerUnitKobo: formData.pricePerUnit
-          ? (Number(formData.pricePerUnit) * 100).toString()
-          : undefined,
         retailPriceKobo: formData.retailPrice
           ? (Number(formData.retailPrice) * 100).toString()
+          : undefined,
+        wholesaleEnabled,
+        wholesaleDiscountPercent: wholesaleEnabled
+          ? formData.wholesaleDiscountPercent
           : undefined,
       });
 
@@ -411,41 +434,22 @@ export default function EditProductPage() {
             </div>
           </div>
 
-          {/* Section 3: Pricing & Consumer MOQ */}
+          {/* Section 3: Pricing & Wholesale */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 shadow-sm space-y-6">
             <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
               <span className="material-symbols-outlined text-primary text-xl">
                 payments
               </span>
               <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                Pricing & Consumer Requirements
+                Pricing & Wholesale
               </h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Retail Price */}
               <div className="space-y-3">
                 <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                  Business Price (₦)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={formData.pricePerUnit}
-                  onChange={(e) =>
-                    setFormData({ ...formData, pricePerUnit: e.target.value })
-                  }
-                  className="w-full px-5 py-4 text-sm font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all dark:text-white"
-                  placeholder="e.g. 8500"
-                />
-              </div>
-
-              <div className="space-y-3">
-                <label className="block text-[11px] font-black text-primary uppercase tracking-widest ml-1 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-xs">
-                    person
-                  </span>
-                  Retail Price (₦) - For Consumers
+                  Retail Price (₦) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -455,36 +459,15 @@ export default function EditProductPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, retailPrice: e.target.value })
                   }
-                  className="w-full px-5 py-4 text-sm font-bold border-2 border-primary/10 dark:border-primary/20 bg-primary/5 dark:bg-primary/10 rounded-xl focus:border-primary outline-none transition-all placeholder:text-primary/30 dark:text-white"
+                  className="w-full px-5 py-4 text-sm font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all dark:text-white"
                   placeholder="e.g. 9000"
                 />
               </div>
 
+              {/* Min. Order Qty */}
               <div className="space-y-3">
                 <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                  Business Min. Order <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  required
-                  value={formData.minOrderQuantity}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      minOrderQuantity: parseInt(e.target.value) || 1,
-                    })
-                  }
-                  className="w-full px-5 py-4 text-sm font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all dark:text-white"
-                />
-              </div>
-
-              <div className="space-y-3">
-                <label className="block text-[11px] font-black text-primary uppercase tracking-widest ml-1 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-xs">
-                    person
-                  </span>
-                  Consumer Min. Order <span className="text-red-500">*</span>
+                  Min. Order Qty <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -497,11 +480,97 @@ export default function EditProductPage() {
                       minOrderQuantityConsumer: parseInt(e.target.value) || 1,
                     })
                   }
-                  className="w-full px-5 py-4 text-sm font-bold border-2 border-primary/10 dark:border-primary/20 bg-primary/5 dark:bg-primary/10 rounded-xl focus:border-primary outline-none transition-all dark:text-white"
+                  className="w-full px-5 py-4 text-sm font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all dark:text-white"
                 />
               </div>
             </div>
 
+            {/* Wholesale Toggle */}
+            <div className="mt-4 p-5 border border-slate-200 dark:border-slate-700 rounded-xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`size-10 rounded-xl flex items-center justify-center transition-colors ${wholesaleEnabled ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 dark:bg-slate-700 text-slate-400"}`}>
+                    <span className="material-symbols-outlined text-lg">local_offer</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">
+                      Enable Wholesale
+                    </p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 font-bold">
+                      Offer a bulk discount for larger orders
+                    </p>
+                  </div>
+                </div>
+                <label className="relative flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="sr-only"
+                    checked={wholesaleEnabled}
+                    onChange={(e) => setWholesaleEnabled(e.target.checked)}
+                  />
+                  <div
+                    className={`block w-14 h-8 rounded-full transition-colors ${wholesaleEnabled ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"}`}
+                  ></div>
+                  <div
+                    className={`absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform shadow-sm ${wholesaleEnabled ? "translate-x-6" : ""}`}
+                  ></div>
+                </label>
+              </div>
+
+              {/* Wholesale fields */}
+              {wholesaleEnabled && (
+                <div className="mt-5 pt-5 border-t border-slate-100 dark:border-slate-700 space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest ml-1">
+                        Discount %
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min={1}
+                          max={99}
+                          value={formData.wholesaleDiscountPercent}
+                          onChange={(e) => setFormData({ ...formData, wholesaleDiscountPercent: Math.min(99, Math.max(1, parseInt(e.target.value) || 1)) })}
+                          className="w-full px-5 py-4 pr-10 text-sm font-bold border-2 border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-xl focus:border-emerald-500 transition-all outline-none tabular-nums text-emerald-700 dark:text-emerald-400"
+                        />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-400 font-black text-sm">%</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest ml-1">
+                        Min. Wholesale Qty
+                      </label>
+                      <input
+                        type="number"
+                        min={2}
+                        value={formData.minOrderQuantity}
+                        onChange={(e) => setFormData({ ...formData, minOrderQuantity: Math.max(2, parseInt(e.target.value) || 2) })}
+                        className="w-full px-5 py-4 text-sm font-bold border-2 border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-xl focus:border-emerald-500 transition-all outline-none tabular-nums text-emerald-700 dark:text-emerald-400"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Calculated wholesale price display */}
+                  {retailPriceNum > 0 && (
+                    <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/30 flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Wholesale Price</p>
+                        <p className="text-[10px] font-bold text-emerald-500/70 mt-0.5">
+                          {formData.wholesaleDiscountPercent}% off ₦{retailPriceNum.toLocaleString()}
+                        </p>
+                      </div>
+                      <p className="text-xl font-black text-emerald-700 dark:text-emerald-400 tabular-nums">
+                        ₦{calculatedWholesalePrice.toLocaleString()}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Market Status Toggle */}
             <div className="mt-6 p-5 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-between">
               <div>
                 <p className="text-sm font-bold text-slate-900 dark:text-white">
