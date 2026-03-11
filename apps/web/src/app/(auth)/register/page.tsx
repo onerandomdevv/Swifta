@@ -50,7 +50,7 @@ export default function RegisterPage() {
       middleName: "",
       lastName: "",
       businessName: "",
-      buyerType: "BUSINESS",
+      buyerType: "CONSUMER",
       companyName: "",
       companyAddress: "",
       cacNumber: "",
