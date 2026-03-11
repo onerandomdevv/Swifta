@@ -44,7 +44,7 @@ export function OrderInfoSidebar({ order }: Props) {
             Supplier
           </p>
           <Link
-            href={`/merchants/${order.merchantId || order.merchant.id}`}
+            href={`/buyer/merchants/${order.merchantId || order.merchant.id}`}
             className="flex items-center gap-2 text-xs font-black text-accent-orange uppercase tracking-widest hover:underline decoration-2 underline-offset-4"
           >
             <span className="material-symbols-outlined text-sm">

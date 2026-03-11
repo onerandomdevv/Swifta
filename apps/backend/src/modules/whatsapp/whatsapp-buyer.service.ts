@@ -213,8 +213,8 @@ export class WhatsAppBuyerService {
 
       await this.interactiveService.sendCTAUrlButton(
         phone,
-        `✅ *Delivery method confirmed: ${session.deliveryMethod === "MERCHANT_DELIVERY" ? "Merchant Delivery" : "SwiftTrade Tracked"}*\n\nPlease tap the button below to complete your payment securely.`,
-        "Pay Now",
+        `✅ *Logistics Protocol Confirmed: ${session.deliveryMethod === "MERCHANT_DELIVERY" ? "Direct Merchant Delivery" : "SwiftTrade Tracked"}*\n\nPlease tap below to complete your secure payment.`,
+        "Secure Payment",
         checkoutLink,
       );
       return;
@@ -729,8 +729,8 @@ export class WhatsAppBuyerService {
         phone,
         `🛒 *${product.name}* (${quantity} units)\n\nHow would you like this delivered?`,
         [
-          { id: "delivery_merchant", title: "Merchant Delivery" },
-          { id: "delivery_track", title: "Tracked Delivery" },
+          { id: "delivery_merchant", title: "Direct Merchant" },
+          { id: "delivery_track", title: "SwiftTrade Tracked" },
         ],
       );
     } catch (e) {

@@ -1,22 +1,29 @@
 import { apiClient } from "../api-client";
-import type { Product } from "@hardware-os/shared";
+import { PriceType, Product } from "@hardware-os/shared";
 
 export interface CartItem {
   id: string;
-  cartId: string;
   productId: string;
   quantity: number;
-  priceAtAddedKobo: string;
-  addedAt: Date;
-  product: Product;
+  priceType: PriceType;
+  product: {
+    name: string;
+    imageUrl?: string;
+    priceKobo: string;
+    merchantName: string;
+    merchantId: string;
+    merchantTier?: string;
+    merchantAddress?: string;
+    unit: string;
+    minOrderQuantity: number;
+    minOrderQuantityConsumer: number;
+  };
+  itemTotalKobo: string;
 }
 
 export interface Cart {
-  id: string;
-  buyerId: string;
-  updatedAt: Date;
   items: CartItem[];
-  cartTotalKobo: string;
+  subtotalKobo: string;
 }
 
 export async function getCart(): Promise<Cart> {
@@ -26,8 +33,13 @@ export async function getCart(): Promise<Cart> {
 export async function addToCart(
   productId: string,
   quantity: number,
+  priceType: PriceType = PriceType.RETAIL,
 ): Promise<Cart> {
-  return apiClient.post<Cart>("/cart/items", { productId, quantity });
+  return apiClient.post<Cart>("/cart/items", {
+    productId,
+    quantity,
+    priceType,
+  });
 }
 
 export async function updateCartItem(

@@ -6,6 +6,7 @@ import {
   Min,
   IsOptional,
   IsEnum,
+  IsObject,
 } from "class-validator";
 import { DeliveryMethod } from "@prisma/client";
 
@@ -27,6 +28,10 @@ export class CreateDirectOrderDto {
   @IsString()
   @IsNotEmpty()
   deliveryAddress: string;
+
+  @IsOptional()
+  @IsObject()
+  deliveryDetails?: Record<string, any>;
 
   @IsOptional()
   @IsEnum(PaymentMethodDto, {

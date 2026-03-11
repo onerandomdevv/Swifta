@@ -4,7 +4,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { WhatsAppSupplierIntentService } from "./whatsapp-supplier-intent.service";
 import { ParsedIntent } from "./whatsapp-intent.service";
 import { RedisService } from "../../redis/redis.service";
-import { SUPPLIER_MAIN_MENU, FRIENDLY_FALLBACK } from "./whatsapp.constants";
+import { FRIENDLY_FALLBACK } from "./whatsapp.constants";
 import { OrderStatus } from "@hardware-os/shared";
 import { WhatsAppInteractiveService } from "./whatsapp-interactive.service";
 

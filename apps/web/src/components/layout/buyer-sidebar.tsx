@@ -19,6 +19,7 @@ export function BuyerSidebar({
     { label: "Dashboard", icon: "dashboard", href: "/buyer/dashboard" },
     { label: "Catalogue", icon: "inventory_2", href: "/buyer/catalogue" },
     { label: "My Cart", icon: "shopping_cart", href: "/buyer/cart" },
+    { label: "Saved", icon: "favorite", href: "/buyer/saved" },
     { label: "Active Orders", icon: "local_shipping", href: "/buyer/orders" },
   ];
 

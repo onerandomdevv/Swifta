@@ -16,19 +16,16 @@ import { MerchantProfile } from "@hardware-os/shared";
 
 type SettingsTab = "account" | "notifications" | "security";
 
-// ──────────────────────────────────────────────────
-// Notification preferences (UI-only state for V1)
-// ──────────────────────────────────────────────────
 interface NotifPref {
   email: boolean;
   sms: boolean;
   push: boolean;
 }
+
 const defaultNotifPrefs: Record<string, NotifPref> = {
-  "New RFQ": { email: true, sms: false, push: true },
-  "Quote Accepted": { email: true, sms: true, push: false },
+  "Order Dispatched": { email: true, sms: false, push: true },
+  "Delivery Confirmed": { email: true, sms: true, push: true },
   "Order Paid": { email: true, sms: false, push: true },
-  "Delivery Confirmed": { email: false, sms: false, push: true },
   "Payout Sent": { email: true, sms: true, push: true },
 };
 
@@ -55,10 +52,7 @@ export default function MerchantSettingsPage() {
     [],
   );
   const [resolvingAccount, setResolvingAccount] = useState(false);
-
   const [savingProfile, setSavingProfile] = useState(false);
-
-  // Notifications tab state
   const [notifPrefs, setNotifPrefs] = useState(defaultNotifPrefs);
 
   // Security tab state
@@ -75,6 +69,7 @@ export default function MerchantSettingsPage() {
         setMiddleName(user?.middleName || "");
         setLastName(user?.lastName || "");
         setEmail(user?.email || "");
+        setPhone(user?.phone || "");
         setBankCode(p?.bankCode || "");
         setBankAccountNo(p?.bankAccountNumber || "");
         setBankAccountName(p?.settlementAccountName || "");
@@ -87,7 +82,6 @@ export default function MerchantSettingsPage() {
       .catch(() => {});
   }, [user]);
 
-  // Account Number Resolution Effect
   useEffect(() => {
     if (bankCode && bankAccountNo.length === 10) {
       setResolvingAccount(true);
@@ -128,32 +122,17 @@ export default function MerchantSettingsPage() {
       }
       await Promise.all(tasks);
       toast.success("Profile updated successfully");
-      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err: any) {
       toast.error(err?.message || "Failed to update profile");
-      window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setSavingProfile(false);
     }
   };
 
-  const handleSaveNotifPrefs = () => {
-    toast.info("Notification preferences updated locally.");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleUnsupported = () => {
-    toast.error("This feature will be available in Phase 2.");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleChangePassword = async () => {
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (newPassword !== confirmPassword) {
       toast.error("Passwords do not match.");
-      return;
-    }
-    if (newPassword.length < 12) {
-      toast.error("Password must be at least 12 characters.");
       return;
     }
     setChangingPassword(true);
@@ -177,12 +156,6 @@ export default function MerchantSettingsPage() {
     }));
   };
 
-  const tabs: { label: string; value: SettingsTab }[] = [
-    { label: "Account", value: "account" },
-    { label: "Notifications", value: "notifications" },
-    { label: "Security", value: "security" },
-  ];
-
   if (loading) {
     return (
       <div className="h-full bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
@@ -191,509 +164,311 @@ export default function MerchantSettingsPage() {
     );
   }
 
+  const SectionHeader = ({ icon, title, subtitle }: { icon: string, title: string, subtitle: string }) => (
+    <div className="mb-6">
+      <div className="flex items-center gap-3 mb-1">
+        <span className="p-2 bg-primary/10 text-primary rounded-xl material-symbols-outlined text-sm">
+          {icon}
+        </span>
+        <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase">
+          {title}
+        </h2>
+      </div>
+      <p className="text-slate-500 text-sm font-medium">{subtitle}</p>
+    </div>
+  );
+
+  const Card = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
+    <div className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-6 sm:p-8 shadow-sm ${className}`}>
+      {children}
+    </div>
+  );
+
+  const Input = ({ label, ...props }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) => (
+    <div className="space-y-1.5">
+      <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">
+        {label}
+      </label>
+      <input
+        {...props}
+        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-3 text-sm font-bold text-navy-dark dark:text-white outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all disabled:opacity-50"
+      />
+    </div>
+  );
+
   return (
-    <div className="h-full bg-slate-50 dark:bg-slate-900 flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Header */}
-      <div className="flex items-center bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-4 sticky top-0 z-10 shrink-0">
-        <button
-          onClick={() => router.back()}
-          className="text-slate-900 dark:text-slate-100 flex size-10 shrink-0 items-center justify-center cursor-pointer"
-        >
-          <span className="material-symbols-outlined">arrow_back</span>
-        </button>
-        <h1 className="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight flex-1 px-2 uppercase">
-          Merchant Settings
-        </h1>
-      </div>
-
-      {/* Tabs */}
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-[73px] z-10 shrink-0">
-        <div className="flex px-4 gap-6 overflow-x-auto">
-          {tabs.map((tab) => (
-            <button
-              key={tab.value}
-              onClick={() => setActiveTab(tab.value)}
-              className={`flex flex-col items-center justify-center border-b-2 pb-3 pt-4 shrink-0 transition-colors ${
-                activeTab === tab.value
-                  ? "border-primary text-primary"
-                  : "border-transparent text-slate-500 dark:text-slate-400"
-              }`}
-            >
-              <p className="text-sm font-bold uppercase tracking-wider">
-                {tab.label}
-              </p>
-            </button>
-          ))}
+    <div className="p-4 md:p-8 max-w-5xl mx-auto w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <header className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => router.back()}
+            className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400 hover:text-primary transition-colors rounded-xl shadow-sm"
+          >
+            <span className="material-symbols-outlined">arrow_back</span>
+          </button>
+          <div>
+            <h1 className="text-3xl font-black text-navy-dark dark:text-white tracking-tight uppercase">
+              Account Settings
+            </h1>
+            <p className="text-slate-500 font-medium">Manage your merchant presence and security.</p>
+          </div>
         </div>
-      </div>
+      </header>
 
-      {/* Tab Content */}
-      <div className="flex-1 overflow-y-auto pb-24">
-        {/* ═══════════════════ ACCOUNT TAB ═══════════════════ */}
+      {/* Nav Tabs */}
+      <nav className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800/50 rounded-2xl w-fit">
+        {(["account", "notifications", "security"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+              activeTab === tab
+                ? "bg-white dark:bg-slate-900 text-primary shadow-sm"
+                : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </nav>
+
+      <div className="space-y-12">
+        {/* ACCOUNT TAB */}
         {activeTab === "account" && (
-          <div className="p-4 space-y-6">
-            {/* Profile Photo */}
+          <div className="space-y-12">
+            {/* Identity section */}
             <section>
-              <h2 className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-widest mb-4">
-                Profile Information
-              </h2>
-              <div className="flex items-start gap-4 p-4 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-                <div className="relative group cursor-pointer border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 w-24 h-24 flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-slate-400 text-3xl">
-                    photo_camera
-                  </span>
-                </div>
-                <div className="flex flex-col justify-center py-1">
-                  <p className="text-slate-900 dark:text-slate-100 text-base font-bold uppercase">
-                    Upload Photo
-                  </p>
-                  <p className="text-slate-500 dark:text-slate-400 text-xs mt-1">
-                    PNG or JPG. Sharp square format (max 2MB).
-                  </p>
-                  <button className="mt-3 bg-primary text-white text-xs font-bold uppercase py-2 px-4 w-fit hover:bg-blue-700">
-                    Change Photo
-                  </button>
-                </div>
-              </div>
-            </section>
-
-            {/* Form Fields */}
-            <section className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-                  First Name
-                </label>
-                <input
-                  type="text"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-slate-900 dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-                  Middle Name (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={middleName}
-                  onChange={(e) => setMiddleName(e.target.value)}
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-slate-900 dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-                  Last Name
-                </label>
-                <input
-                  type="text"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-slate-900 dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <input
-                    type="email"
-                    value={email}
-                    readOnly
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 text-sm text-slate-900 dark:text-white outline-none"
-                  />
-                  {user?.emailVerified && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-green-100 dark:bg-green-900/30 px-2 py-0.5">
-                      <span className="material-symbols-outlined text-[14px] text-green-600 dark:text-green-400">
-                        check_circle
-                      </span>
-                      <span className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase">
-                        Verified
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-                  Phone Number
-                </label>
-                <div className="flex">
-                  <div className="bg-slate-100 dark:bg-slate-800 border-y border-l border-slate-200 dark:border-slate-800 p-3 text-sm font-medium flex items-center">
-                    <span className="text-slate-900 dark:text-slate-100">
-                      +234
-                    </span>
-                  </div>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) =>
-                      setPhone(e.target.value.replace(/\D/g, ""))
-                    }
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-slate-900 dark:text-white"
-                  />
-                </div>
-              </div>
-            </section>
-
-            <hr className="border-slate-200 dark:border-slate-800" />
-
-            {/* Settlement Account Section */}
-            <section className="space-y-4">
-              <h2 className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-widest mb-4">
-                Settlement Account
-              </h2>
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 space-y-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-                    Bank Name
-                  </label>
-                  <select
-                    value={bankCode}
-                    onChange={(e) => setBankCode(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-slate-900 dark:text-white"
-                  >
-                    <option value="">Select a Bank</option>
-                    {banksList.map((b) => (
-                      <option key={b.code} value={b.code}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-                    Account Number
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={10}
-                    value={bankAccountNo}
-                    onChange={(e) =>
-                      setBankAccountNo(e.target.value.replace(/\D/g, ""))
-                    }
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-slate-900 dark:text-white"
-                    placeholder="10 digit account number"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-                    Account Name (Auto-resolved)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      readOnly
-                      value={
-                        resolvingAccount ? "Resolving..." : bankAccountName
-                      }
-                      className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 p-3 text-sm outline-none text-slate-500 dark:text-slate-400 font-bold tracking-wide"
-                      placeholder="Name will appear here"
+              <SectionHeader
+                icon="person"
+                title="Personal Identity"
+                subtitle="Your details are used for verifications and correspondence."
+              />
+              <Card>
+                <form onSubmit={handleSaveProfile} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <Input
+                      label="First Name"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      required
                     />
-                    {resolvingAccount && (
-                      <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-slate-400">
-                        progress_activity
-                      </span>
-                    )}
+                    <Input
+                      label="Middle Name"
+                      value={middleName}
+                      onChange={(e) => setMiddleName(e.target.value)}
+                    />
+                    <Input
+                      label="Last Name"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      required
+                    />
                   </div>
-                </div>
-              </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Input
+                      label="Email Address"
+                      value={email}
+                      disabled
+                    />
+                    <Input
+                      label="Phone Number"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                      required
+                    />
+                  </div>
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={savingProfile}
+                      className="px-8 py-3 bg-primary text-white rounded-xl font-bold uppercase tracking-widest text-xs transition-all hover:bg-primary/90 shadow-lg shadow-primary/20 disabled:opacity-50"
+                    >
+                      {savingProfile ? "Saving..." : "Save Identity"}
+                    </button>
+                  </div>
+                </form>
+              </Card>
             </section>
 
-            <hr className="border-slate-200 dark:border-slate-800" />
-
-            {/* Notification Preferences Preview */}
-            <div className="space-y-4">
-              <h2 className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-widest">
-                Notification Preferences
-              </h2>
-              <div className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
-                <div className="flex items-center justify-between p-4">
-                  <div>
-                    <p className="text-sm font-bold uppercase text-slate-900 dark:text-white">
-                      RFQs & Quotes
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Notify on new incoming requests
-                    </p>
+            {/* Settlement section */}
+            <section>
+              <SectionHeader
+                icon="account_balance"
+                title="Settlement Account"
+                subtitle="Specify where you receive your payouts from sales."
+              />
+              <Card>
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">
+                        Bank Name
+                      </label>
+                      <select
+                        value={bankCode}
+                        onChange={(e) => setBankCode(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-3 text-sm font-bold text-navy-dark dark:text-white outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                      >
+                        <option value="">Select a Bank</option>
+                        {banksList.map((b) => (
+                          <option key={b.code} value={b.code}>{b.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <Input
+                      label="Account Number"
+                      value={bankAccountNo}
+                      maxLength={10}
+                      onChange={(e) => setBankAccountNo(e.target.value.replace(/\D/g, ""))}
+                    />
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">
-                      Email
-                    </span>
-                    <div
-                      className={`w-8 h-4 relative cursor-pointer ${notifPrefs["New RFQ"].email ? "bg-primary" : "bg-slate-200 dark:bg-slate-700"}`}
-                      onClick={() => toggleNotif("New RFQ", "email")}
-                    >
-                      <div
-                        className={`absolute bg-white w-3 h-3 top-0.5 ${notifPrefs["New RFQ"].email ? "right-0.5" : "left-0.5"}`}
-                      ></div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1 mb-1.5">
+                      Account Name (Resolved)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        readOnly
+                        value={resolvingAccount ? "Resolving..." : bankAccountName}
+                        className="w-full bg-slate-100 dark:bg-slate-800 border border-transparent rounded-xl px-4 py-3 text-sm font-black text-slate-500 outline-none"
+                      />
+                      {resolvingAccount && (
+                        <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 animate-spin text-primary">
+                          progress_activity
+                        </span>
+                      )}
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center justify-between p-4">
-                  <div>
-                    <p className="text-sm font-bold uppercase text-slate-900 dark:text-white">
-                      Payout Sent
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      When funds hit your settlement account
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">
-                      SMS
-                    </span>
-                    <div
-                      className={`w-8 h-4 relative cursor-pointer ${notifPrefs["Payout Sent"].sms ? "bg-primary" : "bg-slate-200 dark:bg-slate-700"}`}
-                      onClick={() => toggleNotif("Payout Sent", "sms")}
+                  <div className="pt-2">
+                    <button
+                      onClick={handleSaveProfile}
+                      disabled={savingProfile || resolvingAccount || !bankAccountName || bankAccountName.includes("failed")}
+                      className="px-8 py-3 bg-navy-dark dark:bg-white text-white dark:text-navy-dark rounded-xl font-bold uppercase tracking-widest text-xs transition-all hover:bg-navy-dark/90 dark:hover:bg-slate-100 shadow-lg disabled:opacity-50"
                     >
-                      <div
-                        className={`absolute bg-white w-3 h-3 top-0.5 ${notifPrefs["Payout Sent"].sms ? "right-0.5" : "left-0.5"}`}
-                      ></div>
-                    </div>
+                      Update Bank Details
+                    </button>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Save Button */}
-            <button
-              onClick={handleSaveProfile}
-              disabled={savingProfile}
-              className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-black uppercase tracking-widest py-4 hover:bg-primary dark:hover:bg-primary dark:hover:text-white transition-colors disabled:opacity-50"
-            >
-              {savingProfile ? "Saving..." : "Save Changes"}
-            </button>
-
-            <hr className="border-slate-200 dark:border-slate-800" />
+              </Card>
+            </section>
 
             {/* Danger Zone */}
-            <div className="border border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-900/10 p-4">
-              <h2 className="text-red-600 dark:text-red-400 text-xs font-bold uppercase tracking-widest mb-2">
-                Danger Zone
-              </h2>
-              <p className="text-xs text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
-                Deactivating your merchant account will halt all active quotes
-                and pending payouts. This action is irreversible.
-              </p>
-              <button className="border border-red-600 dark:border-red-500 text-red-600 dark:text-red-500 text-xs font-bold uppercase py-2 px-4 hover:bg-red-600 hover:text-white transition-colors">
-                Deactivate Account
-              </button>
-            </div>
+            <section>
+              <SectionHeader
+                icon="report"
+                title="Danger Zone"
+                subtitle="Permanent actions that cannot be reversed."
+              />
+              <Card className="border-red-100 dark:border-red-900/30 bg-red-50/20 dark:bg-red-950/10">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-black text-red-600 dark:text-red-400 uppercase tracking-tight">Deactivate Merchant Account</h3>
+                    <p className="text-slate-500 text-sm font-medium">This will stop all your listings and freeze pending payouts.</p>
+                  </div>
+                  <button className="px-6 py-3 border-2 border-red-200 dark:border-red-900/50 text-red-500 hover:bg-red-500 hover:text-white transition-all rounded-xl font-bold uppercase tracking-widest text-[10px]">
+                    Deactivate Account
+                  </button>
+                </div>
+              </Card>
+            </section>
           </div>
         )}
 
-        {/* ═══════════════════ NOTIFICATIONS TAB ═══════════════════ */}
+        {/* NOTIFICATIONS TAB */}
         {activeTab === "notifications" && (
-          <div className="p-4">
-            <div className="mb-6">
-              <h2 className="text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">
-                Configuration Matrix
-              </h2>
-              <p className="text-xs text-slate-400">
-                Configure multi-channel alerts for SwiftTrade events.
-              </p>
-            </div>
-
-            {/* Table Header */}
-            <div className="grid grid-cols-12 border-t border-x border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900">
-              <div className="col-span-6 p-3 border-r border-slate-200 dark:border-slate-800">
-                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest">
-                  Event Type
-                </span>
-              </div>
-              <div className="col-span-2 flex justify-center items-center border-r border-slate-200 dark:border-slate-800">
-                <span className="material-symbols-outlined text-sm text-slate-500">
-                  mail
-                </span>
-              </div>
-              <div className="col-span-2 flex justify-center items-center border-r border-slate-200 dark:border-slate-800">
-                <span className="material-symbols-outlined text-sm text-slate-500">
-                  sms
-                </span>
-              </div>
-              <div className="col-span-2 flex justify-center items-center">
-                <span className="material-symbols-outlined text-sm text-slate-500">
-                  notifications_active
-                </span>
-              </div>
-            </div>
-
-            {/* Table Rows */}
-            <div className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-800">
-              {Object.entries(notifPrefs).map(([event, prefs]) => (
-                <div key={event} className="grid grid-cols-12">
-                  <div className="col-span-6 p-3 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-center">
-                    <span className="text-[11px] font-bold uppercase text-slate-900 dark:text-slate-100">
-                      {event}
-                    </span>
-                  </div>
-                  {(["email", "sms", "push"] as const).map((channel) => (
-                    <div
-                      key={channel}
-                      className="col-span-2 border-r border-slate-200 dark:border-slate-800 last:border-r-0 flex justify-center items-center p-2"
-                    >
-                      <div
-                        className={`w-8 h-[18px] relative cursor-pointer ${prefs[channel] ? "bg-primary" : "bg-slate-300 dark:bg-slate-700"}`}
-                        onClick={() => toggleNotif(event, channel)}
-                      >
-                        <div
-                          className={`absolute bg-white w-3.5 h-3.5 top-0.5 ${prefs[channel] ? "right-0.5" : "left-0.5"}`}
-                        ></div>
+          <div className="space-y-8 max-w-4xl">
+            <SectionHeader
+              icon="notifications_active"
+              title="Global Notifications"
+              subtitle="Control how and when you receive alerts from SwiftTrade."
+            />
+            <Card>
+              <div className="space-y-1">
+                <div className="grid grid-cols-12 px-4 py-3 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
+                  <div className="col-span-6">Event Type</div>
+                  <div className="col-span-2 text-center">Email</div>
+                  <div className="col-span-2 text-center">SMS</div>
+                  <div className="col-span-2 text-center">Push</div>
+                </div>
+                <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {Object.entries(notifPrefs).map(([event, prefs]) => (
+                    <div key={event} className="grid grid-cols-12 px-4 py-5 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                      <div className="col-span-6 flex flex-col justify-center">
+                        <span className="text-xs font-black text-navy-dark dark:text-white uppercase tracking-wider">{event}</span>
                       </div>
+                      {(["email", "sms", "push"] as const).map((channel) => (
+                        <div key={channel} className="col-span-2 flex justify-center items-center">
+                          <button
+                            onClick={() => toggleNotif(event, channel)}
+                            className={`w-10 h-5 rounded-full relative transition-colors ${prefs[channel] ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-700'}`}
+                          >
+                            <div className={`absolute top-1 size-3 bg-white rounded-full transition-all ${prefs[channel] ? 'right-1' : 'left-1'}`} />
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   ))}
                 </div>
-              ))}
-            </div>
-
-            <div className="mt-8">
-              <button
-                onClick={handleSaveNotifPrefs}
-                className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-black uppercase tracking-widest py-4 border border-slate-900 dark:border-white hover:bg-primary dark:hover:bg-primary dark:hover:text-white transition-colors"
-              >
-                Save Preferences
-              </button>
-              <p className="text-[10px] text-center text-slate-400 mt-4 uppercase tracking-tighter">
-                Changes apply to all registered sub-accounts.
-              </p>
-            </div>
+              </div>
+              <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800">
+                <button className="px-8 py-3 bg-primary text-white rounded-xl font-bold uppercase tracking-widest text-xs transition-all hover:bg-primary/90 shadow-lg shadow-primary/20">
+                  Save Preferences
+                </button>
+              </div>
+            </Card>
           </div>
         )}
 
-        {/* ═══════════════════ SECURITY TAB ═══════════════════ */}
+        {/* SECURITY TAB */}
         {activeTab === "security" && (
-          <div className="p-4 space-y-6">
-            {/* Password Management */}
-            <section className="space-y-4">
-              <h2 className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-2">
-                Password Management
-              </h2>
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 space-y-4">
-                <div>
-                  <label className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-                    Current Password
-                  </label>
-                  <input
+          <div className="space-y-12 max-w-2xl">
+            <section>
+              <SectionHeader
+                icon="lock"
+                title="Change Password"
+                subtitle="Update your login credentials regularly for better security."
+              />
+              <Card>
+                <form onSubmit={handleChangePassword} className="space-y-6">
+                  <Input
+                    label="Current Password"
                     type="password"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="••••••••••••"
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-slate-900 dark:text-white"
+                    required
                   />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-                    New Password
-                  </label>
-                  <input
+                  <Input
+                    label="New Password"
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Min. 12 characters"
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-slate-900 dark:text-white"
+                    required
                   />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-                    Confirm New Password
-                  </label>
-                  <input
+                  <Input
+                    label="Confirm New Password"
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Re-type new password"
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-slate-900 dark:text-white"
+                    required
                   />
-                </div>
-                <button
-                  onClick={handleChangePassword}
-                  disabled={
-                    changingPassword || !currentPassword || !newPassword
-                  }
-                  className="w-full bg-primary text-white text-xs font-bold uppercase py-4 px-4 hover:bg-blue-700 transition-colors disabled:opacity-50"
-                >
-                  {changingPassword ? "Updating..." : "Update Password"}
-                </button>
-              </div>
-            </section>
-
-            {/* Two-Factor Authentication */}
-            <section className="space-y-4">
-              <h2 className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-2">
-                Two-Factor Authentication
-              </h2>
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="size-10 bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-slate-400">
-                        vibration
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold uppercase tracking-tight text-slate-900 dark:text-white">
-                        Status: <span className="text-red-600">OFF</span>
-                      </p>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase">
-                        Enhance account security
-                      </p>
-                    </div>
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={changingPassword}
+                      className="w-full py-4 bg-primary text-white rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all hover:bg-primary/90 shadow-lg shadow-primary/20 disabled:opacity-50"
+                    >
+                      {changingPassword ? "Updating..." : "Update Password"}
+                    </button>
                   </div>
-                </div>
-                <button
-                  onClick={handleUnsupported}
-                  className="w-full border border-primary text-primary text-xs font-bold uppercase py-4 px-4 hover:bg-primary hover:text-white transition-colors"
-                >
-                  Set Up 2FA
-                </button>
-              </div>
-            </section>
-
-            {/* Session Management */}
-            <section className="space-y-4">
-              <h2 className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-2">
-                Session Management
-              </h2>
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800">
-                <div className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-slate-400">
-                      laptop_mac
-                    </span>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-xs font-bold uppercase text-slate-900 dark:text-white">
-                          Current Session
-                        </p>
-                        <span className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[8px] font-bold px-1.5 py-0.5 uppercase">
-                          Current
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                        Lagos, Nigeria • Web Browser
-                      </p>
-                    </div>
-                  </div>
-                  <button className="text-slate-400 hover:text-red-600 transition-colors">
-                    <span className="material-symbols-outlined text-xl">
-                      logout
-                    </span>
-                  </button>
-                </div>
-              </div>
-              <button
-                onClick={handleUnsupported}
-                className="w-full text-red-600 text-[10px] font-bold uppercase py-2 hover:underline"
-              >
-                Log out from all other devices
-              </button>
+                </form>
+              </Card>
             </section>
           </div>
         )}
       </div>
+      
+      <div className="h-20" />
     </div>
   );
 }

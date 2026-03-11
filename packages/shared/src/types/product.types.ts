@@ -28,7 +28,9 @@ export interface Product {
   isActive: boolean;
   pricePerUnitKobo?: string;
   retailPriceKobo?: string; // Added in V5 for consumer expansion
+  wholesalePriceKobo?: string; // Added in V5 for per-item wholesale pricing
   attributes?: any; // Added in V5: Category-specific key-value pairs
+
   warehouseLocation?: string;
   createdAt: Date;
   updatedAt: Date;

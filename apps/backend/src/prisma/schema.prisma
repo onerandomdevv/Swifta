@@ -59,6 +59,9 @@ model MerchantProfile {
   bankAccountNumber     String?               @map("bank_account_number")
   bankVerified          Boolean               @default(false) @map("bank_verified")
   cacVerified           Boolean               @default(false) @map("cac_verified")
+  guarantorVerified     Boolean               @default(false) @map("guarantor_verified")
+  profileImage          String?               @map("profile_image")
+  coverImage            String?               @map("cover_image")
   paystackRecipientCode String?               @map("paystack_recipient_code")
   quoteCount            Int                   @default(0) @map("quote_count")
   responseTimeTotal     BigInt                @default(0) @map("response_time_total")
@@ -67,6 +70,8 @@ model MerchantProfile {
   verifiedAt            DateTime?             @map("verified_at")
   averageRating         Float?                @map("average_rating") // Added in V5
   reviewCount           Int                   @default(0) @map("review_count") // Added in V5
+  description           String?                                       // Added in V5
+  socialLinks           Json?                 @default("{}") @map("social_links") // Added in V5
   creditApplications    CreditApplication[]
   inventoryEvents       InventoryEvent[]
   user                  User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -131,6 +136,7 @@ model Order {
   createdAt           DateTime           @default(now()) @map("created_at")
   updatedAt           DateTime           @default(now()) @updatedAt @map("updated_at")
   deliveryAddress     String?            @map("delivery_address")
+  deliveryDetails     Json?              @map("delivery_details") // Added Phase 6
   disputeReason       String?            @map("dispute_reason")
   disputeStatus       OrderDisputeStatus @default(NONE) @map("dispute_status")
   payoutStatus        PayoutStatus       @default(PENDING) @map("payout_status")
@@ -184,17 +190,36 @@ model Payout {
 }
 
 model CartItem {
-  id        String   @id @default(uuid()) @db.Uuid
-  buyerId   String   @map("buyer_id") @db.Uuid
-  productId String   @map("product_id") @db.Uuid
+  id        String    @id @default(uuid()) @db.Uuid
+  buyerId   String    @map("buyer_id") @db.Uuid
+  productId String    @map("product_id") @db.Uuid
   quantity  Int
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  buyer     User     @relation("UserCartItems", fields: [buyerId], references: [id], onDelete: Cascade)
-  product   Product  @relation(fields: [productId], references: [id])
+  priceType PriceType @default(RETAIL) @map("price_type")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  buyer     User      @relation("UserCartItems", fields: [buyerId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id])
 
   @@unique([buyerId, productId])
   @@map("cart_items")
+}
+
+model SavedProduct {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  productId String   @map("product_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@map("saved_products")
+}
+
+enum PriceType {
+  RETAIL
+  WHOLESALE
 }
 
 model PaymentEvent {
@@ -282,6 +307,7 @@ model Product {
   inventoryEvents          InventoryEvent[]
   orders                   Order[]
   productStockCache        ProductStockCache?
+  savedByUsers             SavedProduct[]
   merchantProfile          MerchantProfile    @relation(fields: [merchantId], references: [id])
   rfqs                     Rfq[]
 
@@ -391,6 +417,7 @@ model User {
   whatsappBuyerLink            WhatsAppBuyerLink?
   whatsappLink                 WhatsAppLink?
   buyerProfile                 BuyerProfile? // Added in V5
+  savedProducts                SavedProduct[]
 
   @@map("users")
 }

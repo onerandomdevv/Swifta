@@ -76,49 +76,6 @@ export function AccountDetailsStep({
       )}
 
       <form onSubmit={onSubmit} className="space-y-4">
-        {/* Buyer Type Selection — Buyer only */}
-        {isBuyer && (
-          <div className="mb-6">
-            <label className="block text-sm font-bold text-slate-700 mb-3">
-              I am registering as:
-            </label>
-            <div className="grid grid-cols-2 gap-2 sm:gap-3">
-              <button
-                type="button"
-                onClick={() =>
-                  setValue("buyerType", "BUSINESS", { shouldValidate: true })
-                }
-                className={`flex items-center justify-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-xl border-2 transition-all ${
-                  buyerType === "BUSINESS"
-                    ? "border-primary bg-primary/5 text-primary"
-                    : "border-slate-100 bg-[#f6f6f8] text-slate-500 hover:border-slate-200"
-                }`}
-              >
-                <span className="material-symbols-outlined text-xl">
-                  corporate_fare
-                </span>
-                <span className="font-bold text-sm">Business</span>
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setValue("buyerType", "CONSUMER", { shouldValidate: true })
-                }
-                className={`flex items-center justify-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-xl border-2 transition-all ${
-                  buyerType === "CONSUMER"
-                    ? "border-primary bg-primary/5 text-primary"
-                    : "border-slate-100 bg-[#f6f6f8] text-slate-500 hover:border-slate-200"
-                }`}
-              >
-                <span className="material-symbols-outlined text-xl">
-                  person
-                </span>
-                <span className="font-bold text-sm">Individual</span>
-              </button>
-            </div>
-            <input type="hidden" {...register("buyerType")} />
-          </div>
-        )}
         {/* Name row: First + Middle + Last */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="sm:col-span-1">
@@ -166,11 +123,11 @@ export function AccountDetailsStep({
           </div>
         </div>
 
-        {/* Business Name — Merchant or Business Buyer */}
-        {(isMerchant || isBuyer) && (
+        {/* Business Name — Merchant only */}
+        {isMerchant && (
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-1.5">
-              Business Name {buyerType === "CONSUMER" && "(Optional)"}
+              Business Name
             </label>
             <div className="relative">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
@@ -178,11 +135,7 @@ export function AccountDetailsStep({
               </span>
               <input
                 className={`w-full pl-10 pr-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.businessName ? "border-red-400" : "border-slate-200"}`}
-                placeholder={
-                  buyerType === "CONSUMER"
-                    ? "Your personal brand (optional)"
-                    : "Adamu Cement Supplies"
-                }
+                placeholder="Adamu Cement Supplies"
                 type="text"
                 {...register("businessName")}
               />

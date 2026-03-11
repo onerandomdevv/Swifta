@@ -1,4 +1,5 @@
 import {
+  ArrayNotEmpty,
   IsArray,
   IsEnum,
   IsIn,
@@ -6,18 +7,24 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  IsObject,
 } from "class-validator";
+
 import { PaymentMethod } from "@hardware-os/shared";
 
 export class CheckoutCartDto {
   @IsArray()
   @IsUUID("4", { each: true })
-  @IsNotEmpty()
+  @ArrayNotEmpty()
   cartItemIds: string[];
 
   @IsString()
   @IsNotEmpty()
   deliveryAddress: string;
+
+  @IsOptional()
+  @IsObject()
+  deliveryDetails?: Record<string, any>;
 
   @IsEnum(PaymentMethod)
   @IsOptional()

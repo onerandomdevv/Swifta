@@ -104,6 +104,16 @@ export class MerchantService {
       verificationTier: merchant.verificationTier,
       createdAt: merchant.createdAt,
       dealsClosed: merchant._count.orders,
+      profileImage: merchant.profileImage,
+      coverImage: merchant.coverImage,
+      cacVerified: merchant.cacVerified,
+      addressVerified: merchant.addressVerified,
+      guarantorVerified: merchant.guarantorVerified,
+      bankVerified: merchant.bankVerified,
+      averageRating: merchant.averageRating || 0,
+      reviewCount: merchant.reviewCount || 0,
+      description: merchant.description,
+      socialLinks: merchant.socialLinks as Record<string, string>,
       contact: isVerified
         ? {
             email: merchant.user.email,

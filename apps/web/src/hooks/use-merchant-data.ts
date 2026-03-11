@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getOrders } from "@/lib/api/order.api";
 import { getMyProducts } from "@/lib/api/product.api";
+import { getAnalytics } from "@/lib/api/merchant.api";
 import { authApi } from "@/lib/api/auth.api";
 import type { Order, Product } from "@hardware-os/shared";
 
@@ -16,6 +17,12 @@ export function useMerchantDashboard() {
     refetchInterval: 30000,
   });
 
+  const analyticsQuery = useQuery({
+    queryKey: ["merchant", "analytics"],
+    queryFn: getAnalytics,
+    refetchInterval: 60000,
+  });
+
   const userQuery = useQuery({
     queryKey: ["auth", "me"],
     queryFn: async () => {
@@ -25,15 +32,16 @@ export function useMerchantDashboard() {
     refetchInterval: 60000,
   });
 
-  const isLoading = orderQuery.isLoading || userQuery.isLoading;
+  const isLoading = orderQuery.isLoading || userQuery.isLoading || analyticsQuery.isLoading;
 
   return {
     orders: orderQuery.data || ([] as Order[]),
+    analytics: analyticsQuery.data || null,
     user: userQuery.data,
     isLoading,
-    isError: orderQuery.isError || userQuery.isError,
+    isError: orderQuery.isError || userQuery.isError || analyticsQuery.isError,
     error: (() => {
-      const error = orderQuery.error || userQuery.error;
+      const error = orderQuery.error || userQuery.error || analyticsQuery.error;
       if (!error) return null;
       const anyErr = error as any;
       if (typeof anyErr.error === "string") return anyErr.error;
@@ -49,6 +57,7 @@ export function useMerchantDashboard() {
     refetch: () => {
       orderQuery.refetch();
       userQuery.refetch();
+      analyticsQuery.refetch();
     },
   };
 }

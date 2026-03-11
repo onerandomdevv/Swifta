@@ -6,6 +6,7 @@ import {
 import { PrismaService } from "../../prisma/prisma.service";
 import { AddToCartDto } from "./dto/add-to-cart.dto";
 import { UpdateCartItemDto } from "./dto/update-cart-item.dto";
+import { PriceType } from "@hardware-os/shared";
 
 @Injectable()
 export class CartService {
@@ -18,7 +19,11 @@ export class CartService {
         product: {
           include: {
             merchantProfile: {
-              select: { businessName: true },
+              select: {
+                businessName: true,
+                verificationTier: true,
+                businessAddress: true,
+              },
             },
           },
         },
@@ -28,12 +33,16 @@ export class CartService {
 
     let subtotalKobo = BigInt(0);
     const cartObj = items.map((item) => {
-      // Calculate taking the lowest available price between retail/wholesale fallback
-      const priceKobo =
-        item.product.retailPriceKobo ??
-        item.product.wholesalePriceKobo ??
-        item.product.pricePerUnitKobo ??
-        BigInt(0);
+      // Calculate based on the item's saved priceType
+      const isWholesale = item.priceType === PriceType.WHOLESALE;
+      const priceKobo = isWholesale
+        ? (item.product.wholesalePriceKobo ??
+          item.product.pricePerUnitKobo ??
+          BigInt(0))
+        : (item.product.retailPriceKobo ??
+          item.product.pricePerUnitKobo ??
+          BigInt(0));
+
       const itemTotalKobo = priceKobo * BigInt(item.quantity);
       subtotalKobo += itemTotalKobo;
 
@@ -41,6 +50,7 @@ export class CartService {
         id: item.id,
         productId: item.productId,
         quantity: item.quantity,
+        priceType: item.priceType,
         product: {
           name: item.product.name,
           imageUrl: item.product.imageUrl,
@@ -48,7 +58,14 @@ export class CartService {
           merchantName:
             item.product.merchantProfile?.businessName || "Unknown Merchant",
           merchantId: item.product.merchantId,
+          merchantTier: item.product.merchantProfile?.verificationTier,
+          merchantAddress: item.product.merchantProfile?.businessAddress,
+          unit: item.product.unit,
+
+          minOrderQuantity: item.product.minOrderQuantity,
+          minOrderQuantityConsumer: item.product.minOrderQuantityConsumer,
         },
+
         itemTotalKobo: itemTotalKobo.toString(),
       };
     });
@@ -68,15 +85,31 @@ export class CartService {
       throw new NotFoundException("Product not found or unavailable");
     }
 
-    // Upsert the cart item: if it exists, add quantity, otherwise create
+    const priceType = dto.priceType || PriceType.RETAIL;
+    const minQty =
+      priceType === PriceType.WHOLESALE
+        ? product.minOrderQuantity
+        : product.minOrderQuantityConsumer;
+
+    if (dto.quantity < minQty) {
+      throw new BadRequestException(
+        `Minimum order quantity for ${priceType} is ${minQty}`,
+      );
+    }
+
+    // Upsert the cart item: if it exists, add quantity and update priceType
     const existingItem = await this.prisma.cartItem.findUnique({
       where: { buyerId_productId: { buyerId, productId: dto.productId } },
     });
 
     if (existingItem) {
+      const newQty = existingItem.quantity + dto.quantity;
       return this.prisma.cartItem.update({
         where: { id: existingItem.id },
-        data: { quantity: existingItem.quantity + dto.quantity },
+        data: {
+          quantity: newQty,
+          priceType, // Update to the latest selected type
+        },
       });
     }
 
@@ -85,6 +118,7 @@ export class CartService {
         buyerId,
         productId: dto.productId,
         quantity: dto.quantity,
+        priceType,
       },
     });
   }
@@ -96,10 +130,22 @@ export class CartService {
   ) {
     const item = await this.prisma.cartItem.findFirst({
       where: { id: itemId, buyerId },
+      include: { product: true },
     });
 
     if (!item) {
       throw new NotFoundException("Cart item not found");
+    }
+
+    const minQty =
+      item.priceType === PriceType.WHOLESALE
+        ? item.product.minOrderQuantity
+        : item.product.minOrderQuantityConsumer;
+
+    if (dto.quantity < minQty) {
+      throw new BadRequestException(
+        `Minimum order quantity for ${item.priceType} is ${minQty}`,
+      );
     }
 
     return this.prisma.cartItem.update({

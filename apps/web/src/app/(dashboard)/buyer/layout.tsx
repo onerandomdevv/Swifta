@@ -1,8 +1,9 @@
 "use client";
 
 import { ReactNode, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { BuyerSidebar } from "@/components/layout/buyer-sidebar";
+import { MerchantSidebar } from "@/components/layout/merchant-sidebar";
 import { BuyerHeader } from "@/components/layout/buyer-header";
 import { BuyerMobileNav } from "@/components/layout/buyer-mobile-nav";
 import { MobileDrawer } from "@/components/layout/mobile-drawer";
@@ -10,10 +11,16 @@ import { useAuth } from "@/providers/auth-provider";
 
 export default function BuyerLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user } = useAuth();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   useEffect(() => {
+    // Allow any role to view public merchant profiles
+    if (pathname.startsWith("/buyer/merchants/")) {
+      return;
+    }
+
     if (user && user.role !== "BUYER") {
       switch (user.role) {
         case "SUPPLIER":
@@ -26,26 +33,26 @@ export default function BuyerLayout({ children }: { children: ReactNode }) {
           router.push("/merchant/dashboard");
           break;
         case "OPERATOR":
-          router.push("/operator/dashboard");
-          break;
         case "SUPPORT":
-          router.push("/support/dashboard");
+          router.push("/admin/dashboard");
           break;
         default:
           router.push("/");
       }
     }
-  }, [user, router]);
+  }, [user, router, pathname]);
+
+  const Sidebar = user?.role === "MERCHANT" ? MerchantSidebar : BuyerSidebar;
 
   return (
     <div className="flex min-h-screen flex-col lg:flex-row bg-background-light font-display text-slate-900 selection:bg-primary/10 selection:text-primary">
-      <BuyerSidebar />
+      <Sidebar />
 
       <MobileDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
       >
-        <BuyerSidebar variant="mobile" />
+        <Sidebar variant="mobile" />
       </MobileDrawer>
 
       <main className="flex-1 overflow-x-hidden overflow-y-auto pb-20 lg:pb-0 h-screen">

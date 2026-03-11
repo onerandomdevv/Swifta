@@ -10,6 +10,16 @@ export interface Order {
   deliveryFeeKobo: bigint;
   currency: string;
   status: OrderStatus;
+  deliveryAddress?: string;
+  deliveryDetails?: {
+    state: string;
+    lga: string;
+    street: string;
+    busStop?: string;
+    primaryPhone?: string;
+    altPhone?: string;
+  };
+  deliveryMethod?: "MERCHANT_DELIVERY" | "PLATFORM_LOGISTICS";
   deliveryOtp?: string;
   disputeStatus: OrderDisputeStatus;
   disputeReason?: string;

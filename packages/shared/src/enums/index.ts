@@ -16,3 +16,4 @@ export * from "./payment-method.enum";
 export * from "./credit-status.enum";
 export * from "./verification-request-status.enum";
 export * from "./verification-id-type.enum";
+export * from "./price-type.enum";

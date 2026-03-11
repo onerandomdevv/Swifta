@@ -153,7 +153,7 @@ export class WhatsAppOnboardingService {
   private async sendWelcome(phone: string): Promise<void> {
     await this.interactiveService.sendReplyButtons(
       phone,
-      "Welcome to SwiftTrade! 🔗\n\nNigeria's WhatsApp marketplace — buy and sell anything with payment protection.\n\n✅ Escrow-protected payments\n📦 Tracked delivery\n💰 Instant merchant payouts\n\nHow would you like to use SwiftTrade?",
+      "Welcome to SwiftTrade! 🔗\n\nNigeria's premium WhatsApp marketplace — buy and sell anything (Electronics, Fashion, Hardware, & more) with escrow protection.\n\n✅ Premium Identity Verification\n📦 SwiftTrade Tracked Delivery\n💰 Instant Merchant Payouts\n\nHow would you like to proceed?",
       [
         { id: "onboard_buyer", title: "Buy Products" },
         { id: "onboard_merchant", title: "Sell Products" },
@@ -559,10 +559,10 @@ export class WhatsAppOnboardingService {
 
       // Send welcome with List Message
       const welcomeMsg =
-        `You're all set, ${data.firstName}! 🎉\n\n` +
-        `🔐 *SwiftTrade Identity*: Your account is linked to this phone number. ` +
-        `You don't need a password to log in via WhatsApp.\n\n` +
-        `You can now search for products, buy securely, and track deliveries right here. What would you like to do?`;
+        `Account Active, ${data.firstName}! 🎉\n\n` +
+        `🔐 *Premium Identity Confirmation*: Your account is now linked to this phone number. ` +
+        `Access the marketplace instantly without passwords.\n\n` +
+        `You can now search for any product, buy with escrow protection, and protocol-tracked deliveries. What is your first objective?`;
 
       await this.interactiveService.sendListMessage(
         phone,

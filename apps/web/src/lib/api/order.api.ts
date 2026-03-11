@@ -59,13 +59,23 @@ export async function getReceipt(id: string): Promise<Order> {
   return apiClient.get(`/orders/${id}/receipt`);
 }
 
-export async function createDirectOrder(payload: {
+export interface CreateDirectOrderData {
   productId: string;
   quantity: number;
   deliveryAddress: string;
+  deliveryDetails?: {
+    state: string;
+    lga: string;
+    street: string;
+    busStop?: string;
+    primaryPhone?: string;
+    altPhone?: string;
+  };
   paymentMethod?: "ESCROW" | "DIRECT";
   deliveryMethod?: "MERCHANT_DELIVERY" | "PLATFORM_LOGISTICS";
-}): Promise<{
+}
+
+export async function createDirectOrder(payload: CreateDirectOrderData): Promise<{
   orderId: string;
   authorizationUrl: string;
   totalAmountKobo: number;
@@ -88,7 +98,9 @@ export const getDeliveryQuote = async (
 };
 
 export async function checkoutCart(payload: {
+  cartItemIds: string[];
   deliveryAddress: string;
+  deliveryDetails?: CreateDirectOrderData["deliveryDetails"];
   paymentMethod?: "ESCROW" | "DIRECT";
   deliveryMethod?: "MERCHANT_DELIVERY" | "PLATFORM_LOGISTICS";
 }): Promise<{

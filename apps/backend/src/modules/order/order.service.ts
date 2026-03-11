@@ -18,11 +18,17 @@ import { LogisticsService } from "../logistics/logistics.service";
 import { PAYOUT_QUEUE, REVIEW_QUEUE } from "../../queue/queue.constants";
 import { WhatsAppService } from "../whatsapp/whatsapp.service";
 import {
-  OrderStatus,
-  OTP_LENGTH,
-  PaginatedResponse,
+  DeliveryMethod,
+  InventoryEventType,
   Order,
+  OrderDisputeStatus,
+  OrderStatus,
+  PaginatedResponse,
+  PaymentMethod,
+  PayoutStatus,
+  PriceType,
 } from "@hardware-os/shared";
+
 import { paginate } from "../../common/utils/pagination";
 import { validateTransition, getNextStates } from "./order-state-machine";
 import * as crypto from "crypto";
@@ -131,6 +137,7 @@ export class OrderService {
       productId,
       quantity,
       deliveryAddress,
+      deliveryDetails,
       paymentMethod: requestedMethod,
       deliveryMethod = "MERCHANT_DELIVERY",
     } = dto;
@@ -210,6 +217,7 @@ export class OrderService {
           quantity,
           unitPriceKobo: resolvedPriceKobo,
           deliveryAddress,
+          deliveryDetails: deliveryDetails ? (deliveryDetails as any) : null,
           totalAmountKobo,
           deliveryFeeKobo: calculatedDeliveryFeeKobo,
           currency: "NGN",
@@ -299,6 +307,7 @@ export class OrderService {
     const {
       cartItemIds,
       deliveryAddress,
+      deliveryDetails,
       deliveryMethod = "MERCHANT_DELIVERY",
       paymentMethod: requestedMethod,
     } = dto;
@@ -345,7 +354,6 @@ export class OrderService {
     const buyerProfile = await this.prisma.buyerProfile.findUnique({
       where: { userId: buyerId },
     });
-    const isConsumer = buyerProfile?.buyerType === "CONSUMER";
 
     let subtotalKobo = 0n;
     const jsonItems = [];
@@ -358,35 +366,37 @@ export class OrderService {
           `Product ${product.name} is no longer available.`,
         );
       }
-      if (
-        !product.productStockCache ||
-        product.productStockCache.stock < item.quantity
-      ) {
+
+      // Logic: Retail vs Wholesale price selection based on item.priceType
+      const isWholesale = item.priceType === PriceType.WHOLESALE;
+      const minQty = isWholesale
+        ? product.minOrderQuantity
+        : product.minOrderQuantityConsumer;
+
+      if (item.quantity < minQty) {
         throw new BadRequestException(
-          `Insufficient stock for ${product.name}.`,
+          `Quantity for ${product.name} (${item.quantity}) is below the minimum for ${item.priceType} (${minQty})`,
         );
       }
 
-      const resolvedPriceKobo =
-        isConsumer && product.retailPriceKobo
-          ? BigInt(product.retailPriceKobo)
-          : BigInt(
-              product.wholesalePriceKobo ?? product.pricePerUnitKobo ?? 0n,
-            );
+      const resolvedPriceKobo = isWholesale
+        ? (product.wholesalePriceKobo ?? product.pricePerUnitKobo ?? 0n)
+        : (product.retailPriceKobo ?? product.pricePerUnitKobo ?? 0n);
 
       if (resolvedPriceKobo === 0n) {
         throw new BadRequestException(
-          `Product ${product.name} requires an RFQ.`,
+          `Product ${product.name} does not have a valid ${item.priceType} price.`,
         );
       }
 
-      subtotalKobo += resolvedPriceKobo * BigInt(item.quantity);
+      subtotalKobo += BigInt(resolvedPriceKobo) * BigInt(item.quantity);
 
       jsonItems.push({
         productId: product.id,
         quantity: item.quantity,
         unitPriceKobo: resolvedPriceKobo.toString(),
         name: product.name,
+        priceType: item.priceType,
       });
     }
 
@@ -408,44 +418,81 @@ export class OrderService {
     ) {
       // Very rough estimate of 10kg per cart item total for now
       const estimatedWeightKg = 10 * items.length;
-      try {
-        const quote = await this.logisticsService.getQuote(
-          merchantProfile.businessAddress,
-          deliveryAddress,
-          estimatedWeightKg,
-        );
-        calculatedDeliveryFeeKobo = BigInt(quote.costKobo);
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
-        this.logger.warn(`Logistics quote failed: ${msg}`);
-      }
+      // No try-catch here: let logistics errors propagate to the user
+      const quote = await this.logisticsService.getQuote(
+        merchantProfile.businessAddress,
+        deliveryAddress,
+        estimatedWeightKg,
+      );
+      calculatedDeliveryFeeKobo = BigInt(quote.costKobo);
     }
 
     const totalAmountKobo =
       subtotalKobo + platformFeeKobo + calculatedDeliveryFeeKobo;
     const idempotencyKey = `cart-checkout-${buyerId}-${Date.now()}`;
 
-    // Create the order
+    // Create the order atomically with inventory reservation
     const order = await this.prisma.$transaction(async (tx) => {
+      // 1. Double check and decrement stock
+      for (const item of items) {
+        const cache = await tx.productStockCache.findUnique({
+          where: { productId: item.productId },
+        });
+
+        if (!cache || cache.stock < item.quantity) {
+          throw new BadRequestException(
+            `Insufficient stock for ${item.product.name}.`,
+          );
+        }
+
+        await tx.productStockCache.update({
+          where: { productId: item.productId },
+          data: { stock: { decrement: item.quantity } },
+        });
+
+        // Log inventory event
+        await tx.inventoryEvent.create({
+          data: {
+            productId: item.productId,
+            merchantId: merchantId as string,
+            eventType: InventoryEventType.ORDER_RESERVED,
+            quantity: item.quantity,
+            notes: `Reserved for cart checkout (buyer: ${buyerId})`,
+          },
+        });
+      }
+
+      // 2. Create the order
       const newOrder = await tx.order.create({
         data: {
           buyerId,
           merchantId,
           deliveryAddress,
+          deliveryDetails: deliveryDetails ? (deliveryDetails as any) : null,
           totalAmountKobo,
           deliveryFeeKobo: calculatedDeliveryFeeKobo,
           currency: "NGN",
           status: OrderStatus.PENDING_PAYMENT,
           paymentMethod,
-          deliveryMethod,
-          items: jsonItems, // Save the snapshot of items here
+          deliveryMethod: deliveryMethod as any,
+          items: jsonItems,
           quoteId: null,
           idempotencyKey,
           payoutStatus: "PENDING",
         },
       });
 
-      // Clear the checked-out cart items
+      // 3. Create initial order event (audit trail)
+      await tx.orderEvent.create({
+        data: {
+          orderId: newOrder.id,
+          toStatus: OrderStatus.PENDING_PAYMENT,
+          triggeredBy: buyerId,
+          metadata: { action: "cart_checkout", items: jsonItems },
+        },
+      });
+
+      // 4. Clear the checked-out cart items
       await tx.cartItem.deleteMany({
         where: { id: { in: cartItemIds } },
       });

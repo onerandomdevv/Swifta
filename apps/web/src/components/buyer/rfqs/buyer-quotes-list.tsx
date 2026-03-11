@@ -60,7 +60,7 @@ export function BuyerQuotesList({ quotes, acceptingId, onAcceptQuote }: Props) {
                   )}
                   {quote.merchantProfile && (
                     <Link
-                      href={`/merchants/${quote.merchantId}`}
+                      href={`/buyer/merchants/${quote.merchantId}`}
                       className="text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-primary transition-colors"
                     >
                       {quote.merchantProfile.businessName}
