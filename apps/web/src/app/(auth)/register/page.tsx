@@ -50,7 +50,7 @@ export default function RegisterPage() {
       middleName: "",
       lastName: "",
       businessName: "",
-      buyerType: "BUSINESS",
+      buyerType: "CONSUMER",
       companyName: "",
       companyAddress: "",
       cacNumber: "",
@@ -106,10 +106,7 @@ export default function RegisterPage() {
           data.role === UserRole.BUYER && data.buyerType === "CONSUMER"
             ? ""
             : data.businessName,
-        buyerType:
-          data.role === UserRole.BUYER
-            ? (data.buyerType as "BUSINESS" | "CONSUMER")
-            : "BUSINESS",
+        buyerType: "CONSUMER",
         companyName: data.companyName,
         companyAddress: data.companyAddress,
         cacNumber: data.cacNumber,

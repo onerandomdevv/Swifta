@@ -300,6 +300,7 @@ model Product {
   pricePerUnitKobo         BigInt?            @map("price_per_unit_kobo")
   wholesalePriceKobo       BigInt?            @map("wholesale_price_kobo") // Added in V5 for business pricing
   retailPriceKobo          BigInt?            @map("retail_price_kobo") // Added in V5 for consumer expansion
+  wholesaleDiscountPercent Float?             @map("wholesale_discount_percent") // Added in V5 — discount % off retail for wholesale
   minOrderQuantityConsumer Int                @default(1) @map("min_order_quantity_consumer") // Added in V5 for consumer expansion
   attributes               Json?              @default("{}") // Added in V5 for category-specific attributes (e.g., size, color, specs)
   warehouseLocation        String?            @map("warehouse_location")
@@ -844,7 +845,7 @@ model BuyerProfile {
   userId          String   @unique @map("user_id") @db.Uuid
   businessName    String?  @map("business_name")
   businessAddress String?  @map("business_address")
-  buyerType       String   @default("BUSINESS") @map("buyer_type") // "BUSINESS" or "CONSUMER"
+  buyerType       String   @default("CONSUMER") @map("buyer_type") // "BUSINESS" or "CONSUMER"
   onboardingStep  Int      @default(1) @map("onboarding_step")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")

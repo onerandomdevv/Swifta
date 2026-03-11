@@ -138,7 +138,7 @@ export class AuthService {
           ? {
               buyerProfile: {
                 create: {
-                  buyerType: dto.buyerType || "BUSINESS",
+                  buyerType: dto.buyerType || "CONSUMER",
                   businessName:
                     dto.buyerType === "CONSUMER" ? "" : dto.businessName,
                 },
@@ -607,7 +607,7 @@ export class AuthService {
         merchantId: user.merchantProfile?.id,
         buyerType:
           user.buyerProfile?.buyerType ||
-          (user.role === "BUYER" ? "BUSINESS" : undefined),
+          (user.role === "BUYER" ? "CONSUMER" : undefined),
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
