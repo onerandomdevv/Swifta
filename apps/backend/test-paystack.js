@@ -19,8 +19,16 @@ async function testPaystack() {
     }),
   });
 
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Paystack API Error: ${response.status} - ${errorBody}`);
+  }
+
   const json = await response.json();
   console.log("Paystack response:", JSON.stringify(json, null, 2));
 }
 
-testPaystack().catch(console.error);
+testPaystack().catch((err) => {
+  console.error("❌ Test failed:", err.message);
+  process.exitCode = 1;
+});

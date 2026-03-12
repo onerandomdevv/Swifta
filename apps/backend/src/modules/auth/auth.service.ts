@@ -652,7 +652,7 @@ export class AuthService {
     let counter = 0;
 
     while (!isUnique) {
-      const existing = await this.prisma.merchantProfile.findUnique({
+      const existing = await this.prisma.merchantProfile.findFirst({
         where: { slug },
       });
 
