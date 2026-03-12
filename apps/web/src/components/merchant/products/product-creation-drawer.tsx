@@ -2,15 +2,16 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createProduct, uploadProductImage } from "@/lib/api/product.api";
+import { productApi } from "@/lib/api/product.api";
 import { getCategories } from "@/lib/api/category.api";
-import { type Category } from "@hardware-os/shared";
+import { type Category, type Product } from "@hardware-os/shared";
 import { useToast } from "@/providers/toast-provider";
 
 interface ProductCreationDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  initialData?: Partial<Product>;
 }
 
 type Step = "VISUALS" | "DETAILS" | "PRICING" | "SUCCESS";
@@ -19,6 +20,7 @@ export function ProductCreationDrawer({
   isOpen,
   onClose,
   onSuccess,
+  initialData,
 }: ProductCreationDrawerProps) {
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -51,23 +53,44 @@ export function ProductCreationDrawer({
         }
       }
       loadCategories();
-      // Reset form on open
-      setFormData({
-        name: "",
-        description: "",
-        unit: "BAGS",
-        categoryTag: "",
-        categoryId: "",
-        minOrderQuantity: 1,
-        minOrderQuantityConsumer: 1,
-        imageUrl: "",
-        retailPrice: "",
-        wholesaleDiscountPercent: 15,
-      });
-      setWholesaleEnabled(false);
+
+      // Reset or Populate form on open
+      if (initialData) {
+        setFormData({
+          name: initialData.name || "",
+          description: initialData.description || "",
+          unit: initialData.unit || "BAGS",
+          categoryTag: initialData.categoryTag || "",
+          categoryId: initialData.categoryId || "",
+          minOrderQuantity: initialData.minOrderQuantity || 1,
+          minOrderQuantityConsumer: initialData.minOrderQuantityConsumer || 1,
+          imageUrl: initialData.imageUrl || "",
+          retailPrice: initialData.retailPriceKobo 
+            ? (Number(initialData.retailPriceKobo) / 100).toString() 
+            : initialData.pricePerUnitKobo 
+              ? (Number(initialData.pricePerUnitKobo) / 100).toString()
+              : "",
+          wholesaleDiscountPercent: initialData.wholesaleDiscountPercent || 15,
+        });
+        setWholesaleEnabled(!!initialData.wholesaleDiscountPercent);
+      } else {
+        setFormData({
+          name: "",
+          description: "",
+          unit: "BAGS",
+          categoryTag: "",
+          categoryId: "",
+          minOrderQuantity: 1,
+          minOrderQuantityConsumer: 1,
+          imageUrl: "",
+          retailPrice: "",
+          wholesaleDiscountPercent: 15,
+        });
+        setWholesaleEnabled(false);
+      }
       setCurrentStep("VISUALS");
     }
-  }, [isOpen]);
+  }, [isOpen, initialData]);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -80,7 +103,7 @@ export function ProductCreationDrawer({
 
     try {
       setIsUploadingImage(true);
-      const res = await uploadProductImage(file);
+      const res = await productApi.uploadProductImage(file);
       setFormData((prev) => ({ ...prev, imageUrl: res.url }));
       toast.success("Image uploaded successfully");
     } catch (err: any) {
@@ -98,7 +121,7 @@ export function ProductCreationDrawer({
 
   const createMutation = useMutation({
     mutationFn: () =>
-      createProduct({
+      productApi.createProduct({
         name: formData.name,
         description: formData.description || undefined,
         unit: formData.unit,

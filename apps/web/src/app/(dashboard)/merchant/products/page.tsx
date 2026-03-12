@@ -4,9 +4,10 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
-import { deleteProduct } from "@/lib/api/product.api";
+import { productApi } from "@/lib/api/product.api";
 import { useToast } from "@/providers/toast-provider";
 import { useMerchantInventory } from "@/hooks/use-merchant-data";
+import { type Product } from "@hardware-os/shared";
 
 // Extracted Components
 import { MerchantProductsGrid } from "@/components/merchant/products/merchant-products-grid";
@@ -19,6 +20,7 @@ export default function MerchantProductsPage() {
   const toast = useToast();
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   const [isCreationDrawerOpen, setIsCreationDrawerOpen] = useState(false);
+  const [repostProduct, setRepostProduct] = useState<Product | null>(null);
 
   // Auto-open drawer if action=list is present
   React.useEffect(() => {
@@ -35,12 +37,18 @@ export default function MerchantProductsPage() {
 
   const handleDelist = async (productId: string) => {
     try {
-      await deleteProduct(productId);
+      await productApi.deleteProduct(productId);
       refetch();
-      toast.success("Product delisted successfully");
+      if (repostProduct?.id === productId) setRepostProduct(null);
+      toast.success("Product deleted successfully");
     } catch (err: any) {
-      toast.error(err?.error || err?.message || "Failed to delist product");
+      toast.error(err?.error || err?.message || "Failed to delete product");
     }
+  };
+
+  const handleRepost = (product: Product) => {
+    setRepostProduct(product);
+    setIsCreationDrawerOpen(true);
   };
 
   if (isLoading) {
@@ -161,21 +169,30 @@ export default function MerchantProductsPage() {
           <MerchantProductsGrid 
             products={products} 
             onDelist={handleDelist} 
-            onAddClick={() => setIsCreationDrawerOpen(true)}
+            onRepost={handleRepost}
+            onAddClick={() => {
+              setRepostProduct(null);
+              setIsCreationDrawerOpen(true);
+            }}
           />
         ) : (
           <MerchantInventoryTable
             products={products}
-            onQuickEdit={(id) => router.push(`/merchant/products/${id}/edit`)}
+            onRepost={handleRepost}
           />
         )}
       </div>
 
       <ProductCreationDrawer 
         isOpen={isCreationDrawerOpen}
-        onClose={() => setIsCreationDrawerOpen(false)}
+        initialData={repostProduct || undefined}
+        onClose={() => {
+          setIsCreationDrawerOpen(false);
+          setRepostProduct(null);
+        }}
         onSuccess={() => {
           setIsCreationDrawerOpen(false);
+          setRepostProduct(null);
           refetch();
         }}
       />

@@ -49,23 +49,45 @@ export class MerchantService {
   }
 
   async getProfile(merchantId: string) {
-    const merchant = await this.prisma.merchantProfile.findUnique({
-      where: { id: merchantId },
-      include: {
-        user: {
-          select: {
-            email: true,
-            phone: true,
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const [merchant, slugChangesCount] = await Promise.all([
+      this.prisma.merchantProfile.findUnique({
+        where: { id: merchantId },
+        include: {
+          user: {
+            select: {
+              email: true,
+              phone: true,
+              emailVerified: true,
+            },
           },
         },
-      },
-    });
+      }),
+      (this.prisma as any).merchantSlugHistory.count({
+        where: {
+          merchantProfileId: merchantId,
+          changedAt: { gte: thirtyDaysAgo },
+        },
+      }),
+    ]);
+
     if (!merchant) throw new NotFoundException("Merchant profile not found");
-    return merchant;
+
+    return {
+      ...merchant,
+      contact: merchant.user ? {
+        email: merchant.user.email,
+        phone: merchant.user.phone,
+        emailVerified: merchant.user.emailVerified,
+      } : null,
+      slugChangesCount,
+    };
   }
 
   async getPublicProfile(merchantId: string) {
-    const merchant = await this.prisma.merchantProfile.findUnique({
+    const merchant = await (this.prisma.merchantProfile.findUnique({
       where: { id: merchantId },
       include: {
         user: {
@@ -81,10 +103,11 @@ export class MerchantService {
                 status: "COMPLETED",
               },
             },
-          },
+            followers: true,
+          } as any,
         },
       },
-    });
+    }) as any);
 
     if (!merchant) throw new NotFoundException("Merchant not found");
 
@@ -93,6 +116,7 @@ export class MerchantService {
 
     return {
       id: merchant.id,
+      slug: merchant.slug,
       businessName: merchant.businessName,
       businessAddress: merchant.businessAddress,
       businessType: merchant.businessType,
@@ -102,8 +126,9 @@ export class MerchantService {
       distributionCenter: merchant.distributionCenter,
       warehouseCapacity: merchant.warehouseCapacity,
       verificationTier: merchant.verificationTier,
+      verifiedAt: merchant.verifiedAt,
       createdAt: merchant.createdAt,
-      dealsClosed: merchant._count.orders,
+      lastSlugChangeAt: merchant.lastSlugChangeAt,
       profileImage: merchant.profileImage,
       coverImage: merchant.coverImage,
       cacVerified: merchant.cacVerified,
@@ -113,13 +138,15 @@ export class MerchantService {
       averageRating: merchant.averageRating || 0,
       reviewCount: merchant.reviewCount || 0,
       description: merchant.description,
-      socialLinks: merchant.socialLinks as Record<string, string>,
+      socialLinks: merchant.socialLinks as any,
       contact: isVerified
         ? {
             email: merchant.user.email,
             phone: merchant.user.phone,
           }
         : null,
+      dealsClosed: Number(merchant._count.orders),
+      followersCount: merchant._count.followers,
     };
   }
 
@@ -288,5 +315,204 @@ export class MerchantService {
     }
 
     return updated;
+  }
+
+  async findBySlug(slug: string) {
+    // Attempt direct match first
+    const directMatch = await (this.prisma.merchantProfile as any).findUnique({
+      where: { slug: slug.toLowerCase() },
+      include: {
+        user: {
+          select: {
+            email: true,
+            phone: true,
+          },
+        },
+      },
+    });
+
+    if (directMatch) return directMatch;
+
+    // Check history for redirection
+    const historyMatch = await (this.prisma as any).merchantSlugHistory.findFirst({
+      where: { oldSlug: slug.toLowerCase() },
+      include: {
+        merchantProfile: {
+          include: {
+            user: {
+              select: {
+                email: true,
+                phone: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (historyMatch) return historyMatch.merchantProfile;
+
+    throw new NotFoundException(`Merchant with username "${slug}" not found`);
+  }
+
+  async updateUsername(merchantId: string, newSlugInput: string) {
+    const newSlug = newSlugInput.toLowerCase().trim();
+
+    // 1. Format validation
+    const slugRegex = /^[a-z0-9](-?[a-z0-9])*$/;
+    if (!slugRegex.test(newSlug) || newSlug.length < 3 || newSlug.length > 30) {
+      throw new BadRequestException(
+        "Username must be 3-30 characters, lowercase alphanumeric, and can contain hyphens (but not at the start/end).",
+      );
+    }
+
+    const merchant = await this.prisma.merchantProfile.findUnique({
+      where: { id: merchantId },
+      include: { user: { select: { emailVerified: true } } },
+    });
+    if (!merchant) throw new NotFoundException("Merchant profile not found");
+
+    if (!merchant.user.emailVerified) {
+      throw new BadRequestException(
+        "You must verify your email address before you can change your business username.",
+      );
+    }
+
+    if ((merchant as any).slug === newSlug) {
+      throw new BadRequestException(
+        "New username must be different from current one.",
+      );
+    }
+
+    // 2. Uniqueness check (Current + History)
+    const isTaken = await (this.prisma.merchantProfile as any).findUnique({
+      where: { slug: newSlug },
+    });
+    if (isTaken) throw new BadRequestException("Username is already in use.");
+
+    const isReserved = await (this.prisma as any).merchantSlugHistory.findFirst({
+      where: { oldSlug: newSlug },
+    });
+    if (isReserved)
+      throw new BadRequestException("Username is reserved by another merchant.");
+
+    // 3. Cooldown check (7 days)
+    if ((merchant as any).lastSlugChangeAt) {
+      const msSinceLastChange =
+        Date.now() - (merchant as any).lastSlugChangeAt.getTime();
+      const coolingDays = msSinceLastChange / (1000 * 60 * 60 * 24);
+      if (coolingDays < 7) {
+        const remaining = Math.ceil(7 - coolingDays);
+        throw new BadRequestException(
+      `Please wait ${remaining} more day(s) before changing your username again.`,
+        );
+      }
+    }
+
+    // 3. Rate Limit Check (max 3 changes in 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const recentChanges = await (this.prisma as any).merchantSlugHistory.count({
+      where: {
+        merchantProfileId: merchantId,
+        changedAt: { gte: thirtyDaysAgo },
+      },
+    });
+
+    if (recentChanges >= 3) {
+      throw new BadRequestException(
+        "You have reached the limit of 3 username changes per month.",
+      );
+    }
+
+    // 4. Cooldown Check (e.g., 24 hours between changes)
+    if (
+      (merchant as any).lastSlugChangeAt &&
+      new Date().getTime() -
+        new Date((merchant as any).lastSlugChangeAt).getTime() <
+        24 * 60 * 60 * 1000
+    ) {
+      throw new BadRequestException(
+        "Please wait 24 hours between username changes.",
+      );
+    }
+
+    // 5. Execute Update Transaction
+    return this.prisma.$transaction(async (tx) => {
+      // Record historical slug
+      await (tx as any).merchantSlugHistory.create({
+        data: {
+          merchantProfileId: merchantId,
+          oldSlug: (merchant as any).slug,
+          newSlug: newSlug,
+        },
+      });
+
+      // Update current profile
+      return tx.merchantProfile.update({
+        where: { id: merchantId },
+        data: {
+          slug: newSlug,
+          lastSlugChangeAt: new Date(),
+        },
+      } as any);
+    });
+  }
+
+  async followMerchant(userId: string, merchantId: string) {
+    const merchant = await this.prisma.merchantProfile.findUnique({
+      where: { id: merchantId },
+    });
+    if (!merchant) throw new NotFoundException("Merchant not found");
+
+    if (merchant.userId === userId) {
+      throw new BadRequestException("You cannot follow your own business");
+    }
+
+    try {
+      return await (this.prisma as any).follow.create({
+        data: {
+          followerId: userId,
+          merchantId: merchantId,
+        },
+      });
+    } catch (error: any) {
+      if (error.code === "P2002") {
+        throw new BadRequestException("You are already following this merchant");
+      }
+      throw error;
+    }
+  }
+
+  async unfollowMerchant(userId: string, merchantId: string) {
+    try {
+      await (this.prisma as any).follow.delete({
+        where: {
+          followerId_merchantId: {
+            followerId: userId,
+            merchantId: merchantId,
+          },
+        },
+      });
+      return { success: true };
+    } catch (error: any) {
+      if (error.code === "P2025") {
+        throw new BadRequestException("You are not following this merchant");
+      }
+      throw error;
+    }
+  }
+
+  async isFollowing(userId: string, merchantId: string) {
+    const follow = await (this.prisma as any).follow.findUnique({
+      where: {
+        followerId_merchantId: {
+          followerId: userId,
+          merchantId: merchantId,
+        },
+      },
+    });
+    return !!follow;
   }
 }

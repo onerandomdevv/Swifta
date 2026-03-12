@@ -125,26 +125,62 @@ export function AccountDetailsStep({
 
         {/* Business Name — Merchant only */}
         {isMerchant && (
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1.5">
-              Business Name
-            </label>
-            <div className="relative">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
-                storefront
-              </span>
-              <input
-                className={`w-full pl-10 pr-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.businessName ? "border-red-400" : "border-slate-200"}`}
-                placeholder="Adamu Cement Supplies"
-                type="text"
-                {...register("businessName")}
-              />
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                Business Name
+              </label>
+              <div className="relative">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
+                  storefront
+                </span>
+                <input
+                  className={`w-full pl-10 pr-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.businessName ? "border-red-400" : "border-slate-200"}`}
+                  placeholder="Adamu Cement Supplies"
+                  type="text"
+                  {...register("businessName")}
+                />
+              </div>
+              {errors.businessName && (
+                <p className="text-xs font-semibold text-red-500 mt-1">
+                  {errors.businessName.message}
+                </p>
+              )}
             </div>
-            {errors.businessName && (
-              <p className="text-xs font-semibold text-red-500 mt-1">
-                {errors.businessName.message}
-              </p>
-            )}
+
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                Business Username
+              </label>
+              <div className="relative">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
+                  alternate_email
+                </span>
+                <input
+                  className={`w-full pl-10 pr-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.slug ? "border-red-400" : "border-slate-200"}`}
+                  placeholder="e.g. adamu-cement"
+                  type="text"
+                  {...register("slug", {
+                    onChange: (e) => {
+                      setValue("slug", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""));
+                    }
+                  })}
+                />
+              </div>
+              <div className="mt-1.5 flex items-center justify-between px-1">
+                <p className="text-[10px] text-slate-400 font-medium italic">
+                  Handle: @{watch("slug") || "your-handle"}
+                </p>
+                <p className="text-[10px] text-slate-400 font-medium">
+                  3-30 chars, lowercase & hyphens
+                </p>
+              </div>
+              {errors.slug && (
+                <p className="text-xs font-semibold text-red-500 mt-1">
+                  {errors.slug.message}
+                </p>
+              )}
+            </div>
           </div>
         )}
 

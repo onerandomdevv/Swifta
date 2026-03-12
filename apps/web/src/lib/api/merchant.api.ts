@@ -5,96 +5,104 @@ import type {
   MerchantProfile,
 } from "@hardware-os/shared";
 
-export async function getProfile(): Promise<MerchantProfile> {
-  return apiClient.get("/merchants/me");
-}
+export const merchantApi = {
+  getProfile: (): Promise<MerchantProfile> => {
+    return apiClient.get("/merchants/me");
+  },
 
-export async function updateBankAccount(dto: {
-  bankAccountNumber: string;
-  bankCode: string;
-}): Promise<MerchantProfile> {
-  return apiClient.patch("/merchants/bank-account", dto);
-}
+  updateBankAccount: (dto: {
+    bankAccountNumber: string;
+    bankCode: string;
+  }): Promise<MerchantProfile> => {
+    return apiClient.patch("/merchants/bank-account", dto);
+  },
 
-export async function updateProfile(
-  dto: UpdateMerchantDto,
-): Promise<MerchantProfile> {
-  return apiClient.patch("/merchants/me", dto);
-}
+  updateProfile: (dto: UpdateMerchantDto): Promise<MerchantProfile> => {
+    return apiClient.patch("/merchants/me", dto);
+  },
 
-export async function getPublicProfile(id: string): Promise<MerchantProfile> {
-  return apiClient.get(`/merchants/${id}`);
-}
+  getPublicProfile: (id: string): Promise<MerchantProfile> => {
+    return apiClient.get(`/merchants/${id}`);
+  },
 
-export async function uploadDocument(
-  file: File,
-): Promise<{ url: string; message: string }> {
-  const formData = new FormData();
-  formData.append("file", file);
-  return apiClient.post("/upload/document", formData);
-}
+  uploadDocument: (file: File): Promise<{ url: string; message: string }> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return apiClient.post("/upload/document", formData);
+  },
 
-export async function getMerchants(): Promise<MerchantProfile[]> {
-  return apiClient.get("/merchants");
-}
+  getMerchants: (): Promise<MerchantProfile[]> => {
+    return apiClient.get("/merchants");
+  },
 
-export async function getBanks(): Promise<{ name: string; code: string }[]> {
-  return apiClient.get("/merchants/banks/list");
-}
+  getBanks: (): Promise<{ name: string; code: string }[]> => {
+    return apiClient.get("/merchants/banks/list");
+  },
 
-export async function resolveBankAccount(
-  accountNumber: string,
-  bankCode: string,
-): Promise<{ accountName: string; accountNumber: string; bankId: number }> {
-  return apiClient.get(
-    `/merchants/bank/resolve?accountNumber=${accountNumber}&bankCode=${bankCode}`,
-  );
-}
+  resolveBankAccount: (
+    accountNumber: string,
+    bankCode: string,
+  ): Promise<{ accountName: string; accountNumber: string; bankId: number }> => {
+    return apiClient.get(
+      `/merchants/bank/resolve?accountNumber=${accountNumber}&bankCode=${bankCode}`,
+    );
+  },
 
-export async function requestPayout(dto: {
-  amount: number;
-}): Promise<{ message: string; amountRequested: number; status: string }> {
-  return apiClient.post("/payments/request-payout", dto);
-}
+  requestPayout: (dto: {
+    amount: number;
+  }): Promise<{ message: string; amountRequested: number; status: string }> => {
+    return apiClient.post("/payments/request-payout", dto);
+  },
 
-export async function submitVerification(): Promise<MerchantProfile> {
-  return apiClient.post("/merchants/me/submit");
-}
+  submitVerification: (): Promise<MerchantProfile> => {
+    return apiClient.post("/merchants/me/submit");
+  },
 
-export async function submitVerificationRequest(dto: {
-  governmentIdUrl: string;
-  idType: string;
-  cacCertUrl?: string;
-}): Promise<{ id: string; status: string; createdAt: string }> {
-  return apiClient.post("/verification/request", dto);
-}
-
-export async function getVerificationStatus(): Promise<{
-  tier: string;
-  verifiedAt?: string;
-  pendingRequest?: {
-    id: string;
-    status: string;
-    rejectionReason?: string;
-    createdAt: string;
-    governmentIdUrl?: string;
+  submitVerificationRequest: (dto: {
+    governmentIdUrl: string;
+    idType: string;
     cacCertUrl?: string;
-    idType?: string;
-  };
-}> {
-  return apiClient.get("/verification/status");
-}
+  }): Promise<{ id: string; status: string; createdAt: string }> => {
+    return apiClient.post("/verification/request", dto);
+  },
 
-export interface MerchantAnalytics {
-  pipelineValue: string;
-  completedOrders: number;
-  totalRfqs: number;
-  openRfqs: number;
-  quotedRfqs: number;
-  acceptanceRate: number;
-  totalOrders: number;
-}
+  getVerificationStatus: (): Promise<{
+    tier: string;
+    verifiedAt?: string;
+    pendingRequest?: {
+      id: string;
+      status: string;
+      rejectionReason?: string;
+      createdAt: string;
+      governmentIdUrl?: string;
+      cacCertUrl?: string;
+      idType?: string;
+    };
+  }> => {
+    return apiClient.get("/verification/status");
+  },
 
-export async function getAnalytics(): Promise<MerchantAnalytics> {
-  return apiClient.get("/merchants/me/analytics");
-}
+  getAnalytics: (): Promise<any> => {
+    return apiClient.get("/merchants/me/analytics");
+  },
+
+  updateUsername: (username: string): Promise<MerchantProfile> => {
+    return apiClient.patch("/merchants/me/username", { username });
+  },
+
+  lookupBySlug: (slug: string): Promise<MerchantProfile> => {
+    return apiClient.get(`/merchants/lookup/${slug}`);
+  },
+
+  followMerchant: (id: string): Promise<any> => {
+    return apiClient.post(`/merchants/${id}/follow`, {});
+  },
+
+  unfollowMerchant: (id: string): Promise<any> => {
+    return apiClient.delete(`/merchants/${id}/follow`);
+  },
+
+  isFollowing: (id: string): Promise<{ isFollowing: boolean }> => {
+    return apiClient.get(`/merchants/${id}/is-following`);
+  },
+};

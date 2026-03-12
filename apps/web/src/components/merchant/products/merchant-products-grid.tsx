@@ -1,17 +1,18 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { Product } from "@hardware-os/shared";
+import { type Product } from "@hardware-os/shared";
+import { toast } from "sonner";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 
 interface Props {
   products: Product[];
   onDelist: (productId: string) => Promise<void>;
+  onRepost: (product: Product) => void;
   onAddClick?: () => void;
 }
 
-export function MerchantProductsGrid({ products, onDelist, onAddClick }: Props) {
-  const router = useRouter();
+export function MerchantProductsGrid({ products, onDelist, onRepost, onAddClick }: Props) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleConfirmDelete = async () => {
@@ -78,12 +79,31 @@ export function MerchantProductsGrid({ products, onDelist, onAddClick }: Props) 
             </div>
             <div className="p-8 space-y-6">
               <div className="space-y-1">
-                <h3 className="text-xl font-black text-navy-dark dark:text-white uppercase tracking-tight leading-tight group-hover:text-blue-600 transition-colors line-clamp-1">
-                  {product.name}
-                </h3>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  ID: {product.id.slice(0, 8)}
-                </p>
+                <div className="flex items-start justify-between gap-4">
+                  <h3 className="text-xl font-black text-navy-dark dark:text-white uppercase tracking-tight leading-tight group-hover:text-primary transition-colors line-clamp-2 flex-1">
+                    {product.name}
+                  </h3>
+                  {product.productCode && (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        navigator.clipboard.writeText(product.productCode);
+                        toast.success("Product id copied successfully");
+                      }}
+                      className="size-10 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-primary hover:bg-primary/10 transition-all flex items-center justify-center shrink-0 shadow-sm overflow-hidden active:scale-90"
+                      title="Copy Product ID for AI"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">
+                        content_copy
+                      </span>
+                    </button>
+                  )}
+                </div>
+                {product.productCode && (
+                  <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">
+                    Ref: {product.productCode}
+                  </p>
+                )}
               </div>
 
               <div className="flex items-end justify-between">
@@ -127,18 +147,16 @@ export function MerchantProductsGrid({ products, onDelist, onAddClick }: Props) 
 
               <div className="grid grid-cols-2 gap-4">
                 <button
-                  onClick={() =>
-                    router.push(`/merchant/products/${product.id}/edit`)
-                  }
+                  onClick={() => onRepost(product)}
                   className="py-3 bg-slate-50 dark:bg-slate-800 text-navy-dark dark:text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-colors"
                 >
-                  Edit
+                  Repost
                 </button>
                 <button
                   onClick={() => setDeletingId(product.id)}
                   className="py-3 border-2 border-slate-50 dark:border-slate-800 text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-red-100 hover:text-red-500 transition-colors"
                 >
-                  Delist
+                  Delete
                 </button>
               </div>
             </div>

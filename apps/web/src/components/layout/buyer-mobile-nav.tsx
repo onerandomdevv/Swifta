@@ -8,8 +8,8 @@ export function BuyerMobileNav() {
 
   const navItems = [
     { label: "Home", icon: "dashboard", href: "/buyer/dashboard" },
+    { label: "Discover", icon: "explore", href: "/buyer/feed" },
     { label: "Catalogue", icon: "inventory_2", href: "/buyer/catalogue" },
-    { label: "RFQs", icon: "request_quote", href: "/buyer/rfqs" },
     { label: "Orders", icon: "local_shipping", href: "/buyer/orders" },
     { label: "Profile", icon: "account_circle", href: "/buyer/profile" },
   ];

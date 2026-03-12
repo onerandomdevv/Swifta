@@ -43,7 +43,7 @@ export default function InternalLoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
+    defaultValues: { identifier: "", password: "" },
   });
 
   // Redirect on successful login
@@ -60,7 +60,7 @@ export default function InternalLoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     setFormError(null);
     try {
-      await internalLogin(data.email, data.password);
+      await internalLogin(data.identifier, data.password);
       toast.success("Internal portal access granted.");
     } catch (err: any) {
       console.error("Internal login error:", err);
@@ -188,14 +188,14 @@ export default function InternalLoginPage() {
                 Staff Email
               </label>
               <input
-                className={`w-full px-4 py-3.5 bg-white border shadow-sm rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all text-slate-900 text-sm ${errors.email ? "border-red-400" : "border-slate-200"}`}
+                className={`w-full px-4 py-3.5 bg-white border shadow-sm rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all text-slate-900 text-sm ${errors.identifier ? "border-red-400" : "border-slate-200"}`}
                 placeholder="ops@hardwareos.com"
-                type="email"
-                {...register("email", { onChange: () => setFormError(null) })}
+                type="text"
+                {...register("identifier", { onChange: () => setFormError(null) })}
               />
-              {errors.email && (
+              {errors.identifier && (
                 <p className="text-xs font-semibold text-red-500 mt-1">
-                  {errors.email.message}
+                  {errors.identifier.message}
                 </p>
               )}
             </div>

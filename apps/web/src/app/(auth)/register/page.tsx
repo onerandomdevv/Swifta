@@ -57,6 +57,7 @@ export default function RegisterPage() {
       email: "",
       phone: "",
       password: "",
+      slug: "",
     },
     mode: "onChange",
   });
@@ -111,6 +112,7 @@ export default function RegisterPage() {
         companyAddress: data.companyAddress,
         cacNumber: data.cacNumber,
         role: data.role,
+        slug: data.slug,
       });
 
       setStep(3);

@@ -16,6 +16,7 @@ export interface Category {
 export interface Product {
   id: string;
   merchantId: string;
+  productCode: string;
   name: string;
   description?: string;
   unit: string;

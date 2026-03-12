@@ -3,10 +3,10 @@ import type { Product } from "@hardware-os/shared";
 
 type InventoryRowProps = {
   product: Product;
-  onQuickEdit?: (id: string) => void;
+  onRepost?: (product: Product) => void;
 };
 
-export function InventoryRow({ product, onQuickEdit }: InventoryRowProps) {
+export function InventoryRow({ product, onRepost }: InventoryRowProps) {
   // Compute stock health percentage for visual bar
   const stockLevel = product.stockCache?.stock || 0;
   const maxStock = stockLevel > 0 ? Math.max(stockLevel * 2, 100) : 100; // Fake capacity based on current stock for demo if no hard capacity exists
@@ -91,10 +91,10 @@ export function InventoryRow({ product, onQuickEdit }: InventoryRowProps) {
 
       <td className="px-6 py-4 text-right">
         <button
-          onClick={() => onQuickEdit?.(product.id)}
+          onClick={() => onRepost?.(product)}
           className="text-primary hover:bg-primary/10 px-3 py-1.5 rounded-lg text-xs font-bold border border-primary transition-colors"
         >
-          Quick Edit
+          Repost
         </button>
       </td>
     </tr>

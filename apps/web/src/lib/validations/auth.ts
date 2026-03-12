@@ -2,10 +2,10 @@ import * as z from "zod";
 import { UserRole } from "@hardware-os/shared";
 
 export const loginSchema = z.object({
-  email: z
+  identifier: z
     .string()
     .trim()
-    .email({ message: "Please enter a valid email address." }),
+    .min(1, { message: "Email or username is required." }),
   password: z.string().min(1, { message: "Password is required." }),
 });
 
@@ -30,7 +30,14 @@ export const baseRegistrationSchema = z
         message:
           "Name can only contain letters, spaces, hyphens, and apostrophes.",
       }),
-    businessName: z.string().trim().optional().or(z.literal("")),
+    businessName: z.string().trim()
+      .min(3, { message: "Business name must be at least 3 characters." })
+      .optional().or(z.literal("")),
+    slug: z.string().trim()
+      .min(3, { message: "Username must be at least 3 characters." })
+      .max(30, { message: "Username must be at most 30 characters." })
+      .regex(/^[a-z0-9](-?[a-z0-9])*$/, { message: "Invalid username format. Use lowercase, numbers and hyphens." })
+      .optional().or(z.literal("")),
     buyerType: z.string().trim().optional().or(z.literal("")),
     companyName: z.string().trim().optional().or(z.literal("")),
     companyAddress: z.string().trim().optional().or(z.literal("")),

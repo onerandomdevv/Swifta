@@ -35,7 +35,8 @@ export class TestSetup {
         email,
         phone: `+234${Math.floor(1000000000 + Math.random() * 900000000)}`,
         passwordHash: "hashed_password", // Bypassing bcrypt for raw DB seed
-        fullName: "Test Buyer",
+        firstName: "Test",
+        lastName: "Buyer",
         role: UserRole.BUYER,
         emailVerified: true,
       },
@@ -59,16 +60,17 @@ export class TestSetup {
         email,
         phone: `+234${Math.floor(1000000000 + Math.random() * 900000000)}`,
         passwordHash: "hashed_password", // Bypassing bcrypt for raw DB seed
-        fullName: "Test Merchant",
+        firstName: "Test",
+        lastName: "Merchant",
         role: UserRole.MERCHANT,
         emailVerified: true,
         merchantProfile: {
           create: {
             businessName: "Golden Path Cement Co.",
+            slug: "golden-path-cement-co",
             businessAddress: "123 E2E Street, Lagos",
-            businessType: "SUPPLIER",
             cacNumber: "RC123456",
-            verification: "VERIFIED",
+            verificationTier: "VERIFIED",
           },
         },
       },
@@ -82,7 +84,7 @@ export class TestSetup {
         sub: user.id,
         email: user.email,
         role: user.role,
-        merchantId: user.merchantProfile?.id,
+        merchantId: (user as any).merchantProfile?.id,
       },
       {
         secret: process.env.JWT_ACCESS_SECRET || "fallback-secret",
@@ -90,6 +92,6 @@ export class TestSetup {
       },
     );
 
-    return { user, merchantProfile: user.merchantProfile, token };
+    return { user, merchantProfile: (user as any).merchantProfile, token };
   }
 }

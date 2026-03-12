@@ -140,11 +140,6 @@ export function NotificationCenter({
 
                     {n.action && (
                       <div className="pt-2 flex items-center gap-3">
-                        {n.type === "quote_received" && (
-                          <button className="px-5 py-2 bg-navy-dark text-white text-[9px] font-black uppercase tracking-widest rounded-lg shadow-lg shadow-navy-dark/10">
-                            Review Quote
-                          </button>
-                        )}
                         {n.type === "order_dispatched" && (
                           <div className="flex items-center gap-2 px-3 py-1 bg-orange-500/10 text-orange-600 rounded-lg border border-orange-500/20">
                             <span className="material-symbols-outlined text-xs font-black">

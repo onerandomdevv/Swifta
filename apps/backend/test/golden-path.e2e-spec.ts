@@ -46,7 +46,7 @@ describe("The Golden Path (e2e)", () => {
     await ctx.prisma.inventoryEvent.deleteMany();
     await ctx.prisma.order.deleteMany();
     await ctx.prisma.quote.deleteMany();
-    await ctx.prisma.rFQ.deleteMany();
+    await ctx.prisma.rfq.deleteMany();
 
     if (buyerId) await ctx.prisma.user.delete({ where: { id: buyerId } });
     const m = await ctx.prisma.merchantProfile.findUnique({

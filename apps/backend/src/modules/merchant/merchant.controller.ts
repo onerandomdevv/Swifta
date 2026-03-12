@@ -8,6 +8,7 @@ import {
   UseGuards,
   ParseUUIDPipe,
   Post,
+  Delete,
 } from "@nestjs/common";
 import { MerchantService } from "./merchant.service";
 import { UpdateMerchantDto } from "./dto/update-merchant.dto";
@@ -15,8 +16,9 @@ import { UpdateBankAccountDto } from "./dto/update-bank-account.dto";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { CurrentMerchant } from "../../common/decorators/current-merchant.decorator";
-import { UserRole } from "@hardware-os/shared";
+import { UserRole, JwtPayload } from "@hardware-os/shared";
 
 import { MerchantAnalyticsService } from "./merchant-analytics.service";
 
@@ -42,6 +44,21 @@ export class MerchantController {
     @Body() dto: UpdateMerchantDto,
   ) {
     return this.merchantService.updateProfile(merchantId, dto);
+  }
+
+  @Patch("me/username")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.MERCHANT)
+  async updateUsername(
+    @CurrentMerchant() merchantId: string,
+    @Body("username") username: string,
+  ) {
+    return this.merchantService.updateUsername(merchantId, username);
+  }
+
+  @Get("lookup/:slug")
+  async getBySlug(@Param("slug") slug: string) {
+    return this.merchantService.findBySlug(slug);
   }
 
   @Get()
@@ -92,5 +109,36 @@ export class MerchantController {
   @Roles(UserRole.MERCHANT)
   async getMyAnalytics(@CurrentMerchant() merchantId: string) {
     return this.analyticsService.getMerchantStats(merchantId);
+  }
+
+  @Post(":id/follow")
+  @UseGuards(JwtAuthGuard)
+  async followMerchant(
+    @CurrentUser() user: JwtPayload,
+    @Param("id", ParseUUIDPipe) merchantId: string,
+  ) {
+    return this.merchantService.followMerchant(user.sub, merchantId);
+  }
+
+  @Delete(":id/follow")
+  @UseGuards(JwtAuthGuard)
+  async unfollowMerchant(
+    @CurrentUser() user: JwtPayload,
+    @Param("id", ParseUUIDPipe) merchantId: string,
+  ) {
+    return this.merchantService.unfollowMerchant(user.sub, merchantId);
+  }
+
+  @Get(":id/is-following")
+  @UseGuards(JwtAuthGuard)
+  async isFollowing(
+    @CurrentUser() user: JwtPayload,
+    @Param("id", ParseUUIDPipe) merchantId: string,
+  ) {
+    const isFollowing = await this.merchantService.isFollowing(
+      user.sub,
+      merchantId,
+    );
+    return { isFollowing };
   }
 }
