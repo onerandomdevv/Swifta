@@ -287,9 +287,10 @@ async function main() {
         merchantProfile: {
           create: {
             businessName: "Demo Building Materials Ltd",
+            slug: "demo-building", // Added static slug for demo
             businessAddress: "123 Trade Way, Lagos",
             verificationTier: "BASIC",
-          },
+          } as any,
         },
       },
     });
@@ -390,18 +391,23 @@ async function main() {
 
           let productId: string;
 
+          // Generate a deterministic product code for seed idempotency
+          const baseNameSlug = prod.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 10);
+          const pCode = `demo-building-${baseNameSlug}`;
+
           if (existing) {
             await tx.product.update({
               where: { id: existing.id },
-              data: prod,
+              data: { ...prod, productCode: pCode } as any,
             });
             productId = existing.id;
           } else {
             const newProd = await tx.product.create({
               data: {
                 merchantId: merchantProfile.id,
+                productCode: pCode, // Assign generated code
                 ...prod,
-              },
+              } as any,
             });
             productId = newProd.id;
           }

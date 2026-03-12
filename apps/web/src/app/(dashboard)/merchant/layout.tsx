@@ -4,7 +4,6 @@ import { ReactNode, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { NotificationCenter } from "@/components/layout/notification-center";
 import { MerchantSidebar } from "@/components/layout/merchant-sidebar";
-import { MerchantHeader } from "@/components/layout/merchant-header";
 import { MobileDrawer } from "@/components/layout/mobile-drawer";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -45,11 +44,6 @@ export default function MerchantLayout({ children }: { children: ReactNode }) {
       </MobileDrawer>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <MerchantHeader
-          onOpenNotifications={() => setIsNotificationsOpen(true)}
-          onMenuClick={() => setIsDrawerOpen(true)}
-        />
-
         <NotificationCenter
           isOpen={isNotificationsOpen}
           onClose={() => setIsNotificationsOpen(false)}

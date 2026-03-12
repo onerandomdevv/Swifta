@@ -4,6 +4,7 @@ import { VerificationTier } from "../enums/verification-tier.enum";
 export interface MerchantProfile {
   id: string;
   userId: string;
+  slug: string;
   businessName: string;
   businessType?: string;
   estYear?: string;
@@ -20,6 +21,7 @@ export interface MerchantProfile {
   settlementAccountName?: string;
   verificationTier: VerificationTier;
   verifiedAt?: Date;
+  lastSlugChangeAt?: Date;
   onboardingStep: number;
   createdAt: Date;
   dealsClosed?: number;
@@ -31,13 +33,16 @@ export interface MerchantProfile {
   contact?: {
     email: string;
     phone: string;
+    emailVerified?: boolean;
   } | null;
   profileImage?: string;
   coverImage?: string;
   averageRating?: number;
   reviewCount: number;
+  followersCount?: number;
   description?: string;
   socialLinks?: Record<string, string>;
+  slugChangesCount?: number;
 }
 
 export interface UpdateMerchantDto {

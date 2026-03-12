@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { getCatalogue } from "@/lib/api/product.api";
+import { productApi } from "@/lib/api/product.api";
 import { getCategories } from "@/lib/api/category.api";
-import { getMerchants } from "@/lib/api/merchant.api";
+import { merchantApi } from "@/lib/api/merchant.api";
 import { getSavedProductIds, toggleWishlist } from "@/lib/api/wishlist.api";
 import {
   type Product,
@@ -48,7 +48,7 @@ export default function BuyerCataloguePage() {
       try {
         const [cats, mercs, savedList] = await Promise.all([
           getCategories(),
-          getMerchants(),
+          merchantApi.getMerchants(),
           getSavedProductIds().catch(() => [] as string[]),
         ]);
         setCategories(cats);
@@ -69,7 +69,7 @@ export default function BuyerCataloguePage() {
       try {
         setError("");
         setLoading(true);
-        const response = await getCatalogue(search, category, 1, 50);
+        const response = await productApi.getCatalogue(search, category, 1, 50);
         setProducts(response);
       } catch (err: unknown) {
         setError(

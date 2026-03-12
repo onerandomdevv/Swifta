@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getProduct } from "@/lib/api/product.api";
+import { productApi } from "@/lib/api/product.api";
 import { createDirectOrder, getDeliveryQuote } from "@/lib/api/order.api";
 import { useAuth } from "@/providers/auth-provider";
 import type { Product } from "@hardware-os/shared";
@@ -41,7 +41,7 @@ export default function CheckoutPage({
   useEffect(() => {
     async function fetchProduct() {
       try {
-        const response = await getProduct(params.productId);
+        const response = await productApi.getProduct(params.productId);
         if (!response.pricePerUnitKobo) {
           router.replace(`/buyer/rfqs/new?productId=${response.id}`);
           return;

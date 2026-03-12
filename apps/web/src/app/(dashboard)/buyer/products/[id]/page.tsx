@@ -3,14 +3,17 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { getProduct, getPublicProductsByMerchant } from "@/lib/api/product.api";
+import { productApi } from "@/lib/api/product.api";
 import { getMerchantReviews } from "@/lib/api/review.api";
 import { addToCart } from "@/lib/api/cart.api";
 import type { Product, Review, PriceType } from "@hardware-os/shared";
 import { Button } from "@/components/ui/button";
 import { VerificationBadge } from "@/components/ui/verification-badge";
 import { StarRating } from "@/components/ui/star-rating";
+import { useAuth } from "@/providers/auth-provider";
+import { UserRole } from "@hardware-os/shared";
 import { toast } from "sonner";
+
 
 export default function PremiumProductDetails() {
   const { id } = useParams();
@@ -21,7 +24,10 @@ export default function PremiumProductDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<"specs" | "reviews" | "shipping">("specs");
+  const { user } = useAuth();
   
+  const isMerchant = user?.role === UserRole.MERCHANT;
+  const isOwner = isMerchant && product?.merchantId === user?.merchantId;
 
 
   useEffect(() => {
@@ -29,13 +35,13 @@ export default function PremiumProductDetails() {
     const fetchAll = async () => {
       try {
         setLoading(true);
-        const prod = await getProduct(id as string);
+        const prod = await productApi.getProduct(id as string);
         if (active) setProduct(prod);
 
         if (prod.merchantId) {
           const [revs, mProducts] = await Promise.all([
             getMerchantReviews(prod.merchantId, 1, 10).catch(() => []),
-            getPublicProductsByMerchant(prod.merchantId, 1, 6).catch(() => []),
+            productApi.getPublicProductsByMerchant(prod.merchantId, 1, 6).catch(() => []),
           ]);
           if (active) {
             setReviews(revs as unknown as Review[]);
@@ -67,6 +73,19 @@ export default function PremiumProductDetails() {
     }
   };
 
+  const handleDeleteProduct = async () => {
+    if (!product) return;
+    if (!confirm(`Are you sure you want to delete ${product.name}? This action cannot be undone.`)) return;
+
+    try {
+      await productApi.deleteProduct(product.id);
+      toast.success("Product deleted successfully");
+      router.push("/merchant/dashboard"); // Redirect to dashboard after deletion
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete product");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4">
@@ -93,6 +112,11 @@ export default function PremiumProductDetails() {
 
   const merchant = product.merchantProfile;
   const isVerified = merchant?.verificationTier === "VERIFIED" || merchant?.verificationTier === "TRUSTED";
+
+  // B2B Pricing calculations
+  const retail = Number(product.retailPriceKobo || 0);
+  const wholesale = Number(product.wholesalePriceKobo || 0);
+  const bulkSavings = retail > 0 && wholesale > 0 ? Math.round(((retail - wholesale) / retail) * 100) : 0;
 
   return (
     <div className="min-h-full bg-slate-50 dark:bg-slate-900 pb-28 animate-in fade-in duration-500">
@@ -134,18 +158,46 @@ export default function PremiumProductDetails() {
             )}
             
             {product.wholesalePriceKobo && (
-              <div className="bg-primary/5 dark:bg-primary-dark/10 p-4 rounded-2xl border border-primary/20">
-                <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">
-                  Wholesale Price
-                </p>
+              <div className="bg-primary/5 dark:bg-primary-dark/10 p-4 rounded-2xl border border-primary/20 relative overflow-hidden group">
+                <div className="flex justify-between items-start mb-1">
+                  <p className="text-[10px] font-black text-primary uppercase tracking-widest">
+                    Wholesale Price
+                  </p>
+                  {bulkSavings > 0 && (
+                    <span className="bg-primary text-white text-[9px] font-black px-2 py-0.5 rounded-full animate-pulse shadow-lg shadow-primary/20">
+                      SAVE {bulkSavings}%
+                    </span>
+                  )}
+                </div>
                 <p className="text-2xl font-black text-primary uppercase">
                   {(Number(product.wholesalePriceKobo) / 100).toLocaleString("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 })}
                   <span className="text-sm opacity-80 font-bold ml-1">/{product.unit}</span>
                 </p>
-                <p className="text-xs font-bold text-primary/80 mt-1">Min Order: {product.minOrderQuantity} {product.unit}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="material-symbols-outlined text-primary text-xs">group</span>
+                  <p className="text-xs font-bold text-primary/80">Min Order: {product.minOrderQuantity} {product.unit}</p>
+                </div>
+                
+                {/* Subtle background decoration */}
+                <span className="material-symbols-outlined absolute -bottom-2 -right-2 text-6xl text-primary/5 rotate-12 transition-transform group-hover:rotate-0">
+                  handshake
+                </span>
               </div>
             )}
           </div>
+
+          {/* Delete Action for Merchant Owner */}
+          {isOwner && (
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-700 flex justify-end">
+              <button
+                onClick={handleDeleteProduct}
+                className="flex items-center gap-2 text-red-500 hover:text-red-600 font-black text-[10px] uppercase tracking-widest transition-colors py-2 px-4 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/20"
+              >
+                <span className="material-symbols-outlined text-lg">delete</span>
+                Delete Product Listing
+              </button>
+            </div>
+          )}
         </div>
 
         {/* 3. Sticky Merchant Card */}
@@ -227,16 +279,28 @@ export default function PremiumProductDetails() {
                 <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
                   {product.description || "No specific details provided for this product."}
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-700 max-w-xl">
-                  {/* Mocked parsed attributes until DB attributes are fully populated */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 pt-4 border-t border-slate-100 dark:border-slate-700">
+                  {/* Base Attributes */}
                   <div className="flex justify-between py-2 border-b border-slate-50 dark:border-slate-800/50">
                     <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Unit</span>
-                    <span className="text-sm font-bold text-navy-dark dark:text-white capitalize">{product.unit || "N/A"}</span>
+                    <span className="text-sm font-bold text-navy-dark dark:text-white capitalize">{product.unit || "Item"}</span>
                   </div>
-                  <div className="flex justify-between py-2 border-b border-slate-50 dark:border-slate-800/50">
-                    <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Origin</span>
-                    <span className="text-sm font-bold text-navy-dark dark:text-white">Nigeria</span>
-                  </div>
+
+                  {/* Dynamic Category Attributes */}
+                  {product.attributes && typeof product.attributes === 'object' && Object.entries(product.attributes).map(([key, value]) => (
+                    <div key={key} className="flex justify-between py-2 border-b border-slate-50 dark:border-slate-800/50">
+                      <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{key}</span>
+                      <span className="text-sm font-bold text-navy-dark dark:text-white capitalize">{String(value)}</span>
+                    </div>
+                  ))}
+
+                  {/* Fallback if no specific attributes are provided */}
+                  {(!product.attributes || Object.keys(product.attributes).length === 0) && (
+                    <div className="flex justify-between py-2 border-b border-slate-50 dark:border-slate-800/50">
+                      <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Availability</span>
+                      <span className="text-sm font-bold text-navy-dark dark:text-white">Across Nigeria</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -324,10 +388,9 @@ export default function PremiumProductDetails() {
       {/* Absolute Bottom Action Bar Fixed to screen */}
       <div className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 p-4 sm:px-8 z-50">
         <div className="max-w-4xl mx-auto flex items-center gap-3">
-          {/* Chat Icon */}
+          {/* Chat Icon - Always visible */}
           <button 
             onClick={() => {
-               // Temporary alert until chat module is fully wired or WhatsApp is used
                alert("Opening chat module...");
             }}
             className="flex items-center justify-center shrink-0 size-14 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:border-primary active:scale-95 transition-all"
@@ -335,21 +398,32 @@ export default function PremiumProductDetails() {
             <span className="material-symbols-outlined text-2xl">chat_bubble</span>
           </button>
           
-          <button 
-            onClick={() => handleAddToCart(product.retailPriceKobo ? "RETAIL" : "WHOLESALE")}
-            className="flex-1 max-w-[140px] bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-navy-dark dark:text-white font-black text-[10px] sm:text-xs uppercase tracking-widest h-14 rounded-2xl active:scale-95 transition-all flex items-center justify-center gap-2"
-          >
-            <span className="material-symbols-outlined text-[16px]">add_shopping_cart</span>
-            <span className="hidden sm:inline">Add to</span> Cart
-          </button>
+          {/* Buyer-Only Actions */}
+          {!isMerchant ? (
+            <>
+              <button 
+                onClick={() => handleAddToCart(product.retailPriceKobo ? "RETAIL" : "WHOLESALE")}
+                className="flex-1 max-w-[140px] bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-navy-dark dark:text-white font-black text-[10px] sm:text-xs uppercase tracking-widest h-14 rounded-2xl active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[16px]">add_shopping_cart</span>
+                <span className="hidden sm:inline">Add to</span> Cart
+              </button>
 
-          <button 
-            onClick={() => router.push(`/buyer/checkout/${product.id}`)}
-            className="flex-[2] bg-primary hover:bg-orange-600 text-white font-black text-[11px] sm:text-sm uppercase tracking-widest h-14 rounded-2xl shadow-xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-2"
-          >
-            <span className="material-symbols-outlined text-[18px]">bolt</span>
-            Instant Checkout
-          </button>
+              <button 
+                onClick={() => router.push(`/buyer/checkout/${product.id}`)}
+                className="flex-[2] bg-primary hover:bg-orange-600 text-white font-black text-[11px] sm:text-sm uppercase tracking-widest h-14 rounded-2xl shadow-xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[18px]">bolt</span>
+                Instant Checkout
+              </button>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center bg-slate-50 dark:bg-slate-800/50 rounded-2xl h-14 border border-dashed border-slate-200 dark:border-slate-700">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                {isOwner ? "This is your listing" : "Merchant View - Purchase Disabled"}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

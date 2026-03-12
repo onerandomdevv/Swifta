@@ -11,8 +11,8 @@ import { formatKobo, type Order } from "@hardware-os/shared";
 import { DashboardSkeleton } from "@/components/merchant/dashboard/dashboard-skeleton";
 import { KanbanColumn } from "@/components/merchant/dashboard/kanban-column";
 import { KanbanOrderCard } from "@/components/merchant/dashboard/kanban-order-card";
-import { WhatsAppLinkStatus } from "@/components/dashboard/whatsapp-link-status";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { cn } from "@/lib/utils";
 
 export default function MerchantDashboard() {
   const { orders, analytics, user, isLoading, isError, error, refetch } =
@@ -92,207 +92,189 @@ export default function MerchantDashboard() {
       color: "text-blue-500",
     },
     {
-      label: "Open RFQs",
-      value: analytics?.openRfqs || 0,
-      icon: "timer",
-      color: "text-amber-500",
+      label: "Completed Orders",
+      value: analytics?.completedOrders || 0,
+      icon: "check_circle",
+      color: "text-emerald-500",
     },
   ];
 
   return (
-    <div className="h-full max-w-[1600px] mx-auto w-full p-4 md:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 overflow-y-auto no-scrollbar">
-      {/* Welcome Header */}
-      <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 shrink-0">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 bg-emerald-100 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest">
-              Merchant Command Center
-            </span>
-            {user?.emailVerified && (
-              <span className="flex items-center gap-1 text-[10px] font-bold text-blue-500 uppercase tracking-widest">
-                <span className="material-symbols-outlined text-xs">verified</span>
-                Verified Partner
-              </span>
-            )}
-          </div>
-          <h1 className="text-4xl font-black text-navy-dark dark:text-white tracking-tight">
-            Hi, {user?.firstName || "Partner"} 👋
-          </h1>
-          <p className="text-slate-500 font-medium">
-            Manage your inventory, track orders, and grow your business.
-          </p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <Link
-            href="/merchant/products/new"
-            className="flex-1 lg:flex-none px-6 py-3 bg-primary text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all hover:bg-primary/90 shadow-lg shadow-primary/20 text-xs uppercase tracking-widest"
-          >
-            <span className="material-symbols-outlined text-sm">add</span>
-            Add Product
-          </Link>
-          <WhatsAppLinkStatus
-            isLinked={!!user?.isWhatsAppLinked}
-            onSuccess={refetch}
-          />
-        </div>
-      </header>
+    <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-[#f8fafd] dark:bg-[#0A2540] transition-colors duration-200 no-scrollbar">
+      <div className="p-4 md:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+        {/* KPI Section */}
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+          {kpis.map((kpi, idx) => {
+            const isRevenue = kpi.label === "Revenue Pipeline";
+            
+            // Note: Trends are currently hidden as they are not yet supported by the analytics API
+            const hasTrend = false; 
 
-      {/* KPI Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {kpis.map((kpi, idx) => (
-          <div
-            key={idx}
-            className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm"
-          >
-            <div className="flex justify-between items-start mb-4">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                {kpi.label}
-              </p>
-              <span className={`material-symbols-outlined ${kpi.color}`}>
-                {kpi.icon}
-              </span>
+            return (
+              <div
+                key={idx}
+                className="bg-white dark:bg-[#0d1f33] p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                    {kpi.label}
+                  </span>
+                  <span className={`material-symbols-outlined ${kpi.color} bg-current/10 p-2 rounded-xl text-xl`}>
+                    {kpi.icon}
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <h3 className="text-2xl 2xl:text-3xl font-black text-navy-dark dark:text-white tracking-tight">
+                    {kpi.value}
+                    {isRevenue && <span className="text-sm font-bold text-slate-400 ml-1">Kobo</span>}
+                  </h3>
+                </div>
+                {hasTrend && (
+                   <div className={cn("mt-4 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider", "text-emerald-500")}>
+                     <span className="material-symbols-outlined text-xs">trending_up</span>
+                     +0% <span className="font-bold text-slate-400 opacity-60 ml-0.5">vs average</span>
+                   </div>
+                )}
+              </div>
+            );
+          })}
+        </section>
+
+        {/* Operations Pipeline */}
+        <section>
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-black text-navy-dark dark:text-white tracking-tight font-display uppercase">Operations Pipeline</h2>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => toast.info("Filter features coming soon!")}
+                className="size-11 flex items-center justify-center border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-slate-400 hover:text-navy-dark dark:hover:text-white transition-all shadow-sm active:scale-95"
+              >
+                <span className="material-symbols-outlined text-xl">filter_list</span>
+              </button>
+              <button 
+                onClick={() => toast.info("Custom layout options coming soon!")}
+                className="size-11 flex items-center justify-center border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-slate-400 hover:text-navy-dark dark:hover:text-white transition-all shadow-sm active:scale-95"
+              >
+                <span className="material-symbols-outlined text-xl">view_week</span>
+              </button>
             </div>
-            <h3 className="text-2xl font-black text-navy-dark dark:text-white tracking-tight">
-              {kpi.value}
-            </h3>
           </div>
-        ))}
-      </div>
 
-      <div className="space-y-4">
-        <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Active Pipeline</h2>
-        {/* Kanban Board */}
-        <div className="overflow-x-auto no-scrollbar -mx-4 px-4 pb-4">
-          <div className="flex gap-4 sm:gap-6 min-w-max">
-            <KanbanColumn
-              title="New Quotes"
-              count={newOrders.length}
-              colorClass="bg-amber-400"
-            >
-              {newOrders.map((order: Order) => (
-                <KanbanOrderCard
-                  key={order.id}
-                  order={order}
-                  onAction={handleOrderAction}
-                />
-              ))}
-              {newOrders.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-32 text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
-                  <span className="text-[10px] font-black uppercase tracking-widest opacity-50">
-                    No new orders
-                  </span>
-                </div>
-              )}
-            </KanbanColumn>
+          <div className="overflow-x-auto no-scrollbar pb-10 -mx-4 px-4 sm:-mx-0 sm:px-0">
+            <div className="flex gap-8 min-w-max">
+              <KanbanColumn
+                title="New Orders"
+                count={newOrders.length}
+                colorClass="bg-orange-500"
+              >
+                {newOrders.map((order: Order) => (
+                  <KanbanOrderCard
+                    key={order.id}
+                    order={order}
+                    onAction={handleOrderAction}
+                  />
+                ))}
+                {newOrders.length < 2 && (
+                  <KanbanOrderCard order={null as any} onAction={() => {}} />
+                )}
+              </KanbanColumn>
 
-            <KanbanColumn
-              title="Awaiting Dispatch"
-              count={awaitingOrders.length}
-              colorClass="bg-blue-500"
-            >
-              {awaitingOrders.map((order: Order) => (
-                <KanbanOrderCard
-                  key={order.id}
-                  order={order}
-                  onAction={handleOrderAction}
-                />
-              ))}
-              {awaitingOrders.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-32 text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
-                  <span className="text-[10px] font-black uppercase tracking-widest opacity-50">
-                    No pending dispatch
-                  </span>
-                </div>
-              )}
-            </KanbanColumn>
+              <KanbanColumn
+                title="Awaiting Dispatch"
+                count={awaitingOrders.length}
+                colorClass="bg-blue-500"
+              >
+                {awaitingOrders.map((order: Order) => (
+                  <KanbanOrderCard
+                    key={order.id}
+                    order={order}
+                    onAction={handleOrderAction}
+                  />
+                ))}
+                {awaitingOrders.length === 0 && (
+                  <KanbanOrderCard order={null as any} onAction={() => {}} />
+                )}
+              </KanbanColumn>
 
-            <KanbanColumn
-              title="On the Road"
-              count={transitOrders.length}
-              colorClass="bg-indigo-600"
-            >
-              {transitOrders.map((order: Order) => (
-                <KanbanOrderCard
-                  key={order.id}
-                  order={order}
-                  onAction={handleOrderAction}
-                />
-              ))}
-              {transitOrders.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-32 text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
-                  <span className="text-[10px] font-black uppercase tracking-widest opacity-50">
-                    Nothing in transit
-                  </span>
-                </div>
-              )}
-            </KanbanColumn>
-
-            <KanbanColumn
-              title="Payout History"
-              count={completedOrders.length}
-              colorClass="bg-emerald-500"
-            >
-              {completedOrders.map((order: Order) => (
-                <KanbanOrderCard
-                  key={order.id}
-                  order={order}
-                  onAction={handleOrderAction}
-                />
-              ))}
-              {completedOrders.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-32 text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
-                  <span className="text-[10px] font-black uppercase tracking-widest opacity-50">
-                    No closed deals
-                  </span>
-                </div>
-              )}
-            </KanbanColumn>
+              <KanbanColumn
+                title="On the Road"
+                count={transitOrders.length}
+                colorClass="bg-indigo-500"
+              >
+                {transitOrders.map((order: Order) => (
+                  <KanbanOrderCard
+                    key={order.id}
+                    order={order}
+                    onAction={handleOrderAction}
+                  />
+                ))}
+                {transitOrders.length === 0 && (
+                  <KanbanOrderCard order={null as any} onAction={() => {}} />
+                )}
+              </KanbanColumn>
+            </div>
           </div>
-        </div>
-      </div>
+        </section>
 
-      {/* Trade History Section */}
-      <section className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-50 dark:border-slate-800">
-          <h3 className="text-sm font-black text-navy-dark dark:text-white tracking-widest uppercase">
-            Recent Trade History
-          </h3>
-        </div>
+        {/* Trade History Section - Restored */}
+        <section className="bg-white dark:bg-[#0d1f33] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all hover:shadow-md">
+          <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <h2 className="text-lg font-black text-navy-dark dark:text-white tracking-tight">Recent Transactions</h2>
+            <Link 
+              href="/merchant/orders" 
+              className="text-xs font-black text-primary uppercase tracking-widest hover:underline"
+            >
+              View All
+            </Link>
+          </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Order ID</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Value</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-              {orders.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-slate-400 text-xs font-bold uppercase tracking-widest">
-                    No orders recorded
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">
+                  <th className="px-6 py-4">Order ID & Item</th>
+                  <th className="px-6 py-4">Transaction Value</th>
+                  <th className="px-6 py-4">Created Date</th>
+                  <th className="px-6 py-4 text-right">Status</th>
                 </tr>
-              ) : (
-                orders.slice(0, 5).map((order) => (
-                  <tr key={order.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="px-6 py-4 font-black text-navy-dark dark:text-white text-xs">#{order.id.slice(0, 8)}</td>
-                    <td className="px-6 py-4 font-black text-navy-dark dark:text-white text-xs">{formatKobo(BigInt(order.totalAmountKobo))}</td>
-                    <td className="px-6 py-4 text-slate-500 text-[10px] font-bold uppercase">{new Date(order.createdAt).toLocaleDateString()}</td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={order.status} />
+              </thead>
+              <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+                {orders.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-12 text-center text-slate-400 text-xs font-bold uppercase tracking-widest opacity-50">
+                      No matching trade records
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+                ) : (
+                  orders.slice(0, 5).map((order) => (
+                    <tr key={order.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-navy-dark dark:text-white text-xs">#ORD-{order.id.slice(0, 4).toUpperCase()}</span>
+                          <span className="text-[10px] font-medium text-slate-400 mt-0.5">{order.product?.name || (order as any).quote?.product?.name || (order as any).rfq?.product?.name || "Materials Bulk"}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 font-bold text-navy-dark dark:text-white text-xs">
+                        {formatKobo(BigInt(order.totalAmountKobo))}
+                      </td>
+                      <td className="px-6 py-4 text-slate-500 text-[10px] font-bold uppercase">
+                        {new Date(order.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <StatusBadge status={order.status} />
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <footer className="pt-8 pb-4 text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest opacity-30">
+          © {new Date().getFullYear()} SwiftTrade Enterprise • Unified Command Center v4.12.0
+        </footer>
+      </div>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { PriceType, type Product } from "@hardware-os/shared";
 import { VerificationBadge } from "@/components/ui/verification-badge";
+import { toast } from "sonner";
 
 interface Props {
   product: Product;
@@ -170,12 +171,39 @@ export function ProductFeedCard({ product: p, onQuickBuy, isSaved = false, onTog
 
       {/* ─── Card Footer: Details + Actions ─── */}
       <div className="p-3 sm:p-4 flex flex-col flex-1">
-        {/* Product Name */}
-        <Link href={`/buyer/products/${p.id}`}>
-          <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white leading-tight line-clamp-2 min-h-[2.2em] hover:text-primary transition-colors">
-            {p.name}
-          </h3>
-        </Link>
+        {/* Product Name + Copy ID */}
+        <div className="flex items-start justify-between gap-3">
+          <Link href={`/buyer/products/${p.id}`} className="flex-1 min-w-0">
+            <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white leading-tight line-clamp-2 min-h-[2.2em] hover:text-primary transition-colors">
+              {p.name}
+            </h3>
+          </Link>
+          {p.productCode && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                navigator.clipboard.writeText(p.productCode);
+                toast.success("Product id copied successfully");
+              }}
+              className="size-7 sm:size-8 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-primary hover:bg-primary/10 transition-all flex items-center justify-center shrink-0 active:scale-90"
+              title="Copy ID for AI Order"
+            >
+              <span className="material-symbols-outlined text-[14px] sm:text-[16px]">
+                content_copy
+              </span>
+            </button>
+          )}
+        </div>
+
+        {/* Product Code Badge */}
+        {p.productCode && (
+          <div className="mt-1.5 flex items-center gap-1.5 max-w-full">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[9px] sm:text-[10px] font-mono text-slate-500 font-semibold border border-slate-200 dark:border-slate-700 truncate shadow-sm">
+              <span className="material-symbols-outlined text-[10px]">qr_code_2</span>
+              <span className="truncate">{p.productCode}</span>
+            </span>
+          </div>
+        )}
 
         {/* Price Line */}
         <div className="flex items-baseline gap-2 mt-2">

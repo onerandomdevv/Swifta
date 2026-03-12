@@ -22,8 +22,8 @@ export class WhatsAppInteractiveService {
       this.configService.get<string>("WHATSAPP_ACCESS_TOKEN") || "";
 
     if (!this.phoneNumberId || !this.accessToken) {
-      throw new Error(
-        "WhatsApp configuration missing! WHATSAPP_PHONE_NUMBER_ID and WHATSAPP_ACCESS_TOKEN are required.",
+      this.logger.warn(
+        "WhatsApp configuration missing! WHATSAPP_PHONE_NUMBER_ID and WHATSAPP_ACCESS_TOKEN are required for WhatsApp features to work.",
       );
     }
 

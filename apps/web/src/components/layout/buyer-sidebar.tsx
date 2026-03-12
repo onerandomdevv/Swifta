@@ -17,6 +17,7 @@ export function BuyerSidebar({
 
   const navItems = [
     { label: "Dashboard", icon: "dashboard", href: "/buyer/dashboard" },
+    { label: "Discover", icon: "explore", href: "/buyer/feed" },
     { label: "Catalogue", icon: "inventory_2", href: "/buyer/catalogue" },
     { label: "My Cart", icon: "shopping_cart", href: "/buyer/cart" },
     { label: "Saved", icon: "favorite", href: "/buyer/saved" },

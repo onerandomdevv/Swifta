@@ -64,4 +64,8 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   buyerType?: string;
+
+  @IsOptional()
+  @IsString()
+  slug?: string;
 }

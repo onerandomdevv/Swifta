@@ -65,7 +65,7 @@ export default function LoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
+    defaultValues: { identifier: "", password: "" },
   });
 
   useEffect(() => {
@@ -84,7 +84,7 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     setFormError(null);
     try {
-      await login(data.email, data.password);
+      await login(data.identifier, data.password);
       toast.success("Welcome back!");
     } catch (err: any) {
       const errorMessage =
@@ -285,20 +285,20 @@ export default function LoginPage() {
 
           {loginMode === "password" ? (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-              {/* Email */}
+              {/* Identifier (Email or Username) */}
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1.5">
-                  Email Address
+                  Email or Username
                 </label>
                 <input
-                  className={`w-full px-4 py-3.5 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.email ? "border-red-400" : "border-slate-200"}`}
-                  placeholder="your@email.com"
-                  type="email"
-                  {...register("email")}
+                  className={`w-full px-4 py-3.5 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.identifier ? "border-red-400" : "border-slate-200"}`}
+                  placeholder="your@email.com or username"
+                  type="text"
+                  {...register("identifier")}
                 />
-                {errors.email && (
+                {errors.identifier && (
                   <p className="text-xs font-semibold text-red-500 mt-1">
-                    {errors.email.message}
+                    {errors.identifier.message}
                   </p>
                 )}
               </div>

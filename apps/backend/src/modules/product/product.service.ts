@@ -5,6 +5,7 @@ import {
   BadRequestException,
   Inject,
 } from "@nestjs/common";
+import { randomBytes } from "crypto";
 import { CACHE_MANAGER } from "@nestjs/cache-manager";
 import { Cache } from "cache-manager";
 import { PrismaService } from "../../prisma/prisma.service";
@@ -24,6 +25,21 @@ export class ProductService {
     const { pricePerUnitKobo, retailPriceKobo, wholesaleDiscountPercent, ...rest } =
       dto;
 
+    // 1. Fetch the merchant's slug
+    const merchant = await this.prisma.merchantProfile.findUnique({
+      where: { id: merchantId },
+      select: { slug: true }
+    });
+
+    if (!merchant) {
+      throw new NotFoundException("Merchant profile not found");
+    }
+
+    // 2. Generate Product Code (Format: merchantSlug-productNameSlug-shortId)
+    const baseNameSlug = dto.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 15);
+    const shortId = randomBytes(3).toString("hex"); // 6 character hash
+    const productCode = `${merchant.slug}-${baseNameSlug}-${shortId}`;
+
     // Auto-compute wholesale price from retail price and discount
     let computedWholesaleKobo: bigint | null = null;
     if (retailPriceKobo && wholesaleDiscountPercent && wholesaleDiscountPercent > 0) {
@@ -36,6 +52,7 @@ export class ProductService {
     const product = await this.prisma.product.create({
       data: {
         merchantId,
+        productCode, // Inject the generated semantic ID
         pricePerUnitKobo: pricePerUnitKobo ? BigInt(pricePerUnitKobo) : null,
         retailPriceKobo: retailPriceKobo ? BigInt(retailPriceKobo) : null,
         wholesalePriceKobo: computedWholesaleKobo,
@@ -195,6 +212,7 @@ export class ProductService {
               addressVerified: true,
               guarantorVerified: true,
               bankVerified: true,
+              slug: true,
             },
           },
           productStockCache: true, // Needed to determine stockAvailability
@@ -203,43 +221,75 @@ export class ProductService {
     );
 
     // Map the response to include string-serialized values + stockAvailability
-    response.data = response.data.map((product: any) => {
-      const { productStockCache, ...rest } = product;
+    response.data = response.data.map((product: any) => 
+      this.mapProductForPublic(product, buyerType)
+    );
 
-      let resolvedPrice = product.retailPriceKobo;
-      if (buyerType === "BUSINESS") {
-        resolvedPrice = product.wholesalePriceKobo || product.pricePerUnitKobo;
-      } else {
-        // For CONSUMER or GUEST, prefer retail, then wholesale, then legacy
-        resolvedPrice =
-          product.retailPriceKobo ||
-          product.wholesalePriceKobo ||
-          product.pricePerUnitKobo;
-      }
+    return response;
+  }
 
-      let stockAvailability = "OUT_OF_STOCK";
-      if (productStockCache?.currentStock > 10) {
-        stockAvailability = "IN_STOCK";
-      } else if (
-        productStockCache?.currentStock > 0 &&
-        productStockCache?.currentStock <= 10
-      ) {
-        stockAvailability = "LOW_STOCK";
-      }
-
-      return {
-        ...rest,
-        // we overwrite pricePerUnitKobo with the resolved price for compatibility
-        pricePerUnitKobo: resolvedPrice ? resolvedPrice.toString() : null,
-        wholesalePriceKobo: product.wholesalePriceKobo
-          ? product.wholesalePriceKobo.toString()
-          : null,
-        retailPriceKobo: product.retailPriceKobo
-          ? product.retailPriceKobo.toString()
-          : null,
-        stockAvailability,
-      };
+  async getSocialFeed(
+    userId: string,
+    page: number,
+    limit: number,
+    buyerType?: string,
+  ): Promise<PaginatedResponse<Product>> {
+    // 1. Get merchants the user follows
+    const following = await this.prisma.follow.findMany({
+      where: { followerId: userId },
+      select: { merchantId: true },
     });
+
+    const followedMerchantIds = following.map((f) => f.merchantId);
+
+    if (followedMerchantIds.length === 0) {
+      return {
+        data: [],
+        meta: {
+          total: 0,
+          page,
+          limit,
+          totalPages: 0,
+        },
+      };
+    }
+
+    // 2. Fetch products from these merchants
+    const response = await paginate(
+      this.prisma.product,
+      { page, limit },
+      {
+        where: {
+          merchantId: { in: followedMerchantIds },
+          isActive: true,
+          deletedAt: null,
+        },
+        orderBy: { createdAt: "desc" },
+        include: {
+          merchantProfile: {
+            select: {
+              id: true,
+              businessName: true,
+              averageRating: true,
+              reviewCount: true,
+              verificationTier: true,
+              profileImage: true,
+              cacVerified: true,
+              addressVerified: true,
+              guarantorVerified: true,
+              bankVerified: true,
+              slug: true,
+            },
+          },
+          productStockCache: true,
+        },
+      },
+    );
+
+    // 3. Map response
+    response.data = response.data.map((product: any) => 
+      this.mapProductForPublic(product, buyerType)
+    );
 
     return response;
   }
@@ -427,5 +477,41 @@ export class ProductService {
         promptText: true,
       },
     });
+  }
+
+  private mapProductForPublic(product: any, buyerType?: string) {
+    const { productStockCache, ...rest } = product;
+
+    let resolvedPrice = product.retailPriceKobo;
+    if (buyerType === "BUSINESS") {
+      resolvedPrice = product.wholesalePriceKobo || product.pricePerUnitKobo;
+    } else {
+      resolvedPrice =
+        product.retailPriceKobo ||
+        product.wholesalePriceKobo ||
+        product.pricePerUnitKobo;
+    }
+
+    let stockAvailability = "OUT_OF_STOCK";
+    if (productStockCache?.currentStock > 10) {
+      stockAvailability = "IN_STOCK";
+    } else if (
+      productStockCache?.currentStock > 0 &&
+      productStockCache?.currentStock <= 10
+    ) {
+      stockAvailability = "LOW_STOCK";
+    }
+
+    return {
+      ...rest,
+      pricePerUnitKobo: resolvedPrice ? resolvedPrice.toString() : null,
+      wholesalePriceKobo: product.wholesalePriceKobo
+        ? product.wholesalePriceKobo.toString()
+        : null,
+      retailPriceKobo: product.retailPriceKobo
+        ? product.retailPriceKobo.toString()
+        : null,
+      stockAvailability,
+    };
   }
 }
