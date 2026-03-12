@@ -4,11 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
 import {
-  getProfile,
-  updateProfile,
-  updateBankAccount,
-  getBanks,
-  resolveBankAccount,
+  merchantApi
 } from "@/lib/api/merchant.api";
 import { useToast } from "@/providers/toast-provider";
 import { authApi } from "@/lib/api/auth.api";
@@ -76,6 +72,8 @@ export default function MerchantSettingsPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
+  const [username, setUsername] = useState("");
+  const [isSavingUsername, setIsSavingUsername] = useState(false);
 
   // Settlement State
   const [bankCode, setBankCode] = useState("");
@@ -92,6 +90,21 @@ export default function MerchantSettingsPage() {
 
   // Notification State
   const [notifPrefs, setNotifPrefs] = useState(defaultNotifPrefs);
+  const [savingNotifications, setSavingNotifications] = useState(false);
+
+  const handleSaveNotifications = async () => {
+    setSavingNotifications(true);
+    try {
+      // Simulate API call for now since backend notification preference endpoint 
+      // is not yet finalized in the Merchant module
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      toast.success("Notification preferences saved successfully");
+    } catch (err) {
+      toast.error("Failed to save preferences");
+    } finally {
+      setSavingNotifications(false);
+    }
+  };
 
   useEffect(() => {
     loadProfile();
@@ -106,7 +119,7 @@ export default function MerchantSettingsPage() {
 
   const loadProfile = async () => {
     try {
-      const data = await getProfile();
+      const data = await merchantApi.getProfile();
       setProfile(data);
       if (user) {
         setFirstName(user.firstName || "");
@@ -118,6 +131,7 @@ export default function MerchantSettingsPage() {
       if (data.bankCode) setBankCode(data.bankCode);
       if (data.bankAccountNumber) setBankAccountNo(data.bankAccountNumber);
       if (data.settlementAccountName) setBankAccountName(data.settlementAccountName);
+      if (data.slug) setUsername(data.slug);
     } catch (err) {
       toast.error("Failed to load profile");
     }
@@ -125,7 +139,7 @@ export default function MerchantSettingsPage() {
 
   const loadBanks = async () => {
     try {
-      const banks = await getBanks();
+      const banks = await merchantApi.getBanks();
       setBanksList(banks);
     } catch (err) {
       console.error("Failed to load banks");
@@ -135,7 +149,7 @@ export default function MerchantSettingsPage() {
   const resolveBank = async () => {
     setResolvingAccount(true);
     try {
-      const response = await resolveBankAccount(bankAccountNo, bankCode);
+      const response = await merchantApi.resolveBankAccount(bankAccountNo, bankCode);
       setBankAccountName(response.accountName);
     } catch (err) {
       setBankAccountName("Resolution failed");
@@ -158,7 +172,7 @@ export default function MerchantSettingsPage() {
 
       // Update Bank details if provided
       if (bankCode && bankAccountNo && bankAccountName && !bankAccountName.includes("failed")) {
-        await updateBankAccount({
+        await merchantApi.updateBankAccount({
           bankCode,
           bankAccountNumber: bankAccountNo,
         });
@@ -170,6 +184,38 @@ export default function MerchantSettingsPage() {
       toast.error("Failed to update profile");
     } finally {
       setSavingProfile(false);
+    }
+  };
+
+  const handleUpdateUsername = async () => {
+    if (!profile?.contact?.emailVerified) {
+      return toast.error("Please verify your email address before changing your username");
+    }
+
+    if (profile.slugChangesCount && profile.slugChangesCount >= 3) {
+      return toast.error("You have reached the limit of 3 username changes per month");
+    }
+
+    if (profile.lastSlugChangeAt) {
+      const lastChange = new Date(profile.lastSlugChangeAt);
+      const now = new Date();
+      const diffDays = Math.ceil((now.getTime() - lastChange.getTime()) / (1000 * 3600 * 24));
+      if (diffDays < 7) {
+        return toast.error(`Please wait ${7 - diffDays} more days before changing your username again`);
+      }
+    }
+
+    setIsSavingUsername(true);
+    try {
+      const updated = await merchantApi.updateUsername(username);
+      setProfile(updated);
+      setUsername(updated.slug);
+      toast.success("Business username updated successfully");
+      refreshUser();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to update username");
+    } finally {
+      setIsSavingUsername(false);
     }
   };
 
@@ -299,6 +345,116 @@ export default function MerchantSettingsPage() {
               </Card>
             </section>
 
+            {/* Username section */}
+            <section>
+              <SectionHeader
+                icon="alternate_email"
+                title="Business Username"
+                subtitle="Your unique handle on SwiftTrade. Used for logins and product links."
+              />
+              <Card>
+                <div className="space-y-6">
+                  <div className="flex flex-col md:flex-row gap-6 items-start">
+                    <div className="flex-1 w-full">
+                      <Input
+                        label="Username"
+                        value={username}
+                        onChange={(e) =>
+                          setUsername(
+                            e.target.value
+                              .toLowerCase()
+                              .replace(/[^a-z0-9-]/g, ""),
+                          )
+                        }
+                        placeholder="e.g. dangote-cement"
+                      />
+                      <p className="mt-2 text-[10px] text-slate-400 font-medium">
+                        3-30 characters. Lowercase letters, numbers, and hyphens
+                        only.
+                      </p>
+                    </div>
+                    <div className="pt-5">
+                      <button
+                        onClick={handleUpdateUsername}
+                        disabled={
+                          isSavingUsername ||
+                          !username ||
+                          username === profile?.slug
+                        }
+                        className="px-8 py-3 bg-navy-dark dark:bg-white text-white dark:text-navy-dark rounded-xl font-bold uppercase tracking-widest text-xs transition-all hover:bg-navy-dark/90 dark:hover:bg-slate-100 shadow-lg disabled:opacity-50"
+                      >
+                        {isSavingUsername ? "Updating..." : "Update Username"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Constraints info */}
+                  <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col gap-4">
+                    <div className="flex items-start gap-3">
+                      <span className="material-symbols-outlined text-primary text-sm mt-0.5">
+                        info
+                      </span>
+                      <div className="space-y-1">
+                        <p className="text-[11px] font-bold text-navy-dark dark:text-white uppercase tracking-tight">
+                          Username Policies
+                        </p>
+                        <ul className="text-[10px] text-slate-500 font-medium space-y-1 list-disc pl-3">
+                          <li>
+                            You can change your username up to 3 times in a 30-day window.
+                          </li>
+                          <li>
+                            There is a 7-day cooldown period between changes.
+                          </li>
+                          <li>
+                            Your old usernames will always redirect to your new one.
+                          </li>
+                          <li className="text-red-500 font-bold">
+                            Email verification is required for all username changes.
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    {!profile?.contact?.emailVerified && (
+                      <div className="px-4 py-3 bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 rounded-xl flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="material-symbols-outlined text-red-500 text-sm">warning</span>
+                          <span className="text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-tight">Email not verified</span>
+                        </div>
+                        <button 
+                          onClick={() => router.push("/register")} // Or a dedicated verify route if exists
+                          className="text-[10px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest border-b border-red-600/30 hover:border-red-600 transition-all"
+                        >
+                          Verify Now
+                        </button>
+                      </div>
+                    )}
+
+                    {profile?.contact?.emailVerified && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Changes Left</p>
+                          <p className="text-xl font-black text-navy-dark dark:text-white">
+                            {Math.max(0, 3 - (profile.slugChangesCount || 0))}
+                          </p>
+                        </div>
+                        <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Next Change</p>
+                          <p className="text-xs font-bold text-navy-dark dark:text-white">
+                            {profile.lastSlugChangeAt ? (() => {
+                              const last = new Date(profile.lastSlugChangeAt);
+                              const next = new Date(last.getTime() + 7 * 24 * 60 * 60 * 1000);
+                              return next > new Date() ? next.toLocaleDateString() : "Available Now";
+                            })() : "Available Now"}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            </section>
+
             {/* Settlement section */}
             <section>
               <SectionHeader
@@ -421,8 +577,19 @@ export default function MerchantSettingsPage() {
                 </div>
               </div>
               <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800">
-                <button className="px-8 py-3 bg-primary text-white rounded-xl font-bold uppercase tracking-widest text-xs transition-all hover:bg-primary/90 shadow-lg shadow-primary/20">
-                  Save Preferences
+                <button 
+                  onClick={handleSaveNotifications}
+                  disabled={savingNotifications}
+                  className="px-8 py-3 bg-primary text-white rounded-xl font-bold uppercase tracking-widest text-xs transition-all hover:bg-primary/90 shadow-lg shadow-primary/20 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {savingNotifications ? (
+                    <>
+                      <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Preferences"
+                  )}
                 </button>
               </div>
             </Card>

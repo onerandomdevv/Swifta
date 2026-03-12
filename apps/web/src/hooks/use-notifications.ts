@@ -46,13 +46,6 @@ export function useNotifications(
       let action: string | undefined = undefined;
 
       switch (n.type) {
-        case NotificationType.QUOTE_RECEIVED:
-          icon = "payments";
-          iconColor = "text-blue-500";
-          bg = "bg-blue-50/50";
-          category = "Orders";
-          action = "Review Quote";
-          break;
         case NotificationType.PAYMENT_CONFIRMED:
           icon = "check_circle";
           iconColor = "text-emerald-500";
@@ -97,12 +90,6 @@ export function useNotifications(
           iconColor = "text-blue-500";
           bg = "bg-blue-50/50";
           category = "Financials";
-          break;
-        case NotificationType.QUOTE_ACCEPTED:
-          icon = "verified";
-          iconColor = "text-blue-400";
-          bg = "bg-blue-50/20";
-          category = "Orders";
           break;
       }
 

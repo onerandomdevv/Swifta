@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useQuery } from "@tanstack/react-query";
-import { getProfile } from "@/lib/api/merchant.api";
+import { merchantApi } from "@/lib/api/merchant.api";
 import { useMerchantDashboard } from "@/hooks/use-merchant-data";
 import { formatKobo } from "@hardware-os/shared";
 
@@ -22,7 +22,7 @@ export function MerchantHeader({
 
   const { data: profile } = useQuery({
     queryKey: ["merchant", "profile"],
-    queryFn: getProfile,
+    queryFn: () => merchantApi.getProfile(),
     enabled: !!user?.merchantId,
   });
 

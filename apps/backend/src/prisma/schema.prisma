@@ -40,6 +40,7 @@ model InventoryEvent {
 model MerchantProfile {
   id                    String                @id @default(uuid()) @db.Uuid
   userId                String                @unique @map("user_id") @db.Uuid
+  slug                  String?               // Initial indexed field for migration compatibility
   businessName          String                @map("business_name")
   businessAddress       String?               @map("business_address")
   cacNumber             String?               @map("cac_number")
@@ -72,6 +73,8 @@ model MerchantProfile {
   reviewCount           Int                   @default(0) @map("review_count") // Added in V5
   description           String?                                       // Added in V5
   socialLinks           Json?                 @default("{}") @map("social_links") // Added in V5
+  lastSlugChangeAt      DateTime?             @map("last_slug_change_at")
+  slugHistory           MerchantSlugHistory[]
   creditApplications    CreditApplication[]
   inventoryEvents       InventoryEvent[]
   user                  User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -85,7 +88,9 @@ model MerchantProfile {
   sharedQuotes          SharedQuote[]
   verificationRequests  VerificationRequest[]
   reviews               Review[] // Added in V5
+  followers             Follow[] @relation("MerchantFollowers")
 
+  @@index([slug])
   @@map("merchant_profiles")
 }
 
@@ -272,6 +277,19 @@ model PayoutRequest {
   @@map("payout_requests")
 }
 
+model MerchantSlugHistory {
+  id                String          @id @default(uuid()) @db.Uuid
+  merchantProfileId String          @map("merchant_profile_id") @db.Uuid
+  oldSlug           String          @map("old_slug")
+  newSlug           String          @map("new_slug")
+  changedAt         DateTime        @default(now()) @map("changed_at")
+  merchantProfile   MerchantProfile @relation(fields: [merchantProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([oldSlug])
+  @@index([merchantProfileId])
+  @@map("merchant_slug_history")
+}
+
 model ProductStockCache {
   id        String   @id @default(uuid()) @db.Uuid
   productId String   @unique @map("product_id") @db.Uuid
@@ -285,12 +303,14 @@ model ProductStockCache {
 model Product {
   id                       String             @id @default(uuid()) @db.Uuid
   merchantId               String             @map("merchant_id") @db.Uuid
+  productCode              String?            @map("product_code") // Relaxed constraint for migration phase
   name                     String
   description              String?
   unit                     String
   categoryTag              String             @map("category_tag")
   minOrderQuantity         Int                @default(1) @map("min_order_quantity")
   isActive                 Boolean            @default(true) @map("is_active")
+  isSeeded                 Boolean            @default(false) @map("is_seeded") // Distinguish demo items
   createdAt                DateTime           @default(now()) @map("created_at")
   updatedAt                DateTime           @default(now()) @updatedAt @map("updated_at")
   deletedAt                DateTime?          @map("deleted_at")
@@ -314,6 +334,7 @@ model Product {
 
   @@index([categoryTag])
   @@index([merchantId])
+  @@index([productCode])
   @@map("products")
 }
 
@@ -419,6 +440,7 @@ model User {
   whatsappLink                 WhatsAppLink?
   buyerProfile                 BuyerProfile? // Added in V5
   savedProducts                SavedProduct[]
+  follows                      Follow[]              @relation("UserFollows")
 
   @@map("users")
 }
@@ -864,4 +886,18 @@ model WhatsAppSupplierLink {
   supplier   SupplierProfile @relation(fields: [supplierId], references: [id])
 
   @@map("whatsapp_supplier_links")
+}
+
+model Follow {
+  id              String          @id @default(uuid()) @db.Uuid
+  followerId      String          @map("follower_id") @db.Uuid
+  merchantId      String          @map("merchant_id") @db.Uuid
+  createdAt       DateTime        @default(now()) @map("created_at")
+  follower        User            @relation("UserFollows", fields: [followerId], references: [id], onDelete: Cascade)
+  merchant        MerchantProfile @relation("MerchantFollowers", fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, merchantId])
+  @@index([followerId])
+  @@index([merchantId])
+  @@map("follows")
 }

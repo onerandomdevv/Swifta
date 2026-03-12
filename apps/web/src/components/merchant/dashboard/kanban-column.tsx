@@ -8,24 +8,39 @@ interface Props {
 }
 
 export function KanbanColumn({ title, count, colorClass, children }: Props) {
+  // Map titles to specific border colors from the reference design
+  const borderClass = title.toUpperCase().includes("ORDERS") 
+    ? "border-orange-500" 
+    : title.toUpperCase().includes("DISPATCH") 
+    ? "border-blue-500" 
+    : title.toUpperCase().includes("ROAD") 
+    ? "border-indigo-500" 
+    : title.toUpperCase().includes("PAYOUT") || title.toUpperCase().includes("SETTLED")
+    ? "border-emerald-500"
+    : "border-slate-200";
+
+  const textColorClass = title.toUpperCase().includes("ORDERS") 
+    ? "text-orange-600" 
+    : title.toUpperCase().includes("DISPATCH") 
+    ? "text-blue-600" 
+    : title.toUpperCase().includes("ROAD") 
+    ? "text-indigo-600" 
+    : title.toUpperCase().includes("PAYOUT") || title.toUpperCase().includes("SETTLED")
+    ? "text-emerald-600"
+    : "text-slate-600";
+
   return (
-    <div className="flex flex-col h-full min-w-[300px] sm:min-w-[340px] w-full max-w-[340px] bg-slate-50/50 dark:bg-slate-900/50 rounded-[2rem] p-4 border border-transparent hover:border-slate-200 dark:hover:border-slate-800 transition-colors group">
-      <div className="flex items-center justify-between mb-5 px-2 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className={`size-2.5 rounded-full shadow-lg shadow-${colorClass.replace('bg-', '')}/30 ${colorClass}`} />
-          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-            {title}
-          </h3>
-          <span className="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-full text-[9px] font-black">
-            {count}
-          </span>
-        </div>
-        <button className="material-symbols-outlined text-slate-300 dark:text-slate-600 text-[20px] hover:text-primary transition-colors">
-          more_horiz
+    <div className="flex flex-col h-full min-w-[320px] sm:min-w-[360px] w-full max-w-[400px] bg-transparent rounded-2xl transition-all group">
+      <div className={`flex items-center justify-between px-1 py-3 border-t-2 mb-6 shrink-0 ${borderClass}`}>
+        <h3 className={`text-[11px] font-black uppercase tracking-[0.15em] ${textColorClass}`}>
+          {title} ({count})
+        </h3>
+        <button className="text-slate-300 dark:text-slate-600 hover:text-navy-dark dark:hover:text-white transition-colors">
+          <span className="material-symbols-outlined text-[18px]">more_horiz</span>
         </button>
       </div>
       
-      <div className="space-y-4 overflow-y-auto pr-1 pb-10 no-scrollbar flex-1">
+      <div className="space-y-4 overflow-y-auto pr-2 pb-10 no-scrollbar flex-1">
         {children}
       </div>
     </div>

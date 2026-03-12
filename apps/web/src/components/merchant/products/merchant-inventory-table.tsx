@@ -4,10 +4,10 @@ import { InventoryRow } from "./inventory-row";
 
 interface Props {
   products: Product[];
-  onQuickEdit: (id: string) => void;
+  onRepost: (product: Product) => void;
 }
 
-export function MerchantInventoryTable({ products, onQuickEdit }: Props) {
+export function MerchantInventoryTable({ products, onRepost }: Props) {
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm">
       <div className="overflow-x-auto">
@@ -39,7 +39,7 @@ export function MerchantInventoryTable({ products, onQuickEdit }: Props) {
               <InventoryRow
                 key={product.id}
                 product={product}
-                onQuickEdit={onQuickEdit}
+                onRepost={onRepost}
               />
             ))}
           </tbody>

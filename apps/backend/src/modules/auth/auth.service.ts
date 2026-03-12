@@ -119,7 +119,8 @@ export class AuthService {
               merchantProfile: {
                 create: {
                   businessName: dto.businessName,
-                },
+                  slug: dto.slug || (await this.generateUniqueSlug(dto.businessName)),
+                } as any,
               },
             }
           : {}),
@@ -228,17 +229,39 @@ export class AuthService {
   }
 
   async login(dto: LoginDto): Promise<TokenPair & { user: any }> {
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-      include: { merchantProfile: true, buyerProfile: true },
-    });
+    // Check if the input is an email, or if it's potentially a merchant slug
+    const isEmail = dto.identifier.includes("@");
+
+    let user;
+    if (isEmail) {
+      user = await this.prisma.user.findUnique({
+        where: { email: dto.identifier.toLowerCase() },
+        include: { merchantProfile: true, buyerProfile: true },
+      });
+    } else {
+      user = await this.prisma.user.findFirst({
+        where: {
+          merchantProfile: {
+            OR: [
+              { slug: dto.identifier.toLowerCase() } as any,
+              {
+                slugHistory: {
+                  some: { oldSlug: dto.identifier.toLowerCase() },
+                },
+              } as any,
+            ],
+          },
+        },
+        include: { merchantProfile: true, buyerProfile: true },
+      });
+    }
 
     if (!user) {
-      throw new UnauthorizedException("Invalid email or password");
+      throw new UnauthorizedException("Invalid credentials");
     }
 
     if (!(await bcrypt.compare(dto.password, user.passwordHash))) {
-      throw new UnauthorizedException("Invalid email or password");
+      throw new UnauthorizedException("Invalid credentials");
     }
 
     return this.generateAndStoreTokens(user);
@@ -246,7 +269,7 @@ export class AuthService {
 
   async internalLogin(dto: LoginDto): Promise<TokenPair & { user: any }> {
     const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+      where: { email: dto.identifier.toLowerCase() },
       include: { adminProfile: true }, // Internal users have admin profiles instead of merchant profiles
     });
 
@@ -612,6 +635,36 @@ export class AuthService {
         updatedAt: user.updatedAt,
       },
     };
+  }
+
+  /**
+   * Generates a unique, URL-safe slug from a business name.
+   */
+  private async generateUniqueSlug(businessName: string): Promise<string> {
+    const baseSlug = businessName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-") // Replace non-alphanumeric with hyphens
+      .replace(/^-+|-+$/g, "") // Trim leading/trailing hyphens
+      .substring(0, 30); // Keep it reasonably short
+
+    let slug = baseSlug || "merchant";
+    let isUnique = false;
+    let counter = 0;
+
+    while (!isUnique) {
+      const existing = await this.prisma.merchantProfile.findFirst({
+        where: { slug },
+      });
+
+      if (!existing) {
+        isUnique = true;
+      } else {
+        counter++;
+        slug = `${baseSlug}-${counter}`;
+      }
+    }
+
+    return slug;
   }
 
   async sendPhoneOtp(

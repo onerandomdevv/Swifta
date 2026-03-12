@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { getCatalogue } from "@/lib/api/product.api";
+import { productApi } from "@/lib/api/product.api";
 import { getCategories } from "@/lib/api/category.api";
-import { getMerchants } from "@/lib/api/merchant.api";
+import { merchantApi } from "@/lib/api/merchant.api";
 import { getSavedProductIds, toggleWishlist } from "@/lib/api/wishlist.api";
 import {
   type Product,
@@ -11,6 +11,7 @@ import {
   type MerchantProfile,
 } from "@hardware-os/shared";
 import { useAuth } from "@/providers/auth-provider";
+import { useRouter } from "next/navigation";
 
 import { ExploreSearchBar } from "@/components/buyer/catalogue/explore-search-bar";
 import { CategoryStoriesBar } from "@/components/buyer/catalogue/category-stories-bar";
@@ -20,6 +21,7 @@ import { ExploreSkeleton } from "@/components/buyer/catalogue/explore-skeleton";
 
 export default function BuyerCataloguePage() {
   const { user } = useAuth();
+  const router = useRouter();
 
   // ─── State ───
   const [loading, setLoading] = useState(true);
@@ -33,8 +35,7 @@ export default function BuyerCataloguePage() {
   const [sortBy, setSortBy] = useState<"newest" | "price_asc" | "price_desc" | "rating">("newest");
   const [showSortMenu, setShowSortMenu] = useState(false);
 
-  // Quick-buy modal state
-  const [quickBuyProduct, setQuickBuyProduct] = useState<Product | null>(null);
+
 
   // Wishlist state
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
@@ -47,7 +48,7 @@ export default function BuyerCataloguePage() {
       try {
         const [cats, mercs, savedList] = await Promise.all([
           getCategories(),
-          getMerchants(),
+          merchantApi.getMerchants(),
           getSavedProductIds().catch(() => [] as string[]),
         ]);
         setCategories(cats);
@@ -68,7 +69,7 @@ export default function BuyerCataloguePage() {
       try {
         setError("");
         setLoading(true);
-        const response = await getCatalogue(search, category, 1, 50);
+        const response = await productApi.getCatalogue(search, category, 1, 50);
         setProducts(response);
       } catch (err: unknown) {
         setError(
@@ -129,7 +130,7 @@ export default function BuyerCataloguePage() {
 
   // ─── Quick Buy handler ───
   function handleQuickBuy(product: Product) {
-    setQuickBuyProduct(product);
+    router.push(`/buyer/checkout/${product.id}`);
   }
 
   // ─── Wishlist toggle handler ───
@@ -320,53 +321,6 @@ export default function BuyerCataloguePage() {
         </div>
       )}
 
-      {/* ─── Quick Buy Modal (lazy-loaded) ─── */}
-      {quickBuyProduct && (
-        <LazyInstantCheckoutModal
-          product={quickBuyProduct}
-          onClose={() => setQuickBuyProduct(null)}
-        />
-      )}
     </div>
-  );
-}
-
-/**
- * Lazy-load the InstantCheckoutModal to avoid bloating the bundle.
- */
-function LazyInstantCheckoutModal({
-  product,
-  onClose,
-}: {
-  product: Product;
-  onClose: () => void;
-}) {
-  const [Modal, setModal] = useState<React.ComponentType<any> | null>(null);
-
-  useEffect(() => {
-    import("@/components/buyer/checkout/instant-checkout-modal").then((mod) => {
-      setModal(() => mod.InstantCheckoutModal);
-    });
-  }, []);
-
-  if (!Modal) {
-    return (
-      <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-8">
-          <span className="material-symbols-outlined text-primary text-3xl animate-spin">
-            progress_activity
-          </span>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <Modal 
-      product={product} 
-      merchant={product.merchantProfile} 
-      onClose={onClose} 
-      isOpen={true} 
-    />
   );
 }

@@ -3,11 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
-  getProfile,
-  getVerificationStatus,
-  submitVerificationRequest,
-  updateProfile,
-  uploadDocument,
+  merchantApi
 } from "@/lib/api/merchant.api";
 import { useToast } from "@/providers/toast-provider";
 import { MerchantProfile, VerificationTier } from "@hardware-os/shared";
@@ -35,7 +31,7 @@ export default function MerchantVerificationPage() {
   const cacInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    Promise.all([getProfile(), getVerificationStatus()])
+    Promise.all([merchantApi.getProfile(), merchantApi.getVerificationStatus()])
       .then(([p, v]) => {
         setProfile(p);
         setTier(v.tier as VerificationTier);
@@ -61,7 +57,7 @@ export default function MerchantVerificationPage() {
       if (type === "ID") setIsUploadingId(true);
       else setIsUploadingCac(true);
 
-      const res = await uploadDocument(file);
+      const res = await merchantApi.uploadDocument(file);
       if (type === "ID") setIdUrl(res.url);
       else setCacUrl(res.url);
       
@@ -84,11 +80,11 @@ export default function MerchantVerificationPage() {
     try {
       // 1. If profile info changed, update it
       if (cacNumber && cacNumber !== profile?.cacNumber) {
-        await updateProfile({ cacNumber });
+        await merchantApi.updateProfile({ cacNumber });
       }
 
       // 2. Submit verification request
-      await submitVerificationRequest({
+      await merchantApi.submitVerificationRequest({
         idType,
         governmentIdUrl: idUrl,
         cacCertUrl: cacUrl || undefined,

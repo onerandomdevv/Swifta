@@ -2,8 +2,8 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { getOrders } from "@/lib/api/order.api";
-import { getMyProducts } from "@/lib/api/product.api";
-import { getAnalytics } from "@/lib/api/merchant.api";
+import { productApi } from "@/lib/api/product.api";
+import { merchantApi } from "@/lib/api/merchant.api";
 import { authApi } from "@/lib/api/auth.api";
 import type { Order, Product } from "@hardware-os/shared";
 
@@ -19,7 +19,7 @@ export function useMerchantDashboard() {
 
   const analyticsQuery = useQuery({
     queryKey: ["merchant", "analytics"],
-    queryFn: getAnalytics,
+    queryFn: () => merchantApi.getAnalytics(),
     refetchInterval: 60000,
   });
 
@@ -66,7 +66,7 @@ export function useMerchantInventory() {
   const productQuery = useQuery({
     queryKey: ["merchant", "products", "inventory"],
     queryFn: async () => {
-      const data = await getMyProducts(1, 100);
+      const data = await productApi.getMyProducts(1, 100);
       return Array.isArray(data) ? data : [];
     },
     refetchInterval: 30000,

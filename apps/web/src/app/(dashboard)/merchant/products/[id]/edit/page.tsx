@@ -3,11 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  getProduct,
-  updateProduct,
-  uploadProductImage,
-} from "@/lib/api/product.api";
+import { productApi } from "@/lib/api/product.api";
 import { getStock, adjustStock } from "@/lib/api/inventory.api";
 import { getCategories } from "@/lib/api/category.api";
 import { type Product, type Category } from "@hardware-os/shared";
@@ -51,7 +47,7 @@ export default function EditProductPage() {
     async function fetchData() {
       try {
         const [productData, stockData, categoriesData] = await Promise.all([
-          getProduct(productId) as any as Product,
+          productApi.getProduct(productId) as any as Product,
           getStock(productId).catch(() => ({ stock: 0 })),
           getCategories(),
         ]);
@@ -115,7 +111,7 @@ export default function EditProductPage() {
     try {
       setIsUploadingImage(true);
       setError(null);
-      const res = await uploadProductImage(file);
+      const res = await productApi.uploadProductImage(file);
       setFormData((prev) => ({ ...prev, imageUrl: res.url }));
     } catch (err: any) {
       setError(err?.message || "Failed to upload image");
@@ -137,7 +133,7 @@ export default function EditProductPage() {
 
     try {
       // 1. Update basic product info & status
-      await updateProduct(productId, {
+      await productApi.updateProduct(productId, {
         name: formData.name,
         description: formData.description || undefined,
         unit: formData.unit,

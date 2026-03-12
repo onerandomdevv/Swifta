@@ -5,14 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatKobo } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getOrders, getOrderSummary } from "@/lib/api/order.api";
-import {
-  getProfile,
-  updateProfile,
-  resolveBankAccount,
-  getBanks,
-  requestPayout,
-  updateBankAccount,
-} from "@/lib/api/merchant.api";
+import { merchantApi } from "@/lib/api/merchant.api";
 import { useToast } from "@/providers/toast-provider";
 import { OrderStatus } from "@hardware-os/shared";
 import type { Order } from "@hardware-os/shared";
@@ -110,7 +103,7 @@ export default function MerchantPayoutsPage() {
       setIsResolving(true);
       setResolveError("");
 
-      resolveBankAccount(formAccountNo, formBankCode)
+      merchantApi.resolveBankAccount(formAccountNo, formBankCode)
         .then((data) => {
           setFormAccountName(data.accountName);
           setIsResolving(false);
@@ -142,12 +135,12 @@ export default function MerchantPayoutsPage() {
 
   const { data: profile } = useQuery({
     queryKey: ["merchant-profile"],
-    queryFn: getProfile,
+    queryFn: merchantApi.getProfile,
   });
 
   const { data: banksList = [], isLoading: isLoadingBanks } = useQuery({
     queryKey: ["merchant-banks"],
-    queryFn: getBanks,
+    queryFn: merchantApi.getBanks,
   });
 
   // Filter banks based on search query
@@ -167,7 +160,7 @@ export default function MerchantPayoutsPage() {
 
   const updateBankMutation = useMutation({
     mutationFn: (data: { bankCode: string; bankAccountNo: string }) =>
-      updateBankAccount({
+      merchantApi.updateBankAccount({
         bankCode: data.bankCode,
         bankAccountNumber: data.bankAccountNo,
       }),
@@ -211,7 +204,7 @@ export default function MerchantPayoutsPage() {
     }
     setIsRequestingPayout(true);
 
-    requestPayout({ amount: Number(summary.escrow) })
+    merchantApi.requestPayout({ amount: Number(summary.escrow) })
       .then(() => {
         toast.success(
           "Payout request submitted! Funds will be transferred within 24 hours.",

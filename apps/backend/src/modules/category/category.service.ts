@@ -16,7 +16,7 @@ export class CategoryService {
     const slug = dto.slug || slugify(dto.name);
 
     // Check if slug exists
-    const existing = await this.prisma.category.findUnique({ where: { slug } });
+    const existing = await this.prisma.category.findFirst({ where: { slug } });
     if (existing) {
       throw new BadRequestException(
         `Category with slug "${slug}" already exists`,

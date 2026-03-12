@@ -7,126 +7,112 @@ interface Props {
 }
 
 export function KanbanOrderCard({ order, onAction }: Props) {
-  const shortId = `#SW-${order.id.slice(0, 6).toUpperCase()}`;
-  const productName = order.rfq?.product?.name || order.quote?.rfq?.product?.name || "Industrial Materials";
-  const quantity = order.rfq?.quantity || order.quote?.rfq?.quantity || 0;
-  const unit = order.rfq?.product?.unit || order.quote?.rfq?.product?.unit || "";
-  const buyerName = order.buyerId.split("-")[0].toUpperCase();
+  if (!order) {
+    return (
+      <div className="border-2 border-dashed border-slate-100 dark:border-slate-800/50 rounded-[1.5rem] p-10 flex flex-col items-center justify-center bg-slate-50/30 dark:bg-slate-900/10 min-h-[200px] group-hover:bg-slate-50/50 transition-all">
+        <div className="size-12 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center border border-slate-100 dark:border-slate-700 shadow-sm mb-4">
+          <span className="material-symbols-outlined text-slate-300 dark:text-slate-600">add</span>
+        </div>
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Drop orders here</p>
+      </div>
+    );
+  }
 
+  const shortId = `#ORD-${order.id.slice(0, 4).toUpperCase()}`;
+  // Prioritize product name from order object directly, then fallbacks
+  const productName = order.product?.name || (order as any).quote?.product?.name || (order as any).rfq?.product?.name || "Premium Hardware Materials";
+  // Safely access buyer name if populated by backend joins
+  const buyerName = (order as any).buyer?.name || (order as any).quote?.rfq?.buyer?.name;
+  const buyerInitial = buyerName?.slice(0, 2).toUpperCase() || order.buyerId?.slice(0, 2).toUpperCase() || "CU";
+  const amount = Number(order.totalAmountKobo || 0) / 100;
+  
   const CardWrapper = ({ children, className = "", onClick }: { children: React.ReactNode, className?: string, onClick?: () => void }) => (
     <div 
       onClick={onClick}
-      className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-[1.5rem] shadow-sm hover:shadow-md transition-all group active:scale-[0.98] relative overflow-hidden flex flex-col gap-4 ${className}`}
+      className={`bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-[1.5rem] shadow-sm hover:border-primary/50 dark:hover:border-primary/50 transition-all group active:scale-[0.98] relative overflow-hidden flex flex-col cursor-pointer ${className}`}
     >
       {children}
     </div>
   );
 
+  // --- New Orders (PENDING_PAYMENT) ---
+  if (order.status === "PENDING_PAYMENT") {
+    return (
+      <CardWrapper onClick={() => onAction(order.id)}>
+        <div className="flex justify-between items-start mb-4">
+          <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{shortId}</span>
+          <span className="px-3 py-1 rounded bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 text-[9px] font-black uppercase tracking-widest border border-orange-100 dark:border-orange-500/20">Urgent</span>
+        </div>
+        <h4 className="text-sm font-black text-navy-dark dark:text-white mb-6 leading-tight tracking-tight line-clamp-2">{productName}</h4>
+        <div className="flex items-center justify-between mt-auto">
+          <div className="size-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700 text-[10px] font-black text-slate-500">
+            {buyerInitial}
+          </div>
+          <span className="text-sm font-black text-navy-dark dark:text-white tabular-nums tracking-widest">₦{amount.toLocaleString()}</span>
+        </div>
+      </CardWrapper>
+    );
+  }
+
   // --- Awaiting Dispatch (PAID) ---
   if (order.status === "PAID") {
     return (
-      <CardWrapper className="border-primary/30 ring-1 ring-primary/5">
-        <div className="flex justify-between items-start">
-          <span className="text-[10px] font-mono text-primary font-black bg-primary/5 px-2 py-0.5 rounded border border-primary/10">
-            {shortId}
-          </span>
-          <span className="flex items-center gap-1 text-[9px] px-2 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400 font-black rounded-full uppercase tracking-widest">
-            <span className="material-symbols-outlined text-[12px] animate-pulse">priority_high</span>
-            Urgent Dispatch
-          </span>
+      <CardWrapper onClick={() => onAction(order.id)}>
+        <div className="flex justify-between items-start mb-4">
+          <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{shortId}</span>
+          <span className="px-3 py-1 rounded bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[9px] font-black uppercase tracking-widest border border-blue-100 dark:border-blue-500/20">Ready</span>
         </div>
-        
-        <div className="space-y-1">
-          <h4 className="text-sm font-black text-slate-900 dark:text-white leading-tight">
-            {quantity} {unit}{quantity !== 1 ? 's' : ''} of {productName}
-          </h4>
-          <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 font-bold text-[10px] uppercase tracking-wider">
-            <span className="material-symbols-outlined text-[14px]">person</span>
-            Buyer ID: {buyerName}
+        <h4 className="text-sm font-black text-navy-dark dark:text-white mb-6 leading-tight tracking-tight line-clamp-2">{productName}</h4>
+        <div className="flex items-center justify-between mt-auto">
+          <div className="flex items-center gap-2">
+            <span className="size-2 bg-blue-500 rounded-full animate-pulse"></span>
+            <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">Awaiting Truck</span>
           </div>
-        </div>
-
-        <div className="pt-2 mt-auto">
-          <button
-            className="w-full bg-primary text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
-            onClick={(e) => { e.stopPropagation(); onAction(order.id); }}
-          >
-            <span className="material-symbols-outlined text-sm">key</span>
-            Generate Delivery OTP
-          </button>
+          <span className="text-sm font-black text-navy-dark dark:text-white tabular-nums tracking-widest">₦{amount.toLocaleString()}</span>
         </div>
       </CardWrapper>
     );
   }
 
-  // --- In Transit (DISPATCHED) ---
+  // --- On The Road (DISPATCHED) ---
   if (order.status === "DISPATCHED") {
+    const transitId = order.id?.startsWith("ORD") ? order.id.replace("ORD", "TRK") : `#TRK-${order.id.slice(0, 4).toUpperCase()}`;
+    const location = order.deliveryDetails?.state || "In Transit";
+
     return (
-      <CardWrapper onClick={() => onAction(order.id)} className="cursor-pointer">
-        <div className="flex justify-between items-start">
-          <span className="text-[10px] font-mono text-slate-400 font-bold">
-            {shortId}
-          </span>
-          <div className="flex items-center gap-1 text-[9px] text-blue-500 font-black uppercase tracking-wider">
-            <span className="material-symbols-outlined text-[14px] animate-bounce-horizontal">local_shipping</span>
-            In Transit
-          </div>
+      <CardWrapper onClick={() => onAction(order.id)} className="bg-indigo-50/10 dark:bg-indigo-900/5 border-indigo-100/50 dark:border-indigo-900/30">
+        <div className="flex justify-between items-start mb-4">
+          <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{transitId}</span>
+          <span className="px-3 py-1 rounded bg-indigo-500 text-white text-[9px] font-black uppercase tracking-widest">Transit</span>
+        </div>
+        <h4 className="text-sm font-black text-navy-dark dark:text-white mb-4 leading-tight tracking-tight line-clamp-2">{productName}</h4>
+        
+        <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mb-4 border border-white/10">
+          <div className="bg-indigo-500 h-full w-[45%] animate-pulse shadow-[0_0_12px_rgba(99,102,241,0.5)]"></div>
         </div>
 
-        <div className="space-y-1">
-          <h4 className="text-sm font-black text-slate-900 dark:text-white leading-tight">
-            {quantity} {unit}{quantity !== 1 ? 's' : ''} of {productName}
-          </h4>
-          <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 font-bold text-[10px] uppercase tracking-wider">
-            <span className="material-symbols-outlined text-[14px]">person</span>
-            Buyer: {buyerName}
-          </div>
-        </div>
-
-        <div className="pt-2 mt-auto">
-          <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mb-2">
-            <div className="bg-blue-500 h-full w-[65%] rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
-          </div>
-          <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-slate-400">
-            <span className="flex items-center gap-1">
-              <span className="size-1 bg-blue-400 rounded-full animate-ping" />
-              Tracking
-            </span>
-            <span className="text-blue-500/80">65% Progress</span>
-          </div>
+        <div className="flex items-baseline justify-between mt-auto">
+          <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Location: {location}</span>
+          <span className="text-sm font-black text-navy-dark dark:text-white tabular-nums tracking-widest">₦{amount.toLocaleString()}</span>
         </div>
       </CardWrapper>
     );
   }
 
-  // --- Completed / History ---
+  // --- Completed ---
   return (
-    <CardWrapper onClick={() => onAction(order.id)} className="cursor-pointer border-emerald-500/10 hover:border-emerald-500/30">
-      <div className="flex justify-between items-start">
-        <span className="text-[10px] font-mono text-slate-300 font-bold">
-          {shortId}
-        </span>
-        <span className="flex items-center gap-1 text-[9px] px-2 py-0.5 bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400 font-black rounded-full uppercase tracking-widest border border-emerald-100 dark:border-emerald-900/50">
-          <span className="material-symbols-outlined text-[12px]">verified</span>
-          Settled
-        </span>
+    <CardWrapper onClick={() => onAction(order.id)} className="opacity-80">
+      <div className="flex justify-between items-start mb-4">
+        <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{shortId}</span>
+        <span className="px-3 py-1 rounded bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9px] font-black uppercase tracking-widest border border-emerald-100 dark:border-emerald-500/20">Delivered</span>
       </div>
-
-      <div className="space-y-1">
-        <h4 className="text-sm font-black text-slate-900 dark:text-white leading-tight opacity-70">
-          {quantity} {unit}{quantity !== 1 ? 's' : ''} of {productName}
-        </h4>
-        <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 font-bold text-[10px] uppercase tracking-wider">
-          <span className="material-symbols-outlined text-[14px]">person</span>
-          Buyer: {buyerName}
+      <h4 className="text-sm font-black text-navy-dark dark:text-white mb-6 leading-tight tracking-tight line-clamp-2">{productName}</h4>
+      <div className="flex items-center justify-between mt-auto">
+        <div className="flex items-center gap-1.5">
+          <span className="material-symbols-outlined text-[14px] text-emerald-500">task_alt</span>
+          <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Cycle Complete</span>
         </div>
-      </div>
-      
-      <div className="mt-auto flex items-center justify-between">
-        <span className="text-[10px] font-black text-emerald-600/50 uppercase tracking-widest">
-          Payout Confirmed
-        </span>
-        <span className="material-symbols-outlined text-emerald-500/20 text-4xl -mb-4 -mr-2">check_circle</span>
+        <span className="text-sm font-black text-navy-dark dark:text-white tabular-nums tracking-widest">₦{amount.toLocaleString()}</span>
       </div>
     </CardWrapper>
   );

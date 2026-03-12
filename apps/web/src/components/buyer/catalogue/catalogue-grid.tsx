@@ -8,12 +8,16 @@ interface Props {
   products: Product[];
   setSearchQuery: (val: string) => void;
   setActiveCategory: (val: string) => void;
+  isOwner?: boolean;
+  onDelete?: (product: Product) => void;
 }
 
 export function CatalogueGrid({
   products,
   setSearchQuery,
   setActiveCategory,
+  isOwner,
+  onDelete,
 }: Props) {
   if (products.length === 0) {
     return (
@@ -45,144 +49,103 @@ export function CatalogueGrid({
   }
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
       {products.map((p) => (
         <div
           key={p.id}
-          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col group hover:shadow-md transition-shadow rounded-xl overflow-hidden shadow-sm"
+          className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex flex-col group hover:shadow-xl transition-all duration-500 rounded-2xl overflow-hidden shadow-sm"
         >
-          {/* Product Image */}
+          {/* Product Image - Absolute Square */}
           <div className="relative aspect-square overflow-hidden bg-slate-50 dark:bg-slate-800/50">
             {p.imageUrl ? (
-              <div
-                className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-                style={{ backgroundImage: `url("${p.imageUrl}")` }}
+              <img
+                src={p.imageUrl}
+                alt={p.name}
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700"
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="material-symbols-outlined text-slate-300 dark:text-slate-700 text-4xl sm:text-[80px] group-hover:scale-105 transition-transform duration-500">
+                <span className="material-symbols-outlined text-slate-200 dark:text-slate-700 text-[80px]">
                   inventory_2
                 </span>
               </div>
             )}
-            {/* Category Badge */}
-            <span className="absolute top-2 left-2 sm:top-3 sm:right-3 sm:left-auto bg-slate-900/80 backdrop-blur-sm text-white text-[8px] sm:text-[10px] font-black uppercase px-2 py-1 tracking-wider rounded-sm sm:rounded-none">
-              {p.categoryTag}
-            </span>
+            
+            {/* Verification & Floating Badges */}
+            <div className="absolute top-4 left-4 flex gap-2">
+              <span className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-[#0F2B4C] dark:text-white text-[9px] font-black uppercase px-3 py-1.5 tracking-wider rounded-lg shadow-sm border border-slate-100/50 dark:border-slate-800/50">
+                {p.categoryTag}
+              </span>
+            </div>
           </div>
 
           {/* Product Details */}
-          <div className="p-3 sm:p-4 flex flex-col flex-1">
-            <h3 className="text-[11px] sm:text-sm font-black text-slate-900 dark:text-slate-100 uppercase leading-tight line-clamp-2 min-h-[2.5em]">
-              {p.name}
-            </h3>
-
-            {/* Merchant Info */}
-            {p.merchantProfile && (
-              <Link
-                href={`/buyer/merchants/${p.merchantProfile.id}`}
-                className="flex items-center gap-1 mt-2 group/m hover:opacity-80 transition-opacity"
-              >
-                <div className="shrink-0 scale-75 sm:scale-100 origin-left">
-                  <VerificationBadge
-                    tier={p.merchantProfile.verificationTier as any}
-                  />
-                </div>
-                <span className="text-[9px] sm:text-[11px] font-black text-primary dark:text-primary-light truncate group-hover/m:underline underline-offset-2 uppercase tracking-tight">
-                  {p.merchantProfile.businessName}
-                </span>
-              </Link>
-            )}
-
-            {/* Price Details */}
-            <div className="mt-3 space-y-2">
-              {p.retailPriceKobo && (
-                <div className="flex justify-between items-end border-b border-slate-50 dark:border-slate-800 pb-1">
-                  <div>
-                    <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
-                      Retail
-                    </div>
-                    <div className="text-[10px] sm:text-xs font-bold text-slate-500">
-                      Min: {p.minOrderQuantityConsumer} {p.unit}
-                    </div>
-                  </div>
-                  <div className="text-sm font-black text-slate-900 dark:text-slate-100">
-                    {(Number(p.retailPriceKobo) / 100).toLocaleString("en-NG", {
-                      style: "currency",
-                      currency: "NGN",
-                      minimumFractionDigits: 0,
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {p.wholesalePriceKobo && (
-                <div className="flex justify-between items-end">
-                  <div>
-                    <div className="text-[8px] font-black text-primary uppercase tracking-widest">
-                      Wholesale
-                    </div>
-                    <div className="text-[10px] sm:text-xs font-bold text-slate-500">
-                      Min: {p.minOrderQuantity} {p.unit}
-                    </div>
-                  </div>
-                  <div className="text-sm font-black text-primary">
-                    {(Number(p.wholesalePriceKobo) / 100).toLocaleString(
-                      "en-NG",
-                      {
-                        style: "currency",
-                        currency: "NGN",
-                        minimumFractionDigits: 0,
-                      },
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {!p.retailPriceKobo && !p.wholesalePriceKobo && (
-                <div className="text-[10px] font-black text-slate-400 italic uppercase tracking-widest py-2">
-                  Quote Required
-                </div>
+          <div className="p-6 flex flex-col flex-1">
+            <div className="flex justify-between items-start gap-4">
+              <h3 className="text-[17px] font-black text-[#0F2B4C] dark:text-white uppercase leading-snug tracking-tighter line-clamp-2 min-h-[2.4em] flex-1">
+                {p.name}
+              </h3>
+              
+              {isOwner && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onDelete?.(p);
+                  }}
+                  className="size-8 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all shrink-0 active:scale-90"
+                  title="Delete Product"
+                >
+                  <span className="material-symbols-outlined text-xl">
+                    delete
+                  </span>
+                </button>
               )}
             </div>
 
-            {/* CTA Container */}
-            <div className="mt-4 flex flex-col gap-2">
-              <Link
-                href={`/buyer/products/${p.id}`}
-                className="w-full bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 hover:border-primary text-slate-900 dark:text-white text-[9px] sm:text-[10px] font-black py-2 rounded-lg uppercase tracking-widest text-center transition-all active:scale-95 flex items-center justify-center gap-1"
-              >
-                <span className="material-symbols-outlined text-[14px]">visibility</span>
-                View Product details
-              </Link>
-              <div className="grid grid-cols-2 gap-2">
-                {p.retailPriceKobo && (
-                  <button
-                    onClick={async (e) => {
-                      e.preventDefault();
-                      handleAdd(p, PriceType.RETAIL, p.minOrderQuantityConsumer);
-                    }}
-                    className="w-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white text-[8px] sm:text-[9px] font-black py-2 rounded-lg uppercase tracking-widest text-center transition-all active:scale-95 flex items-center justify-center gap-1"
-                  >
-                    <span className="material-symbols-outlined text-[14px]">add_shopping_cart</span>
-                    Retail
-                  </button>
-                )}
+            {/* Short Product Description */}
+            <p className="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-3 overflow-hidden">
+              {p.description || "Premium quality supplies for professional construction and industrial hardware needs."}
+            </p>
 
-                {p.wholesalePriceKobo ? (
-                  <button
-                    onClick={async (e) => {
-                      e.preventDefault();
-                      handleAdd(p, PriceType.WHOLESALE, p.minOrderQuantity);
-                    }}
-                    className="w-full bg-primary/10 hover:bg-primary text-primary hover:text-white dark:bg-primary-dark/20 dark:hover:bg-primary dark:text-primary-light text-[8px] sm:text-[9px] font-black py-2 rounded-lg uppercase tracking-widest text-center transition-all active:scale-95 flex items-center justify-center gap-1"
-                  >
-                    <span className="material-symbols-outlined text-[14px]">add_shopping_cart</span>
-                    Wholesale
-                  </button>
-                ) : (
-                  <div className="w-full" /> 
-                )}
+            <div className="mt-auto pt-6">
+              {/* Price section - Professional Black */}
+              <div className="mb-2.5">
+                <p className="text-xl font-black text-slate-950 dark:text-white tabular-nums tracking-tighter">
+                  {(Number(p.retailPriceKobo || p.wholesalePriceKobo || 0) / 100).toLocaleString("en-NG", {
+                    style: "currency",
+                    currency: "NGN",
+                    minimumFractionDigits: 2,
+                  })}
+                </p>
+              </div>
+
+              {/* CTA Row - 3 Components */}
+              <div className="flex items-center gap-3">
+                <Link
+                  href={`/buyer/products/${p.id}`}
+                  className="flex-[3] bg-[#00D084] hover:bg-[#00B873] text-white text-[11px] font-black py-4 rounded-xl uppercase tracking-widest text-center shadow-lg shadow-emerald-500/10 transition-all active:scale-95"
+                >
+                  Buy Now
+                </Link>
+                
+                <button 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleAdd(p, PriceType.RETAIL, p.minOrderQuantityConsumer);
+                  }}
+                  className="size-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center text-[#0F2B4C] dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+                  title="Add to Cart"
+                >
+                  <span className="material-symbols-outlined text-xl">shopping_cart</span>
+                </button>
+
+                <button 
+                  className="size-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center text-[#0F2B4C] dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+                  title="Save for Later"
+                >
+                  <span className="material-symbols-outlined text-xl">bookmark</span>
+                </button>
               </div>
             </div>
           </div>

@@ -160,10 +160,22 @@ export class OrderService {
       throw new BadRequestException("Product requires an RFQ");
     }
 
-    if (
-      !product.productStockCache ||
-      product.productStockCache.stock < quantity
-    ) {
+    // Handle missing stock cache: Fail closed for real products, auto-heal for seeded demo items
+    let currentStock = product.productStockCache?.stock ?? 0;
+    if (!product.productStockCache) {
+      if (product.isSeeded) {
+        this.logger.warn(`Auto-creating missing productStockCache for seeded product ${product.id}`);
+        currentStock = 100; // Safe default for demo
+        await this.prisma.productStockCache.create({
+          data: { productId: product.id, stock: currentStock },
+        });
+      } else if (product.isActive) {
+        // Fail closed for active merchant products without cache
+        throw new BadRequestException("Product inventory not initialized. Please contact the merchant.");
+      }
+    }
+
+    if (currentStock < quantity) {
       throw new BadRequestException("Insufficient stock");
     }
 
@@ -394,9 +406,23 @@ export class OrderService {
         ? product.minOrderQuantity
         : product.minOrderQuantityConsumer;
 
-      if (item.quantity < minQty) {
+      // Handle missing stock cache: Fail closed for real products, auto-heal for seeded demo items
+      let currentStock = product.productStockCache?.stock ?? 0;
+      if (!product.productStockCache) {
+        if (product.isSeeded) {
+          this.logger.warn(`Auto-creating missing productStockCache for seeded product ${product.id}`);
+          currentStock = 100;
+          await this.prisma.productStockCache.create({
+            data: { productId: product.id, stock: currentStock },
+          });
+        } else if (product.isActive) {
+          throw new BadRequestException(`Inventory not initialized for ${product.name}.`);
+        }
+      }
+
+      if (currentStock < item.quantity || item.quantity < minQty) {
         throw new BadRequestException(
-          `Quantity for ${product.name} (${item.quantity}) is below the minimum for ${item.priceType} (${minQty})`,
+          `Insufficient stock or quantity for ${product.name} is below the minimum for ${item.priceType} (${minQty})`,
         );
       }
 

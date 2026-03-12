@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getProduct } from "@/lib/api/product.api";
+import { productApi } from "@/lib/api/product.api";
 import { createDirectOrder, getDeliveryQuote } from "@/lib/api/order.api";
 import { useAuth } from "@/providers/auth-provider";
 import type { Product } from "@hardware-os/shared";
@@ -41,7 +41,7 @@ export default function CheckoutPage({
   useEffect(() => {
     async function fetchProduct() {
       try {
-        const response = await getProduct(params.productId);
+        const response = await productApi.getProduct(params.productId);
         if (!response.pricePerUnitKobo) {
           router.replace(`/buyer/rfqs/new?productId=${response.id}`);
           return;
@@ -70,7 +70,7 @@ export default function CheckoutPage({
   const createOrderMutation = useMutation({
     mutationFn: createDirectOrder,
     onError: (err: any) => {
-      setError(err?.message || "Payment initialization failed");
+      setError(err?.error || err?.message || "Payment initialization failed");
     },
     onSuccess: async (data) => {
       if (data.authorizationUrl) {
@@ -169,10 +169,27 @@ export default function CheckoutPage({
 
   if (!product) {
     return (
-      <div className="max-w-4xl mx-auto py-10">
-        <div className="p-4 bg-red-50 border border-red-200 rounded text-red-700 font-bold uppercase text-xs">
-          Product not found or unavailable for direct purchase.
+      <div className="max-w-4xl mx-auto py-20 text-center space-y-6 animate-in zoom-in duration-500">
+        <div className="size-24 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto">
+          <span className="material-symbols-outlined text-5xl text-red-500">
+            inventory_2
+          </span>
         </div>
+        <div>
+          <h4 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase">
+            Product Unavailable
+          </h4>
+          <p className="text-slate-500 font-medium text-sm mt-2 max-w-sm mx-auto">
+            This product could not be found or is no longer available for direct purchase.
+          </p>
+        </div>
+        <button
+          onClick={() => router.back()}
+          className="inline-flex items-center gap-2 text-primary font-black text-xs uppercase tracking-[0.15em] hover:underline decoration-2 underline-offset-8"
+        >
+          <span className="material-symbols-outlined text-sm">arrow_back</span>
+          Go Back
+        </button>
       </div>
     );
   }

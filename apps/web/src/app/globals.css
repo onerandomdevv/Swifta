@@ -12,7 +12,7 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: 'DM Sans', Inter, sans-serif;
+  font-family: 'Outfit', 'DM Sans', Inter, sans-serif;
   @apply antialiased;
 }
 
