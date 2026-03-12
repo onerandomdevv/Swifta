@@ -1,4 +1,8 @@
-const secretKey = process.env.PAYSTACK_SECRET_KEY || "sk_test_8de8196e7e881f0b205094bb09336c6263f58838";
+const secretKey = process.env.PAYSTACK_SECRET_KEY;
+if (!secretKey) {
+  console.error("❌ ERROR: PAYSTACK_SECRET_KEY environment variable is not set.");
+  process.exit(1);
+}
 const baseUrl = "https://api.paystack.co";
 
 async function testPaystack() {

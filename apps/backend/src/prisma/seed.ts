@@ -406,6 +406,7 @@ async function main() {
               data: {
                 merchantId: merchantProfile.id,
                 productCode: pCode, // Assign generated code
+                isSeeded: true, // Mark as demo data
                 ...prod,
               } as any,
             });
