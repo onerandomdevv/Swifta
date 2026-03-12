@@ -17,9 +17,23 @@ async function backfill() {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "");
     
-    // Fallback if businessName is empty or contains no valid chars
     const slugSeed = baseSlug || "merchant";
-    const finalSlug = `${slugSeed}-${merchant.userId.slice(0, 5)}`;
+    let finalSlug = `${slugSeed}-${merchant.userId.slice(0, 5)}`;
+    let isUnique = false;
+    let counter = 0;
+
+    while (!isUnique) {
+      const existing = await prisma.merchantProfile.findFirst({
+        where: { slug: finalSlug },
+      });
+
+      if (!existing) {
+        isUnique = true;
+      } else {
+        counter++;
+        finalSlug = `${slugSeed}-${merchant.userId.slice(0, 5)}-${counter}`;
+      }
+    }
     
     await prisma.merchantProfile.update({
       where: { id: merchant.id },
@@ -41,7 +55,22 @@ async function backfill() {
       .replace(/^-+|-+$/g, "");
     
     const codeSeed = baseCode || "product";
-    const finalCode = `${codeSeed}-${product.id.slice(0, 5)}`;
+    let finalCode = `${codeSeed}-${product.id.slice(0, 5)}`;
+    let isUnique = false;
+    let counter = 0;
+
+    while (!isUnique) {
+      const existing = await prisma.product.findFirst({
+        where: { productCode: finalCode },
+      });
+
+      if (!existing) {
+        isUnique = true;
+      } else {
+        counter++;
+        finalCode = `${codeSeed}-${product.id.slice(0, 5)}-${counter}`;
+      }
+    }
 
     await prisma.product.update({
       where: { id: product.id },

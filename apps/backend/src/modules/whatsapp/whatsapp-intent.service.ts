@@ -3,7 +3,6 @@ import { ConfigService } from "@nestjs/config";
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import {
   NUMBER_INTENT_MAP,
-  SYSTEM_PROMPT,
   GEMINI_FUNCTION_DECLARATIONS,
 } from "./whatsapp.constants";
 
@@ -225,9 +224,12 @@ export class WhatsAppIntentService {
   // Gemini function calling
   // -----------------------------------------------------------------------
   private async parseWithGemini(messageText: string): Promise<ParsedIntent> {
+    const systemPrompt =
+      this.configService.get<string>("WHATSAPP_MERCHANT_SYSTEM_PROMPT") || "";
+
     const model = this.genAI!.getGenerativeModel({
       model: "gemini-2.0-flash",
-      systemInstruction: SYSTEM_PROMPT,
+      systemInstruction: systemPrompt,
       tools: [
         {
           functionDeclarations: GEMINI_FUNCTION_DECLARATIONS.map((fd) => ({

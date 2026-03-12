@@ -4,7 +4,6 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ParsedIntent } from "./whatsapp-intent.service";
 import {
   BUYER_NUMBER_INTENT_MAP,
-  BUYER_SYSTEM_PROMPT,
   BUYER_GEMINI_FUNCTION_DECLARATIONS,
 } from "./whatsapp-buyer.constants";
 
@@ -67,9 +66,12 @@ export class WhatsAppBuyerIntentService {
   private async parseWithGemini(userMessage: string): Promise<ParsedIntent> {
     if (!this.genAI) throw new Error("Gemini AI is not initialized");
 
+    const systemPrompt =
+      this.configService.get<string>("WHATSAPP_BUYER_SYSTEM_PROMPT") || "";
+
     const model = this.genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
-      systemInstruction: BUYER_SYSTEM_PROMPT,
+      systemInstruction: systemPrompt,
       tools: [{ functionDeclarations: BUYER_GEMINI_FUNCTION_DECLARATIONS }],
     });
 
