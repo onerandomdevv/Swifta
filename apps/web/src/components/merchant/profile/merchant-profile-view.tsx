@@ -558,12 +558,27 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
 
           {/* Social Links & Website */}
           <div className="flex items-center gap-4 mt-4">
-            {profile.websiteUrl && (
-              <a href={profile.websiteUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm font-bold text-primary hover:underline">
-                <span className="material-symbols-outlined text-lg">language</span>
-                Website
-              </a>
-            )}
+            {profile.websiteUrl && (() => {
+              try {
+                // Handle cases where the URL might be relative by providing a base
+                // but checking the protocol of the resulting parsed URL
+                const urlToTest = profile.websiteUrl.startsWith('http') 
+                  ? profile.websiteUrl 
+                  : `https://${profile.websiteUrl}`;
+                const parsed = new URL(urlToTest);
+                if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+                  return (
+                    <a href={profile.websiteUrl.startsWith('http') ? profile.websiteUrl : `https://${profile.websiteUrl}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm font-bold text-primary hover:underline">
+                      <span className="material-symbols-outlined text-lg">language</span>
+                      Website
+                    </a>
+                  );
+                }
+              } catch (e) {
+                // Invalid URL - don't render the link
+              }
+              return null;
+            })()}
           </div>
         </div>
 
