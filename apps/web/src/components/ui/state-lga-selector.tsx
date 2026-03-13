@@ -70,7 +70,7 @@ export function StateLgaSelector({
     return () => {
       active = false;
     };
-  }, [selectedState]);
+  }, [selectedState, onLgaChange, selectedLga]);
 
   return (
     <div className="grid grid-cols-2 gap-3">

@@ -31,6 +31,7 @@ export interface Order {
   rfq?: any;
   product?: any;
   review?: any;
+  buyer?: any;
 }
 
 export interface OrderEvent {

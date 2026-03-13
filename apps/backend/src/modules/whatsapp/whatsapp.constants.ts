@@ -88,7 +88,6 @@ export const NUMBER_INTENT_MAP: Record<string, string> = {
 // Gemini system prompt is now managed via .env (WHATSAPP_MERCHANT_SYSTEM_PROMPT)
 // ---------------------------------------------------------------------------
 
-
 // ---------------------------------------------------------------------------
 // Gemini function declarations (for function calling)
 // ---------------------------------------------------------------------------

@@ -20,7 +20,7 @@ export function WhatsAppLinkStatus({
   variant = "default",
 }: WhatsAppLinkStatusProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [step, setStep] = useState<"phone" | "otp">("phone");
+  const [step, setStep] = useState<"intro" | "phone" | "otp" | "success">("intro");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -33,7 +33,7 @@ export function WhatsAppLinkStatus({
     setIsLoading(true);
     try {
       await authApi.initiateWhatsAppLink(phone);
-      toast.success("Verification code sent to WhatsApp!");
+      toast.success("Verification code sent!");
       setStep("otp");
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to send code");
@@ -49,104 +49,156 @@ export function WhatsAppLinkStatus({
     setIsLoading(true);
     try {
       await authApi.verifyWhatsAppLink(phone, otp);
-      toast.success("WhatsApp linked successfully!");
-      setStep("phone");
-      setPhone("");
-      setOtp("");
-      setIsModalOpen(false);
-      await refreshUser(); // Refresh user state globally
+      setStep("success");
+      await refreshUser();
       if (onSuccess) onSuccess();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Invalid or expired code");
+      toast.error(error.response?.data?.message || "Invalid code");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const resetFlow = () => {
+    setIsModalOpen(false);
+    setTimeout(() => {
+      setStep("intro");
+      setPhone("");
+      setOtp("");
+    }, 300);
+  };
+
+  const renderModalContent = () => {
+    switch (step) {
+      case "intro":
+        return (
+          <div className="p-8 text-center space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="size-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto shadow-xl shadow-primary/10">
+              <span className="material-symbols-outlined text-4xl text-primary font-variation-fill">chat</span>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-2xl font-black text-[#0f172a] dark:text-white uppercase tracking-tight">Sync your store</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm max-w-xs mx-auto">
+                Connect your WhatsApp to receive orders and manage inventory on the go.
+              </p>
+            </div>
+            <div className="grid gap-3 py-4">
+              {[
+                { icon: "schedule", text: "Real-time order alerts" },
+                { icon: "inventory_2", text: "Update stock via chat" },
+                { icon: "support_agent", text: "Direct buyer communication" }
+              ].map((benefit, i) => (
+                <div key={i} className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <span className="material-symbols-outlined text-primary text-xl">{benefit.icon}</span>
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{benefit.text}</span>
+                </div>
+              ))}
+            </div>
+            <Button onClick={() => setStep("phone")} className="w-full h-14 rounded-2xl text-base font-black uppercase tracking-widest shadow-lg shadow-primary/20">
+              Get Started
+            </Button>
+          </div>
+        );
+      case "phone":
+        return (
+          <div className="p-8 space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+            <div className="space-y-2">
+              <h3 className="text-2xl font-black text-[#0f172a] dark:text-white uppercase tracking-tight">WhatsApp Number</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">We&apos;ll send a 6-digit code to this number.</p>
+            </div>
+            <form onSubmit={handleInitiate} className="space-y-6">
+              <div className="group">
+                <Input
+                  type="tel"
+                  placeholder="e.g. +234 801 234 5678"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="h-16 text-lg font-bold border-2 rounded-2xl focus:border-primary transition-all"
+                  required
+                />
+              </div>
+              <div className="flex gap-3">
+                <Button type="button" variant="outline" onClick={() => setStep("intro")} className="h-14 px-6 rounded-2xl border-2">
+                  Back
+                </Button>
+                <Button type="submit" className="flex-1 h-14 rounded-2xl text-base font-black uppercase tracking-widest shadow-lg shadow-primary/20" disabled={isLoading}>
+                  {isLoading ? "Sending..." : "Send Code"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        );
+      case "otp":
+        return (
+          <div className="p-8 space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+            <div className="space-y-2">
+              <h3 className="text-2xl font-black text-[#0f172a] dark:text-white uppercase tracking-tight">Verify Code</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">Enter the code sent to <span className="text-primary font-bold">{phone}</span></p>
+            </div>
+            <form onSubmit={handleVerify} className="space-y-6">
+              <Input
+                type="text"
+                placeholder="0 0 0 0 0 0"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                maxLength={6}
+                className="h-16 text-center text-3xl font-black tracking-[0.5em] border-2 rounded-2xl focus:border-primary transition-all"
+                required
+              />
+              <div className="flex gap-3">
+                <Button type="button" variant="outline" onClick={() => setStep("phone")} className="h-14 px-6 rounded-2xl border-2">
+                  Back
+                </Button>
+                <Button type="submit" className="flex-1 h-14 rounded-2xl text-base font-black uppercase tracking-widest shadow-lg shadow-primary/20" disabled={isLoading}>
+                  {isLoading ? "Verifying..." : "Verify & Link"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        );
+      case "success":
+        return (
+          <div className="p-10 text-center space-y-6 animate-in zoom-in-95 duration-500">
+            <div className="size-24 bg-emerald-500 rounded-full flex items-center justify-center mx-auto shadow-2xl shadow-emerald-500/30 scale-125 animate-bounce">
+              <span className="material-symbols-outlined text-5xl text-white font-variation-fill">check_circle</span>
+            </div>
+            <div className="space-y-2 pt-4">
+              <h3 className="text-3xl font-black text-[#0f172a] dark:text-white uppercase tracking-tighter">Connected!</h3>
+              <p className="text-slate-500 text-sm mt-1">You&apos;re all set! Your WhatsApp is connected.</p>
+            </div>
+            <Button onClick={resetFlow} className="w-full h-14 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20">
+              Go to Dashboard
+            </Button>
+          </div>
+        );
     }
   };
 
   const renderModal = () => (
     <Modal
       isOpen={isModalOpen}
-      onClose={() => {
-        setIsModalOpen(false);
-        setStep("phone");
-        setOtp("");
-        setPhone("");
-      }}
-      title="Connect WhatsApp"
-      description={
-        step === "phone"
-          ? "Enter your phone number to receive a verification code on WhatsApp."
-          : "Enter the 6-digit code sent to your WhatsApp."
-      }
+      onClose={resetFlow}
+      hideHeader
+      className="relative bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] shadow-2xl w-[400px] overflow-hidden animate-in zoom-in-95 duration-300"
     >
-      <div className="mt-4">
-        {step === "phone" ? (
-          <form onSubmit={handleInitiate} className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5 block">
-                WhatsApp Number
-              </label>
-              <Input
-                type="tel"
-                placeholder="e.g. +2348012345678"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Sending..." : "Send Verification Code"}
-            </Button>
-          </form>
-        ) : (
-          <form onSubmit={handleVerify} className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5 block">
-                Verification Code
-              </label>
-              <Input
-                type="text"
-                placeholder="6-digit code"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                maxLength={6}
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Verifying..." : "Verify & Link"}
-            </Button>
-            <button
-              type="button"
-              onClick={() => setStep("phone")}
-              className="w-full text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
-            >
-              Change Number
-            </button>
-          </form>
-        )}
-      </div>
+      {renderModalContent()}
     </Modal>
   );
 
   if (isLinked) {
     if (variant === "sidebar") {
       return (
-        <div className="flex items-center gap-3 px-6 py-4">
-          <div className="size-10 rounded-full bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center shrink-0">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.201-.242-.588-.487-.51-.669-.519-.173-.008-.371-.01-.57-.01-.197 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.41 0 .01 5.399 0 12.039c0 2.123.554 4.197 1.607 6.007L0 24l6.135-1.61a11.83 11.83 0 005.91 1.57h.005c6.637 0 12.037-5.402 12.04-12.042a11.85 11.85 0 00-3.483-8.522z" fill="#25D366"/>
-            </svg>
+        <div className="bg-slate-50 dark:bg-slate-800/30 rounded-2xl p-3 border border-slate-100 dark:border-slate-800 transition-all hover:bg-white dark:hover:bg-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="relative shrink-0">
+              <span className="material-symbols-outlined text-primary text-2xl font-variation-fill">chat</span>
+              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
+              </span>
+            </div>
+            <p className="text-[10px] font-black text-[#0f172a] dark:text-white tracking-[0.1em] uppercase">WhatsApp Linked</p>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-black text-[#0F2B4C] dark:text-white leading-none">WhatsApp</p>
-          </div>
-          <button
-            disabled
-            className="px-4 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold border border-emerald-200 dark:border-emerald-800"
-          >
-            Connected
-          </button>
         </div>
       );
     }
@@ -164,21 +216,21 @@ export function WhatsAppLinkStatus({
   if (variant === "sidebar") {
     return (
       <>
-        <div className="flex items-center gap-3 px-6 py-4">
-          <div className="size-10 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-100 dark:border-slate-700">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.201-.242-.588-.487-.51-.669-.519-.173-.008-.371-.01-.57-.01-.197 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.41 0 .01 5.399 0 12.039c0 2.123.554 4.197 1.607 6.007L0 24l6.135-1.61a11.83 11.83 0 005.91 1.57h.005c6.637 0 12.037-5.402 12.04-12.042a11.85 11.85 0 00-3.483-8.522z" fill="#CBD5E1"/>
-            </svg>
+        <div className="bg-slate-50 dark:bg-slate-800/30 rounded-2xl p-3 border border-slate-100 dark:border-slate-800 transition-all">
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-100 dark:border-slate-700">
+              <span className="material-symbols-outlined text-slate-300">chat</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-black text-slate-400 tracking-[0.1em] uppercase leading-none mb-1">WhatsApp</p>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="text-[11px] font-bold text-primary hover:underline transition-all"
+              >
+                Connect Now
+              </button>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-black text-[#0F2B4C] dark:text-white leading-none">WhatsApp</p>
-          </div>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="px-5 py-1.5 rounded-full bg-[#0F2B4C] dark:bg-slate-100 text-white dark:text-[#0F2B4C] text-[11px] font-bold border border-[#0F2B4C]/20 dark:border-slate-300 hover:scale-105 transition-all shadow-md shadow-[#0F2B4C]/10"
-          >
-            Connect
-          </button>
         </div>
         {renderModal()}
       </>

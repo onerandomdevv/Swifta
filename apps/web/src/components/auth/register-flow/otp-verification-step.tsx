@@ -54,7 +54,7 @@ export function OtpVerificationStep({
           Check your inbox
         </h1>
         <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
-          We've sent a 6-digit verification code to{" "}
+          We&apos;ve sent a 6-digit verification code to{" "}
           <span className="text-slate-900 dark:text-slate-100 font-bold">
             {email}
           </span>
@@ -108,7 +108,7 @@ export function OtpVerificationStep({
       <div className="mt-8 text-center space-y-6">
         <div>
           <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-2">
-            Didn't receive the code?
+            Didn&apos;t receive the code?
           </p>
           <button
             onClick={onResend}

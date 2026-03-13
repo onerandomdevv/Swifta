@@ -6,6 +6,8 @@ import { useAuth } from "@/providers/auth-provider";
 import { getDisplayName } from "@hardware-os/shared";
 import { Logo } from "@/components/ui/logo";
 import { WhatsAppLinkStatus } from "@/components/dashboard/whatsapp-link-status";
+import { useNotifications } from "@/hooks/use-notifications";
+import { cn } from "@/lib/utils";
 
 export function MerchantSidebar({
   variant = "desktop",
@@ -14,6 +16,7 @@ export function MerchantSidebar({
 }) {
   const pathname = usePathname();
   const { logout, user } = useAuth();
+  const { unreadCount } = useNotifications();
 
   const isDesktop = variant === "desktop";
 
@@ -25,20 +28,20 @@ export function MerchantSidebar({
       href: `/buyer/merchants/${user?.merchantId}`,
     },
     { label: "Orders", icon: "format_list_bulleted", href: "/merchant/orders" },
-    { label: "Notifications", icon: "notifications", href: "/merchant/notifications" },
+    { label: "Notifications", icon: "notifications", href: "/merchant/notifications", hasBadge: true },
     {
       label: "Products & Stock",
       icon: "inventory_2",
       href: "/merchant/products",
     },
     {
-      label: "Buy Wholesale",
+      label: "Suppliers",
       icon: "factory",
       href: "/merchant/wholesale",
       isComingSoon: true,
     },
     {
-      label: "Trade Financing",
+      label: "Financing",
       icon: "sell",
       href: "/merchant/trade-financing",
       isComingSoon: true,
@@ -54,17 +57,22 @@ export function MerchantSidebar({
 
   return (
     <aside
-      className={`${isDesktop ? "hidden lg:flex w-64 border-r border-slate-200 dark:border-slate-800 sticky top-0 h-screen" : "flex w-full"} flex-col bg-white dark:bg-slate-900 shrink-0 z-50`}
+      className={cn(
+        "bg-white flex flex-col h-full border-r border-slate-200 transition-all duration-300",
+        isDesktop ? "hidden lg:flex w-72 sticky top-0 h-screen" : "flex w-full min-h-screen"
+      )}
     >
+      {/* Header/Logo Area */}
       {isDesktop && (
-        <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800/50 flex items-center gap-3">
-          <Link href="/merchant/dashboard" className="flex items-center gap-3">
-            <Logo variant="light" size="sm" className="h-9" />
+        <div className="p-6">
+          <Link href="/merchant/dashboard" className="flex items-center gap-3 group">
+            <Logo variant="light" size="sm" className="group-hover:scale-105 transition-transform" />
           </Link>
         </div>
       )}
 
-      <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
+      {/* Navigation Area */}
+      <nav className="flex-1 overflow-y-auto px-4 py-2 custom-scrollbar space-y-1">
         {navItems.map((item: any) => {
           const isActive = pathname.startsWith(item.href);
           
@@ -72,13 +80,11 @@ export function MerchantSidebar({
             return (
               <div
                 key={item.href}
-                className="flex items-center justify-between px-3 py-2 rounded text-slate-400 cursor-not-allowed group relative"
+                className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 cursor-not-allowed group relative"
               >
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined opacity-50">{item.icon}</span>
-                  <span className="text-sm">{item.label}</span>
-                </div>
-                <span className="text-[8px] font-black bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded uppercase tracking-tighter">Soon</span>
+                <span className="material-symbols-outlined opacity-50">{item.icon}</span>
+                <span className="text-sm font-medium">{item.label}</span>
+                <span className="ml-auto text-[9px] font-black uppercase tracking-widest bg-slate-50 border border-slate-100 px-2 py-0.5 rounded text-slate-400">Soon</span>
               </div>
             );
           }
@@ -86,66 +92,70 @@ export function MerchantSidebar({
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2 rounded transition-colors ${
+              className={cn(
+                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 relative group",
                 isActive
-                  ? "bg-primary/10 text-primary font-semibold"
-                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-              }`}
+                  ? "bg-primary/5 text-primary border-r-[3px] border-primary rounded-r-none"
+                  : "text-slate-500 hover:text-[#0f172a] hover:bg-slate-50"
+              )}
             >
-              <span className="material-symbols-outlined">{item.icon}</span>
-              <span className="text-sm">{item.label}</span>
+              <span className={cn("material-symbols-outlined", isActive && "font-variation-fill")}>{item.icon}</span>
+              <span className={cn("text-sm", isActive ? "font-bold" : "font-medium")}>{item.label}</span>
+              {item.hasBadge && unreadCount > 0 && (
+                <span className="ml-auto size-2 bg-primary rounded-full ring-4 ring-primary/10 animate-pulse"></span>
+              )}
             </Link>
           );
         })}
       </nav>
 
-      <WhatsAppLinkStatus 
-        isLinked={!!user?.isWhatsAppLinked} 
-        variant="sidebar" 
-      />
+      {/* Bottom Section */}
+      <div className="p-4 space-y-4">
+        <WhatsAppLinkStatus 
+          isLinked={!!user?.isWhatsAppLinked} 
+          variant="sidebar" 
+        />
 
-      <div className="p-4 pt-2 border-t border-slate-200 dark:border-slate-800">
-        <div className="flex flex-col gap-6">
-          <div className="flex items-center gap-3 px-2">
-            <div className="size-11 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex items-center justify-center border border-slate-200 dark:border-slate-700 shrink-0">
-              <span className="material-symbols-outlined text-slate-400 text-2xl">
-                person
+        {/* User Card */}
+        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-3 border border-slate-100 dark:border-slate-800 group transition-all hover:shadow-md">
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden ring-2 ring-white dark:ring-slate-800 shadow-sm shrink-0">
+              <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-400">
+                <span className="material-symbols-outlined">person</span>
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-1">
+                <p className="text-sm font-black truncate text-[#0f172a] dark:text-white leading-tight">
+                  {getDisplayName(user) || "Merchant"}
+                </p>
+                <Link href="/merchant/settings" className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-colors group/set">
+                  <span className="material-symbols-outlined text-slate-400 group-hover/set:text-primary text-lg">settings</span>
+                </Link>
+              </div>
+              <span className="text-[9px] font-black text-primary uppercase bg-primary/10 px-2 py-0.5 rounded leading-none inline-block">
+                Merchant
               </span>
             </div>
-            <div className="flex-1 overflow-hidden">
-              <p className="text-sm font-black truncate text-[#0F2B4C] dark:text-white leading-tight">
-                {getDisplayName(user) ||
-                  user?.email?.split("@")[0] ||
-                  "Merchant User"}
-              </p>
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                {user?.role === "MERCHANT"
-                  ? "Merchant"
-                  : user?.role === "BUYER"
-                    ? "Buyer"
-                    : user?.role === "SUPER_ADMIN"
-                      ? "Admin"
-                      : user?.role || "User"}
-              </p>
-            </div>
-            <Link href="/merchant/settings" className="p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors group">
-              <span className="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors text-xl">
-                settings
-              </span>
-            </Link>
           </div>
-          
-          <button
-            onClick={() => logout()}
-            className="flex items-center gap-4 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all group w-full"
-          >
-            <span className="material-symbols-outlined text-xl group-hover:scale-110 transition-transform">logout</span>
-            <span className="text-[11px] font-black uppercase tracking-[0.2em]">
-              Logout
-            </span>
-          </button>
         </div>
+
+        {/* Logout */}
+        <button
+          onClick={() => logout()}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl text-rose-500 hover:bg-rose-50 transition-all duration-200 border border-transparent hover:border-rose-100 group font-bold text-sm"
+        >
+          <span className="material-symbols-outlined text-xl group-hover:scale-110 transition-transform">logout</span>
+          Logout
+        </button>
       </div>
+
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.05); border-radius: 10px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); }
+      `}</style>
     </aside>
   );
 }

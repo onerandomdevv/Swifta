@@ -42,6 +42,7 @@ export interface MerchantProfile {
   followersCount?: number;
   description?: string;
   socialLinks?: Record<string, string>;
+  websiteUrl?: string;
   slugChangesCount?: number;
 }
 
@@ -64,4 +65,5 @@ export interface UpdateMerchantDto {
   coverImage?: string;
   description?: string;
   socialLinks?: Record<string, string>;
+  websiteUrl?: string;
 }

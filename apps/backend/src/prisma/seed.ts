@@ -380,48 +380,54 @@ async function main() {
 
         const prod = { ...rest, categoryTag, categoryId };
 
-        await prisma.$transaction(async (tx) => {
-          // Check for existence by merchantId + name
-          const existing = await tx.product.findFirst({
-            where: {
-              merchantId: merchantProfile.id,
-              name: prod.name,
-            },
-          });
-
-          let productId: string;
-
-          // Generate a deterministic product code for seed idempotency
-          const baseNameSlug = prod.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 10);
-          const pCode = `demo-building-${baseNameSlug}`;
-
-          if (existing) {
-            await tx.product.update({
-              where: { id: existing.id },
-              data: { ...prod, productCode: pCode } as any,
-            });
-            productId = existing.id;
-          } else {
-            const newProd = await tx.product.create({
-              data: {
+        await prisma.$transaction(
+          async (tx) => {
+            // Check for existence by merchantId + name
+            const existing = await tx.product.findFirst({
+              where: {
                 merchantId: merchantProfile.id,
-                productCode: pCode, // Assign generated code
-                isSeeded: true, // Mark as demo data
-                ...prod,
-              } as any,
+                name: prod.name,
+              },
             });
-            productId = newProd.id;
-          }
 
-          await tx.productStockCache.upsert({
-            where: { productId },
-            create: {
-              productId,
-              stock: 1000,
-            },
-            update: {},
-          });
-        });
+            let productId: string;
+
+            // Generate a deterministic product code for seed idempotency
+            const baseNameSlug = prod.name
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .substring(0, 10);
+            const pCode = `demo-building-${baseNameSlug}`;
+
+            if (existing) {
+              await tx.product.update({
+                where: { id: existing.id },
+                data: { ...prod, productCode: pCode } as any,
+              });
+              productId = existing.id;
+            } else {
+              const newProd = await tx.product.create({
+                data: {
+                  merchantId: merchantProfile.id,
+                  productCode: pCode, // Assign generated code
+                  isSeeded: true, // Mark as demo data
+                  ...prod,
+                } as any,
+              });
+              productId = newProd.id;
+            }
+
+            await tx.productStockCache.upsert({
+              where: { productId },
+              create: {
+                productId,
+                stock: 1000,
+              },
+              update: {},
+            });
+          },
+          { timeout: 15000 },
+        );
       }
       console.log(`✅ Sample products verified/seeded for Demo Merchant.`);
     }
