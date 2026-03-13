@@ -40,14 +40,14 @@ export class AuthController {
     res.cookie("hwos_access_token", tokens.accessToken, {
       httpOnly: true,
       secure: isProd,
-      sameSite: isProd ? "none" : "lax",
+      sameSite: isProd ? "none" : false,
       maxAge: 15 * 60 * 1000,
       path: "/",
     });
     res.cookie("hwos_refresh_token", tokens.refreshToken, {
       httpOnly: true,
       secure: isProd,
-      sameSite: isProd ? "none" : "lax",
+      sameSite: isProd ? "none" : false,
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: "/",
     });
@@ -58,7 +58,7 @@ export class AuthController {
     const cookieOptions = {
       httpOnly: true,
       secure: isProd,
-      sameSite: isProd ? ("none" as const) : ("lax" as const),
+      sameSite: isProd ? ("none" as const) : false,
       path: "/",
     };
     res.clearCookie("hwos_access_token", cookieOptions);

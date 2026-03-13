@@ -19,6 +19,7 @@ export interface Product {
   productCode: string;
   name: string;
   description?: string;
+  shortDescription?: string;
   unit: string;
   categoryTag: string;
   categoryId: string;
@@ -44,6 +45,7 @@ export interface Product {
 export interface CreateProductDto {
   name: string;
   description?: string;
+  shortDescription?: string;
   unit: string;
   categoryTag: string;
   categoryId: string;

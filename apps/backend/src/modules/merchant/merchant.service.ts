@@ -77,11 +77,13 @@ export class MerchantService {
 
     return {
       ...merchant,
-      contact: merchant.user ? {
-        email: merchant.user.email,
-        phone: merchant.user.phone,
-        emailVerified: merchant.user.emailVerified,
-      } : null,
+      contact: merchant.user
+        ? {
+            email: merchant.user.email,
+            phone: merchant.user.phone,
+            emailVerified: merchant.user.emailVerified,
+          }
+        : null,
       slugChangesCount,
     };
   }
@@ -334,7 +336,9 @@ export class MerchantService {
     if (directMatch) return directMatch;
 
     // Check history for redirection
-    const historyMatch = await (this.prisma as any).merchantSlugHistory.findFirst({
+    const historyMatch = await (
+      this.prisma as any
+    ).merchantSlugHistory.findFirst({
       where: { oldSlug: slug.toLowerCase() },
       include: {
         merchantProfile: {
@@ -390,11 +394,15 @@ export class MerchantService {
     });
     if (isTaken) throw new BadRequestException("Username is already in use.");
 
-    const isReserved = await (this.prisma as any).merchantSlugHistory.findFirst({
-      where: { oldSlug: newSlug },
-    });
+    const isReserved = await (this.prisma as any).merchantSlugHistory.findFirst(
+      {
+        where: { oldSlug: newSlug },
+      },
+    );
     if (isReserved)
-      throw new BadRequestException("Username is reserved by another merchant.");
+      throw new BadRequestException(
+        "Username is reserved by another merchant.",
+      );
 
     // 3. Cooldown check (7 days)
     if ((merchant as any).lastSlugChangeAt) {
@@ -404,7 +412,7 @@ export class MerchantService {
       if (coolingDays < 7) {
         const remaining = Math.ceil(7 - coolingDays);
         throw new BadRequestException(
-      `Please wait ${remaining} more day(s) before changing your username again.`,
+          `Please wait ${remaining} more day(s) before changing your username again.`,
         );
       }
     }
@@ -479,7 +487,9 @@ export class MerchantService {
       });
     } catch (error: any) {
       if (error.code === "P2002") {
-        throw new BadRequestException("You are already following this merchant");
+        throw new BadRequestException(
+          "You are already following this merchant",
+        );
       }
       throw error;
     }

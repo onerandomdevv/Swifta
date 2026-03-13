@@ -95,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       },
     });
-  }, [handleRefresh, clearAuth, router]);
+  }, [handleRefresh, clearAuth, router, isPublicAuthRoute]);
 
   const login = async (identifier: string, password: string) => {
     const response = await authApi.login({ identifier, password });

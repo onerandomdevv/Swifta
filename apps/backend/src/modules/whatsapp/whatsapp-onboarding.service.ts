@@ -1188,23 +1188,23 @@ export class WhatsAppOnboardingService {
             role: "MERCHANT",
             emailVerified: true,
             phoneVerified: true,
-                merchantProfile: {
-                  create: {
-                    businessName: data.businessName,
-                    slug:
-                      data.businessName
-                        .toLowerCase()
-                        .replace(/[^a-z0-9]+/g, "-")
-                        .replace(/^-+|-+$/g, "")
-                        .substring(0, 20) +
-                      "-" +
-                      Date.now().toString(36),
-                    bankCode: data.bankCode,
-                    bankAccountNumber: data.accountNumber,
-                    settlementAccountName: data.accountName,
-                    verificationTier: "BASIC",
-                  } as any,
-                },
+            merchantProfile: {
+              create: {
+                businessName: data.businessName,
+                slug:
+                  data.businessName
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, "-")
+                    .replace(/^-+|-+$/g, "")
+                    .substring(0, 20) +
+                  "-" +
+                  Date.now().toString(36),
+                bankCode: data.bankCode,
+                bankAccountNumber: data.accountNumber,
+                settlementAccountName: data.accountName,
+                verificationTier: "BASIC",
+              } as any,
+            },
           },
         });
 

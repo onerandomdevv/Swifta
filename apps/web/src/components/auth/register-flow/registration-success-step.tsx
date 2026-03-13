@@ -39,7 +39,7 @@ export function RegistrationSuccessStep({
             </span>
             <div>
               <p className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-tight mb-1">
-                What's next?
+                What&apos;s next?
               </p>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                 Complete your company profile to start listing products for

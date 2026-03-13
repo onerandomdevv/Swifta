@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { PriceType, type Product } from "@hardware-os/shared";
 import { VerificationBadge } from "@/components/ui/verification-badge";
 import { StarRating } from "@/components/ui/star-rating";
+import { toast } from "sonner";
 
 interface Props {
   products: Product[];
@@ -19,6 +20,16 @@ export function CatalogueGrid({
   isOwner,
   onDelete,
 }: Props) {
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleCopy = (productId: string) => {
+    const url = `${window.location.origin}/buyer/products/${productId}`;
+    navigator.clipboard.writeText(url);
+    setCopiedId(productId);
+    toast.success("Product link copied to clipboard");
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
   if (products.length === 0) {
     return (
       <div className="py-20 text-center space-y-6 animate-in zoom-in duration-500">
@@ -85,22 +96,6 @@ export function CatalogueGrid({
               <h3 className="text-[17px] font-black text-[#0F2B4C] dark:text-white uppercase leading-snug tracking-tighter line-clamp-2 min-h-[2.4em] flex-1">
                 {p.name}
               </h3>
-              
-              {isOwner && (
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onDelete?.(p);
-                  }}
-                  className="size-8 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all shrink-0 active:scale-90"
-                  title="Delete Product"
-                >
-                  <span className="material-symbols-outlined text-xl">
-                    delete
-                  </span>
-                </button>
-              )}
             </div>
 
             {/* Short Product Description */}
@@ -120,32 +115,64 @@ export function CatalogueGrid({
                 </p>
               </div>
 
-              {/* CTA Row - 3 Components */}
-              <div className="flex items-center gap-3">
+              {/* CTA Row */}
+              <div className="flex items-center gap-2">
                 <Link
                   href={`/buyer/products/${p.id}`}
-                  className="flex-[3] bg-[#00D084] hover:bg-[#00B873] text-white text-[11px] font-black py-4 rounded-xl uppercase tracking-widest text-center shadow-lg shadow-emerald-500/10 transition-all active:scale-95"
+                  className="flex-1 bg-[#00D084] hover:bg-[#00B873] text-white text-[10px] font-black py-4 rounded-xl uppercase tracking-widest text-center shadow-lg shadow-emerald-500/10 transition-all active:scale-95"
                 >
-                  Buy Now
+                  {isOwner ? "View Product" : "Buy Now"}
                 </Link>
                 
-                <button 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleAdd(p, PriceType.RETAIL, p.minOrderQuantityConsumer);
-                  }}
-                  className="size-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center text-[#0F2B4C] dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
-                  title="Add to Cart"
-                >
-                  <span className="material-symbols-outlined text-xl">shopping_cart</span>
-                </button>
-
-                <button 
-                  className="size-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center text-[#0F2B4C] dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
-                  title="Save for Later"
-                >
-                  <span className="material-symbols-outlined text-xl">bookmark</span>
-                </button>
+                {isOwner ? (
+                  <>
+                    <Link
+                      href={`/merchant/products/${p.id}`}
+                      className="size-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center text-[#0F2B4C] dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+                      title="Edit Product"
+                    >
+                      <span className="material-symbols-outlined text-xl">edit</span>
+                    </Link>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        onDelete?.(p);
+                      }}
+                      className="size-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all shadow-sm"
+                      title="Delete Product"
+                    >
+                      <span className="material-symbols-outlined text-xl">delete</span>
+                    </button>
+                    <button
+                      onClick={() => handleCopy(p.id)}
+                      className="size-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center text-[#0F2B4C] dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+                      title="Copy Product Link"
+                    >
+                      <span className="material-symbols-outlined text-xl">
+                        {copiedId === p.id ? "check_circle" : "content_copy"}
+                      </span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleAdd(p, PriceType.RETAIL, p.minOrderQuantityConsumer);
+                      }}
+                      className="size-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center text-[#0F2B4C] dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+                      title="Add to Cart"
+                    >
+                      <span className="material-symbols-outlined text-xl">shopping_cart</span>
+                    </button>
+                    <button 
+                      className="size-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center text-[#0F2B4C] dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+                      title="Save for Later"
+                    >
+                      <span className="material-symbols-outlined text-xl">bookmark</span>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>
