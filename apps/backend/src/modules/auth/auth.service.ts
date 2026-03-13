@@ -119,7 +119,9 @@ export class AuthService {
               merchantProfile: {
                 create: {
                   businessName: dto.businessName,
-                  slug: dto.slug || (await this.generateUniqueSlug(dto.businessName)),
+                  slug:
+                    dto.slug ||
+                    (await this.generateUniqueSlug(dto.businessName)),
                 } as any,
               },
             }

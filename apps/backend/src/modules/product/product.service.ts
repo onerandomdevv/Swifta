@@ -22,13 +22,17 @@ export class ProductService {
   ) {}
 
   async create(merchantId: string, dto: CreateProductDto) {
-    const { pricePerUnitKobo, retailPriceKobo, wholesaleDiscountPercent, ...rest } =
-      dto;
+    const {
+      pricePerUnitKobo,
+      retailPriceKobo,
+      wholesaleDiscountPercent,
+      ...rest
+    } = dto;
 
     // 1. Fetch the merchant's slug
     const merchant = await this.prisma.merchantProfile.findUnique({
       where: { id: merchantId },
-      select: { slug: true }
+      select: { slug: true },
     });
 
     if (!merchant) {
@@ -36,13 +40,21 @@ export class ProductService {
     }
 
     // 2. Generate Product Code (Format: merchantSlug-productNameSlug-shortId)
-    const baseNameSlug = dto.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 15);
+    const baseNameSlug = dto.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .substring(0, 15);
     const shortId = randomBytes(3).toString("hex"); // 6 character hash
     const productCode = `${merchant.slug}-${baseNameSlug}-${shortId}`;
 
     // Auto-compute wholesale price from retail price and discount
     let computedWholesaleKobo: bigint | null = null;
-    if (retailPriceKobo && wholesaleDiscountPercent && wholesaleDiscountPercent > 0) {
+    if (
+      retailPriceKobo &&
+      wholesaleDiscountPercent &&
+      wholesaleDiscountPercent > 0
+    ) {
       const retailBigInt = BigInt(retailPriceKobo);
       computedWholesaleKobo = BigInt(
         Math.round(Number(retailBigInt) * (1 - wholesaleDiscountPercent / 100)),
@@ -221,8 +233,8 @@ export class ProductService {
     );
 
     // Map the response to include string-serialized values + stockAvailability
-    response.data = response.data.map((product: any) => 
-      this.mapProductForPublic(product, buyerType)
+    response.data = response.data.map((product: any) =>
+      this.mapProductForPublic(product, buyerType),
     );
 
     return response;
@@ -287,8 +299,8 @@ export class ProductService {
     );
 
     // 3. Map response
-    response.data = response.data.map((product: any) => 
-      this.mapProductForPublic(product, buyerType)
+    response.data = response.data.map((product: any) =>
+      this.mapProductForPublic(product, buyerType),
     );
 
     return response;

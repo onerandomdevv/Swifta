@@ -21,7 +21,6 @@ export const BUYER_NUMBER_INTENT_MAP: Record<string, string> = {
 // Gemini buyer system prompt is now managed via .env (WHATSAPP_BUYER_SYSTEM_PROMPT)
 // ---------------------------------------------------------------------------
 
-
 export const BUYER_GEMINI_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
   {
     name: "search_products",

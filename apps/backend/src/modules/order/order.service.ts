@@ -164,14 +164,18 @@ export class OrderService {
     let currentStock = product.productStockCache?.stock ?? 0;
     if (!product.productStockCache) {
       if (product.isSeeded) {
-        this.logger.warn(`Auto-creating missing productStockCache for seeded product ${product.id}`);
+        this.logger.warn(
+          `Auto-creating missing productStockCache for seeded product ${product.id}`,
+        );
         currentStock = 100; // Safe default for demo
         await this.prisma.productStockCache.create({
           data: { productId: product.id, stock: currentStock },
         });
       } else if (product.isActive) {
         // Fail closed for active merchant products without cache
-        throw new BadRequestException("Product inventory not initialized. Please contact the merchant.");
+        throw new BadRequestException(
+          "Product inventory not initialized. Please contact the merchant.",
+        );
       }
     }
 
@@ -410,13 +414,17 @@ export class OrderService {
       let currentStock = product.productStockCache?.stock ?? 0;
       if (!product.productStockCache) {
         if (product.isSeeded) {
-          this.logger.warn(`Auto-creating missing productStockCache for seeded product ${product.id}`);
+          this.logger.warn(
+            `Auto-creating missing productStockCache for seeded product ${product.id}`,
+          );
           currentStock = 100;
           await this.prisma.productStockCache.create({
             data: { productId: product.id, stock: currentStock },
           });
         } else if (product.isActive) {
-          throw new BadRequestException(`Inventory not initialized for ${product.name}.`);
+          throw new BadRequestException(
+            `Inventory not initialized for ${product.name}.`,
+          );
         }
       }
 

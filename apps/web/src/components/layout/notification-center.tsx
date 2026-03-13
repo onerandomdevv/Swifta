@@ -168,7 +168,7 @@ export function NotificationCenter({
                   No notifications yet
                 </h4>
                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                  We'll alert you when trade activity occurs.
+                  We&apos;ll alert you when trade activity occurs.
                 </p>
               </div>
             </div>

@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatKobo } from "@/lib/utils";
-import { Skeleton } from "@/components/ui/skeleton";
 import { getOrders, getOrderSummary } from "@/lib/api/order.api";
 import { merchantApi } from "@/lib/api/merchant.api";
 import { useToast } from "@/providers/toast-provider";
@@ -37,32 +36,32 @@ function getStatusBadge(status: string) {
     case OrderStatus.COMPLETED:
     case OrderStatus.DELIVERED:
       return (
-        <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 text-[10px] font-bold uppercase border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
           SUCCESS
         </span>
       );
     case OrderStatus.PAID:
     case OrderStatus.DISPATCHED:
       return (
-        <span className="bg-blue-100 text-blue-700 px-2 py-0.5 text-[10px] font-bold uppercase border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
           IN ESCROW
         </span>
       );
     case OrderStatus.CANCELLED:
       return (
-        <span className="bg-slate-100 text-slate-700 px-2 py-0.5 text-[10px] font-bold uppercase border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
           REFUNDED
         </span>
       );
     case OrderStatus.DISPUTE:
       return (
-        <span className="bg-red-100 text-red-700 px-2 py-0.5 text-[10px] font-bold uppercase border border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
           DISPUTE
         </span>
       );
     default:
       return (
-        <span className="bg-amber-100 text-amber-700 px-2 py-0.5 text-[10px] font-bold uppercase border border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
           PENDING
         </span>
       );
@@ -97,18 +96,19 @@ export default function MerchantPayoutsPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Auto-resolve account name when bank code and account number criteria are met
+  // Auto-resolve account name
   React.useEffect(() => {
     if (formBankCode && formAccountNo.length === 10) {
       setIsResolving(true);
       setResolveError("");
 
-      merchantApi.resolveBankAccount(formAccountNo, formBankCode)
+      merchantApi
+        .resolveBankAccount(formAccountNo, formBankCode)
         .then((data) => {
           setFormAccountName(data.accountName);
           setIsResolving(false);
         })
-        .catch((err) => {
+        .catch(() => {
           setResolveError("Account resolution failed. Please check details.");
           setFormAccountName("");
           setIsResolving(false);
@@ -143,7 +143,6 @@ export default function MerchantPayoutsPage() {
     queryFn: merchantApi.getBanks,
   });
 
-  // Filter banks based on search query
   const filteredBanks = banksList.filter((bank) =>
     bank.name.toLowerCase().includes(bankSearchQuery.toLowerCase()),
   );
@@ -151,9 +150,7 @@ export default function MerchantPayoutsPage() {
   const hasBankInfo = !!(profile as any)?.bankAccountNumber;
   const bankName = resolveBankName((profile as any)?.bankCode, banksList);
   const accountNo = maskAccountNo((profile as any)?.bankAccountNumber);
-  const accountName =
-    (profile as any)?.settlementAccountName || "Not configured";
-  const businessName = (profile as any)?.businessName || "Merchant";
+  const accountName = (profile as any)?.settlementAccountName || "Not configured";
   const isVerified =
     (profile as any)?.verificationTier === "VERIFIED" ||
     (profile as any)?.verificationTier === "TRUSTED";
@@ -171,7 +168,6 @@ export default function MerchantPayoutsPage() {
     },
     onError: (err: any) => {
       toast.error(err?.message || "Failed to update bank details");
-      console.error(err);
     },
   });
 
@@ -204,7 +200,8 @@ export default function MerchantPayoutsPage() {
     }
     setIsRequestingPayout(true);
 
-    merchantApi.requestPayout({ amount: Number(summary.escrow) })
+    merchantApi
+      .requestPayout({ amount: Number(summary.escrow) })
       .then(() => {
         toast.success(
           "Payout request submitted! Funds will be transferred within 24 hours.",
@@ -220,432 +217,333 @@ export default function MerchantPayoutsPage() {
       });
   };
 
-  // All orders sorted by date (most recent first) for the ledger
   const ledgerOrders = [...orders].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 
   if (isLoading) {
     return (
-      <div className="h-full bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-6 lg:p-8 flex flex-col lg:flex-row gap-6 animate-in fade-in duration-500">
-        <div className="flex-1 space-y-8">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Skeleton className="h-32 w-full rounded" />
-            <Skeleton className="h-32 w-full rounded" />
-            <Skeleton className="h-32 w-full rounded" />
-            <Skeleton className="h-32 w-full rounded" />
-          </div>
-          <Skeleton className="h-[400px] w-full rounded" />
-        </div>
-        <aside className="w-full lg:w-96 shrink-0 space-y-6">
-          <Skeleton className="h-64 w-full rounded" />
-          <Skeleton className="h-48 w-full rounded" />
-        </aside>
+      <div className="h-full bg-background-light dark:bg-background-dark p-8 flex flex-col items-center justify-center gap-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading payouts...</p>
       </div>
     );
   }
 
   if (isError) {
     return (
-      <div className="h-full bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-8 flex items-center justify-center">
-        <div className="text-center">
-          <span className="material-symbols-outlined text-5xl text-red-400 mb-4">
-            error
-          </span>
-          <p className="text-red-500 font-bold">Failed to load payout data</p>
-        </div>
+      <div className="h-full bg-background-light dark:bg-background-dark p-8 flex flex-col items-center justify-center space-y-4 text-center">
+        <span className="material-symbols-outlined text-5xl text-red-400">error</span>
+        <p className="text-red-500 font-bold">Failed to load payout data</p>
       </div>
     );
   }
 
   return (
-    <div className="h-full bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex flex-col lg:flex-row animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* ═══════════ Left Content: Dashboard & Ledger ═══════════ */}
-      <div className="flex-1 p-6 lg:p-8 space-y-8 overflow-y-auto">
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {/* Escrow */}
-          <div className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Escrow Balance
-              </p>
-              <span className="material-symbols-outlined text-primary">
-                account_balance_wallet
-              </span>
-            </div>
-            <p className="text-3xl font-extrabold tracking-tighter text-slate-900 dark:text-white">
-              {formatKobo(summary?.escrow ?? 0)}
-            </p>
-            <div className="mt-2 flex items-center gap-1 text-slate-500">
-              <span className="text-xs font-bold">Balance in transition</span>
-            </div>
-          </div>
+    <div className="bg-background-light dark:bg-background-dark min-h-screen font-display text-slate-900 dark:text-slate-100">
+      <div className="flex flex-col lg:flex-row">
+        {/* Main Content */}
+        <main className="flex-1 min-w-0 flex flex-col">
+          {/* Header */}
+          <header className="p-4 md:p-8 pb-4">
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Payouts & Settlement</h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">Track your earnings, manage bank details, and request payouts.</p>
+          </header>
 
-          {/* Paid Out */}
-          <div className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Total Paid Out
-              </p>
-              <span className="material-symbols-outlined text-emerald-500">
-                verified_user
-              </span>
-            </div>
-            <p className="text-3xl font-extrabold tracking-tighter text-slate-900 dark:text-white">
-              {formatKobo(summary?.paidOut ?? 0)}
-            </p>
-            <div className="mt-2 flex items-center gap-1 text-emerald-600">
-              <span className="material-symbols-outlined text-sm">
-                check_circle
-              </span>
-              <span className="text-xs font-bold">Payouts healthy</span>
-            </div>
-          </div>
-
-          {/* Pending */}
-          <div className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Pending Approval
-              </p>
-              <span className="material-symbols-outlined text-amber-500">
-                schedule
-              </span>
-            </div>
-            <p className="text-3xl font-extrabold tracking-tighter text-slate-900 dark:text-white">
-              {formatKobo(summary?.pending ?? 0)}
-            </p>
-            <div className="mt-2 flex items-center gap-1 text-slate-500">
-              <span className="text-xs font-bold">
-                Orders awaiting approval
-              </span>
-            </div>
-          </div>
-
-          {/* Failed */}
-          <div className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Failed / Disputed
-              </p>
-              <span className="material-symbols-outlined text-red-500">
-                error
-              </span>
-            </div>
-            <p className="text-3xl font-extrabold tracking-tighter text-slate-900 dark:text-white">
-              {formatKobo(summary?.failed ?? 0)}
-            </p>
-            {summary?.failed && summary.failed > 0 && (
-              <div className="mt-2 flex items-center gap-1 text-red-600">
-                <span className="text-xs font-bold">Requires attention</span>
+          {/* KPI Cards */}
+          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 px-4 md:px-8 py-4">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <span className="material-symbols-outlined text-primary">account_balance_wallet</span>
+                </div>
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* ═══════════ Transaction Ledger Table ═══════════ */}
-        <div className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 p-4">
-            <h3 className="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-sm">
-              Transaction Ledger
-            </h3>
-            <button className="flex items-center gap-2 border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 uppercase tracking-widest text-slate-700 dark:text-slate-300">
-              <span className="material-symbols-outlined text-sm">
-                download
-              </span>{" "}
-              Export CSV
-            </button>
-          </div>
-
-          {ledgerOrders.length > 0 ? (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-left min-w-[800px]">
-                  <thead>
-                    <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50">
-                      <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">
-                        Date
-                      </th>
-                      <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">
-                        Order Ref
-                      </th>
-                      <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">
-                        Amount
-                      </th>
-                      <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {ledgerOrders.map((order) => (
-                      <tr
-                        key={order.id}
-                        className="hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                      >
-                        <td className="px-4 py-4 text-sm whitespace-nowrap text-slate-700 dark:text-slate-300">
-                          {formatDate(order.createdAt)}
-                        </td>
-                        <td className="px-4 py-4 text-sm font-mono text-primary whitespace-nowrap">
-                          {order.id.slice(0, 8).toUpperCase()}
-                        </td>
-                        <td className="px-4 py-4 text-sm font-bold text-slate-900 dark:text-white">
-                          {formatKobo(
-                            Number(order.totalAmountKobo) +
-                              Number(order.deliveryFeeKobo),
-                          )}
-                        </td>
-                        <td className="px-4 py-4">
-                          {getStatusBadge(order.status)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 p-4 flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-500">
-                  Showing {ledgerOrders.length} transactions
-                </span>
-              </div>
-            </>
-          ) : (
-            <div className="p-16 text-center">
-              <span className="material-symbols-outlined text-4xl text-slate-300 mb-3">
-                payments
-              </span>
-              <p className="text-slate-500 font-medium text-sm">
-                No payouts yet. Complete your first delivery to receive your
-                first payout.
-              </p>
+              <p className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">Escrow Balance</p>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{formatKobo(summary?.escrow ?? 0)}</h3>
+              <p className="text-slate-400 text-sm mt-1">Balance in transition</p>
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* ═══════════ Right Sidebar: Settlement ═══════════ */}
-      <aside className="w-full border-l border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 p-6 lg:w-96 shrink-0 overflow-y-auto">
-        <div className="space-y-6 lg:sticky lg:top-0">
-          {/* Settlement Account Card */}
-          <div className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-6">
-              <div
-                className={`h-10 w-10 flex items-center justify-center border ${hasBankInfo ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-100 dark:border-emerald-800" : "bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-100 dark:border-amber-800"}`}
-              >
-                <span className="material-symbols-outlined">
-                  {hasBankInfo ? "verified_user" : "warning"}
-                </span>
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+                  <span className="material-symbols-outlined text-emerald-600 dark:text-emerald-400">verified_user</span>
+                </div>
               </div>
-              <div>
-                <h4 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white">
-                  Settlement Account
-                </h4>
-                <p
-                  className={`text-[10px] font-bold uppercase ${hasBankInfo ? "text-emerald-600" : "text-amber-600"}`}
-                >
-                  {hasBankInfo
-                    ? isVerified
-                      ? "Verified & Active"
-                      : "Configured"
-                    : "Not Configured"}
-                </p>
-              </div>
+              <p className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">Total Paid Out</p>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{formatKobo(summary?.paidOut ?? 0)}</h3>
+              <p className="text-emerald-500 text-sm mt-1">Payouts healthy</p>
             </div>
+
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                  <span className="material-symbols-outlined text-amber-600 dark:text-amber-400">schedule</span>
+                </div>
+              </div>
+              <p className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">Pending Approval</p>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{formatKobo(summary?.pending ?? 0)}</h3>
+              <p className="text-amber-500 text-sm mt-1">Orders awaiting approval</p>
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                  <span className="material-symbols-outlined text-red-600 dark:text-red-400">error</span>
+                </div>
+              </div>
+              <p className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">Failed / Disputed</p>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{formatKobo(summary?.failed ?? 0)}</h3>
+              {(summary?.failed ?? 0) > 0 && (
+                <p className="text-red-500 text-sm mt-1 font-medium">Requires attention</p>
+              )}
+            </div>
+          </section>
+
+          {/* Transaction Ledger */}
+          <section className="px-4 md:px-8 py-6 flex-1">
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col">
+              <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Transaction Ledger</h2>
+                <button className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg text-sm font-semibold transition-colors">
+                  <span className="material-symbols-outlined text-sm">download</span>
+                  Export CSV
+                </button>
+              </div>
+
+              {ledgerOrders.length > 0 ? (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse min-w-[700px]">
+                      <thead className="bg-slate-50 dark:bg-slate-900/50">
+                        <tr>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Date</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Order Ref</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Amount</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                        {ledgerOrders.map((order) => (
+                          <tr key={order.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                            <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                              {formatDate(order.createdAt)}
+                            </td>
+                            <td className="px-6 py-4 text-sm font-mono text-primary font-semibold whitespace-nowrap">
+                              {order.id.slice(0, 8).toUpperCase()}
+                            </td>
+                            <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white text-right">
+                              {formatKobo(
+                                Number(order.totalAmountKobo) + Number(order.deliveryFeeKobo),
+                              )}
+                            </td>
+                            <td className="px-6 py-4">
+                              {getStatusBadge(order.status)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="mt-auto p-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                    <span className="text-sm text-slate-500">
+                      Showing {ledgerOrders.length} transactions
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div className="p-16 text-center flex flex-col items-center gap-3">
+                  <span className="material-symbols-outlined text-4xl text-slate-300">payments</span>
+                  <p className="text-slate-500 font-medium text-sm">
+                    No payouts yet. Complete your first delivery to receive your first payout.
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
+        </main>
+
+        {/* Right Sidebar */}
+        <aside className="w-full lg:w-[380px] bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 p-6 lg:p-8 flex flex-col gap-6 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto shrink-0">
+          {/* Settlement Account */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Settlement Account</h3>
 
             {hasBankInfo && !isEditingBank ? (
-              <div className="space-y-4">
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest">
-                    Bank Name
-                  </label>
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                    {bankName}
-                  </p>
+              <>
+                {/* Bank Card */}
+                <div className="p-5 rounded-2xl bg-[#0f172a] text-white relative overflow-hidden shadow-lg">
+                  <div className="absolute -top-12 -right-12 w-24 h-24 bg-primary/20 rounded-full blur-2xl"></div>
+                  <div className="relative z-10">
+                    <div className="flex justify-between items-center mb-6">
+                      <div className="flex items-center gap-2 px-2 py-1 bg-primary/20 border border-primary/30 rounded text-[10px] text-primary font-bold uppercase tracking-tight">
+                        <span className="material-symbols-outlined text-[12px] font-bold">verified</span>
+                        {isVerified ? "Verified" : "Configured"}
+                      </div>
+                      <span className="material-symbols-outlined text-slate-400">credit_card</span>
+                    </div>
+                    <h4 className="text-lg font-bold">{bankName}</h4>
+                    <p className="text-slate-400 text-sm font-mono tracking-widest mt-1">{accountNo}</p>
+                    <div className="mt-6 flex justify-between items-end">
+                      <div>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Account Holder</p>
+                        <p className="text-sm font-semibold">{accountName}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest">
-                    Account Number
-                  </label>
-                  <p className="text-sm font-mono tracking-widest text-slate-800 dark:text-slate-200">
-                    {accountNo}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest">
-                    Account Name
-                  </label>
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                    {accountName}
-                  </p>
-                </div>
-              </div>
+                <button
+                  onClick={handleEditClick}
+                  className="inline-flex items-center gap-2 text-primary text-sm font-bold hover:underline"
+                >
+                  Update Settlement Details
+                  <span className="material-symbols-outlined text-sm">chevron_right</span>
+                </button>
+              </>
             ) : isEditingBank ? (
-              <form onSubmit={handleUpdateBank} className="space-y-4 pt-2">
-                <div className="relative" ref={bankDropdownRef}>
-                  <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest block mb-1">
-                    Bank
-                  </label>
-                  <input
-                    type="text"
-                    value={bankSearchQuery}
-                    onChange={(e) => {
-                      setBankSearchQuery(e.target.value);
-                      setFormBankCode(""); // Reset code if they change the text
-                      setIsBankDropdownOpen(true);
-                    }}
-                    onFocus={() => setIsBankDropdownOpen(true)}
-                    placeholder={
-                      isLoadingBanks ? "Loading banks..." : "Search bank..."
-                    }
-                    className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-2 text-sm text-slate-900 dark:text-white"
-                    disabled={isLoadingBanks}
-                  />
-                  {isBankDropdownOpen && !isLoadingBanks && (
-                    <ul className="absolute z-10 w-full mt-1 max-h-48 overflow-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg">
-                      {filteredBanks.length > 0 ? (
-                        filteredBanks.map((bank) => (
-                          <li
-                            key={bank.code}
-                            onClick={() => {
-                              setFormBankCode(bank.code);
-                              setBankSearchQuery(bank.name);
-                              setIsBankDropdownOpen(false);
-                            }}
-                            className="p-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
-                          >
-                            {bank.name}
-                          </li>
-                        ))
-                      ) : (
-                        <li className="p-2 text-sm text-slate-500 italic">
-                          No banks found
-                        </li>
-                      )}
-                    </ul>
-                  )}
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest block mb-1">
-                    Account Number
-                  </label>
-                  <input
-                    type="text"
-                    value={formAccountNo}
-                    onChange={(e) => setFormAccountNo(e.target.value)}
-                    required
-                    maxLength={10}
-                    className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-2 text-sm text-slate-900 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest block mb-1">
-                    Account Name
-                  </label>
-                  <input
-                    type="text"
-                    value={formAccountName}
-                    readOnly
-                    placeholder={
-                      isResolving
-                        ? "Resolving name..."
-                        : "Auto-filled from bank"
-                    }
-                    className="w-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-2 text-sm text-slate-900 dark:text-white disabled:opacity-50"
-                  />
-                  {resolveError && (
-                    <p className="text-[10px] text-red-500 mt-1 font-bold">
-                      {resolveError}
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditingBank(false)}
-                    className="flex-1 border border-slate-200 dark:border-slate-800 p-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={
-                      updateBankMutation.isPending ||
-                      isResolving ||
-                      !formAccountName
-                    }
-                    className="flex-1 bg-primary text-white p-2 text-xs font-bold uppercase tracking-widest hover:bg-primary/90 disabled:opacity-50"
-                  >
-                    Save
-                  </button>
-                </div>
-              </form>
+              /* Edit Bank Form */
+              <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 space-y-4">
+                <form onSubmit={handleUpdateBank} className="space-y-4">
+                  <div className="relative" ref={bankDropdownRef}>
+                    <label className="text-xs font-bold uppercase text-slate-400 tracking-widest block mb-1">Bank</label>
+                    <input
+                      type="text"
+                      value={bankSearchQuery}
+                      onChange={(e) => {
+                        setBankSearchQuery(e.target.value);
+                        setFormBankCode("");
+                        setIsBankDropdownOpen(true);
+                      }}
+                      onFocus={() => setIsBankDropdownOpen(true)}
+                      placeholder={isLoadingBanks ? "Loading banks..." : "Search bank..."}
+                      className="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm text-slate-900 dark:text-white focus:ring-primary focus:border-primary"
+                      disabled={isLoadingBanks}
+                    />
+                    {isBankDropdownOpen && !isLoadingBanks && (
+                      <ul className="absolute z-10 w-full mt-1 max-h-48 overflow-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg rounded-xl">
+                        {filteredBanks.length > 0 ? (
+                          filteredBanks.map((bank) => (
+                            <li
+                              key={bank.code}
+                              onClick={() => {
+                                setFormBankCode(bank.code);
+                                setBankSearchQuery(bank.name);
+                                setIsBankDropdownOpen(false);
+                              }}
+                              className="p-3 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                            >
+                              {bank.name}
+                            </li>
+                          ))
+                        ) : (
+                          <li className="p-3 text-sm text-slate-500 italic">No banks found</li>
+                        )}
+                      </ul>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold uppercase text-slate-400 tracking-widest block mb-1">Account Number</label>
+                    <input
+                      type="text"
+                      value={formAccountNo}
+                      onChange={(e) => setFormAccountNo(e.target.value)}
+                      required
+                      maxLength={10}
+                      placeholder="0123456789"
+                      className="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm text-slate-900 dark:text-white focus:ring-primary focus:border-primary"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold uppercase text-slate-400 tracking-widest block mb-1">Account Name</label>
+                    <input
+                      type="text"
+                      value={formAccountName}
+                      readOnly
+                      placeholder={isResolving ? "Resolving name..." : "Auto-filled from bank"}
+                      className="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm text-slate-900 dark:text-white"
+                    />
+                    {resolveError && (
+                      <p className="text-xs text-red-500 mt-1 font-bold">{resolveError}</p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingBank(false)}
+                      className="flex-1 py-3 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={updateBankMutation.isPending || isResolving || !formAccountName}
+                      className="flex-1 py-3 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </form>
+              </div>
             ) : (
-              <div className="text-center py-4">
-                <span className="material-symbols-outlined text-3xl text-slate-300 mb-2 block">
-                  account_balance
-                </span>
-                <p className="text-xs text-slate-500 mb-3">
-                  Add your bank details here to receive payouts.
-                </p>
+              /* No Bank Configured */
+              <div className="p-5 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-center space-y-3">
+                <span className="material-symbols-outlined text-3xl text-slate-300">account_balance</span>
+                <p className="text-sm text-slate-500">Add your bank details to receive payouts.</p>
                 <button
                   type="button"
                   onClick={handleEditClick}
-                  className="inline-block bg-primary text-white text-xs font-bold uppercase tracking-widest px-6 py-2.5 hover:bg-primary/90 transition-colors"
+                  className="bg-primary text-white text-sm font-bold px-6 py-2.5 rounded-xl hover:bg-primary/90 transition-colors"
                 >
                   Add Bank Details
                 </button>
               </div>
             )}
-
-            {hasBankInfo && !isEditingBank && (
-              <div className="mt-8 border-t border-slate-100 dark:border-slate-800 pt-4 flex justify-between items-center">
-                <button
-                  onClick={handleEditClick}
-                  className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-sm">
-                    settings
-                  </span>{" "}
-                  Update Account
-                </button>
-                <span className="text-[10px] font-bold text-slate-400">
-                  {isVerified ? "VERIFIED" : "PENDING"}
-                </span>
-              </div>
-            )}
           </div>
 
+          <hr className="border-slate-100 dark:border-slate-800" />
+
           {/* Payout Schedule */}
-          <div className="border border-slate-200 dark:border-slate-800 bg-primary/5 dark:bg-primary/10 p-6">
-            <h4 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white mb-2">
-              Payout Schedule
-            </h4>
-            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
-              Payouts are processed automatically when a buyer confirms delivery
-              via the OTP code. Funds are transferred to your settlement account
-              within 24 hours.
+          <div className="bg-primary/5 dark:bg-primary/10 p-6 rounded-2xl border border-primary/20">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-primary/20 rounded-lg text-primary">
+                <span className="material-symbols-outlined text-base">event_repeat</span>
+              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Payout Schedule</h3>
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-6">
+              Automatic payouts are processed when a buyer confirms delivery via OTP. Funds are transferred to your settlement account within 24 hours.
             </p>
             <button
               onClick={handleRequestPayout}
               disabled={isRequestingPayout || !hasBankInfo}
-              className="w-full bg-primary py-3 text-xs font-bold uppercase tracking-widest text-white hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 shadow-md shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {isRequestingPayout
-                ? "Requesting..."
-                : "Request Immediate Payout"}
+              {isRequestingPayout ? "Requesting..." : "Request Immediate Payout"}
+              {!isRequestingPayout && <span className="material-symbols-outlined text-lg">bolt</span>}
             </button>
           </div>
 
           {/* System Status */}
-          <div className="flex items-center gap-2 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-              All payment gateways operational
-            </span>
+          <div className="mt-auto pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+              </div>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">All payment gateways operational</span>
+            </div>
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between border border-slate-100 dark:border-slate-700">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-slate-400">security</span>
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">2-Factor Authentication</span>
+              </div>
+              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 rounded uppercase">On</span>
+            </div>
           </div>
-        </div>
-      </aside>
+        </aside>
+      </div>
     </div>
   );
 }

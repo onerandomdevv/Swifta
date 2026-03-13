@@ -28,18 +28,38 @@ async function bootstrap() {
 
   app.useGlobalInterceptors(new ResponseTransformInterceptor());
 
-  app.use(helmet());
+  const isDev = process.env.NODE_ENV === "development";
+
+  if (!isDev) {
+    app.use(helmet());
+  } else {
+    // Disable some helmet features in dev that might block local browser requests
+    app.use(
+      helmet({
+        contentSecurityPolicy: false,
+        crossOriginResourcePolicy: false,
+      }),
+    );
+  }
+
   app.use(cookieParser());
 
+  const origins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(",").map((o) => o.trim())
+    : ["http://localhost:3000", "http://127.0.0.1:3000"];
+
   app.enableCors({
-    origin: process.env.CORS_ORIGINS
-      ? process.env.CORS_ORIGINS.split(",")
-      : "*",
+    origin: isDev ? true : origins,
     credentials: true,
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+    allowedHeaders: "Content-Type, Accept, Authorization, X-Requested-With",
   });
 
   const port = process.env.PORT || 4000;
   await app.listen(port, "0.0.0.0");
   console.log(`Application is running on: ${await app.getUrl()}`);
+  if (isDev) {
+    console.log(`CORS enabled for: ${origins.join(", ")} (or TRUE in dev)`);
+  }
 }
 bootstrap();

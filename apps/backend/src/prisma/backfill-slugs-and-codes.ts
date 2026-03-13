@@ -16,7 +16,7 @@ async function backfill() {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "");
-    
+
     const slugSeed = baseSlug || "merchant";
     let finalSlug = `${slugSeed}-${merchant.userId.slice(0, 5)}`;
     let isUnique = false;
@@ -34,7 +34,7 @@ async function backfill() {
         finalSlug = `${slugSeed}-${merchant.userId.slice(0, 5)}-${counter}`;
       }
     }
-    
+
     await prisma.merchantProfile.update({
       where: { id: merchant.id },
       data: { slug: finalSlug },
@@ -53,7 +53,7 @@ async function backfill() {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "");
-    
+
     const codeSeed = baseCode || "product";
     let finalCode = `${codeSeed}-${product.id.slice(0, 5)}`;
     let isUnique = false;
