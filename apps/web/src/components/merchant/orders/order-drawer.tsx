@@ -44,13 +44,57 @@ export function OrderDrawer({
 
   useEffect(() => {
     if (!orderId) return;
+
+    // Save previous active element
+    const previousActiveElement = document.activeElement as HTMLElement;
+
     setLoading(true);
     setError(null);
     getOrder(orderId)
       .then((data) => setOrder(data as any as Order))
       .catch((err: any) => setError(err?.message || "Failed to load order"))
       .finally(() => setLoading(false));
-  }, [orderId]);
+
+    // Focus management & Keyboard handling
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "Tab") {
+        const focusableElements = document.querySelectorAll(
+          'div[role="dialog"] button, div[role="dialog"] [href], div[role="dialog"] input, div[role="dialog"] select, div[role="dialog"] textarea, div[role="dialog"] [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusableElements.length === 0) return;
+        
+        const firstElement = focusableElements[0] as HTMLElement;
+        const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            e.preventDefault();
+            lastElement.focus();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            e.preventDefault();
+            firstElement.focus();
+          }
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    
+    // Initial focus move (short timeout to let animate finish)
+    const timer = setTimeout(() => {
+      const closeBtn = document.querySelector('button[aria-label="Close order drawer"]') as HTMLElement;
+      if (closeBtn) closeBtn.focus();
+    }, 100);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      clearTimeout(timer);
+      if (previousActiveElement) previousActiveElement.focus();
+    };
+  }, [orderId, onClose]);
 
   const dispatchMutation = useMutation({
     mutationFn: () => dispatchOrder(order!.id),
@@ -110,11 +154,12 @@ export function OrderDrawer({
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto bg-background-secondary">
           {loading ? (
-            <div className="flex items-center justify-center py-32">
+            <div role="status" aria-live="polite" className="flex items-center justify-center py-32">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <span className="sr-only">Loading order details...</span>
             </div>
           ) : error && !order ? (
-            <div className="flex flex-col items-center justify-center py-32 text-center">
+            <div role="alert" aria-live="assertive" className="flex flex-col items-center justify-center py-32 text-center">
               <span className="material-symbols-outlined text-4xl text-red-500 mb-4">
                 error
               </span>
@@ -390,7 +435,7 @@ export function OrderDrawer({
 
         {/* Error display */}
         {error && order && (
-          <div className="px-6 pb-4 bg-surface">
+          <div role="alert" aria-live="assertive" className="px-6 pb-4 bg-surface">
             <div className="p-3 bg-red-500/10 border border-red-500/20 text-xs font-bold text-red-500 uppercase tracking-wide">
               {error}
             </div>

@@ -77,8 +77,8 @@
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
   font-family: 'Outfit', 'DM Sans', Inter, sans-serif;
   @apply antialiased;
 }

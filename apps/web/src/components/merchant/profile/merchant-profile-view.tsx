@@ -408,8 +408,14 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
                 <p className="text-xs text-foreground-muted font-medium mt-1 uppercase tracking-wider">Verified platform reviews</p>
               </div>
               <div className="flex items-center gap-2 bg-surface px-4 py-2 rounded-lg border border-border">
-                <span className="text-xl font-bold text-foreground">{profile.averageRating?.toFixed(1) || "5.0"}</span>
-                <StarRating rating={profile.averageRating || 5} readOnly size="sm" />
+                {profile.averageRating ? (
+                  <>
+                    <span className="text-xl font-bold text-foreground">{profile.averageRating.toFixed(1)}</span>
+                    <StarRating rating={profile.averageRating} readOnly size="sm" />
+                  </>
+                ) : (
+                  <span className="text-xs font-bold text-foreground-muted uppercase tracking-widest">No ratings yet</span>
+                )}
               </div>
             </div>
 
