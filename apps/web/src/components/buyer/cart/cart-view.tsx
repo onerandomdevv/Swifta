@@ -440,7 +440,7 @@ export function CartView({
               disabled={isSubmitting || !selectedMerchantId || !isAddressComplete}
               className={cn(
                 "w-full py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all",
-                !selectedMerchantId || !isAddressComplete
+                isSubmitting || !selectedMerchantId || !isAddressComplete
                   ? "bg-white/10 text-white/30 cursor-not-allowed"
                   : "bg-emerald-500 hover:bg-emerald-400 text-white shadow-xl shadow-emerald-500/20"
               )}
@@ -467,7 +467,7 @@ export function CartView({
               disabled={isSubmitting || !selectedMerchantId || !isAddressComplete}
               className={cn(
                 "px-8 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all",
-                !selectedMerchantId || !isAddressComplete
+                isSubmitting || !selectedMerchantId || !isAddressComplete
                   ? "bg-slate-200 text-slate-400 cursor-not-allowed"
                   : "bg-primary text-white shadow-lg shadow-primary/20 active:scale-95"
               )}
