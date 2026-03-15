@@ -1,4 +1,9 @@
-import { Module, MiddlewareConsumer, RequestMethod, Logger } from "@nestjs/common";
+import {
+  Module,
+  MiddlewareConsumer,
+  RequestMethod,
+  Logger,
+} from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ServeStaticModule } from "@nestjs/serve-static";
 import { ScheduleModule } from "@nestjs/schedule";
@@ -21,8 +26,6 @@ import { HealthModule } from "./health/health.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { MerchantModule } from "./modules/merchant/merchant.module";
 import { ProductModule } from "./modules/product/product.module";
-import { RFQModule } from "./modules/rfq/rfq.module";
-import { QuoteModule } from "./modules/quote/quote.module";
 import { OrderModule } from "./modules/order/order.module";
 import { PaymentModule } from "./modules/payment/payment.module";
 import { InventoryModule } from "./modules/inventory/inventory.module";
@@ -143,9 +146,6 @@ function sanitizeRedisUrl(url: string | undefined): string | undefined {
     AuthModule,
     MerchantModule,
     ProductModule,
-    RFQModule,
-    QuoteModule,
-    OrderModule,
     PaymentModule,
     InventoryModule,
     NotificationModule,

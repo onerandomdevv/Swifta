@@ -3,7 +3,6 @@ import { OrderDisputeStatus } from "../enums/order-dispute-status.enum";
 
 export interface Order {
   id: string;
-  quoteId: string;
   buyerId: string;
   merchantId: string;
   totalAmountKobo: bigint;
@@ -27,8 +26,7 @@ export interface Order {
   createdAt: Date;
   updatedAt: Date;
   merchant?: any;
-  quote?: any;
-  rfq?: any;
+
   product?: any;
   review?: any;
   buyer?: any;

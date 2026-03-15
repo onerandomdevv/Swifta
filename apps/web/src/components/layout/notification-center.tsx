@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useNotifications, NotificationUI } from "@/hooks/use-notifications";
 
 export function NotificationCenter({
@@ -10,6 +11,7 @@ export function NotificationCenter({
   isOpen: boolean;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"All" | "Orders" | "Financials">(
     "All",
   );
@@ -38,12 +40,16 @@ export function NotificationCenter({
 
       {/* Slide-out Panel */}
       <div
-        className={`fixed top-0 right-0 h-full w-full max-w-md bg-white dark:bg-slate-900 z-[70] shadow-2xl border-l border-slate-100 dark:border-slate-800 transition-transform duration-500 ease-out transform ${isOpen ? "translate-x-0" : "translate-x-full"}`}
+        role="dialog"
+        aria-modal={isOpen}
+        aria-hidden={!isOpen}
+        tabIndex={isOpen ? 0 : -1}
+        className={`fixed top-0 right-0 h-full w-full max-w-md bg-surface z-[70] shadow-2xl border-l border-border transition-transform duration-500 ease-out transform flex flex-col ${isOpen ? "translate-x-0 pointer-events-auto" : "translate-x-full pointer-events-none"}`}
       >
         {/* Header */}
-        <div className="p-8 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between">
+        <div className="p-8 border-b border-border bg-background-secondary flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h3 className="text-xl font-black text-navy-dark dark:text-white uppercase tracking-tight">
+            <h3 className="text-xl font-black text-foreground uppercase tracking-tight">
               Notification Center
             </h3>
             {unreadCount > 0 && (
@@ -54,7 +60,7 @@ export function NotificationCenter({
           </div>
           <button
             onClick={onClose}
-            className="size-10 rounded-full border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-400 hover:text-navy-dark dark:hover:text-white transition-all"
+            className="size-10 rounded-full border border-border flex items-center justify-center text-foreground-muted hover:text-foreground transition-all"
           >
             <span className="material-symbols-outlined font-black">close</span>
           </button>
@@ -62,8 +68,8 @@ export function NotificationCenter({
 
         {/* Content Description */}
         <div className="px-8 pt-6 pb-2">
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-            Manage your real-time B2B trade alerts and logistics updates.
+          <p className="text-[11px] font-bold text-foreground-muted uppercase tracking-widest leading-relaxed">
+            Manage your real-time order and activity alerts and logistics updates.
           </p>
         </div>
 
@@ -75,18 +81,18 @@ export function NotificationCenter({
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab as any)}
-                  className={`text-[10px] font-black uppercase tracking-widest relative pb-4 transition-all ${activeTab === tab ? "text-navy-dark dark:text-white" : "text-slate-400 hover:text-slate-600"}`}
+                  className={`text-[10px] font-black uppercase tracking-widest relative pb-4 transition-all ${activeTab === tab ? "text-foreground" : "text-foreground-muted hover:text-foreground-secondary"}`}
                 >
                   {tab}
                   {activeTab === tab && (
-                    <div className="absolute bottom-0 left-0 w-full h-1 bg-navy-dark dark:bg-white rounded-full"></div>
+                    <div className="absolute bottom-0 left-0 w-full h-1 bg-primary rounded-full"></div>
                   )}
                 </button>
               ))}
             </div>
             <button
               onClick={() => markAllAsRead()}
-              className="text-[9px] font-black text-slate-400 hover:text-navy-dark dark:hover:text-white uppercase tracking-widest flex items-center gap-1"
+              className="text-[9px] font-black text-foreground-muted hover:text-foreground uppercase tracking-widest flex items-center gap-1"
             >
               <span className="material-symbols-outlined text-sm">
                 done_all
@@ -101,19 +107,22 @@ export function NotificationCenter({
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-20 opacity-50">
               <div className="size-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <p className="text-[10px] font-black uppercase tracking-widest text-foreground-muted">
                 Loading alerts...
               </p>
             </div>
           ) : filtered.length > 0 ? (
             filtered.map((n: NotificationUI) => (
-              <div
+              <button
                 key={n.id}
+                type="button"
+                aria-pressed={!n.unread}
+                aria-label={`${n.unread ? "Unread" : "Read"} notification: ${n.title}. ${n.desc}`}
                 onClick={() => n.unread && markAsRead(n.id)}
-                className={`p-6 rounded-3xl border transition-all cursor-pointer relative group ${n.unread ? "bg-white dark:bg-slate-800/20 border-slate-100 dark:border-slate-800 shadow-sm" : "bg-slate-50/50 dark:bg-slate-900/20 border-transparent opacity-80"}`}
+                className={`w-full text-left p-6 rounded-3xl border transition-all relative group ${n.unread ? "bg-surface border-border shadow-sm" : "bg-background-secondary/50 border-transparent opacity-80"}`}
               >
                 {n.unread && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-navy-dark dark:bg-blue-500 rounded-r-full"></div>
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-primary rounded-r-full"></div>
                 )}
                 <div className="flex gap-4">
                   <div
@@ -127,14 +136,14 @@ export function NotificationCenter({
                   </div>
                   <div className="flex-1 space-y-2">
                     <div className="flex justify-between items-start">
-                      <h4 className="text-xs font-black text-navy-dark dark:text-white uppercase tracking-tight">
+                      <h4 className="text-xs font-black text-foreground uppercase tracking-tight">
                         {n.title}
                       </h4>
-                      <span className="text-[9px] font-black text-slate-400 uppercase">
+                      <span className="text-[9px] font-black text-foreground-muted uppercase">
                         {n.time}
                       </span>
                     </div>
-                    <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed uppercase tracking-tight opacity-80">
+                    <p className="text-[11px] font-bold text-foreground-secondary leading-relaxed uppercase tracking-tight opacity-80">
                       {n.desc}
                     </p>
 
@@ -154,20 +163,20 @@ export function NotificationCenter({
                     )}
                   </div>
                 </div>
-              </div>
+              </button>
             ))
           ) : (
             <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 opacity-60">
-              <div className="size-16 rounded-3xl bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center">
-                <span className="material-symbols-outlined text-3xl text-slate-300">
+              <div className="size-16 rounded-3xl bg-background-secondary flex items-center justify-center">
+                <span className="material-symbols-outlined text-3xl text-foreground-muted">
                   notifications_off
                 </span>
               </div>
               <div>
-                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-navy-dark dark:text-white">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground">
                   No notifications yet
                 </h4>
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                <p className="text-[9px] font-bold text-foreground-muted uppercase tracking-widest mt-1">
                   We&apos;ll alert you when trade activity occurs.
                 </p>
               </div>
@@ -176,8 +185,12 @@ export function NotificationCenter({
         </div>
 
         {/* Sticky Footer */}
-        <div className="absolute bottom-0 left-0 w-full p-8 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-50 dark:border-slate-800">
-          <button className="w-full py-4 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-navy-dark dark:text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-3">
+        <div className="absolute bottom-0 left-0 w-full p-8 bg-surface/80 backdrop-blur-md border-t border-border">
+          <button 
+            onClick={() => router.push('/merchant/activity-history')}
+            className="w-full py-4 bg-background-secondary hover:bg-surface-hover text-foreground text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-3"
+            aria-label="View all activity history"
+          >
             View All Activity History
             <span className="material-symbols-outlined text-sm">
               arrow_forward

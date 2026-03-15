@@ -1,7 +1,0 @@
-export enum QuoteStatus {
-  PENDING = "PENDING",
-  ACCEPTED = "ACCEPTED",
-  DECLINED = "DECLINED",
-  EXPIRED = "EXPIRED",
-  WITHDRAWN = "WITHDRAWN"
-}

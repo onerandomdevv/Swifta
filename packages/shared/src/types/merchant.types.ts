@@ -26,7 +26,7 @@ export interface MerchantProfile {
   createdAt: Date;
   dealsClosed?: number;
   responseTimeTotal?: number;
-  quoteCount?: number;
+
   cacVerified: boolean;
   addressVerified: boolean;
   bankVerified: boolean;

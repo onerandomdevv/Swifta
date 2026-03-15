@@ -1,5 +1,5 @@
 import React from "react";
-import { formatKobo } from "@hardware-os/shared";
+import { formatKobo } from "@swifta/shared";
 
 interface Props {
   item: any;
@@ -10,14 +10,14 @@ interface Props {
 export function WholesaleCard({ item, onOrder, isRecommended }: Props) {
   return (
     <div
-      className={`bg-white dark:bg-slate-900 rounded-2xl border-2 overflow-hidden shadow-sm hover:shadow-md transition-all group ${
+      className={`bg-surface rounded-2xl border-2 overflow-hidden shadow-sm hover:shadow-md transition-all group ${
         isRecommended
-          ? "border-amber-100 dark:border-amber-900/30"
-          : "border-slate-100 dark:border-slate-800"
+          ? "border-amber-500/20"
+          : "border-border"
       }`}
     >
-      <div className="h-48 bg-slate-50 dark:bg-slate-800 relative flex items-center justify-center">
-        <span className="material-symbols-outlined text-4xl text-slate-300">
+      <div className="h-48 bg-background-secondary relative flex items-center justify-center">
+        <span className="material-symbols-outlined text-4xl text-foreground-muted/40">
           inventory
         </span>
         <div className="absolute top-4 left-4 flex gap-2">
@@ -29,24 +29,24 @@ export function WholesaleCard({ item, onOrder, isRecommended }: Props) {
               Recommended
             </span>
           )}
-          <span className="px-2 py-1 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-md">
+          <span className="px-2 py-1 bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest rounded-md">
             Wholesale
           </span>
         </div>
       </div>
       <div className="p-5 space-y-4">
         <div>
-          <h3 className="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">
+          <h3 className="font-bold text-foreground group-hover:text-primary transition-colors">
             {item.name}
           </h3>
-          <p className="text-xs text-slate-500 font-medium line-clamp-1">
+          <p className="text-xs text-foreground-muted font-medium line-clamp-1">
             Sold by {item.supplier?.companyName || "Manufacturer"}
           </p>
         </div>
 
         <div className="flex items-end justify-between">
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            <label className="text-[10px] font-bold text-foreground-muted uppercase tracking-widest">
               Starting at
             </label>
             <p className="text-xl font-black text-primary tabular-nums">
@@ -54,10 +54,10 @@ export function WholesaleCard({ item, onOrder, isRecommended }: Props) {
             </p>
           </div>
           <div className="text-right">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+            <label className="text-[10px] font-bold text-foreground-muted uppercase tracking-widest block">
               Min. Order
             </label>
-            <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+            <p className="text-sm font-bold text-foreground-secondary">
               {item.minOrderQty} {item.unit}
             </p>
           </div>
@@ -66,7 +66,7 @@ export function WholesaleCard({ item, onOrder, isRecommended }: Props) {
         <div className="flex gap-2">
           <button
             onClick={() => onOrder(item)}
-            className="flex-1 py-3 bg-primary text-white text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98]"
+            className="flex-1 py-3 bg-primary text-primary-foreground text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98]"
           >
             <span className="material-symbols-outlined text-lg">
               shopping_cart

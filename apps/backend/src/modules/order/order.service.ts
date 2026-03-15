@@ -23,7 +23,7 @@ import {
   OrderStatus,
   PaginatedResponse,
   PriceType,
-} from "@hardware-os/shared";
+} from "@swifta/shared";
 
 import { paginate } from "../../common/utils/pagination";
 import { validateTransition, getNextStates } from "./order-state-machine";
@@ -54,77 +54,6 @@ export class OrderService {
   ) {}
 
   // ──────────────────────────────────────────────
-  //  CREATE ORDER FROM ACCEPTED QUOTE (transaction)
-  // ──────────────────────────────────────────────
-
-  async createFromQuote(quoteId: string, buyerId: string) {
-    const quote = await this.prisma.quote.findUnique({
-      where: { id: quoteId },
-      include: { rfq: true },
-    });
-    if (!quote) throw new NotFoundException("Quote not found");
-    if (!quote.rfq) throw new NotFoundException("RFQ not found for this quote");
-
-    const idempotencyKey = `order-create-${quoteId}`;
-
-    // Check idempotency — if order already exists for this quote, return it
-    const existing = await this.prisma.order.findUnique({
-      where: { quoteId },
-    });
-    if (existing) return existing;
-
-    // Atomic: create order + reserve inventory + log initial event
-    const order = await this.prisma.$transaction(async (tx) => {
-      const newOrder = await tx.order.create({
-        data: {
-          quoteId,
-          buyerId,
-          merchantId: quote.merchantId,
-          totalAmountKobo: quote.totalPriceKobo,
-          deliveryFeeKobo: quote.deliveryFeeKobo,
-          currency: quote.currency,
-          status: OrderStatus.PENDING_PAYMENT,
-          idempotencyKey,
-        },
-      });
-
-      // Log initial OrderEvent
-      await tx.orderEvent.create({
-        data: {
-          orderId: newOrder.id,
-          fromStatus: null,
-          toStatus: OrderStatus.PENDING_PAYMENT,
-          triggeredBy: buyerId,
-          metadata: { action: "order_created_from_quote", quoteId },
-        },
-      });
-
-      // Reserve inventory
-      await tx.inventoryEvent.create({
-        data: {
-          productId: quote.rfq.productId,
-          merchantId: quote.merchantId,
-          eventType: "ORDER_RESERVED",
-          quantity: -quote.rfq.quantity,
-          referenceId: newOrder.id,
-          notes: "Order reservation",
-        },
-      });
-
-      await tx.productStockCache.upsert({
-        where: { productId: quote.rfq.productId },
-        create: { productId: quote.rfq.productId, stock: -quote.rfq.quantity },
-        update: { stock: { decrement: quote.rfq.quantity } },
-      });
-
-      return newOrder;
-    });
-
-    this.logger.log(`Order ${order.id} created from quote ${quoteId}`);
-    return order;
-  }
-
-  // ──────────────────────────────────────────────
   //  CREATE DIRECT ORDER
   // ──────────────────────────────────────────────
 
@@ -146,7 +75,9 @@ export class OrderService {
     if (!product.isActive) throw new BadRequestException("Product is inactive");
 
     if (product.merchantProfile?.userId === buyerId) {
-      throw new ForbiddenException("Merchants cannot purchase their own products");
+      throw new ForbiddenException(
+        "Merchants cannot purchase their own products",
+      );
     }
 
     // Resolve buyer type to determine price
@@ -167,7 +98,9 @@ export class OrderService {
     // Handle missing stock cache: auto-heal for all active products to prevent checkout blocks
     let currentStock = product.productStockCache?.stock ?? 0;
     if (!product.productStockCache && product.isActive) {
-      this.logger.warn(`Auto-creating missing productStockCache for product ${product.id}`);
+      this.logger.warn(
+        `Auto-creating missing productStockCache for product ${product.id}`,
+      );
       currentStock = product.isSeeded ? 100 : 50;
       await this.prisma.productStockCache.upsert({
         where: { productId: product.id },
@@ -291,9 +224,8 @@ export class OrderService {
       });
 
       if (orderWithDetails && order.merchantId) {
-        this.whatsappService.sendDirectOrderNotification(
-          order.merchantId,
-          {
+        this.whatsappService
+          .sendDirectOrderNotification(order.merchantId, {
             orderId: order.id,
             buyerName:
               orderWithDetails.user.firstName +
@@ -303,8 +235,10 @@ export class OrderService {
             quantity: order.quantity || 1,
             amountKobo: order.totalAmountKobo,
             deliveryAddress: order.deliveryAddress || "Not specified",
-          },
-        ).catch(err => this.logger.error(`Error in sendDirectOrderNotification: ${err}`));
+          })
+          .catch((err) =>
+            this.logger.error(`Error in sendDirectOrderNotification: ${err}`),
+          );
       }
     } catch (notifierErr) {
       this.logger.error(
@@ -386,7 +320,9 @@ export class OrderService {
     }
 
     if (merchantProfile.userId === buyerId) {
-      throw new ForbiddenException("Merchants cannot purchase their own products");
+      throw new ForbiddenException(
+        "Merchants cannot purchase their own products",
+      );
     }
 
     await this.prisma.buyerProfile.findUnique({
@@ -414,9 +350,11 @@ export class OrderService {
       // Handle missing stock cache: auto-heal for all active products to prevent checkout blocks
       let currentStock = product.productStockCache?.stock ?? 0;
       if (!product.productStockCache && product.isActive) {
-        this.logger.warn(`Auto-creating missing productStockCache for product ${product.id}`);
+        this.logger.warn(
+          `Auto-creating missing productStockCache for product ${product.id}`,
+        );
         // Give it a default buffer to allow checkout to proceed or 100 for seeded
-        currentStock = product.isSeeded ? 100 : 50; 
+        currentStock = product.isSeeded ? 100 : 50;
         await this.prisma.productStockCache.upsert({
           where: { productId: product.id },
           update: { stock: currentStock },
@@ -649,7 +587,6 @@ export class OrderService {
     const order = await this.prisma.order.findUnique({
       where: { id },
       include: {
-        quote: { include: { rfq: { include: { product: true } } } },
         orderEvents: { orderBy: { createdAt: "asc" } },
         review: true,
       },
@@ -697,7 +634,10 @@ export class OrderService {
       {
         where: { merchantId },
         orderBy: { createdAt: "desc" },
-        include: { user: { select: { email: true, phone: true } }, product: true },
+        include: {
+          user: { select: { email: true, phone: true } },
+          product: true,
+        },
       },
     );
   }
@@ -1047,21 +987,7 @@ export class OrderService {
     );
 
     // Release reserved stock for different order types
-    if (order.quoteId) {
-      // Legacy Quote Flow
-      const quote = await this.prisma.quote.findUnique({
-        where: { id: order.quoteId },
-        include: { rfq: true },
-      });
-      if (quote?.rfq) {
-        await this.inventoryService.releaseStock(
-          quote.rfq.productId,
-          order.merchantId as string,
-          quote.rfq.quantity,
-          orderId,
-        );
-      }
-    } else if (order.productId && order.quantity) {
+    if (order.productId && order.quantity) {
       // Direct Purchase
       await this.inventoryService.releaseStock(
         order.productId,
@@ -1171,13 +1097,6 @@ export class OrderService {
           },
         },
         user: { select: { email: true, phone: true } },
-        quote: {
-          include: {
-            rfq: {
-              include: { product: true },
-            },
-          },
-        },
         payments: {
           where: { status: "SUCCESS" },
           orderBy: { createdAt: "desc" },

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { UserRole } from "@hardware-os/shared";
+import { UserRole } from "@swifta/shared";
 
 interface RoleSelectionStepProps {
   role: UserRole | null;

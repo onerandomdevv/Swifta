@@ -435,7 +435,7 @@ export default function BuyerProfilePage() {
                   <p className="text-sm font-medium text-slate-500 mb-6">
                     Enter the 6-digit verification code sent to <span className="text-slate-900 font-bold">+{waPhone}</span>
                   </p>
-                  <div className="flex gap-3 justify-center">
+                  <div className="flex gap-2 sm:gap-3 justify-center">
                     {waOtp.map((digit, i) => (
                       <input
                         key={i}
@@ -446,7 +446,7 @@ export default function BuyerProfilePage() {
                         value={digit}
                         onChange={(e) => handleWaOtpChange(i, e.target.value)}
                         onKeyDown={(e) => handleWaOtpKeyDown(i, e)}
-                        className={`w-12 h-14 text-center text-xl font-bold rounded-xl border-2 transition-all outline-none ${digit ? "border-emerald-500 bg-emerald-50/20" : "border-slate-100 bg-slate-50 focus:border-emerald-300"}`}
+                        className={`w-10 h-12 sm:w-12 sm:h-14 text-center text-lg sm:text-xl font-bold rounded-xl border-2 transition-all outline-none ${digit ? "border-emerald-500 bg-emerald-50/20" : "border-slate-100 bg-slate-50 focus:border-emerald-300"}`}
                       />
                     ))}
                   </div>

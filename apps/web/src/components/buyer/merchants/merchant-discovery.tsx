@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { merchantApi } from "@/lib/api/merchant.api";
-import type { MerchantProfile } from "@hardware-os/shared";
+import type { MerchantProfile } from "@swifta/shared";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";

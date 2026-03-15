@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getReceipt } from "@/lib/api/order.api";
-import { formatKobo } from "@hardware-os/shared";
+import { formatKobo } from "@swifta/shared";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function OrderReceiptPage() {
@@ -126,11 +126,11 @@ export default function OrderReceiptPage() {
                 </span>
               </div>
               <h1 className="text-2xl font-black text-navy-dark font-display tracking-tight uppercase">
-                SwiftTrade
+                Swifta
               </h1>
             </div>
             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-              Digital Trade Infrastructure
+              Swifta — Nigeria's WhatsApp Marketplace
             </p>
           </div>
 
@@ -286,7 +286,7 @@ export default function OrderReceiptPage() {
           </div>
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">
-              Thank you for trading with SwiftTrade
+              Thank you for trading with Swifta
             </p>
           </div>
         </div>

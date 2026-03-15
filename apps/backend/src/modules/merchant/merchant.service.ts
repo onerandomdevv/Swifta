@@ -6,7 +6,7 @@ import {
 import { PrismaService } from "../../prisma/prisma.service";
 import { UpdateMerchantDto } from "./dto/update-merchant.dto";
 import { UpdateBankAccountDto } from "./dto/update-bank-account.dto";
-import { UserRole } from "@hardware-os/shared";
+import { UserRole } from "@swifta/shared";
 import { PaystackClient } from "../payment/paystack.client";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
 import { UpdatePreferencesDto } from "./dto/update-preferences.dto";
@@ -543,28 +543,31 @@ export class MerchantService {
 
   async getBalanceSummary(merchantId: string) {
     // Fire concurrent fast aggregates offloaded to DB (leveraging the composite indexes)
-    const [escrowResult, availableResult, revenueResult, pendingResult] = await Promise.all([
-      this.prisma.order.aggregate({
-        where: { merchantId, status: { in: ["PAID", "DISPATCHED"] } },
-        _sum: { totalAmountKobo: true },
-      }),
-      this.prisma.order.aggregate({
-        where: { merchantId, payoutStatus: "COMPLETED" },
-        _sum: { totalAmountKobo: true },
-      }),
-      this.prisma.order.aggregate({
-        where: { merchantId, status: "COMPLETED" },
-        _sum: { totalAmountKobo: true },
-      }),
-      this.prisma.order.aggregate({
-        where: { merchantId, payoutStatus: "PENDING", status: "COMPLETED" },
-        _sum: { totalAmountKobo: true },
-      })
-    ]);
+    const [escrowResult, availableResult, revenueResult, pendingResult] =
+      await Promise.all([
+        this.prisma.order.aggregate({
+          where: { merchantId, status: { in: ["PAID", "DISPATCHED"] } },
+          _sum: { totalAmountKobo: true },
+        }),
+        this.prisma.order.aggregate({
+          where: { merchantId, payoutStatus: "COMPLETED" },
+          _sum: { totalAmountKobo: true },
+        }),
+        this.prisma.order.aggregate({
+          where: { merchantId, status: "COMPLETED" },
+          _sum: { totalAmountKobo: true },
+        }),
+        this.prisma.order.aggregate({
+          where: { merchantId, payoutStatus: "PENDING", status: "COMPLETED" },
+          _sum: { totalAmountKobo: true },
+        }),
+      ]);
 
     return {
       escrowBalanceKobo: (escrowResult._sum.totalAmountKobo || 0n).toString(),
-      availableBalanceKobo: (availableResult._sum.totalAmountKobo || 0n).toString(),
+      availableBalanceKobo: (
+        availableResult._sum.totalAmountKobo || 0n
+      ).toString(),
       totalRevenueKobo: (revenueResult._sum.totalAmountKobo || 0n).toString(),
       pendingPayoutsKobo: (pendingResult._sum.totalAmountKobo || 0n).toString(),
     };

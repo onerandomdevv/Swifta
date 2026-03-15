@@ -11,7 +11,7 @@ import {
 } from "../../../../lib/validations/auth";
 import { useAuth } from "../../../../providers/auth-provider";
 import { useToast } from "../../../../providers/toast-provider";
-import { UserRole } from "@hardware-os/shared";
+import { UserRole } from "@swifta/shared";
 import { Logo } from "@/components/ui/logo";
 
 const slides = [
@@ -85,7 +85,7 @@ export default function InternalLoginPage() {
           >
             <img
               src={src}
-              alt="Construction materials logistics"
+              alt="Swifta admin dashboard"
               className="w-full h-full object-cover"
             />
           </div>
@@ -189,7 +189,7 @@ export default function InternalLoginPage() {
               </label>
               <input
                 className={`w-full px-4 py-3.5 bg-white border shadow-sm rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all text-slate-900 text-sm ${errors.identifier ? "border-red-400" : "border-slate-200"}`}
-                placeholder="ops@hardwareos.com"
+                placeholder="ops@swifta.store"
                 type="text"
                 {...register("identifier", { onChange: () => setFormError(null) })}
               />

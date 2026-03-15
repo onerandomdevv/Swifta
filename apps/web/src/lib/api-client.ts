@@ -1,4 +1,4 @@
-import type { ApiResponse, ApiError } from "@hardware-os/shared";
+import type { ApiResponse, ApiError } from "@swifta/shared";
 
 type RequestConfig = RequestInit & {
   params?: Record<string, string>;

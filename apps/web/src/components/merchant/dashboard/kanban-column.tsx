@@ -17,7 +17,7 @@ export function KanbanColumn({ title, count, colorClass, children }: Props) {
     ? "border-indigo-500" 
     : title.toUpperCase().includes("PAYOUT") || title.toUpperCase().includes("SETTLED")
     ? "border-emerald-500"
-    : "border-slate-200";
+    : "border-border";
 
   const textColorClass = title.toUpperCase().includes("ORDERS") 
     ? "text-orange-600" 
@@ -27,7 +27,7 @@ export function KanbanColumn({ title, count, colorClass, children }: Props) {
     ? "text-indigo-600" 
     : title.toUpperCase().includes("PAYOUT") || title.toUpperCase().includes("SETTLED")
     ? "text-emerald-600"
-    : "text-slate-600";
+    : "text-foreground-secondary";
 
   return (
     <div className="flex flex-col h-full min-w-[320px] sm:min-w-[360px] w-full max-w-[400px] bg-transparent rounded-2xl transition-all group">
@@ -35,7 +35,7 @@ export function KanbanColumn({ title, count, colorClass, children }: Props) {
         <h3 className={`text-[11px] font-black uppercase tracking-[0.15em] ${textColorClass}`}>
           {title} ({count})
         </h3>
-        <button className="text-slate-300 dark:text-slate-600 hover:text-navy-dark dark:hover:text-white transition-colors">
+        <button className="text-foreground-muted hover:text-foreground transition-colors" aria-label="More actions">
           <span className="material-symbols-outlined text-[18px]">more_horiz</span>
         </button>
       </div>

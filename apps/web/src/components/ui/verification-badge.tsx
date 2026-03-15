@@ -1,5 +1,5 @@
 import React from "react";
-import { VerificationTier } from "@hardware-os/shared";
+import { VerificationTier } from "@swifta/shared";
 
 interface VerificationBadgeProps {
   tier: VerificationTier | string;

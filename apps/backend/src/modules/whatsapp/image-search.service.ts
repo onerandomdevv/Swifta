@@ -88,7 +88,7 @@ export class ImageSearchService {
       if (products.length === 0) {
         await this.interactiveService.sendTextMessage(
           phone,
-          `I detected "${extractedTerms.join(", ")}" but couldn't find any matching products on SwiftTrade right now.`,
+          `I detected "${extractedTerms.join(", ")}" but couldn't find any matching products on Swifta right now.`,
         );
         return;
       }
@@ -240,7 +240,9 @@ export class ImageSearchService {
     mimeType: string,
   ): Promise<string[] | null> {
     try {
-      const modelName = this.configService.get<string>("GEMINI_VISION_MODEL") || "gemini-1.5-flash";
+      const modelName =
+        this.configService.get<string>("GEMINI_VISION_MODEL") ||
+        "gemini-1.5-flash";
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
 

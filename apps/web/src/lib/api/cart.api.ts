@@ -1,5 +1,5 @@
 import { apiClient } from "../api-client";
-import { PriceType, Product } from "@hardware-os/shared";
+import { PriceType, Product } from "@swifta/shared";
 
 export interface CartItem {
   id: string;

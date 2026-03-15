@@ -6,7 +6,7 @@ import {
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { PrismaService } from "../../prisma/prisma.service";
-import { VerificationTier } from "@hardware-os/shared";
+import { VerificationTier } from "@swifta/shared";
 
 @Injectable()
 export class MerchantVerifiedGuard implements CanActivate {

@@ -25,7 +25,7 @@ import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
 import { JwtRefreshGuard } from "../../common/guards/jwt-refresh.guard";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
-import { JwtPayload } from "@hardware-os/shared";
+import { JwtPayload } from "@swifta/shared";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 
 @Controller("auth")
@@ -179,7 +179,8 @@ export class AuthController {
   ) {
     // Prefer HttpOnly cookie first, fallback to DTO body
     const refreshToken =
-      (req.cookies as Record<string, string>)?.["hwos_refresh_token"] || dto.refreshToken;
+      (req.cookies as Record<string, string>)?.["hwos_refresh_token"] ||
+      dto.refreshToken;
     const result = await this.authService.refreshTokens(user.sub, refreshToken);
     this.setCookies(res, result);
     return { success: true };

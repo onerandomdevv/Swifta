@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginFormData } from "../../../lib/validations/auth";
 import { useAuth } from "../../../providers/auth-provider";
 import { useToast } from "../../../providers/toast-provider";
-import { UserRole } from "@hardware-os/shared";
+import { UserRole } from "@swifta/shared";
 import { useRef } from "react";
 import { Logo } from "@/components/ui/logo";
 

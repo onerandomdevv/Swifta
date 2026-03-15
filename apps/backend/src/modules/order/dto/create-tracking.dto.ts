@@ -1,5 +1,5 @@
 import { IsIn, IsString, IsOptional } from "class-validator";
-import { OrderStatus } from "@hardware-os/shared";
+import { OrderStatus } from "@swifta/shared";
 
 export class CreateTrackingDto {
   @IsIn(

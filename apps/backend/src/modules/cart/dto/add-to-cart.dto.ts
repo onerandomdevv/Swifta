@@ -7,7 +7,7 @@ import {
   IsUUID,
   Min,
 } from "class-validator";
-import { PriceType } from "@hardware-os/shared";
+import { PriceType } from "@swifta/shared";
 
 export class AddToCartDto {
   @IsString()

@@ -21,7 +21,7 @@ import {
   PaymentDirection,
   OrderStatus,
   UserRole,
-} from "@hardware-os/shared";
+} from "@swifta/shared";
 import * as crypto from "crypto";
 import { PAYOUT_QUEUE, LOGISTICS_QUEUE } from "../../queue/queue.constants";
 
@@ -408,7 +408,9 @@ export class PaymentService {
         // Clear cart items for the products in this order
         const orderItems = payment.order.items as any[];
         if (Array.isArray(orderItems) && orderItems.length > 0) {
-          const productIds = orderItems.map((item: any) => item.productId).filter(Boolean);
+          const productIds = orderItems
+            .map((item: any) => item.productId)
+            .filter(Boolean);
           if (productIds.length > 0) {
             const deleted = await this.prisma.cartItem.deleteMany({
               where: {

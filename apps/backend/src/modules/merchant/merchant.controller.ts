@@ -19,7 +19,7 @@ import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { CurrentMerchant } from "../../common/decorators/current-merchant.decorator";
-import { UserRole, JwtPayload } from "@hardware-os/shared";
+import { UserRole, JwtPayload } from "@swifta/shared";
 
 import { MerchantAnalyticsService } from "./merchant-analytics.service";
 
@@ -120,9 +120,12 @@ export class MerchantController {
     @Query("startDate") startDate?: string,
     @Query("endDate") endDate?: string,
   ) {
-    return this.analyticsService.getMerchantStats(merchantId, startDate, endDate);
+    return this.analyticsService.getMerchantStats(
+      merchantId,
+      startDate,
+      endDate,
+    );
   }
-
 
   @Post(":id/follow")
   @UseGuards(JwtAuthGuard)

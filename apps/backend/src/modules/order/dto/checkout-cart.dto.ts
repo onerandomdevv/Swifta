@@ -10,7 +10,7 @@ import {
   IsObject,
 } from "class-validator";
 
-import { PaymentMethod } from "@hardware-os/shared";
+import { PaymentMethod } from "@swifta/shared";
 
 export class CheckoutCartDto {
   @IsArray()

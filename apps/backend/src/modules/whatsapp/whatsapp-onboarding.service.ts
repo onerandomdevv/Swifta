@@ -153,7 +153,7 @@ export class WhatsAppOnboardingService {
   private async sendWelcome(phone: string): Promise<void> {
     await this.interactiveService.sendReplyButtons(
       phone,
-      "Welcome to SwiftTrade! 🔗\n\nNigeria's premium WhatsApp marketplace — buy and sell anything (Electronics, Fashion, Hardware, & more) with escrow protection.\n\n✅ Premium Identity Verification\n📦 SwiftTrade Tracked Delivery\n💰 Instant Merchant Payouts\n\nHow would you like to proceed?",
+      "Welcome to Swifta! 🔗\n\nNigeria's premium WhatsApp marketplace — buy and sell anything (Electronics, Fashion, Hardware, & more) with escrow protection.\n\n✅ Premium Identity Verification\n📦 Swifta Tracked Delivery\n💰 Instant Merchant Payouts\n\nHow would you like to proceed?",
       [
         { id: "onboard_buyer", title: "Buy Products" },
         { id: "onboard_merchant", title: "Sell Products" },
@@ -165,7 +165,7 @@ export class WhatsAppOnboardingService {
   private async handleLearnMore(phone: string): Promise<void> {
     await this.interactiveService.sendReplyButtons(
       phone,
-      "SwiftTrade is a marketplace where you can buy and sell products securely through WhatsApp.\n\n🔒 Payments are protected — your money is held safely until you receive your goods\n🚚 Track your deliveries in real-time\n⭐ Buy from verified, rated merchants\n💰 Merchants get paid instantly to their bank\n\nReady to get started?",
+      "Swifta is a marketplace where you can buy and sell products securely through WhatsApp.\n\n🔒 Payments are protected — your money is held safely until you receive your goods\n🚚 Track your deliveries in real-time\n⭐ Buy from verified, rated merchants\n💰 Merchants get paid instantly to their bank\n\nReady to get started?",
       [
         { id: "onboard_buyer", title: "Sign Up to Buy" },
         { id: "onboard_merchant", title: "Sign Up to Sell" },
@@ -203,7 +203,7 @@ export class WhatsAppOnboardingService {
     if (userType === "BUYER") {
       await this.interactiveService.sendReplyButtons(
         phone,
-        "Welcome to SwiftTrade! 🔗 Let's set up your buyer account.\n\nAre you buying for a business or as an individual?",
+        "Welcome to Swifta! 🔗 Let's set up your buyer account.\n\nAre you buying for a business or as an individual?",
         [
           { id: "buyer_type_business", title: "Business" },
           { id: "buyer_type_individual", title: "Individual" },
@@ -391,7 +391,7 @@ export class WhatsAppOnboardingService {
     if (existingUser) {
       await this.interactiveService.sendTextMessage(
         phone,
-        "This email is already registered. If you already have a SwiftTrade account, please visit swifta.store to link your WhatsApp number, or use a different email.",
+        "This email is already registered. If you already have a Swifta account, please visit swifta.store to link your WhatsApp number, or use a different email.",
       );
       return;
     }
@@ -585,7 +585,7 @@ export class WhatsAppOnboardingService {
               {
                 id: "help",
                 title: "Help",
-                description: "Learn how SwiftTrade works",
+                description: "Learn how Swifta works",
               },
             ],
           },
@@ -772,7 +772,7 @@ export class WhatsAppOnboardingService {
     if (existingUser) {
       await this.interactiveService.sendTextMessage(
         phone,
-        "This email is already registered. If you already have a SwiftTrade account, please visit swifta.store to link your WhatsApp number, or use a different email.",
+        "This email is already registered. If you already have a Swifta account, please visit swifta.store to link your WhatsApp number, or use a different email.",
       );
       return;
     }

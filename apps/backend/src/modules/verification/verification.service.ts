@@ -10,7 +10,7 @@ import {
   ReviewVerificationDto,
 } from "./verification.dto";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
-import { VerificationTier, OrderStatus } from "@hardware-os/shared";
+import { VerificationTier, OrderStatus } from "@swifta/shared";
 
 @Injectable()
 export class VerificationService {
