@@ -60,4 +60,12 @@ export class CreateProductDto {
   @Min(1)
   @Max(99)
   wholesaleDiscountPercent?: number;
+
+  @IsOptional()
+  @IsNumber()
+  weightKg?: number;
+
+  @IsOptional()
+  @IsInt()
+  processingDays?: number;
 }

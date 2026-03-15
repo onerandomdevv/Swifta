@@ -28,8 +28,8 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
   const [profile, setProfile] = useState<MerchantProfile | null>(initialMerchant || null);
   const [products, setProducts] = useState<Product[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [followLoading, setFollowLoading] = useState(false);
+  const [isStarred, setIsStarred] = useState(false);
+  const [starLoading, setStarLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<'products' | 'discounts' | 'reviews'>('products');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -51,17 +51,17 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
     const stock = product.stockCache?.stock ?? 0;
     if (stock <= 0) {
       return (
-        <div className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 border border-red-200 rounded-full shadow-sm">
-          <span className="material-symbols-outlined text-sm font-bold">error</span>
-          <span className="text-[11px] font-bold uppercase tracking-wider leading-none">Out of Stock</span>
+        <div className="absolute top-3 left-3 flex items-center gap-1 px-2 py-1 bg-white text-rose-500 border border-rose-100 rounded-md shadow-sm">
+          <span className="material-symbols-outlined text-xs font-bold">error</span>
+          <span className="text-[9px] font-bold uppercase tracking-wider">Out of Stock</span>
         </div>
       );
     }
     if (stock <= 10) {
       return (
-        <div className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-600 border border-amber-200 rounded-full shadow-sm">
-          <span className="material-symbols-outlined text-sm font-bold">warning</span>
-          <span className="text-[11px] font-bold uppercase tracking-wider leading-none">Low Stock</span>
+        <div className="absolute top-3 left-3 flex items-center gap-1 px-2 py-1 bg-white text-amber-500 border border-amber-100 rounded-md shadow-sm">
+          <span className="material-symbols-outlined text-xs font-bold">warning</span>
+          <span className="text-[9px] font-bold uppercase tracking-wider">Low Stock</span>
         </div>
       );
     }
@@ -122,8 +122,8 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
         setProducts(productsData as unknown as Product[]);
 
         if (user) {
-          const { isFollowing: followingStatus } = await merchantApi.isFollowing(id);
-          setIsFollowing(followingStatus);
+          const { isFollowing: followingStatus } = await merchantApi.isStarred(id);
+          setIsStarred(followingStatus);
         }
       } catch (err: any) {
         setError(err.message || "Failed to load merchant profile");
@@ -150,28 +150,28 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
     fetchReviews();
   }, [id, activeTab]);
 
-  const handleFollowToggle = async () => {
+  const handleStarToggle = async () => {
     if (!user) {
-      toast.error("Please login to follow merchants");
+      toast.error("Please login to star merchants");
       return;
     }
     if (!id) return;
 
-    setFollowLoading(true);
+    setStarLoading(true);
     try {
-      if (isFollowing) {
-        await merchantApi.unfollowMerchant(id);
-        setIsFollowing(false);
-        toast.success("Unfollowed merchant");
+      if (isStarred) {
+        await merchantApi.unstarMerchant(id);
+        setIsStarred(false);
+        toast.success("Unstarred merchant");
       } else {
-        await merchantApi.followMerchant(id);
-        setIsFollowing(true);
-        toast.success("Following merchant!");
+        await merchantApi.starMerchant(id);
+        setIsStarred(true);
+        toast.success("Starred merchant");
       }
     } catch (err: any) {
       toast.error(err.message || "Action failed");
     } finally {
-      setFollowLoading(false);
+      setStarLoading(false);
     }
   };
 
@@ -191,11 +191,11 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
         {productList.map((p) => (
           <div
             key={p.id}
-            className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col group hover:shadow-xl transition-all duration-300"
+            className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col group hover:border-primary/20 transition-all duration-300"
           >
             {/* Top Section: Image */}
-            <div className="relative aspect-square w-full p-4">
-              <div className="w-full h-full rounded-2xl overflow-hidden bg-slate-50 dark:bg-slate-800 relative">
+            <div className="relative aspect-square w-full p-3">
+              <div className="w-full h-full rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-800 relative border border-slate-50">
                 {p.imageUrl ? (
                   <img
                     src={p.imageUrl}
@@ -204,7 +204,7 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <span className="material-symbols-outlined text-slate-200 dark:text-slate-700 text-6xl">inventory_2</span>
+                    <span className="material-symbols-outlined text-slate-200 dark:text-slate-700 text-5xl">inventory_2</span>
                   </div>
                 )}
                 {/* Stock Badge Overlay */}
@@ -212,51 +212,36 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
                 
                 {/* Wholesale Discount Badge */}
                 {p.wholesaleDiscountPercent && p.wholesaleDiscountPercent > 0 && (
-                  <div className="absolute top-3 right-3 px-2 py-1 bg-primary text-white text-[10px] font-black rounded-lg shadow-lg">
-                    {p.wholesaleDiscountPercent}% OFF
+                  <div className="absolute top-3 right-3 px-2 py-1 bg-primary text-white text-[9px] font-bold rounded-md shadow-sm">
+                    -{p.wholesaleDiscountPercent}%
                   </div>
                 )}
               </div>
             </div>
 
             {/* Content Section */}
-            <div className="px-6 pb-6 pt-2 flex flex-col grow">
+            <div className="px-5 pb-5 pt-1 flex flex-col grow">
               <div className="mb-4">
                 <div className="flex items-center justify-between gap-2 mb-1">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest truncate">
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest truncate">
                     SKU: {p.productCode || p.id.slice(0, 8).toUpperCase()}
                   </p>
-                  <button 
-                    onClick={() => handleCopyProductCode(p)}
-                    className="size-6 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-300 hover:text-primary transition-all"
-                    title="Copy SKU"
-                  >
-                    <span className="material-symbols-outlined text-sm">
-                      {copiedId === p.id ? "check_circle" : "content_copy"}
-                    </span>
-                  </button>
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white leading-tight truncate">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white leading-tight truncate">
                   {p.name}
                 </h3>
-                {p.shortDescription && (
-                  <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
-                    {p.shortDescription}
-                  </p>
-                )}
               </div>
               
               {/* Pricing Row */}
               {renderPriceSection(p)}
 
               {/* Action */}
-              <div className="mt-8">
+              <div className="mt-6">
                 <button 
                   onClick={() => router.push(`/merchant/products/${p.id}`)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all outline-none"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-900 dark:bg-slate-200 text-white dark:text-slate-900 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:opacity-90 transition-all"
                 >
-                  <span className="material-symbols-outlined text-xl">visibility</span>
-                  View Product
+                  View Details
                 </button>
               </div>
             </div>
@@ -278,17 +263,17 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
     }
 
     return (
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse font-sans">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Product</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Category</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Retail Price</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Wholesale</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Stock</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Actions</th>
+                <th className="px-6 py-4 text-[9px] font-bold uppercase tracking-widest text-slate-400">Product</th>
+                <th className="px-6 py-4 text-[9px] font-bold uppercase tracking-widest text-slate-400">Category</th>
+                <th className="px-6 py-4 text-[9px] font-bold uppercase tracking-widest text-slate-400">Retail</th>
+                <th className="px-6 py-4 text-[9px] font-bold uppercase tracking-widest text-slate-400">Wholesale</th>
+                <th className="px-6 py-4 text-[9px] font-bold uppercase tracking-widest text-slate-400">Stock</th>
+                <th className="px-6 py-4 text-[9px] font-bold uppercase tracking-widest text-slate-400 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
@@ -314,7 +299,7 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-lg">
+                    <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 text-[9px] font-bold uppercase tracking-widest rounded-md">
                       {p.categoryTag || "General"}
                     </span>
                   </td>
@@ -394,58 +379,51 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
             onClick={() => router.push(`/buyer/products/${p.id}`)}
           >
             {/* Square Image Container */}
-            <div className="relative aspect-square rounded-3xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-100 dark:border-white/5 shadow-sm group-hover:shadow-xl group-hover:-translate-y-1 transition-all duration-500">
+            <div className="relative aspect-square rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 shadow-sm group-hover:border-primary/20 transition-all duration-500">
               {p.imageUrl ? (
                 <img
                   src={p.imageUrl}
                   alt={p.name}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <span className="material-symbols-outlined text-slate-200 dark:text-slate-700 text-6xl">inventory_2</span>
+                  <span className="material-symbols-outlined text-slate-200 dark:text-slate-700 text-5xl">inventory_2</span>
                 </div>
               )}
               
               {/* Category Tag overlay */}
-              <span className="absolute top-4 left-4 px-3 py-1.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-[10px] font-black uppercase tracking-widest rounded-xl shadow-sm border border-white/20">
+              <span className="absolute top-4 left-4 px-3 py-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-[9px] font-bold uppercase tracking-widest rounded-lg shadow-sm border border-slate-100">
                 {p.categoryTag || "General"}
               </span>
 
               {/* Wholesale Discount Badge */}
               {p.wholesaleDiscountPercent && p.wholesaleDiscountPercent > 0 && (
-                <div className="absolute top-4 right-4 px-3 py-1.5 bg-primary text-white text-[10px] font-black rounded-xl shadow-lg animate-in zoom-in duration-500">
+                <div className="absolute top-4 right-4 px-2 py-1 bg-primary text-white text-[9px] font-bold rounded-lg shadow-sm">
                   SAVE {p.wholesaleDiscountPercent}%
                 </div>
               )}
             </div>
 
             {/* Product Info */}
-            <div className="mt-6 space-y-1">
-              <h4 className="font-bold text-xl text-slate-900 dark:text-white group-hover:text-primary transition-colors line-clamp-1">
+            <div className="mt-5 space-y-1">
+              <h4 className="font-bold text-lg text-slate-900 dark:text-white group-hover:text-primary transition-colors line-clamp-1">
                 {p.name}
               </h4>
-              {p.shortDescription && (
-                <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed pb-2">
-                  {p.shortDescription}
-                </p>
-              )}
               
-              <div className="flex items-end justify-between gap-4">
+              <div className="flex items-end justify-between gap-4 pt-2">
                 <div className="flex flex-col">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Retail Price</span>
-                  <span className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-0.5">Retail</span>
+                  <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
                     {formatKobo(Number(p.retailPriceKobo || p.pricePerUnitKobo || 0))}
-                    <span className="text-xs text-slate-400 font-bold ml-1">/ {p.unit || "unit"}</span>
                   </span>
                 </div>
                 
                 {p.wholesalePriceKobo && (
                   <div className="flex flex-col items-end text-right">
-                    <span className="text-[10px] text-primary font-bold uppercase tracking-widest mb-1">Wholesale</span>
-                    <span className="text-lg font-extrabold text-primary/80 tracking-tight">
+                    <span className="text-[9px] text-primary font-bold uppercase tracking-widest mb-0.5">Wholesale</span>
+                    <span className="text-base font-bold text-primary/80 tracking-tight">
                       {formatKobo(Number(p.wholesalePriceKobo))}
-                      <span className="text-[10px] font-bold ml-0.5">/ {p.unit || "unit"}</span>
                     </span>
                   </div>
                 )}
@@ -485,100 +463,69 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
     <div className="min-h-full bg-[#f8fafc] dark:bg-[#0f172a] font-display text-slate-900 dark:text-slate-100">
       {/* Cover Section */}
       <div className="relative px-4 pt-4 md:px-8">
-        <div className="h-64 md:h-80 w-full relative rounded-2xl overflow-hidden bg-slate-200 dark:bg-slate-800">
+        <div className="h-56 md:h-64 w-full relative rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-800 border border-slate-100 shadow-sm">
           {profile.coverImage ? (
             <img src={profile.coverImage} alt="Cover" className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-primary/20 via-slate-200 to-slate-300 dark:from-primary/10 dark:via-slate-800 dark:to-slate-900" />
+            <div className="w-full h-full bg-slate-50 dark:bg-slate-900" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent" />
 
           {/* Share Button */}
           <button
             onClick={() => {
               navigator.clipboard.writeText(window.location.href);
-              toast.success("Link copied to clipboard");
+              toast.success("Link copied");
             }}
-            className="absolute top-4 left-4 bg-white/20 backdrop-blur-md hover:bg-white/30 text-white rounded-xl px-4 py-2 flex items-center gap-2 transition-all"
+            className="absolute top-4 left-4 bg-white/90 backdrop-blur-md text-slate-900 rounded-lg px-3 py-1.5 flex items-center gap-2 transition-all shadow-sm border border-slate-100"
           >
-            <span className="material-symbols-outlined text-lg">share</span>
-            <span className="text-sm font-medium">Share Profile</span>
+            <span className="material-symbols-outlined text-sm">share</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest">Share</span>
           </button>
         </div>
 
         {/* Avatar */}
-        <div className={`absolute -bottom-16 left-8 md:left-16 size-32 md:size-40 border-4 border-white dark:border-[#0f172a] bg-white dark:bg-slate-800 overflow-hidden shadow-xl ${isVerified ? 'rounded-2xl' : 'rounded-full'}`}>
+        <div className="absolute -bottom-12 left-8 md:left-16 size-24 md:size-32 border-4 border-white dark:border-[#0f172a] bg-white dark:bg-slate-800 overflow-hidden shadow-md rounded-xl">
           {profile.profileImage ? (
             <img src={profile.profileImage} alt={profile.businessName} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full bg-primary/10 flex items-center justify-center">
-              <span className="material-symbols-outlined text-primary text-5xl md:text-6xl">storefront</span>
+            <div className="w-full h-full bg-slate-50 flex items-center justify-center">
+              <span className="material-symbols-outlined text-primary/40 text-4xl">storefront</span>
             </div>
           )}
         </div>
       </div>
 
       {/* Profile Info */}
-      <div className="mt-20 px-4 md:px-16 flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="mt-16 px-4 md:px-16 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-3 flex-wrap">
-            <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white tracking-tight">
               {profile.businessName}
             </h2>
             {isVerified && (
-              <span className="material-symbols-outlined text-blue-500 text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+              <span className="material-symbols-outlined text-emerald-500 text-2xl font-variation-fill">verified</span>
             )}
           </div>
 
           <div className="flex items-center gap-4 flex-wrap">
-            <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full text-sm font-medium">
+            <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-bold uppercase tracking-widest rounded-md">
               {profile.slug}
             </span>
-            <div className="flex items-center gap-1.5 text-slate-500 text-sm">
-              <span className="material-symbols-outlined text-lg">location_on</span>
+            <div className="flex items-center gap-1.5 text-slate-400 text-xs font-semibold uppercase tracking-wider">
+              <span className="material-symbols-outlined text-sm">location_on</span>
               <span>{profile.businessAddress || "Location not set"}</span>
             </div>
-            <div className="flex items-center gap-1.5 text-slate-500 text-sm font-medium">
-              <span className="material-symbols-outlined text-lg">group</span>
+            <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold uppercase tracking-widest">
+              <span className="material-symbols-outlined text-sm">group</span>
               <span className="text-slate-900 dark:text-slate-200">{profile.followersCount || 0}</span>
-              <span>Followers</span>
+              <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[10px] text-amber-400">star</span>Stars</span>
             </div>
-            <div className="flex items-center gap-1.5 text-slate-500 text-sm font-medium">
-              <span className="material-symbols-outlined text-lg text-primary">handshake</span>
+            <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold uppercase tracking-widest">
+              <span className="material-symbols-outlined text-sm text-emerald-500 font-variation-fill">handshake</span>
               <span className="text-slate-900 dark:text-slate-200">{profile.dealsClosed || 0}</span>
-              <span>Deals Closed</span>
+              <span>Deals</span>
             </div>
-          </div>
-
-          {profile.description && (
-            <p className="mt-2 text-slate-600 dark:text-slate-400 text-lg max-w-2xl leading-relaxed">
-              {profile.description}
-            </p>
-          )}
-
-          {/* Social Links & Website */}
-          <div className="flex items-center gap-4 mt-4">
-            {profile.websiteUrl && (() => {
-              try {
-                // Handle cases where the URL might be relative by providing a base
-                // but checking the protocol of the resulting parsed URL
-                const urlToTest = profile.websiteUrl.startsWith('http') 
-                  ? profile.websiteUrl 
-                  : `https://${profile.websiteUrl}`;
-                const parsed = new URL(urlToTest);
-                if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
-                  return (
-                    <a href={profile.websiteUrl.startsWith('http') ? profile.websiteUrl : `https://${profile.websiteUrl}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm font-bold text-primary hover:underline">
-                      <span className="material-symbols-outlined text-lg">language</span>
-                      Website
-                    </a>
-                  );
-                }
-              } catch (e) {
-                // Invalid URL - don't render the link
-              }
-              return null;
-            })()}
           </div>
         </div>
 
@@ -587,24 +534,26 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
           {isOwner ? (
             <button
               onClick={() => setIsEditModalOpen(true)}
-              className="flex-1 md:flex-none px-6 py-3 bg-slate-900 dark:bg-slate-700 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors"
+              className="px-5 py-2.5 bg-slate-900 text-white rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:opacity-90 transition-all"
             >
-              <span className="material-symbols-outlined text-lg">edit</span>
+              <span className="material-symbols-outlined text-sm">edit</span>
               Edit Profile
             </button>
           ) : user ? (
             <button
-              onClick={handleFollowToggle}
-              disabled={followLoading}
+              onClick={handleStarToggle}
+              disabled={starLoading}
               className={cn(
-                "flex-1 md:flex-none px-6 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50",
-                isFollowing
-                  ? "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300"
-                  : "bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20"
+                "px-5 py-2.5 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-all disabled:opacity-50",
+                isStarred
+                  ? "bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-900/30 dark:border-amber-800 dark:text-amber-400"
+                  : "bg-white text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 hover:border-amber-400 hover:text-amber-600 shadow-sm"
               )}
             >
-              <span className="material-symbols-outlined text-lg">{isFollowing ? 'person_remove' : 'person_add'}</span>
-              {followLoading ? "..." : isFollowing ? 'Unfollow' : 'Follow Business'}
+              <span className={cn("material-symbols-outlined text-[16px]", isStarred ? "font-variation-fill" : "")}>
+                star
+              </span>
+              {starLoading ? "..." : isStarred ? 'Starred' : 'Star'}
             </button>
           ) : null}
 
@@ -613,9 +562,9 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
               href={`https://wa.me/${profile.contact.phone.replace(/\D/g, "")}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 md:flex-none px-6 py-3 bg-[#25D366] text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+              className="px-5 py-2.5 border border-emerald-100 text-emerald-600 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-emerald-50 transition-all"
             >
-              <span className="material-symbols-outlined text-lg">chat</span>
+              <span className="material-symbols-outlined text-sm">chat</span>
               WhatsApp
             </a>
           )}
@@ -624,17 +573,17 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
 
       {/* Verification Details */}
       <div className="mt-8 px-4 md:px-16">
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800">
+        <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-100 dark:border-slate-800">
           <button 
             onClick={() => setShowVerificationDetails(!showVerificationDetails)}
             className="w-full flex items-center justify-between mb-0 group"
           >
-            <h3 className="font-bold flex items-center gap-2 text-slate-900 dark:text-white">
-              <span className="material-symbols-outlined text-primary">verified_user</span>
-              Business Verification Details
+            <h3 className="text-sm font-bold flex items-center gap-2 text-slate-900 dark:text-white uppercase tracking-tight">
+              <span className="material-symbols-outlined text-primary text-lg">verified_user</span>
+              Business Verification
             </h3>
             <span className={cn(
-              "material-symbols-outlined text-slate-400 transition-transform duration-300",
+              "material-symbols-outlined text-slate-300 transition-transform duration-300 text-lg",
               showVerificationDetails ? "rotate-180" : ""
             )}>
               keyboard_arrow_down
@@ -642,24 +591,24 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
           </button>
           
           {showVerificationDetails && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className={`flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border ${profile.cacVerified ? 'border-primary/20' : 'border-slate-100 dark:border-slate-800 opacity-60'}`}>
-                <span className={cn("material-symbols-outlined", profile.cacVerified ? "text-primary" : "text-slate-400")}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-6 animate-in fade-in slide-in-from-top-1 duration-200">
+              <div className={`flex items-center gap-2 p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg border ${profile.cacVerified ? 'border-primary/10' : 'border-slate-100 dark:border-slate-800 opacity-60'}`}>
+                <span className={cn("material-symbols-outlined text-sm font-variation-fill", profile.cacVerified ? "text-primary" : "text-slate-300")}>
                   {profile.cacVerified ? 'check_circle' : 'cancel'}
                 </span>
-                <span className="text-sm font-medium">{profile.cacVerified ? 'CAC Verified' : 'CAC Not Verified'}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider">{profile.cacVerified ? 'CAC Verified' : 'CAC Pending'}</span>
               </div>
-              <div className={`flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border ${profile.addressVerified ? 'border-primary/20' : 'border-slate-100 dark:border-slate-800 opacity-60'}`}>
-                <span className={cn("material-symbols-outlined", profile.addressVerified ? "text-primary" : "text-slate-400")}>
+              <div className={`flex items-center gap-2 p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg border ${profile.addressVerified ? 'border-primary/10' : 'border-slate-100 dark:border-slate-800 opacity-60'}`}>
+                <span className={cn("material-symbols-outlined text-sm font-variation-fill", profile.addressVerified ? "text-primary" : "text-slate-300")}>
                   {profile.addressVerified ? 'check_circle' : 'cancel'}
                 </span>
-                <span className="text-sm font-medium">{profile.addressVerified ? 'Address Verified' : 'Address Not Verified'}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider">{profile.addressVerified ? 'Address Verified' : 'Address Pending'}</span>
               </div>
-              <div className={`flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border ${profile.bankVerified ? 'border-primary/20' : 'border-slate-100 dark:border-slate-800 opacity-60'}`}>
-                <span className={cn("material-symbols-outlined", profile.bankVerified ? "text-primary" : "text-slate-400")}>
+              <div className={`flex items-center gap-2 p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg border ${profile.bankVerified ? 'border-primary/10' : 'border-slate-100 dark:border-slate-800 opacity-60'}`}>
+                <span className={cn("material-symbols-outlined text-sm font-variation-fill", profile.bankVerified ? "text-primary" : "text-slate-300")}>
                   {profile.bankVerified ? 'check_circle' : 'cancel'}
                 </span>
-                <span className="text-sm font-medium">{profile.bankVerified ? 'Bank Verified' : 'Bank Not Verified'}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider">{profile.bankVerified ? 'Bank Verified' : 'Bank Pending'}</span>
               </div>
             </div>
           )}
@@ -674,10 +623,10 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={cn(
-                "pb-4 px-2 font-bold transition-all capitalize flex items-center gap-2",
+                "pb-4 px-2 font-bold transition-all capitalize flex items-center gap-2 text-sm",
                 activeTab === tab
-                  ? "text-primary border-b-4 border-primary"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
               )}
             >
               {tab}
@@ -754,27 +703,27 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
           <div className="space-y-8">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold">Buyer Feedback</h3>
-                <p className="text-sm text-slate-500">Verified reviews from platform trades</p>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white uppercase tracking-tight">Buyer Feedback</h3>
+                <p className="text-xs text-slate-400 font-medium mt-1 uppercase tracking-wider">Verified platform reviews</p>
               </div>
-              <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700">
-                <span className="text-2xl font-black">{profile.averageRating?.toFixed(1) || "5.0"}</span>
+              <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-4 py-2 rounded-lg border border-slate-100 dark:border-slate-800">
+                <span className="text-xl font-bold text-slate-900 dark:text-white">{profile.averageRating?.toFixed(1) || "5.0"}</span>
                 <StarRating rating={profile.averageRating || 5} readOnly size="sm" />
               </div>
             </div>
 
             {reviews.length === 0 ? (
-              <div className="py-20 text-center opacity-50 bg-white dark:bg-slate-800 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700">
-                <span className="material-symbols-outlined text-4xl text-slate-300 mb-2 block">rate_review</span>
-                <p className="font-bold uppercase tracking-widest text-sm">No reviews yet</p>
+              <div className="py-20 text-center bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800">
+                <span className="material-symbols-outlined text-3xl text-slate-200 mb-2 block">rate_review</span>
+                <p className="font-bold uppercase tracking-widest text-[10px] text-slate-300">No reviews yet</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {reviews.map((rev) => (
-                  <div key={rev.id} className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col gap-4">
+                  <div key={rev.id} className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col gap-3">
                     <StarRating rating={rev.rating} readOnly size="sm" />
-                    <p className="text-slate-600 dark:text-slate-400 italic">&quot;{rev.comment || "Great products and service!"}&quot;</p>
-                    <div className="mt-auto text-[10px] font-bold uppercase tracking-widest text-slate-400">Verified Trade</div>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs italic leading-relaxed">&quot;{rev.comment || "Great products and service!"}&quot;</p>
+                    <div className="mt-auto text-[9px] font-bold uppercase tracking-widest text-slate-300">Verified Trade</div>
                   </div>
                 ))}
               </div>
@@ -783,51 +732,6 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
         )}
       </div>
 
-      {/* Footer */}
-      <footer className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-12 px-4 md:px-16 mt-auto">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between gap-8">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="size-8 bg-primary rounded-lg flex items-center justify-center text-white">
-                <span className="material-symbols-outlined text-xl">rocket_launch</span>
-              </div>
-              <span className="text-xl font-bold">SwiftTrade</span>
-            </div>
-            <p className="text-slate-500 text-sm max-w-xs leading-relaxed">
-              The ultimate marketplace solution for Nigerian merchants to scale and reach customers everywhere.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-8">
-            <div>
-              <h5 className="text-sm font-bold mb-4 uppercase tracking-wider text-slate-400">Portal</h5>
-              <ul className="space-y-2 text-sm font-medium text-slate-600 dark:text-slate-400">
-                <li><a className="hover:text-primary transition-colors" href="/merchant/products">Inventory</a></li>
-                <li><a className="hover:text-primary transition-colors" href="/merchant/payouts">Payouts</a></li>
-                <li><a className="hover:text-primary transition-colors" href="/merchant/dashboard">Dashboard</a></li>
-              </ul>
-            </div>
-            <div>
-              <h5 className="text-sm font-bold mb-4 uppercase tracking-wider text-slate-400">Support</h5>
-              <ul className="space-y-2 text-sm font-medium text-slate-600 dark:text-slate-400">
-                <li><a className="hover:text-primary transition-colors" href="#">Help Center</a></li>
-                <li><a className="hover:text-primary transition-colors" href="#">Terms of Use</a></li>
-                <li><a className="hover:text-primary transition-colors" href="#">Privacy</a></li>
-              </ul>
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <h5 className="text-sm font-bold mb-4 uppercase tracking-wider text-slate-400">Legal</h5>
-              <p className="text-xs text-slate-500">© 2025 SwiftTrade Technologies Ltd. All rights reserved.</p>
-            </div>
-          </div>
-        </div>
-      </footer>
-
-      <EditProfileModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        profile={profile}
-        onSuccess={(updated) => setProfile(updated)}
-      />
     </div>
   );
 }

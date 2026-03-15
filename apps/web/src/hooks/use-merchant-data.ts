@@ -7,7 +7,7 @@ import { merchantApi } from "@/lib/api/merchant.api";
 import { authApi } from "@/lib/api/auth.api";
 import type { Order, Product } from "@hardware-os/shared";
 
-export function useMerchantDashboard() {
+export function useMerchantDashboard(startDate?: string, endDate?: string) {
   const orderQuery = useQuery({
     queryKey: ["merchant", "orders", "all"],
     queryFn: async () => {
@@ -18,8 +18,8 @@ export function useMerchantDashboard() {
   });
 
   const analyticsQuery = useQuery({
-    queryKey: ["merchant", "analytics"],
-    queryFn: () => merchantApi.getAnalytics(),
+    queryKey: ["merchant", "analytics", startDate, endDate],
+    queryFn: () => merchantApi.getAnalytics(startDate, endDate),
     refetchInterval: 60000,
   });
 

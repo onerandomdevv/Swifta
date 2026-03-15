@@ -56,40 +56,41 @@ export function NotificationsSharedPage({ role }: NotificationsSharedPageProps) 
   }
 
   return (
-    <div className="max-w-6xl mx-auto w-full">
+    <div className="max-w-4xl mx-auto w-full">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 px-2">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12 px-2">
         <div>
-          <h2 className="text-3xl font-extrabold text-[#0f172a] dark:text-white tracking-tight">Notifications</h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">Manage your {role} alerts and activity updates</p>
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Notifications</h2>
+          <p className="text-sm font-semibold text-slate-500 mt-2 uppercase tracking-widest">Global Activity Stream</p>
         </div>
         <div className="flex items-center gap-4 w-full md:w-auto">
-          <div className="flex items-center gap-3 bg-white dark:bg-slate-800 px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex-1 md:flex-none">
-            <span className="text-sm font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap">Only show unread</span>
+          <div className="flex items-center gap-3 bg-white dark:bg-slate-900 px-4 h-11 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex-1 md:flex-none">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Unread</span>
             <button 
               onClick={() => setOnlyUnread(!onlyUnread)}
               className={cn(
-                "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
-                onlyUnread ? "bg-primary" : "bg-slate-200 dark:bg-slate-700"
+                "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                onlyUnread ? "bg-primary" : "bg-slate-200 dark:bg-slate-800"
               )}
             >
               <span className={cn(
-                "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                onlyUnread ? "translate-x-5" : "translate-x-0"
+                "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                onlyUnread ? "translate-x-4" : "translate-x-0"
               )} />
             </button>
           </div>
           <Button 
             onClick={() => markAllAsRead()}
-            className="bg-primary hover:bg-emerald-600 text-white px-6 h-12 rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
+            className="bg-slate-900 border border-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 px-6 h-11 rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all flex items-center gap-2 active:scale-95 shadow-lg shadow-slate-900/10"
           >
-            <span className="material-symbols-outlined text-xl">done_all</span>
-            Mark all as read
+            <span className="material-symbols-outlined text-lg">done_all</span>
+            Mark All Read
           </Button>
         </div>
       </div>
 
-      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-8 mb-8 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] px-2">
+      {/* Categories / Tabs */}
+      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-8 mb-10 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] px-2">
         {categories.map((cat) => {
           const unreadCountForCat = getUnreadCount(cat);
           const isActive = activeTab === cat;
@@ -98,17 +99,17 @@ export function NotificationsSharedPage({ role }: NotificationsSharedPageProps) 
               key={cat}
               onClick={() => setActiveTab(cat)}
               className={cn(
-                "flex items-center gap-2 px-1 py-4 border-b-2 text-sm font-bold whitespace-nowrap transition-all",
+                "flex items-center gap-2 px-1 py-5 border-b-2 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all",
                 isActive 
                   ? "border-primary text-primary" 
-                  : "border-transparent text-slate-500 dark:text-slate-400 hover:text-[#0f172a] dark:hover:text-white"
+                  : "border-transparent text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white"
               )}
             >
               {cat}
               {unreadCountForCat > 0 && (
                 <span className={cn(
-                  "px-2 py-0.5 rounded-full text-[10px] font-black",
-                  isActive ? "bg-primary/10 text-primary" : "bg-slate-100 dark:bg-slate-800 text-slate-500"
+                  "px-1.5 py-0.5 rounded-md text-[9px] font-bold",
+                  isActive ? "bg-primary/10 text-primary" : "bg-slate-50 dark:bg-slate-800 text-slate-400"
                 )}>
                   {unreadCountForCat}
                 </span>
@@ -119,17 +120,17 @@ export function NotificationsSharedPage({ role }: NotificationsSharedPageProps) 
       </div>
 
       {/* List */}
-      <div className="flex flex-col gap-4 px-2">
+      <div className="flex flex-col gap-5 px-2">
         {filteredNotifications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center bg-white dark:bg-slate-900/50 rounded-3xl border border-slate-100 dark:border-slate-800 border-dashed">
-            <div className="bg-slate-100 dark:bg-slate-800 size-24 rounded-full flex items-center justify-center mb-6">
-              <span className="material-symbols-outlined text-slate-300 dark:text-slate-600 text-5xl">notifications_off</span>
+          <div className="flex flex-col items-center justify-center py-32 text-center bg-white dark:bg-slate-900/50 rounded-3xl border border-slate-100 dark:border-slate-800 border-dashed">
+            <div className="bg-slate-50 dark:bg-slate-800 size-24 rounded-full flex items-center justify-center mb-8 border border-slate-100 dark:border-slate-800">
+              <span className="material-symbols-outlined text-slate-200 dark:text-slate-700 text-6xl">notifications_off</span>
             </div>
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white">All caught up!</h3>
-            <p className="text-slate-500 dark:text-slate-400 mt-2 max-w-xs mx-auto">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white">Terminal Clear</h3>
+            <p className="text-sm font-medium text-slate-400 mt-2 max-w-xs mx-auto">
               {onlyUnread 
-                ? "You have no unread notifications in this category." 
-                : "You don't have any notifications yet. We'll alert you here."}
+                ? "You have no unverified alerts in this sector." 
+                : "No incoming transmissions at this time. We'll alert your terminal when updates occur."}
             </p>
           </div>
         ) : (
@@ -138,56 +139,63 @@ export function NotificationsSharedPage({ role }: NotificationsSharedPageProps) 
               <div 
                 key={n.id}
                 className={cn(
-                  "group relative bg-white dark:bg-slate-900/50 rounded-3xl p-6 border transition-all duration-300",
+                  "group relative bg-white dark:bg-slate-900 rounded-2xl p-6 border transition-all duration-300",
                   n.unread 
-                    ? "border-primary/20 shadow-sm" 
-                    : "border-slate-100 dark:border-slate-800 opacity-90 hover:opacity-100"
+                    ? "border-primary/10 shadow-sm" 
+                    : "border-slate-100 dark:border-white/5 opacity-80 hover:opacity-100"
                 )}
               >
-                <div className="flex items-start gap-5">
+                <div className="flex items-start gap-6">
                   <div className={cn(
-                    "size-14 rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105",
-                    n.unread ? "bg-primary text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400"
+                    "size-14 rounded-xl flex items-center justify-center shrink-0 border transition-all",
+                    n.unread 
+                      ? "bg-primary/[0.03] text-primary border-primary/20" 
+                      : "bg-slate-50 dark:bg-slate-800/50 text-slate-300 border-slate-100 dark:border-slate-800"
                   )}>
-                    <span className="material-symbols-outlined text-2xl font-variation-fill">{n.icon}</span>
+                    <span className="material-symbols-outlined text-2xl font-variation-light">{n.icon}</span>
                   </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-4 mb-1">
-                      <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0 pt-1">
+                    <div className="flex items-center justify-between gap-4 mb-3">
+                      <div className="flex items-center gap-3">
                         <span className={cn(
-                          "text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg",
-                          n.unread ? "bg-primary/10 text-primary" : "bg-slate-100 dark:bg-slate-800 text-slate-400"
+                          "text-[9px] font-bold uppercase tracking-[0.2em] px-2.5 py-1 rounded-md border",
+                          n.unread 
+                            ? "bg-primary/5 text-primary border-primary/10" 
+                            : "bg-slate-50 dark:bg-slate-800/50 text-slate-400 border-slate-100 dark:border-slate-800"
                         )}>
                           {n.category}
                         </span>
                         {n.unread && (
-                          <span className="size-2 rounded-full bg-primary animate-pulse" />
+                          <div className="flex items-center gap-1.5">
+                            <span className="size-1.5 rounded-full bg-primary animate-pulse" />
+                            <span className="text-[9px] font-bold text-primary uppercase tracking-widest">New</span>
+                          </div>
                         )}
                       </div>
-                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tighter">
+                      <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">
                         {n.time}
                       </p>
                     </div>
 
                     <h4 className={cn(
-                      "text-lg font-extrabold tracking-tight mb-1 truncate",
-                      n.unread ? "text-slate-900 dark:text-white" : "text-slate-600 dark:text-slate-400"
+                      "text-lg font-bold tracking-tight mb-1.5",
+                      n.unread ? "text-slate-900 dark:text-white" : "text-slate-500 dark:text-slate-400"
                     )}>
                       {n.title}
                     </h4>
-                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2">
+                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2 max-w-3xl">
                       {n.desc}
                     </p>
 
-                    <div className="flex items-center gap-3 mt-5">
+                    <div className="flex items-center gap-3 mt-8">
                       {n.action && (
                         <button
                           onClick={() => {
                             if (n.unread) markAsRead(n.id);
                             if (n.actionUrl) router.push(n.actionUrl);
                           }}
-                          className="bg-primary/10 hover:bg-primary/20 text-primary text-xs font-black uppercase tracking-widest px-5 py-2.5 rounded-xl transition-all active:scale-95"
+                          className="bg-slate-900 border border-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 text-[10px] font-bold uppercase tracking-widest px-6 py-2.5 rounded-xl transition-all active:scale-95"
                         >
                           {n.action}
                         </button>
@@ -195,16 +203,16 @@ export function NotificationsSharedPage({ role }: NotificationsSharedPageProps) 
                       {!n.action && n.unread && (
                         <button
                           onClick={() => markAsRead(n.id)}
-                          className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 text-xs font-black uppercase tracking-widest px-5 py-2.5 rounded-xl transition-all"
+                          className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold uppercase tracking-widest px-6 py-2.5 rounded-xl transition-all hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95"
                         >
-                          Mark as read
+                          Acknowledge
                         </button>
                       )}
-                      <button className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xs font-black uppercase tracking-widest px-5 py-2.5 rounded-xl transition-all border border-slate-100 dark:border-slate-800">
-                        View Details
+                      <button className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-[10px] font-bold uppercase tracking-widest px-6 py-2.5 rounded-xl transition-all">
+                        Details
                       </button>
-                      <button className="ml-auto opacity-0 group-hover:opacity-100 transition-all p-1.5 hover:bg-rose-50 hover:text-rose-500 rounded-lg">
-                        <span className="material-symbols-outlined text-xl">close</span>
+                      <button className="ml-auto opacity-0 group-hover:opacity-100 transition-all p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg">
+                        <span className="material-symbols-outlined text-xl">delete</span>
                       </button>
                     </div>
                   </div>
@@ -213,11 +221,11 @@ export function NotificationsSharedPage({ role }: NotificationsSharedPageProps) 
             ))}
 
             {/* Bottom Indicator */}
-            <div className="flex flex-col items-center justify-center py-16 mt-8 text-center border-t border-slate-100 dark:border-slate-800 border-dashed">
-              <div className="bg-slate-50 dark:bg-slate-800/50 size-20 rounded-full flex items-center justify-center mb-4 border border-slate-100 dark:border-slate-800 shadow-inner">
-                <span className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-3xl font-variation-fill">done_all</span>
+            <div className="flex flex-col items-center justify-center py-20 mt-12 text-center border-t border-slate-100 dark:border-slate-800 border-dashed">
+              <div className="bg-slate-50 dark:bg-slate-800/50 size-24 rounded-full flex items-center justify-center mb-6 border border-slate-100 dark:border-slate-800">
+                <span className="material-symbols-outlined text-slate-300 dark:text-slate-600 text-4xl font-variation-light">verified</span>
               </div>
-              <p className="text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest text-[10px]">You&apos;re all up to date for now</p>
+              <p className="text-slate-400 dark:text-slate-500 font-bold uppercase tracking-[0.25em] text-[10px]">End of Transmissions • Terminal Secure</p>
             </div>
           </>
         )}

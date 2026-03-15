@@ -21,7 +21,7 @@ export function MerchantOrdersTable({ orders }: Props) {
             No Orders Yet
           </h3>
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            Orders will appear here when buyers accept your quotes.
+            Your orders will appear here.
           </p>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { Module, MiddlewareConsumer, RequestMethod } from "@nestjs/common";
+import { Module, MiddlewareConsumer, RequestMethod, Logger } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ServeStaticModule } from "@nestjs/serve-static";
 import { ScheduleModule } from "@nestjs/schedule";
@@ -87,7 +87,7 @@ function sanitizeRedisUrl(url: string | undefined): string | undefined {
         const urlString = sanitizeRedisUrl(rawUrl);
 
         if (!urlString) {
-          console.warn(
+          Logger.warn(
             "REDIS_URL not found for CacheModule, falling back to localhost",
           );
           const store = await redisStore({
@@ -117,7 +117,7 @@ function sanitizeRedisUrl(url: string | undefined): string | undefined {
           });
           return { store };
         } catch (error: any) {
-          console.error(
+          Logger.error(
             `CacheModule failed to parse REDIS_URL prefix: ${urlString.substring(0, 15)}...`,
           );
           throw new Error(

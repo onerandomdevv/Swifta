@@ -112,7 +112,7 @@ export function WhatsAppLinkStatus({
                   type="tel"
                   placeholder="e.g. +234 801 234 5678"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
                   className="h-16 text-lg font-bold border-2 rounded-2xl focus:border-primary transition-all"
                   required
                 />

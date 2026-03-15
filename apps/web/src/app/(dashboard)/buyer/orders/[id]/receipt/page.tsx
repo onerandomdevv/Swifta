@@ -58,7 +58,9 @@ export default function OrderReceiptPage() {
 
   const { merchant, buyer, quote, payments } = order;
   const paymentDate = payments?.[0]?.createdAt;
-  const productInfo = quote?.rfq?.product || quote?.rfq?.unlistedItemDetails;
+  const productInfo = order.product || order.items?.[0]?.product || quote?.rfq?.product || quote?.rfq?.unlistedItemDetails;
+  const orderQuantity = order.quantity || order.items?.[0]?.quantity || quote?.rfq?.quantity || 1;
+  const orderUnitPrice = order.unitPriceKobo || order.items?.[0]?.unitPriceKobo || quote?.unitPriceKobo || 0;
 
   const handlePrint = () => {
     window.print();
@@ -184,7 +186,7 @@ export default function OrderReceiptPage() {
               Delivered To
             </p>
             <p className="text-sm font-bold text-slate-600">
-              {quote?.rfq?.deliveryAddress}
+              {order.deliveryAddress || quote?.rfq?.deliveryAddress || order.deliveryDetails?.address || "Address not provided"}
             </p>
           </div>
         </div>
@@ -222,20 +224,17 @@ export default function OrderReceiptPage() {
                 </td>
                 <td className="py-6 px-4 text-center">
                   <p className="font-black text-navy-dark text-sm">
-                    {quote?.rfq?.quantity} {productInfo?.unit || ""}
+                    {orderQuantity} {productInfo?.unit || ""}
                   </p>
                 </td>
                 <td className="py-6 px-4 text-right">
                   <p className="font-bold text-slate-600 text-sm">
-                    {formatKobo(quote?.unitPriceKobo || 0)}
+                    {formatKobo(orderUnitPrice)}
                   </p>
                 </td>
                 <td className="py-6 px-4 text-right">
                   <p className="font-black text-navy-dark text-sm">
-                    {formatKobo(
-                      BigInt(quote?.unitPriceKobo || 0) *
-                        BigInt(quote?.rfq?.quantity || 1),
-                    )}
+                    {formatKobo(BigInt(orderUnitPrice) * BigInt(orderQuantity))}
                   </p>
                 </td>
               </tr>
@@ -249,10 +248,7 @@ export default function OrderReceiptPage() {
             <div className="flex justify-between text-sm font-bold text-slate-600">
               <span>Subtotal</span>
               <span>
-                {formatKobo(
-                  BigInt(quote?.unitPriceKobo || 0) *
-                    BigInt(quote?.rfq?.quantity || 1),
-                )}
+                {formatKobo(BigInt(orderUnitPrice) * BigInt(orderQuantity))}
               </span>
             </div>
             <div className="flex justify-between text-sm font-bold text-slate-600">

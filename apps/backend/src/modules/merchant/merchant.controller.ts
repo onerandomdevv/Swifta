@@ -13,6 +13,7 @@ import {
 import { MerchantService } from "./merchant.service";
 import { UpdateMerchantDto } from "./dto/update-merchant.dto";
 import { UpdateBankAccountDto } from "./dto/update-bank-account.dto";
+import { UpdatePreferencesDto } from "./dto/update-preferences.dto";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
@@ -66,6 +67,13 @@ export class MerchantController {
     return this.merchantService.getAllMerchants();
   }
 
+  @Get("balance-summary")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.MERCHANT)
+  async getBalanceSummary(@CurrentMerchant() merchantId: string) {
+    return this.merchantService.getBalanceSummary(merchantId);
+  }
+
   @Get(":id")
   async getPublicProfile(@Param("id", ParseUUIDPipe) id: string) {
     return this.merchantService.getPublicProfile(id);
@@ -107,9 +115,14 @@ export class MerchantController {
   @Get("me/analytics")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.MERCHANT)
-  async getMyAnalytics(@CurrentMerchant() merchantId: string) {
-    return this.analyticsService.getMerchantStats(merchantId);
+  async getMyAnalytics(
+    @CurrentMerchant() merchantId: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
+  ) {
+    return this.analyticsService.getMerchantStats(merchantId, startDate, endDate);
   }
+
 
   @Post(":id/follow")
   @UseGuards(JwtAuthGuard)
@@ -140,5 +153,15 @@ export class MerchantController {
       merchantId,
     );
     return { isFollowing };
+  }
+
+  @Patch("me/preferences")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.MERCHANT)
+  async updatePreferences(
+    @CurrentMerchant() merchantId: string,
+    @Body() dto: UpdatePreferencesDto,
+  ) {
+    return this.merchantService.updatePreferences(merchantId, dto);
   }
 }

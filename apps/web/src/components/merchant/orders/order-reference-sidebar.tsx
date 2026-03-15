@@ -19,14 +19,7 @@ export function OrderReferenceSidebar({ order }: Props) {
         </div>
       </div>
       
-      <div className="space-y-3">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
-          Source Quote
-        </p>
-        <p className="text-xs font-black text-navy-dark dark:text-white uppercase tracking-widest break-all ml-1">
-          {order.quoteId || "DIRECT_PURCHASE"}
-        </p>
-      </div>
+      {/* Source Quote hidden for B2C flow */}
 
       <div className="grid grid-cols-2 gap-6 pt-6 border-t border-slate-100 dark:border-slate-800">
         <div className="space-y-2">
@@ -39,7 +32,7 @@ export function OrderReferenceSidebar({ order }: Props) {
         </div>
         <div className="space-y-2">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-            Protocol
+            Order ID
           </p>
           <p className="text-sm font-black text-primary uppercase tracking-tighter">
             Hardware-OS/V5

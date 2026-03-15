@@ -24,6 +24,8 @@ export function ProductModal({
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [categoriesError, setCategoriesError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
@@ -40,12 +42,22 @@ export function ProductModal({
     initialStock: "0",
     warehouseLocation: "",
     imageUrl: "",
-    isActive: true
+    isActive: true,
+    weightKg: "",
+    processingDays: "3"
   });
 
   useEffect(() => {
     if (isOpen) {
-      getCategories().then(setCategories).catch(() => toast.error("Failed to load categories"));
+      setCategoriesLoading(true);
+      setCategoriesError(false);
+      getCategories()
+        .then(setCategories)
+        .catch(() => {
+           setCategoriesError(true);
+           toast.error("Failed to load categories. Please check your connection.");
+        })
+        .finally(() => setCategoriesLoading(false));
       
       // Always fetch merchant profile to ensure location sync
       merchantApi.getProfile().then(profile => {
@@ -66,7 +78,9 @@ export function ProductModal({
             initialStock: product.stockCache?.stock?.toString() || "0",
             warehouseLocation: profileAddress, // Enforce profile address even in Edit mode
             imageUrl: product.imageUrl || "",
-            isActive: product.isActive ?? true
+            isActive: product.isActive ?? true,
+            weightKg: product.weightKg?.toString() || "",
+            processingDays: product.processingDays?.toString() || "3",
           });
         } else {
           setFormData({
@@ -83,7 +97,9 @@ export function ProductModal({
             initialStock: "0",
             warehouseLocation: profileAddress,
             imageUrl: "",
-            isActive: true
+            isActive: true,
+            weightKg: "",
+            processingDays: "3",
           });
         }
       }).catch(err => {
@@ -104,7 +120,9 @@ export function ProductModal({
             initialStock: product.stockCache?.stock?.toString() || "0",
             warehouseLocation: product.warehouseLocation || "",
             imageUrl: product.imageUrl || "",
-            isActive: product.isActive ?? true
+            isActive: product.isActive ?? true,
+            weightKg: product.weightKg?.toString() || "",
+            processingDays: product.processingDays?.toString() || "3",
           });
         }
       });
@@ -148,7 +166,9 @@ export function ProductModal({
         minOrderQuantity: parseInt(formData.minOrderQuantity) || 10,
         productCode: formData.productCode,
         warehouseLocation: formData.warehouseLocation,
-        isActive: formData.isActive
+        isActive: formData.isActive,
+        weightKg: formData.weightKg ? Number(formData.weightKg) : undefined,
+        processingDays: formData.processingDays ? Number(formData.processingDays) : undefined,
       };
 
       if (product) {
@@ -270,18 +290,27 @@ export function ProductModal({
               <div className="space-y-1.5">
                 <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">Category</label>
                 <select 
-                  className="w-full bg-transparent border-b border-slate-200 dark:border-white/10 py-3 text-sm font-bold text-slate-900 dark:text-white focus:border-primary outline-none transition-all appearance-none"
+                  className={cn(
+                    "w-full bg-transparent border-b border-slate-200 dark:border-white/10 py-3 text-sm font-bold text-slate-900 dark:text-white focus:border-primary outline-none transition-all appearance-none",
+                    categoriesError ? "border-red-500 text-red-500" : ""
+                  )}
                   value={formData.categoryId}
+                  disabled={categoriesLoading || categoriesError}
                   onChange={e => {
                     const cat = categories.find(c => c.id === e.target.value);
                     setFormData({...formData, categoryId: e.target.value, categoryTag: cat?.name || ""});
                   }}
                 >
-                  <option value="" className="dark:bg-slate-900">Select Category</option>
+                  <option value="" className="dark:bg-slate-900">
+                    {categoriesLoading ? "Loading Categories..." : categoriesError ? "Error loading categories" : "Select Category"}
+                  </option>
                   {categories.map(cat => (
                     <option key={cat.id} value={cat.id} className="dark:bg-slate-900">{cat.name}</option>
                   ))}
                 </select>
+                {categoriesError && (
+                  <p className="text-[10px] text-red-500 mt-1 font-medium">Please ensure the backend server and database are running.</p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-8">
@@ -342,6 +371,41 @@ export function ProductModal({
                 </p>
               </div>
 
+              {/* Logistics Section */}
+              <div className="pt-6 border-t border-slate-50 dark:border-white/5 space-y-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="material-symbols-outlined text-slate-400 text-sm">local_shipping</span>
+                  <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">Logistics & Delivery</label>
+                </div>
+                <div className="grid grid-cols-2 gap-8">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-tight text-slate-400">Weight (kg)</label>
+                    <input 
+                      className="w-full bg-transparent border-b border-slate-200 dark:border-white/10 py-3 text-lg font-bold text-slate-900 dark:text-white focus:border-primary outline-none transition-all" 
+                      type="number"
+                      step="0.01"
+                      value={formData.weightKg}
+                      onChange={e => setFormData({...formData, weightKg: e.target.value})}
+                      placeholder="e.g. 50"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-tight text-slate-400">Processing Time</label>
+                    <select 
+                      className="w-full bg-transparent border-b border-slate-200 dark:border-white/10 py-3 text-sm font-bold text-slate-900 dark:text-white focus:border-primary outline-none transition-all appearance-none"
+                      value={formData.processingDays}
+                      onChange={e => setFormData({...formData, processingDays: e.target.value})}
+                    >
+                      <option value="0" className="dark:bg-slate-900">Immediate (Same Day)</option>
+                      <option value="1" className="dark:bg-slate-900">1 Business Day</option>
+                      <option value="2" className="dark:bg-slate-900">2 Business Days</option>
+                      <option value="3" className="dark:bg-slate-900">3-5 Business Days</option>
+                      <option value="7" className="dark:bg-slate-900">1 Week+</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
                   <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">Short Description</label>
@@ -399,7 +463,7 @@ export function ProductModal({
           <div className="flex gap-4">
             <button 
               onClick={handleSubmit}
-              disabled={loading}
+              disabled={loading || categoriesError}
               className="bg-primary text-white px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2"
             >
               {loading && <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>}

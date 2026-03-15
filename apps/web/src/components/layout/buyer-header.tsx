@@ -8,7 +8,7 @@ export function BuyerHeader({ onMenuClick }: { onMenuClick: () => void }) {
   return (
     <header className="lg:hidden flex items-center justify-between px-4 h-16 bg-white border-b border-slate-200 sticky top-0 z-40">
       <Link
-        href="/buyer/dashboard"
+        href="/"
         className="transition-opacity hover:opacity-80"
       >
         <Logo variant="light" size="sm" />

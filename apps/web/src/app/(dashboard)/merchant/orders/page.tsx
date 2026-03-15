@@ -202,7 +202,7 @@ export default function MerchantOrdersPage() {
                   <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Order ID</th>
                   <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
                   <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer Terminal</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Protocol Status</th>
+                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Service Status</th>
                   <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Settlement</th>
                   <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
                 </tr>
@@ -213,7 +213,7 @@ export default function MerchantOrdersPage() {
                     <td colSpan={6} className="px-8 py-24 text-center">
                       <div className="flex flex-col items-center justify-center space-y-4 opacity-20 grayscale">
                         <span className="material-symbols-outlined text-6xl">inventory_2</span>
-                        <p className="text-xs font-black uppercase tracking-widest leading-loose">No manifestations matching protocol parameters</p>
+                        <p className="text-xs font-black uppercase tracking-widest leading-loose">No orders matching your filters</p>
                       </div>
                     </td>
                   </tr>

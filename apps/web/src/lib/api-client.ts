@@ -96,9 +96,6 @@ class ApiClient {
       throw await this.handleError(response);
     }
 
-    // Unwrapping the { success, data } envelope
-    // Note: this discards `meta` for pagination! If components need pagination later,
-    // a separate `getPaginated` method must be added to ApiClient.
     const text = await response.text();
     if (!text) return {} as T;
 
@@ -106,31 +103,30 @@ class ApiClient {
     return result.data;
   }
 
-  private async handleError(response: Response): Promise<ApiError> {
+  private async handleError(response: Response): Promise<Error & ApiError> {
     try {
       const errorData = await response.json();
 
-      // NestJS often puts the descriptive human-readable error in 'message'
-      // It can be a string, or an array of strings for validation errors.
       let detailedMessage =
         typeof errorData.message === "string"
           ? errorData.message
           : Array.isArray(errorData.message)
-            ? errorData.message[0]
+            ? errorData.message.join(", ")
             : null;
 
-      return {
-        error:
-          detailedMessage || errorData.error || "An unexpected error occurred",
-        code: errorData.code || "UNKNOWN_ERROR",
-        statusCode: response.status,
-      } as ApiError;
+      const errorString = detailedMessage || (typeof errorData.error === "string" ? errorData.error : "An unexpected error occurred");
+      
+      const err = new Error(errorString) as Error & ApiError;
+      err.error = errorString;
+      err.code = errorData.code || "UNKNOWN_ERROR";
+      err.statusCode = response.status;
+      return err;
     } catch {
-      return {
-        error: response.statusText || "An unexpected error occurred",
-        code: "HTTP_ERROR",
-        statusCode: response.status,
-      } as ApiError;
+      const err = new Error(response.statusText || "An unexpected error occurred") as Error & ApiError;
+      err.error = err.message;
+      err.code = "HTTP_ERROR";
+      err.statusCode = response.status;
+      return err;
     }
   }
 
@@ -179,6 +175,19 @@ class ApiClient {
 
   delete<T>(endpoint: string, config?: RequestConfig) {
     return this.request<T>(endpoint, { ...config, method: "DELETE" });
+  }
+
+  async download(endpoint: string, config: RequestConfig = {}): Promise<Blob> {
+    const { params, ...options } = config;
+    let url = `${this.baseUrl}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+    if (params) {
+      const searchParams = new URLSearchParams(params);
+      url += `?${searchParams.toString()}`;
+    }
+    const headers = new Headers(options.headers);
+    const response = await fetch(url, { ...options, headers, credentials: "include", method: "GET" });
+    if (!response.ok) throw await this.handleError(response);
+    return response.blob();
   }
 }
 

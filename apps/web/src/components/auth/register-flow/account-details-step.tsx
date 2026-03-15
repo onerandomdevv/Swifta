@@ -52,7 +52,7 @@ export function AccountDetailsStep({
           {isMerchant
             ? "Set Up Your Store"
             : isSupplier
-              ? "Supplier Registration"
+              ? "Merchant Partner Registration"
               : "Create Your Account"}
         </h1>
         <p className="text-sm sm:text-base text-slate-500 font-medium">
@@ -219,7 +219,7 @@ export function AccountDetailsStep({
                 </span>
                 <input
                   className={`w-full pl-10 pr-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.companyAddress ? "border-red-400" : "border-slate-200"}`}
-                  placeholder="12 Industrial Way, Ikeja, Lagos"
+                  placeholder="12 Business Way, Ikeja, Lagos"
                   type="text"
                   {...register("companyAddress")}
                 />
@@ -268,7 +268,11 @@ export function AccountDetailsStep({
               className={`w-full pl-10 pr-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.phone ? "border-red-400" : "border-slate-200"}`}
               placeholder="+234 800 000 0000"
               type="tel"
-              {...register("phone")}
+              {...register("phone", {
+                onChange: (e) => {
+                  setValue("phone", e.target.value.replace(/\D/g, ""));
+                }
+              })}
             />
           </div>
           {errors.phone && (
@@ -315,7 +319,7 @@ export function AccountDetailsStep({
               : isMerchant
                 ? "Register My Store"
                 : isSupplier
-                  ? "Register as Supplier"
+                  ? "Register as Partner"
                   : "Create Account"}
           </span>
           {!isLoading && (

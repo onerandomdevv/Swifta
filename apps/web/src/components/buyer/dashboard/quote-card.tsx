@@ -12,8 +12,8 @@ export function QuoteCard({ rfq }: Props) {
   const merchantName =
     rfq.merchant?.businessName ||
     quoteData.merchant?.businessName ||
-    "Verified Supplier";
-  const productName = rfq.product?.name || "Industrial Material";
+    "Verified Merchant";
+  const productName = rfq.product?.name || "Product Selection";
 
   const unitPrice = BigInt(quoteData.unitPriceKobo || 0);
   const deliveryFee = BigInt(quoteData.deliveryFeeKobo || 0);
@@ -91,7 +91,7 @@ export function QuoteCard({ rfq }: Props) {
               href={`/buyer/rfqs/${rfq.id}`}
               className="w-full sm:w-auto bg-primary text-white font-bold py-3.5 px-8 rounded-lg hover:bg-primary-dark transition-all flex items-center justify-center gap-2 group shadow-lg shadow-primary/20"
             >
-              <span>Accept & Pay Escrow</span>
+              <span>Accept & Pay</span>
               <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">
                 payments
               </span>

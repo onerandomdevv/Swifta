@@ -15,8 +15,30 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { cn } from "@/lib/utils";
 
 export default function MerchantDashboard() {
+  const [filter, setFilter] = React.useState<"ALL" | "TODAY" | "7D" | "30D">("ALL");
+  
+  const dateParams = React.useMemo(() => {
+    const now = new Date();
+    switch (filter) {
+      case "TODAY":
+        const startOfToday = new Date(now);
+        startOfToday.setHours(0, 0, 0, 0);
+        return { startDate: startOfToday.toISOString() };
+      case "7D":
+        const sevenDaysAgo = new Date(now);
+        sevenDaysAgo.setDate(now.getDate() - 7);
+        return { startDate: sevenDaysAgo.toISOString() };
+      case "30D":
+        const thirtyDaysAgo = new Date(now);
+        thirtyDaysAgo.setDate(now.getDate() - 30);
+        return { startDate: thirtyDaysAgo.toISOString() };
+      default:
+        return {};
+    }
+  }, [filter]);
+
   const { orders, analytics, user, isLoading, isError, error, refetch } =
-    useMerchantDashboard();
+    useMerchantDashboard(dateParams.startDate);
   const router = useRouter();
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -80,13 +102,13 @@ export default function MerchantDashboard() {
 
   const kpis = [
     {
-      label: "Revenue Pipeline",
+      label: "Total Sales",
       value: formatKobo(pipelineValue),
       icon: "payments",
       color: "text-emerald-500",
     },
     {
-      label: "Acceptance Rate",
+      label: "Success Rate",
       value: `${acceptanceRate}%`,
       icon: "query_stats",
       color: "text-blue-500",
@@ -143,14 +165,38 @@ export default function MerchantDashboard() {
         {/* Operations Pipeline */}
         <section>
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-black text-navy-dark dark:text-white tracking-tight font-display uppercase">Operations Pipeline</h2>
+            <h2 className="text-2xl font-black text-navy-dark dark:text-white tracking-tight font-display uppercase">Order Management</h2>
             <div className="flex gap-3">
-              <button 
-                onClick={() => toast.info("Filter features coming soon!")}
-                className="size-11 flex items-center justify-center border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-slate-400 hover:text-navy-dark dark:hover:text-white transition-all shadow-sm active:scale-95"
-              >
-                <span className="material-symbols-outlined text-xl">filter_list</span>
-              </button>
+              <div className="relative group/filter">
+                <button 
+                  className="px-4 h-11 flex items-center gap-2 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-slate-500 hover:text-navy-dark dark:hover:text-white transition-all shadow-sm active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-xl">calendar_today</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">
+                    {filter === "ALL" ? "All Time" : filter === "TODAY" ? "Today" : filter === "7D" ? "7 Days" : "30 Days"}
+                  </span>
+                  <span className="material-symbols-outlined text-sm">expand_more</span>
+                </button>
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-[#0d1f33] border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl opacity-0 invisible group-hover/filter:opacity-100 group-hover/filter:visible transition-all z-[60] overflow-hidden">
+                  {[
+                    { id: "ALL", label: "All Time" },
+                    { id: "TODAY", label: "Today" },
+                    { id: "7D", label: "Last 7 Days" },
+                    { id: "30D", label: "Last 30 Days" }
+                  ].map((opt) => (
+                    <button
+                      key={opt.id}
+                      onClick={() => setFilter(opt.id as any)}
+                      className={cn(
+                        "w-full px-6 py-3 text-left text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors",
+                        filter === opt.id ? "text-primary bg-primary/5" : "text-slate-500"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <button 
                 onClick={() => toast.info("Custom layout options coming soon!")}
                 className="size-11 flex items-center justify-center border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-slate-400 hover:text-navy-dark dark:hover:text-white transition-all shadow-sm active:scale-95"
@@ -180,7 +226,7 @@ export default function MerchantDashboard() {
               </KanbanColumn>
 
               <KanbanColumn
-                title="Awaiting Dispatch"
+                title="Awaiting Shipping"
                 count={awaitingOrders.length}
                 colorClass="bg-blue-500"
               >
@@ -197,7 +243,7 @@ export default function MerchantDashboard() {
               </KanbanColumn>
 
               <KanbanColumn
-                title="On the Road"
+                title="In Transit"
                 count={transitOrders.length}
                 colorClass="bg-indigo-500"
               >
@@ -233,7 +279,7 @@ export default function MerchantDashboard() {
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">
                   <th className="px-6 py-4">Order ID & Item</th>
-                  <th className="px-6 py-4">Transaction Value</th>
+                  <th className="px-6 py-4">Total Amount</th>
                   <th className="px-6 py-4">Created Date</th>
                   <th className="px-6 py-4 text-right">Status</th>
                 </tr>
@@ -242,7 +288,7 @@ export default function MerchantDashboard() {
                 {orders.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-6 py-12 text-center text-slate-400 text-xs font-bold uppercase tracking-widest opacity-50">
-                      No matching trade records
+                      No matching order records
                     </td>
                   </tr>
                 ) : (
@@ -251,7 +297,7 @@ export default function MerchantDashboard() {
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
                           <span className="font-bold text-navy-dark dark:text-white text-xs">#ORD-{order.id.slice(0, 4).toUpperCase()}</span>
-                          <span className="text-[10px] font-medium text-slate-400 mt-0.5">{order.product?.name || (order as any).quote?.product?.name || (order as any).rfq?.product?.name || "Materials Bulk"}</span>
+                          <span className="text-[10px] font-medium text-slate-400 mt-0.5">{order.product?.name || "Materials Bulk"}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 font-bold text-navy-dark dark:text-white text-xs">
@@ -270,10 +316,6 @@ export default function MerchantDashboard() {
             </table>
           </div>
         </section>
-
-        <footer className="pt-8 pb-4 text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest opacity-30">
-          © {new Date().getFullYear()} SwiftTrade Enterprise • Unified Command Center v4.12.0
-        </footer>
       </div>
     </div>
   );

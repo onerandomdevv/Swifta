@@ -10,7 +10,7 @@ export function DeliveryCard({ order }: Props) {
   const shortId = `#SW-${order.id.slice(0, 8).toUpperCase()}`;
 
   const location =
-    (order as any).metadata?.deliveryAddress || "Lagos Delivery Terminal";
+    (order as any).metadata?.deliveryAddress || "Lagos Delivery Hub";
 
   let statusConfig: { bg: string; text: string; border: string; label: string; icon: string } = {
     bg: "bg-slate-50",
@@ -60,7 +60,7 @@ export function DeliveryCard({ order }: Props) {
   }
 
   const productName =
-    (order as any).rfq?.product?.name || "Industrial Materials Shipment";
+    (order as any).product?.name || (order as any).items?.[0]?.product?.name || "Order Shipment";
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 rounded-[1.5rem] shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
@@ -98,7 +98,7 @@ export function DeliveryCard({ order }: Props) {
               href={`/buyer/orders/${order.id}`}
               className="w-full sm:w-auto border border-primary text-primary hover:bg-primary hover:text-white dark:text-emerald-400 dark:border-emerald-500/30 text-center font-bold py-2.5 px-6 rounded-xl text-xs uppercase tracking-widest transition-all shadow-sm"
             >
-              Track Truck
+              Track Order
             </Link>
           )}
 
@@ -107,7 +107,7 @@ export function DeliveryCard({ order }: Props) {
               href={`/buyer/orders/${order.id}`}
               className="w-full sm:w-auto bg-primary text-white text-center font-bold py-2.5 px-6 rounded-xl text-xs uppercase tracking-widest hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
             >
-              Fund Escrow
+              Make Payment
             </Link>
           )}
 
@@ -116,7 +116,7 @@ export function DeliveryCard({ order }: Props) {
               href={`/buyer/orders/${order.id}`}
               className="w-full sm:w-auto bg-primary text-white font-bold py-2.5 px-6 rounded-xl text-xs uppercase tracking-widest hover:bg-primary/90 transition-all text-center shadow-lg shadow-primary/20"
             >
-              Enter Delivery OTP
+              Confirm Delivery Code
             </Link>
           ) : (
             <span
@@ -124,7 +124,7 @@ export function DeliveryCard({ order }: Props) {
               role="button"
               className="w-full sm:w-auto font-bold py-2.5 px-6 rounded-xl text-xs uppercase tracking-widest text-center bg-slate-50 dark:bg-slate-800 text-slate-300 dark:text-slate-600 cursor-not-allowed select-none border border-slate-100 dark:border-slate-700"
             >
-              Enter Delivery OTP
+              Confirm Delivery Code
             </span>
           )}
         </div>

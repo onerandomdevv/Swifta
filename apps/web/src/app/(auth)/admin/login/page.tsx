@@ -102,7 +102,7 @@ export default function InternalLoginPage() {
             <span className="text-orange-400 font-bold block mb-1 tracking-widest text-xs uppercase">
               Internal Operations Portal
             </span>
-            Secure administration and operational management for the SwiftTrade
+            Secure administration and operational management for the Swifta
             infrastructure.
           </p>
           <div className="flex flex-col gap-3">
@@ -252,12 +252,6 @@ export default function InternalLoginPage() {
           </form>
         </div>
 
-        {/* Footer */}
-        <footer className="px-8 py-6 border-t border-slate-200 bg-white">
-          <p className="text-center text-xs font-medium text-slate-400 uppercase tracking-widest">
-            SwiftTrade Internal Portal &bull; Strictly Confidential
-          </p>
-        </footer>
       </div>
     </div>
   );

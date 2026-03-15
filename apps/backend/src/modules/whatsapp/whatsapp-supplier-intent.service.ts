@@ -47,14 +47,18 @@ const SUPPLIER_INTENT_SCHEMA = {
 export class WhatsAppSupplierIntentService {
   private readonly logger = new Logger(WhatsAppSupplierIntentService.name);
   private readonly apiKey: string;
-  private readonly geminiUrl =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
   private readonly systemPrompt: string;
 
   constructor(private configService: ConfigService) {
+    const modelName = this.configService.get<string>("GEMINI_MODEL") || "gemini-1.5-flash";
     this.apiKey = this.configService.get<string>("GEMINI_API_KEY") || "";
     this.systemPrompt =
       this.configService.get<string>("WHATSAPP_SUPPLIER_SYSTEM_PROMPT") || "";
+  }
+
+  private getGeminiUrl(): string {
+    const modelName = this.configService.get<string>("GEMINI_MODEL") || "gemini-1.5-flash";
+    return `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
   }
 
   async parseIntent(text: string): Promise<ParsedIntent> {
@@ -84,7 +88,7 @@ export class WhatsAppSupplierIntentService {
     }
 
     try {
-      const response = await fetch(`${this.geminiUrl}?key=${this.apiKey}`, {
+      const response = await fetch(`${this.getGeminiUrl()}?key=${this.apiKey}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

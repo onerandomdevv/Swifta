@@ -1,4 +1,4 @@
-import { Module, Global } from "@nestjs/common";
+import { Module, Global, Logger } from "@nestjs/common";
 import { BullModule } from "@nestjs/bullmq";
 import { ConfigService } from "@nestjs/config";
 import {
@@ -36,7 +36,7 @@ function sanitizeRedisUrl(url: string | undefined): string | undefined {
         const redisUrlString = sanitizeRedisUrl(rawUrl);
 
         if (!redisUrlString) {
-          console.warn(
+          Logger.warn(
             "REDIS_URL not found for BullMQ, falling back to localhost",
           );
           return {
@@ -70,7 +70,7 @@ function sanitizeRedisUrl(url: string | undefined): string | undefined {
             prefix: "{bull}",
           };
         } catch (error: any) {
-          console.error(
+          Logger.error(
             `BullMQ failed to parse REDIS_URL prefix: ${redisUrlString.substring(0, 15)}...`,
           );
           throw new Error(

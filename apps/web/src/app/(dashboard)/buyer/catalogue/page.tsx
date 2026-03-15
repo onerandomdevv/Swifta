@@ -18,6 +18,8 @@ import { CategoryStoriesBar } from "@/components/buyer/catalogue/category-storie
 import { MerchantSpotlightCarousel } from "@/components/buyer/catalogue/merchant-spotlight-carousel";
 import { ProductFeedCard } from "@/components/buyer/catalogue/product-feed-card";
 import { ExploreSkeleton } from "@/components/buyer/catalogue/explore-skeleton";
+import { InstantCheckoutModal } from "@/components/buyer/checkout/instant-checkout-modal";
+import { cn } from "@/lib/utils";
 
 export default function BuyerCataloguePage() {
   const { user } = useAuth();
@@ -34,6 +36,7 @@ export default function BuyerCataloguePage() {
   const [merchantsLoading, setMerchantsLoading] = useState(true);
   const [sortBy, setSortBy] = useState<"newest" | "price_asc" | "price_desc" | "rating">("newest");
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [checkoutProduct, setCheckoutProduct] = useState<Product | null>(null);
 
 
 
@@ -130,11 +133,14 @@ export default function BuyerCataloguePage() {
 
   // ─── Quick Buy handler ───
   function handleQuickBuy(product: Product) {
-    router.push(`/buyer/checkout/${product.id}`);
+    setCheckoutProduct(product);
   }
 
   // ─── Wishlist toggle handler ───
   async function handleToggleSave(productId: string) {
+    const wasSaved = savedIds.has(productId);
+    const isNowSaved = !wasSaved;
+
     // Optimistic update
     setSavedIds((prev) => {
       const next = new Set(prev);
@@ -147,6 +153,8 @@ export default function BuyerCataloguePage() {
     });
     try {
       await toggleWishlist(productId);
+      const { toast } = await import("sonner");
+      toast.success(isNowSaved ? "Product saved to wishlist" : "Product removed from wishlist");
     } catch (err) {
       // Revert on failure
       setSavedIds((prev) => {
@@ -198,64 +206,111 @@ export default function BuyerCataloguePage() {
   ];
 
   return (
-    <div className="space-y-5 sm:space-y-7 animate-in fade-in duration-700 pb-10">
-      {/* ─── Search Bar ─── */}
+    <div className="animate-in fade-in duration-300 min-h-screen font-display bg-white dark:bg-slate-900">
+      {/* ─── Discovery Header ─── */}
       <ExploreSearchBar value={searchQuery} onChange={setSearchQuery} />
+      
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-8 py-8 space-y-16">
+        {/* Category Stories */}
+        <CategoryStoriesBar
+          categories={categories}
+          activeCategory={activeCategory}
+          onSelect={setActiveCategory}
+        />
 
-      {/* ─── Category Stories ─── */}
-      <CategoryStoriesBar
-        categories={categories}
-        activeCategory={activeCategory}
-        onSelect={setActiveCategory}
-      />
+        {/* ─── Merchant Spotlight ─── */}
+        <MerchantSpotlightCarousel
+          merchants={merchants}
+          loading={merchantsLoading}
+        />
 
-      {/* ─── Merchant Spotlight ─── */}
-      <MerchantSpotlightCarousel
-        merchants={merchants}
-        loading={merchantsLoading}
-      />
+        {/* ─── The Feed ─── */}
+        <section className="space-y-8 animate-in slide-in-from-bottom-2 duration-500">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+            <h2 className="text-xl font-bold flex items-center gap-2 text-slate-900 dark:text-white">
+              Product Discovery
+              <span className="text-slate-300 text-sm font-medium">/ Discover Everything</span>
+            </h2>
+            <div className="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-widest">
+              {sortedProducts.length} Items Found
+            </div>
+          </div>
 
-      {/* ─── Result Info Bar ─── */}
-      <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
-        <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary text-lg sm:text-xl">
-            analytics
-          </span>
-          <p className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
-            {sortedProducts.length}{" "}
-            <span className="text-slate-400 font-bold">
-              {sortedProducts.length === 1 ? "PRODUCT" : "PRODUCTS"}
-            </span>
-          </p>
-          {searchQuery && (
-            <span className="text-[10px] text-slate-400 font-medium">
-              for &quot;{searchQuery}&quot;
-            </span>
+          {sortedProducts.length === 0 ? (
+            <div className="py-32 text-center space-y-4">
+              <div className="size-20 bg-slate-50 dark:bg-slate-800/50 rounded-full flex items-center justify-center mx-auto opacity-50">
+                <span className="material-symbols-outlined text-3xl text-slate-300">
+                  search_off
+                </span>
+              </div>
+              <div>
+                <h4 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+                  No results found
+                </h4>
+                <p className="text-slate-400 text-xs mt-1">
+                  Try adjusting your search or filters.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setSearchQuery("");
+                  setActiveCategory("All Categories");
+                }}
+                className="text-primary font-bold text-xs hover:underline mt-4"
+              >
+                Clear all filters
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {sortedProducts.map((product) => (
+                <ProductFeedCard
+                  key={product.id}
+                  product={product}
+                  onQuickBuy={handleQuickBuy}
+                  isSaved={savedIds.has(product.id)}
+                  onToggleSave={handleToggleSave}
+                />
+              ))}
+            </div>
           )}
-        </div>
+        </section>
+      </div>
 
-        {/* Sort Dropdown */}
-        <div className="relative">
-          <button
+      {/* ─── Sticky Bottom Controls ─── */}
+      <div className="fixed bottom-8 left-0 right-0 z-50 flex justify-center pointer-events-none px-4">
+        <div className="pointer-events-auto bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-1.5 py-1.5 rounded-xl shadow-lg flex items-center gap-1 border border-slate-800 dark:border-slate-200">
+          {sortOptions.slice(0, 3).map((opt) => (
+            <button 
+              key={opt.value}
+              onClick={() => setSortBy(opt.value)}
+              className={cn(
+                "px-5 py-2 rounded-lg text-xs font-bold transition-all",
+                sortBy === opt.value 
+                  ? "bg-primary text-white" 
+                  : "hover:bg-slate-800 dark:hover:bg-slate-100"
+              )}
+            >
+              {opt.label.split(":")[0]}
+            </button>
+          ))}
+          <div className="w-[1px] h-4 bg-slate-700 dark:bg-slate-200 mx-1"></div>
+          <button 
             onClick={() => setShowSortMenu(!showSortMenu)}
-            className="flex items-center gap-1.5 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-primary transition-colors px-2 py-1"
+            className="size-8 flex items-center justify-center rounded-lg hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors"
           >
-            <span className="material-symbols-outlined text-sm">sort</span>
-            <span className="hidden sm:inline">
-              {sortOptions.find((s) => s.value === sortBy)?.label || "Sort"}
-            </span>
-            <span className="material-symbols-outlined text-xs">
-              expand_more
-            </span>
+            <span className="material-symbols-outlined text-lg">tune</span>
           </button>
 
+          {/* Sort Menu Dropdown */}
           {showSortMenu && (
-            <>
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setShowSortMenu(false)}
-              />
-              <div className="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg py-1 min-w-[180px] animate-in fade-in zoom-in-95 duration-200">
+            <div className="absolute bottom-full right-0 mb-2 w-48 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+              <div className="p-2 border-b border-slate-100 dark:border-slate-800">
+                <p className="text-xs font-bold text-slate-500 px-2 uppercase tracking-wider">
+                  Sort By
+                </p>
+              </div>
+              <div className="flex flex-col">
                 {sortOptions.map((opt) => (
                   <button
                     key={opt.value}
@@ -263,64 +318,30 @@ export default function BuyerCataloguePage() {
                       setSortBy(opt.value);
                       setShowSortMenu(false);
                     }}
-                    className={`w-full px-3 py-2 text-left text-xs font-bold flex items-center gap-2 transition-colors ${
+                    className={cn(
+                      "text-left px-4 py-3 text-sm font-medium transition-colors hover:bg-slate-50 dark:hover:bg-slate-800",
                       sortBy === opt.value
-                        ? "text-primary bg-primary/5"
-                        : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
-                    }`}
+                        ? "text-primary bg-slate-50 dark:bg-slate-800/50"
+                        : "text-slate-700 dark:text-slate-300",
+                    )}
                   >
-                    <span className="material-symbols-outlined text-sm">
-                      {opt.icon}
-                    </span>
                     {opt.label}
                   </button>
                 ))}
               </div>
-            </>
+            </div>
           )}
         </div>
       </div>
-
-      {/* ─── Product Feed Grid ─── */}
-      {sortedProducts.length === 0 ? (
-        <div className="py-20 text-center space-y-6 animate-in zoom-in duration-500">
-          <div className="size-24 bg-slate-50 dark:bg-slate-900 rounded-full flex items-center justify-center mx-auto grayscale opacity-50">
-            <span className="material-symbols-outlined text-5xl text-slate-300">
-              search_off
-            </span>
-          </div>
-          <div>
-            <h4 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              No products found
-            </h4>
-            <p className="text-slate-500 font-medium text-sm mt-2">
-              Try a different search term or browse another category.
-            </p>
-          </div>
-          <button
-            onClick={() => {
-              setSearchQuery("");
-              setActiveCategory("All Categories");
-            }}
-            className="text-primary font-black text-xs uppercase tracking-[0.15em] hover:underline decoration-2 underline-offset-8"
-          >
-            Clear All Filters
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-          {sortedProducts.map((product) => (
-            <ProductFeedCard
-              key={product.id}
-              product={product}
-              onQuickBuy={handleQuickBuy}
-              isSaved={savedIds.has(product.id)}
-              onToggleSave={handleToggleSave}
-            />
-          ))}
-        </div>
+      {/* ─── Instant Checkout Modal ─── */}
+      {checkoutProduct && (
+        <InstantCheckoutModal
+          isOpen={!!checkoutProduct}
+          onClose={() => setCheckoutProduct(null)}
+          product={checkoutProduct}
+          merchant={checkoutProduct.merchantProfile}
+        />
       )}
-
     </div>
   );
 }

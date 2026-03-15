@@ -240,11 +240,12 @@ export class ImageSearchService {
     mimeType: string,
   ): Promise<string[] | null> {
     try {
+      const modelName = this.configService.get<string>("GEMINI_VISION_MODEL") || "gemini-1.5-flash";
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.geminiApiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${this.geminiApiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

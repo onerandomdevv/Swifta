@@ -9,7 +9,7 @@ import {
   Res,
 } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
-import { Response } from "express";
+import type { Response } from "express";
 import { AuthService } from "./auth.service";
 import { AdminService } from "../admin/admin.service";
 import { LoginDto } from "./dto/login.dto";

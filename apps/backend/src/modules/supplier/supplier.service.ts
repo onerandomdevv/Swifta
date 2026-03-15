@@ -5,6 +5,7 @@ import {
   BadRequestException,
   Inject,
   forwardRef,
+  Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { CreateSupplierProductDto } from "./dto/create-supplier-product.dto";
@@ -16,6 +17,8 @@ import { WhatsAppService } from "../whatsapp/whatsapp.service";
 
 @Injectable()
 export class SupplierService {
+  private readonly logger = new Logger(SupplierService.name);
+
   constructor(
     private prisma: PrismaService,
     @Inject(forwardRef(() => PaymentService))
@@ -254,7 +257,7 @@ export class SupplierService {
     });
 
     // Initialize payment — if this fails, compensate by deleting the orphan order
-    let paymentData: any;
+    let paymentData: { authorization_url?: string };
     try {
       paymentData = await this.paymentService.initialize(
         userId,
@@ -286,9 +289,9 @@ export class SupplierService {
       }
     } catch (notifierErr) {
       // Just log, don't fail the order creation
-      console.error(
+      this.logger.error(
         `Failed to send supplier WhatsApp notification for ${order.id}`,
-        notifierErr,
+        notifierErr instanceof Error ? notifierErr.stack : String(notifierErr),
       );
     }
 

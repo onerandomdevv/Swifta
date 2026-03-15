@@ -7,7 +7,7 @@ export function BuyerMobileNav() {
   const pathname = usePathname();
 
   const navItems = [
-    { label: "Home", icon: "dashboard", href: "/buyer/dashboard" },
+    { label: "Home", icon: "home", href: "/" },
     { label: "Discover", icon: "explore", href: "/buyer/feed" },
     { label: "Catalogue", icon: "inventory_2", href: "/buyer/catalogue" },
     { label: "Orders", icon: "local_shipping", href: "/buyer/orders" },
