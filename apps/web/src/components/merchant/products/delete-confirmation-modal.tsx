@@ -32,7 +32,7 @@ export function DeleteConfirmationModal({ isOpen, onClose, onConfirm }: Props) {
           <button
             onClick={onClose}
             disabled={loading}
-            className="px-6 py-3 border-2 border-border rounded-xl text-[10px] font-black uppercase tracking-widest text-foreground-muted hover:border-border transition-all disabled:opacity-50"
+            className="px-6 py-3 border-2 border-border rounded-xl text-[10px] font-black uppercase tracking-widest text-foreground-muted hover:border-foreground-muted transition-all disabled:opacity-50"
           >
             Cancel
           </button>

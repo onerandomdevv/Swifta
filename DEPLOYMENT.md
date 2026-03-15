@@ -1,6 +1,6 @@
 # Server Deployment Guide (Render)
 
-This guide takes you step-by-step through deploying the SwiftTrade Backend to Render, connecting your database, and launching the Frontend on Vercel.
+This guide takes you step-by-step through deploying the Swifta Backend to Render, connecting your database, and launching the Frontend on Vercel.
 
 ## Step 1: Prepare Your Database & Cache
 
@@ -15,7 +15,7 @@ Before deploying the backend code, you need a live database and cache.
 2. **Redis Cache (Render)**
    - Log into your [Render Dashboard](https://dashboard.render.com).
    - Click **New +** and select **Key Value** _(Render recently renamed 'Redis' to 'Key Value')_.
-   - Name it `hardware-os-cache` and create the instance.
+   - Name it `swifta-cache` and create the instance.
    - Once created, copy the **Internal Redis URL** (e.g., `redis://red-xxxx:6379`).
    - _This is your `REDIS_URL`._
 
@@ -24,9 +24,9 @@ Before deploying the backend code, you need a live database and cache.
 ## Step 2: Deploy the Backend to Render
 
 1. On your Render Dashboard, click **New +** and select **Web Service**.
-2. Connect your GitHub repository (`hardware-os`).
+2. Connect your GitHub repository (`swifta`).
 3. Fill out the deployment details exactly as follows:
-   - **Name**: `hardware-os-backend`
+   - **Name**: `swifta-backend`
    - **Environment**: Node
    - **Root Directory**: `apps/backend`
    - **Build Command**: `pnpm install && npx prisma generate && pnpm run build`
@@ -55,7 +55,7 @@ Before deploying the backend code, you need a live database and cache.
 | `CLOUDINARY_API_SECRET`    | _(Your Cloudinary API Secret)_                                                                                                                            |
 | `AT_USERNAME`              | `sandbox` _(or your Africa's Talking username)_                                                                                                           |
 | `AT_API_KEY`               | _(Your Africa's Talking API Key)_                                                                                                                         |
-| `ADMIN_BOOTSTRAP_EMAIL`    | `admin@swifttrade.ng` _(Change if used!)_                                                                                                                 |
+| `ADMIN_BOOTSTRAP_EMAIL`    | `admin@swifta.store` _(Change if used!)_                                                                                                                 |
 | `ADMIN_BOOTSTRAP_PASSWORD` | _(Generate a strong secret, e.g. via your password manager. Set this as an env var)_                                                                      |
 | `CORS_ORIGINS`             | `https://your-vercel-domain.vercel.app` _(Explicitly list allowed origins for security! Ensure sameSite/secure cookie settings align with this for auth)_ |
 
@@ -67,12 +67,12 @@ Before deploying the backend code, you need a live database and cache.
 
 Now that the backend is running, you must create all the tables in your live Supabase database.
 
-1. On your Render dashboard for `hardware-os-backend`, click on the **Shell** tab (a built-in terminal).
+1. On your Render dashboard for `swifta-backend`, click on the **Shell** tab (a built-in terminal).
 2. Type the following command and press Enter:
    ```bash
    npx prisma migrate deploy
    ```
-   _This analyzes your database and safely applies all the tables needed for SwiftTrade._
+   _This analyzes your database and safely applies all the tables needed for Swifta._
 
 ---
 
@@ -94,12 +94,12 @@ _(**CRITICAL**: You must securely change this default password the very first ti
 ## Step 5: Deploy the Frontend to Vercel
 
 1. Go to [Vercel](https://vercel.com) and click **Add New → Project**.
-2. Import your GitHub repository (`hardware-os`).
+2. Import your GitHub repository (`swifta`).
 3. In the configuration settings:
    - **Framework Preset**: Next.js
    - **Root Directory**: Select `apps/web` (Important!)
 4. Expand **Environment Variables** and add:
-   - `NEXT_PUBLIC_API_URL`: _(Your new Render Backend URL, e.g., `https://hardware-os-backend.onrender.com`)_
+   - `NEXT_PUBLIC_API_URL`: _(Your new Render Backend URL, e.g., `https://api.swifta.store`)_
    - `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY`: _(Your Paystack Test Public Key)_
 5. Click **Deploy**.
 
@@ -109,10 +109,10 @@ _(**CRITICAL**: You must securely change this default password the very first ti
 
 Once Vercel finishes deploying, your frontend is live! One last step is required to secure the connection:
 
-1. Copy your new Vercel Frontend URL (e.g., `https://hardware-os.vercel.app`).
+1. Copy your new Vercel Frontend URL (e.g., `https://swifta.store`).
 2. Go back to the **Render Dashboard** for your backend.
 3. Edit the `CORS_ORIGINS` environment variable.
-4. Replace `*` with your Vercel URL: `https://hardware-os.vercel.app`
+4. Replace `*` with your Vercel URL: `https://swifta.vercel.app`
 5. Save the changes. Render will automatically restart your backend.
 
-**Congratulations! SwiftTrade is now fully live and securely linked!** 🎉
+**Congratulations! Swifta is now fully live and securely linked!** 🎉

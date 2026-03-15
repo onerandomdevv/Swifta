@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { merchantApi } from "@/lib/api/merchant.api";
 import { useToast } from "@/providers/toast-provider";
-import { MerchantProfile, VerificationTier } from "@hardware-os/shared";
+import { MerchantProfile, VerificationTier } from "@swifta/shared";
 
 type VerificationStatus = "PENDING" | "APPROVED" | "REJECTED" | "NONE";
 

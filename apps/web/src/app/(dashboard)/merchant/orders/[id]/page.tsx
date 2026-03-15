@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getOrder, addTracking, getTracking, downloadInvoice } from "@/lib/api/order.api";
-import { type Order, OrderStatus } from "@hardware-os/shared";
+import { type Order, OrderStatus } from "@swifta/shared";
 import { formatKobo } from "@/lib/utils";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -152,7 +152,7 @@ export default function MerchantOrderDetailsPage() {
               </button>
               <div>
                 <h2 className="text-navy-dark dark:text-white text-lg font-black tracking-tighter uppercase leading-none">
-                  SwiftTrade <span className="text-primary italic">Management</span>
+                  Swifta <span className="text-primary italic">Management</span>
                 </h2>
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Order Details View</p>
               </div>

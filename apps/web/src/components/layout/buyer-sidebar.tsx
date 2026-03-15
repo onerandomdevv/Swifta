@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
-import { getDisplayName } from "@hardware-os/shared";
+import { getDisplayName } from "@swifta/shared";
 import { Logo } from "@/components/ui/logo";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/shared/theme-toggle";

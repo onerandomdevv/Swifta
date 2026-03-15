@@ -3,8 +3,6 @@ import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../../prisma/prisma.service";
 import { OrderService } from "../order/order.service";
 import { WhatsAppOnboardingService } from "./whatsapp-onboarding.service";
-import { RFQService } from "../rfq/rfq.service";
-import { QuoteService } from "../quote/quote.service";
 import { ProductService } from "../product/product.service";
 import { InventoryService } from "../inventory/inventory.service";
 import { WhatsAppAuthService } from "./whatsapp-auth.service";
@@ -21,10 +19,9 @@ import {
   GENERIC_ERROR,
   FRIENDLY_FALLBACK,
   STOCK_UPDATE_FOLLOWUP,
-  RFQ_RESPOND_FOLLOWUP,
   META_API_VERSION,
 } from "./whatsapp.constants";
-import { RFQStatus, OrderStatus } from "@hardware-os/shared";
+import { OrderStatus } from "@swifta/shared";
 
 /**
  * Core WhatsApp Bot service.
@@ -45,8 +42,6 @@ export class WhatsAppService {
     private prisma: PrismaService,
     @Inject(forwardRef(() => OrderService))
     private orderService: OrderService,
-    private rfqService: RFQService,
-    private quoteService: QuoteService,
     private onboardingService: WhatsAppOnboardingService,
     private productService: ProductService,
     private inventoryService: InventoryService,
@@ -247,11 +242,6 @@ export class WhatsAppService {
       return;
     }
 
-    if (id === "menu_rfqs") {
-      await this.handlePendingRfqs(merchantId, phone);
-      return;
-    }
-
     if (id === "menu_inventory") {
       await this.handleInventory(merchantId, phone);
       return;
@@ -275,7 +265,7 @@ export class WhatsAppService {
     if (id === "menu_help") {
       await this.interactiveService.sendTextMessage(
         phone,
-        `🤝 *SwiftTrade Merchant Support*\n\nYou can manage your business by using the menu or via natural language commands:\n\n• *"sales summary"* - View performance\n• *"my orders"* - Manage latest orders\n• *"check inventory"* - Monitor stock\n• *"update price of [item] to [amount]"*\n• *"add [qty] to [item] stock"*\n\nNeed more help? Visit our web dashboard or contact support at support@swifta.store`,
+        `🤝 *Swifta Merchant Support*\n\nYou can manage your business by using the menu or via natural language commands:\n\n• *"sales summary"* - View performance\n• *"my orders"* - Manage latest orders\n• *"check inventory"* - Monitor stock\n• *"update price of [item] to [amount]"*\n• *"add [qty] to [item] stock"*\n\nNeed more help? Visit our web dashboard or contact support at support@swifta.store`,
       );
       return;
     }
@@ -480,30 +470,6 @@ export class WhatsAppService {
       return;
     }
 
-    if (id.startsWith("view_rfq_")) {
-      const rfqIdShort = id.replace("view_rfq_", "");
-      const rfqs = await this.prisma.rfq.findMany({
-        where: { merchantId, status: RFQStatus.OPEN },
-        include: { product: true, user: true },
-      });
-      const rfq = rfqs.find((r) => r.id.startsWith(rfqIdShort));
-      if (!rfq) {
-        await this.interactiveService.sendTextMessage(
-          phone,
-          "❌ Request details not found or already closed.",
-        );
-        return;
-      }
-
-      let msg = `📋 *Request for Quote: ${rfq.product?.name || "Product"}*\n\n`;
-      msg += `Quantity: *${rfq.quantity} ${rfq.product?.unit || "unit(s)"}*\n`;
-      msg += `Buyer: ${rfq.user?.firstName || "Customer"}\n`;
-      msg += `Location: ${rfq.deliveryAddress || "Not specified"}\n\n`;
-      msg += `To respond, please type: "quote ${rfqIdShort} at [price]"`;
-      await this.interactiveService.sendTextMessage(phone, msg);
-      return;
-    }
-
     if (id.startsWith("status_")) {
       const parts = id.split("_");
       const status = parts[1];
@@ -524,7 +490,7 @@ export class WhatsAppService {
   private async sendMerchantMenu(phone: string): Promise<void> {
     await this.interactiveService.sendListMessage(
       phone,
-      "Welcome back to SwiftTrade! 🤝\n\nManage your business efficiently through this menu or simply tell me what you need in plain English (or Pidgin).",
+      "Welcome back to Swifta! 🤝\n\nManage your business efficiently through this menu or simply tell me what you need in plain English (or Pidgin).",
       "Main Menu",
       [
         {
@@ -593,25 +559,6 @@ export class WhatsAppService {
             merchantId,
             phone,
             intent.params.timeframe,
-          );
-          break;
-        case "get_pending_rfqs":
-          await this.handlePendingRfqs(merchantId, phone);
-          break;
-        case "get_inventory":
-          await this.handleInventory(
-            merchantId,
-            phone,
-            intent.params.productName,
-          );
-          break;
-        case "respond_to_rfq":
-          await this.handleRespondToRfq(
-            merchantId,
-            phone,
-            intent.params.rfqReference,
-            intent.params.unitPriceNaira,
-            intent.params.deliveryFeeNaira,
           );
           break;
         case "update_product_price":
@@ -703,15 +650,7 @@ export class WhatsAppService {
       select: {
         totalAmountKobo: true,
         deliveryFeeKobo: true,
-        quote: {
-          select: {
-            rfq: {
-              select: {
-                product: { select: { name: true } },
-              },
-            },
-          },
-        },
+        product: { select: { name: true } },
       },
     });
 
@@ -724,18 +663,12 @@ export class WhatsAppService {
     // Count products for "top seller"
     const productCounts: Record<string, number> = {};
     for (const o of orders) {
-      const name = o.quote?.rfq?.product?.name || "Unnamed";
+      const name = o.product?.name || "Unnamed";
       productCounts[name] = (productCounts[name] || 0) + 1;
     }
     const topSeller = Object.entries(productCounts).sort(
       (a, b) => b[1] - a[1],
     )[0];
-
-    // Get pending RFQ count
-    const pendingRfqs = await this.prisma.rfq.count({
-      where: { merchantId, status: RFQStatus.OPEN },
-    });
-
     let msg = `📊 *Business Performance Summary* (${timeframeLabel}):\n\n`;
 
     if (orders.length === 0) {
@@ -748,47 +681,7 @@ export class WhatsAppService {
       }
     }
 
-    msg += `\n📋 Pending RFQs: *${pendingRfqs}*`;
-    if (pendingRfqs > 0) {
-      msg += `\nYou have active requests awaiting your quote. Please use the menu below to view them.`;
-    }
-
     await this.interactiveService.sendTextMessage(phone, msg);
-  }
-
-  /**
-   * 📋 Pending RFQs
-   */
-  private async handlePendingRfqs(
-    merchantId: string,
-    phone: string,
-  ): Promise<void> {
-    const result = await this.rfqService.listByMerchant(merchantId, 1, 10);
-    const rfqs = result.data.filter((r: any) => r.status === RFQStatus.OPEN);
-
-    if (rfqs.length === 0) {
-      await this.interactiveService.sendTextMessage(
-        phone,
-        "📋 You have no pending RFQs at the moment. All requests have been addressed or have expired. ✅",
-      );
-      return;
-    }
-
-    await this.interactiveService.sendListMessage(
-      phone,
-      `📋 You have *${rfqs.length}* pending request${rfqs.length > 1 ? "s" : ""} awaiting your quote.`,
-      "View Requests",
-      [
-        {
-          title: "Pending Quotes",
-          rows: rfqs.map((rfq: any) => ({
-            id: `view_rfq_${rfq.id.substring(0, 8)}`,
-            title: `${rfq.quantity} ${rfq.product?.unit || "units"} ${rfq.product?.name || "Product"}`,
-            description: `From: ${rfq.user?.firstName || "Buyer"} | Loc: ${rfq.deliveryAddress?.split(",")[0] || "Nigeria"}`,
-          })),
-        },
-      ],
-    );
   }
 
   /**
@@ -848,7 +741,7 @@ export class WhatsAppService {
     if (products.length === 0) {
       await this.interactiveService.sendTextMessage(
         phone,
-        "📦 You do not have any active product listings. Please add products via the SwiftTrade web dashboard to begin selling. 🛒",
+        "📦 You do not have any active product listings. Please add products via the Swifta web dashboard to begin selling. 🛒",
       );
       return;
     }
@@ -868,91 +761,6 @@ export class WhatsAppService {
         },
       ],
     );
-  }
-
-  /**
-   * ✅ Respond to RFQ — submit a quote
-   */
-  private async handleRespondToRfq(
-    merchantId: string,
-    phone: string,
-    rfqReference: string,
-    unitPriceNaira: number,
-    deliveryFeeNaira?: number,
-  ): Promise<void> {
-    if (!rfqReference || !unitPriceNaira) {
-      await this.interactiveService.sendTextMessage(
-        phone,
-        RFQ_RESPOND_FOLLOWUP,
-      );
-      return;
-    }
-
-    // Find the RFQ by short reference (first chars of UUID)
-    const openRfqs = await this.prisma.rfq.findMany({
-      where: {
-        merchantId,
-        status: RFQStatus.OPEN,
-      },
-      include: { product: true },
-    });
-
-    const refLower = rfqReference.toLowerCase();
-    const rfq = openRfqs.find((r) => r.id.toLowerCase().startsWith(refLower));
-
-    if (!rfq) {
-      await this.interactiveService.sendTextMessage(
-        phone,
-        `❌ RFQ #${rfqReference} not found or already responded to.\n\nSay *"check rfq"* to see your pending RFQs.`,
-      );
-      return;
-    }
-
-    // Convert Naira to kobo
-    const unitPriceKobo = BigInt(Math.round(unitPriceNaira * 100));
-    const totalPriceKobo = unitPriceKobo * BigInt(rfq.quantity);
-    const deliveryFeeKobo = deliveryFeeNaira
-      ? BigInt(Math.round(deliveryFeeNaira * 100))
-      : BigInt(0);
-
-    // Set quote valid for 48 hours
-    const validUntil = new Date();
-    validUntil.setHours(validUntil.getHours() + 48);
-
-    try {
-      await this.quoteService.submit(merchantId, {
-        rfqId: rfq.id,
-        unitPriceKobo,
-        totalPriceKobo,
-        deliveryFeeKobo,
-        validUntil: validUntil.toISOString(),
-      });
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : "Unknown error";
-      if (errorMsg.includes("not open")) {
-        await this.interactiveService.sendTextMessage(
-          phone,
-          `❌ This RFQ is no longer open for quotes.`,
-        );
-        return;
-      }
-      throw error;
-    }
-
-    const productName = rfq.product?.name || "Custom Item";
-    const unit = rfq.product?.unit || "unit";
-    const grandTotal = Number(totalPriceKobo + deliveryFeeKobo);
-
-    let msg = `✅ *Quote Submitted Successfully* 🤝\n\n`;
-    msg += `📦 RFQ #${rfqReference.toUpperCase()} - ${rfq.quantity} ${unit}(s) of ${productName}\n`;
-    msg += `💰 Unit Price: ${this.formatNaira(Number(unitPriceKobo))}/${unit}\n`;
-    if (deliveryFeeNaira && deliveryFeeNaira > 0) {
-      msg += `🚛 Delivery Fee: ${this.formatNaira(Number(deliveryFeeKobo))}\n`;
-    }
-    msg += `💵 Total Amount: *${this.formatNaira(grandTotal)}*\n\n`;
-    msg += `The buyer has been notified. We will alert you when they respond to your quote.`;
-
-    await this.interactiveService.sendTextMessage(phone, msg);
   }
 
   /**
@@ -1041,7 +849,7 @@ export class WhatsAppService {
     if (products.length === 0) {
       await this.interactiveService.sendTextMessage(
         phone,
-        "🏪 You have no products listed currently. Please add products via the SwiftTrade web dashboard to begin selling. 🛒",
+        "🏪 You have no products listed currently. Please add products via the Swifta web dashboard to begin selling. 🛒",
       );
       return;
     }
@@ -1079,7 +887,6 @@ export class WhatsAppService {
       take: 10,
       include: {
         product: true,
-        quote: { include: { rfq: { include: { product: true } } } },
       },
     });
 
@@ -1101,7 +908,7 @@ export class WhatsAppService {
           rows: orders.map((o) => ({
             id: `manage_order_${o.id.substring(0, 8)}`,
             title: `#${o.id.slice(0, 8).toUpperCase()} - ${o.status}`,
-            description: `${o.product?.name || o.quote?.rfq?.product?.name || "Product"} | ${this.formatNaira(Number(o.totalAmountKobo))}`,
+            description: `${o.product?.name || "Product"} | ${this.formatNaira(Number(o.totalAmountKobo))}`,
           })),
         },
       ],
@@ -1283,7 +1090,7 @@ export class WhatsAppService {
           msg = `Hello ${name}! 👋\n\nYour account is currently in the *Basic* tier.\n\nCompleting your government ID verification will upgrade your status to *Verified*, offering:\n• Reduced platform fees (1%)\n• Direct customer payments\n• Enhanced profile trust ✅`;
           break;
         case "VERIFIED":
-          msg = `✅ *Verified Merchant Status* — ${name}\n\nYou are currently enjoying:\n• Competitive 1% platform fees\n• Direct customer payments\n• Verified badge on your profile\n\nThank you for choosing SwiftTrade! 💪`;
+          msg = `✅ *Verified Merchant Status* — ${name}\n\nYou are currently enjoying:\n• Competitive 1% platform fees\n• Direct customer payments\n• Verified badge on your profile\n\nThank you for choosing Swifta! 💪`;
           break;
         case "TRUSTED":
           msg = `⭐ *Trusted Merchant Status* — ${name}\n\nYou have achieved the highest trust level! You benefit from minimal fees, featured listings, and a ⭐ Trusted merchant badge.\n\nExcellent work! 🎉`;
@@ -2006,7 +1813,7 @@ export class WhatsAppService {
       // Complete - generate app link or pay stack link
       await this.redisService.del(key);
       const appUrl =
-        this.configService.get("FRONTEND_URL") || "https://swifttrade.com";
+        this.configService.get("FRONTEND_URL") || "https://Swifta.com";
 
       if (paymentMethod === "PAY_NOW") {
         const merchant = await this.prisma.merchantProfile.findUnique({
@@ -2502,7 +2309,7 @@ export class WhatsAppService {
           await this.redisService.del(sessionKey);
           await this.interactiveService.sendTextMessage(
             phone,
-            `✅ *Success!* "${data.name}" is now live on SwiftTrade.`,
+            `✅ *Success!* "${data.name}" is now live on Swifta.`,
           );
           return;
         }

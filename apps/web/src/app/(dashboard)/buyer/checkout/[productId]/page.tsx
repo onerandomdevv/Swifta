@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { productApi } from "@/lib/api/product.api";
 import { createDirectOrder, getDeliveryQuote } from "@/lib/api/order.api";
 import { useAuth } from "@/providers/auth-provider";
-import type { Product } from "@hardware-os/shared";
+import type { Product } from "@swifta/shared";
 import { cn, formatKobo } from "@/lib/utils";
 import { StateLgaSelector } from "@/components/ui/state-lga-selector";
 
@@ -250,7 +250,7 @@ export default function CheckoutPage({
                    )}>
                      <div className="flex items-center gap-3">
                        <span className="material-symbols-outlined text-slate-400">local_shipping</span>
-                       <span className="text-xs font-bold text-slate-900">SwiftTrade <span className="text-[8px] text-primary uppercase ml-1">Soon</span></span>
+                       <span className="text-xs font-bold text-slate-900">Swifta <span className="text-[8px] text-primary uppercase ml-1">Soon</span></span>
                      </div>
                      <div className="size-4 rounded-full border-2 border-slate-100"></div>
                    </div>

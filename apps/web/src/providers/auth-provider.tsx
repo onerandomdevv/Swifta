@@ -10,8 +10,8 @@ import React, {
   ReactNode,
 } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { UserRole } from "@hardware-os/shared";
-import type { LoginDto, RegisterDto } from "@hardware-os/shared";
+import { UserRole } from "@swifta/shared";
+import type { LoginDto, RegisterDto } from "@swifta/shared";
 import { authApi } from "../lib/api/auth.api";
 import { apiClient } from "../lib/api-client";
 

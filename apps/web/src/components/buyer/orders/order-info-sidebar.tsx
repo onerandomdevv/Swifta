@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import type { Order } from "@hardware-os/shared";
+import type { Order } from "@swifta/shared";
 
 interface Props {
   order: Order;
@@ -17,7 +17,6 @@ export function OrderInfoSidebar({ order }: Props) {
           {order.id}
         </p>
       </div>
-      {!order.quoteId && (
         <div className="space-y-2">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
             Order Type
@@ -27,7 +26,6 @@ export function OrderInfoSidebar({ order }: Props) {
             Direct Purchase
           </div>
         </div>
-      )}
 
       {order.merchant && (
         <div className="space-y-2 pt-6 border-t border-slate-200 dark:border-slate-700">

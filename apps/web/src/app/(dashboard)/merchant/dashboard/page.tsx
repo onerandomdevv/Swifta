@@ -7,7 +7,7 @@ import { useMerchantDashboard } from "@/hooks/use-merchant-data";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dispatchOrder } from "@/lib/api/order.api";
 import { useToast } from "@/providers/toast-provider";
-import { formatKobo, type Order } from "@hardware-os/shared";
+import { formatKobo, type Order } from "@swifta/shared";
 import { DashboardSkeleton } from "@/components/merchant/dashboard/dashboard-skeleton";
 import { KanbanColumn } from "@/components/merchant/dashboard/kanban-column";
 import { KanbanOrderCard } from "@/components/merchant/dashboard/kanban-order-card";

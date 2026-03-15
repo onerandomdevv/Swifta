@@ -7,7 +7,7 @@ import {
 import { PrismaService } from "../../prisma/prisma.service";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
 import { getReorderWindowDays } from "./reorder.constants";
-import { RFQ_EXPIRY_HOURS } from "@hardware-os/shared";
+
 
 @Injectable()
 export class ReorderService {
@@ -22,25 +22,19 @@ export class ReorderService {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: {
-        quote: {
-          include: {
-            rfq: {
-              include: { product: true },
-            },
-          },
-        },
+        product: true,
         merchantProfile: { select: { businessName: true } },
       },
     });
 
-    if (!order?.quote?.rfq?.product) {
+    if (!order?.product) {
       this.logger.log(
         `Order ${orderId} has no linked product, skipping reorder reminder`,
       );
       return;
     }
 
-    const product = order.quote.rfq.product;
+    const product = order.product;
     const windowDays = getReorderWindowDays(product.categoryTag);
     const remindAt = new Date();
     remindAt.setDate(remindAt.getDate() + windowDays);
@@ -61,7 +55,7 @@ export class ReorderService {
         merchantId: order.merchantId,
         productCategory: product.categoryTag,
         productName: product.name,
-        originalQuantity: order.quote.rfq.quantity,
+        originalQuantity: order.quantity || 1,
         remindAt,
       },
     });
@@ -89,8 +83,8 @@ export class ReorderService {
 
     for (const reminder of reminders) {
       try {
-        // Check if buyer already created an RFQ for same category+merchant since order
-        const existingRFQ = await this.prisma.rfq.findFirst({
+        // Check if buyer already ordered for same category+merchant since order
+        const existingOrder = await this.prisma.order.findFirst({
           where: {
             buyerId: reminder.buyerId,
             merchantId: reminder.merchantId,
@@ -99,7 +93,7 @@ export class ReorderService {
           },
         });
 
-        if (existingRFQ) {
+        if (existingOrder) {
           this.logger.log(
             `Buyer already reordered for reminder ${reminder.id}, marking as REORDERED`,
           );
@@ -150,59 +144,6 @@ export class ReorderService {
     return reminders.length;
   }
 
-  async createRFQFromReminder(reminderId: string, buyerId: string) {
-    const reminder = await this.prisma.reorderReminder.findUnique({
-      where: { id: reminderId },
-      include: {
-        order: {
-          include: {
-            quote: { include: { rfq: true } },
-          },
-        },
-      },
-    });
-
-    if (!reminder) {
-      throw new NotFoundException("Reorder reminder not found");
-    }
-
-    if (reminder.buyerId !== buyerId) {
-      throw new BadRequestException("Access denied");
-    }
-
-    if (reminder.status === "REORDERED") {
-      throw new BadRequestException(
-        "This reminder has already been used to create an RFQ",
-      );
-    }
-
-    const originalRfq = reminder.order.quote?.rfq;
-    if (!originalRfq) {
-      throw new BadRequestException("Original RFQ data not found");
-    }
-
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + RFQ_EXPIRY_HOURS);
-
-    const rfq = await this.prisma.rfq.create({
-      data: {
-        buyerId,
-        merchantId: reminder.merchantId,
-        productId: originalRfq.productId,
-        quantity: reminder.originalQuantity,
-        deliveryAddress: originalRfq.deliveryAddress,
-        notes: `Reorder of previous purchase`,
-        expiresAt,
-      },
-    });
-
-    await this.prisma.reorderReminder.update({
-      where: { id: reminderId },
-      data: { status: "REORDERED" },
-    });
-
-    return rfq;
-  }
 
   async dismiss(reminderId: string, userId: string) {
     const reminder = await this.prisma.reorderReminder.findUnique({

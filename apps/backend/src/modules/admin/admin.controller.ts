@@ -14,7 +14,7 @@ import { AdminService } from "./admin.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
-import { UserRole, OrderStatus } from "@hardware-os/shared";
+import { UserRole, OrderStatus } from "@swifta/shared";
 import { IsEnum, IsString, IsNotEmpty, IsBoolean, IsIn } from "class-validator";
 
 export class CreateAccessTokenDto {

@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { type MerchantProfile } from "@hardware-os/shared";
+import { type MerchantProfile } from "@swifta/shared";
 import { VerificationBadge } from "@/components/ui/verification-badge";
 import { StarRating } from "@/components/ui/star-rating";
 

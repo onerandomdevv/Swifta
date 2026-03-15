@@ -20,7 +20,7 @@ export default function EmptyState({
 }: EmptyStateProps) {
     return (
         <div className={cn(
-            "flex flex-col items-center justify-center p-12 text-center bg-surface rounded-[2rem] border-2 border-dashed border-border-light",
+            "flex flex-col items-center justify-center p-12 text-center bg-surface rounded-[2rem] border-2 border-dashed border-border",
             className
         )}>
             <div className="size-16 rounded-2xl bg-background-secondary flex items-center justify-center mb-6">
@@ -32,6 +32,7 @@ export default function EmptyState({
             )}
             {actionLabel && onAction && (
                 <button
+                    type="button"
                     onClick={onAction}
                     className="mt-8 px-8 py-4 bg-foreground text-background rounded-2xl text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all active:scale-95"
                 >

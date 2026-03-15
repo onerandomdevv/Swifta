@@ -69,7 +69,7 @@ export class UploadController {
     try {
       const url = await this.uploadService.uploadImageToCloudinary(
         file,
-        "hardware-os/products",
+        "swifta/products",
       );
       return {
         url,

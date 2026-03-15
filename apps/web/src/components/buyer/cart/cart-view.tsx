@@ -11,7 +11,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { toast } from "sonner";
 import Link from "next/link";
 import { cn, formatKobo, optimizeCloudinaryUrl } from "@/lib/utils";
-import { Product } from "@hardware-os/shared";
+import { Product } from "@swifta/shared";
 import { StateLgaSelector } from "@/components/ui/state-lga-selector";
 
 type PaymentMethod = "ESCROW" | "DIRECT";

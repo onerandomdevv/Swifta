@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef } from "react";
-import { type Category } from "@hardware-os/shared";
+import { type Category } from "@swifta/shared";
 
 interface Props {
   categories: Category[];

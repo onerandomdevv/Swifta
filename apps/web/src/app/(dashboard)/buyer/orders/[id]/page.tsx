@@ -4,7 +4,7 @@ import React, { useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatKobo } from "@/lib/utils";
-import type { Order } from "@hardware-os/shared";
+import type { Order } from "@swifta/shared";
 import { useOrder } from "@/hooks/use-order";
 import { OrderTimeline } from "@/components/ui/order-timeline";
 import { Modal } from "@/components/ui/modal";
@@ -414,7 +414,7 @@ export default function BuyerOrderDetailsPage() {
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-slate-500">Carrier</span>
                     <span className="font-medium text-slate-900 dark:text-white">
-                      {order.deliveryMethod === "PLATFORM_LOGISTICS" ? "SwiftExpress" : "Merchant Delivery"}
+                      {order.deliveryMethod === "PLATFORM_LOGISTICS" ? "Swifta Express" : "Merchant Delivery"}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
@@ -517,7 +517,7 @@ export default function BuyerOrderDetailsPage() {
       >
         <div className="space-y-6">
           <p className="text-sm text-slate-500">
-            Describe the issue you encountered. The SwiftTrade mediation team will review your report within 24 hours.
+            Describe the issue you encountered. The Swifta mediation team will review your report within 24 hours.
           </p>
           <textarea
             value={disputeReason}

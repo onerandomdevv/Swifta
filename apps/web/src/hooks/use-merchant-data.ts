@@ -5,7 +5,7 @@ import { getOrders } from "@/lib/api/order.api";
 import { productApi } from "@/lib/api/product.api";
 import { merchantApi } from "@/lib/api/merchant.api";
 import { authApi } from "@/lib/api/auth.api";
-import type { Order, Product } from "@hardware-os/shared";
+import type { Order, Product } from "@swifta/shared";
 
 export function useMerchantDashboard(startDate?: string, endDate?: string) {
   const orderQuery = useQuery({

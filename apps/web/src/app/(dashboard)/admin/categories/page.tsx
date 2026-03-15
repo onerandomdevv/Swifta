@@ -7,7 +7,7 @@ import {
   updateCategory,
   deleteCategory,
 } from "@/lib/api/category.api";
-import { type Category } from "@hardware-os/shared";
+import { type Category } from "@swifta/shared";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/providers/toast-provider";
 

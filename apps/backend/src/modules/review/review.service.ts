@@ -8,7 +8,7 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { CreateReviewDto } from "./dto/create-review.dto";
-import { OrderStatus, VerificationTier } from "@hardware-os/shared";
+import { OrderStatus, VerificationTier } from "@swifta/shared";
 
 @Injectable()
 export class ReviewService {

@@ -9,7 +9,6 @@ import { WHATSAPP_QUEUE } from "../../queue/queue.constants";
  *
  * Job types:
  *  - process-message: Incoming WhatsApp message to handle
- *  - send-rfq-notification: Proactive RFQ push notification
  */
 @Processor(WHATSAPP_QUEUE, {
   drainDelay: 30000, // Slightly faster polling for WhatsApp messages, but still much slower than default 5s
@@ -36,15 +35,6 @@ export class WhatsAppProcessor extends WorkerHost {
             messageId,
             interactiveReply,
             imageId,
-          );
-          break;
-        }
-
-        case "send-rfq-notification": {
-          const { merchantId, rfqData } = job.data;
-          await this.whatsAppService.sendRfqPushNotification(
-            merchantId,
-            rfqData,
           );
           break;
         }

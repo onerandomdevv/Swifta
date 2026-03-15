@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { productApi } from "@/lib/api/product.api";
 import { getCategories } from "@/lib/api/category.api";
-import { type Category, type Product } from "@hardware-os/shared";
+import { type Category, type Product } from "@swifta/shared";
 import { useToast } from "@/providers/toast-provider";
 
 interface ProductCreationDrawerProps {
@@ -184,6 +184,7 @@ export function ProductCreationDrawer({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close drawer"
             className="size-12 rounded-2xl bg-surface border border-border flex items-center justify-center text-foreground-muted hover:text-foreground transition-all shadow-sm hover:shadow-md active:scale-90"
           >
             <span className="material-symbols-outlined">close</span>
@@ -230,7 +231,7 @@ export function ProductCreationDrawer({
                         alt="Product"
                         className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                       />
-                      <div className="absolute inset-0 bg-background/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-foreground Backdrop-blur-[2px]">
+                      <div className="absolute inset-0 bg-background/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-foreground backdrop-blur-[2px]">
                         <span className="material-symbols-outlined text-3xl">add_a_photo</span>
                       </div>
                     </>

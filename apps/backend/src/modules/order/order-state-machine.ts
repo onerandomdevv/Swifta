@@ -1,4 +1,4 @@
-import { OrderStatus, ORDER_TRANSITIONS } from "@hardware-os/shared";
+import { OrderStatus, ORDER_TRANSITIONS } from "@swifta/shared";
 
 export function validateTransition(
   from: OrderStatus,

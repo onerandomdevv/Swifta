@@ -15,16 +15,12 @@ export default function Navbar() {
           <ThemeToggle />
           <div className="h-6 w-px bg-border hidden sm:block" />
           <div className="flex items-center space-x-2 lg:space-x-4">
-            <Link href="/auth/login">
-              <Button variant="ghost" size="sm" className="lg:text-base text-foreground-secondary hover:text-foreground">
-                Login
-              </Button>
-            </Link>
-            <Link href="/auth/register">
-              <Button size="sm" className="lg:text-base px-5">
-                Get Started
-              </Button>
-            </Link>
+            <Button asChild variant="ghost" size="sm" className="lg:text-base text-foreground-secondary hover:text-foreground">
+              <Link href="/auth/login">Login</Link>
+            </Button>
+            <Button asChild size="sm" className="lg:text-base px-5">
+              <Link href="/auth/register">Get Started</Link>
+            </Button>
           </div>
         </div>
       </div>

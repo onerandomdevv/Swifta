@@ -6,8 +6,8 @@ import Link from "next/link";
 import { productApi } from "@/lib/api/product.api";
 import { getMerchantReviews } from "@/lib/api/review.api";
 import { addToCart } from "@/lib/api/cart.api";
-import type { Product, Review } from "@hardware-os/shared";
-import { PriceType } from "@hardware-os/shared";
+import type { Product, Review } from "@swifta/shared";
+import { PriceType } from "@swifta/shared";
 import { toast } from "sonner";
 import { cn, formatKobo, optimizeCloudinaryUrl } from "@/lib/utils";
 import { StarRating } from "@/components/ui/star-rating";
@@ -434,7 +434,7 @@ export function ProductDetailView({ productId, isOwner }: ProductDetailViewProps
             <div className="animate-in fade-in slide-in-from-bottom-1 duration-300">
                <h3 className="text-sm font-black mb-4 text-slate-900 dark:text-white uppercase tracking-widest">Product Description</h3>
                <p className="text-slate-500 dark:text-slate-400 font-medium leading-relaxed max-w-3xl">
-                 {product?.description || "High-quality professional hardware supply designed for heavy-duty construction and industrial applications."}
+                 {product?.description || "High-quality professional quality product available on Swifta."}
                </p>
             </div>
           )}

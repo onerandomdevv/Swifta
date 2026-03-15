@@ -1,5 +1,5 @@
 import React from "react";
-import type { Product } from "@hardware-os/shared";
+import type { Product } from "@swifta/shared";
 import { InventoryRow } from "./inventory-row";
 
 interface Props {

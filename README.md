@@ -1,18 +1,18 @@
-# SwiftTrade / HARDWARE OS
+# Swifta
 
-**The Operating System for Lagos Hardware Trade**
+**The Operating System for Modern Trade**
 
-How HARDWARE OS digitizes Africa's largest informal hardware trade network without breaking the trust, negotiation, and relationships that make it work.
+How Swifta digitizes Africa's largest informal trade network without breaking the trust, negotiation, and relationships that make it work.
 
 ---
 
 ## 🚀 The Vision: Beyond a Marketplace
 
-SwiftTrade is not your typical B2B e-commerce platform. It is a purpose-built trade infrastructure designed specifically for the realities of the Lagos hardware market (cement, iron rods, plumbing, electrical, etc.).
+Swifta is not your typical B2B e-commerce platform. It is a purpose-built trade infrastructure designed specifically for the realities of the Lagos hardware market (cement, iron rods, plumbing, electrical, etc.).
 
 Generic platforms fail because they don't understand how this billion-naira industry operates. We don't force generic e-commerce models onto a relationship-driven industry. Instead, we digitize the transaction lifecycle while empowering merchants to maintain their pricing strategies and customer relationships.
 
-**Why SwiftTrade Works:**
+**Why Swifta Works:**
 
 - **Price Opacity by Design:** Prices are negotiated privately via an RFQ (Request for Quote) model.
 - **Embedded Trust:** Buyer's payment is held in escrow until delivery is confirmed via OTP. The merchant is guaranteed payment; the buyer is guaranteed delivery.
@@ -53,7 +53,7 @@ Generic platforms fail because they don't understand how this billion-naira indu
 
 ## 🏗️ Technical Architecture
 
-SwiftTrade is a modular monolith/monorepo architecture optimized for scalability, security, and developer velocity.
+Swifta is a modular monolith/monorepo architecture optimized for scalability, security, and developer velocity.
 
 ```text
 hardware-os/
@@ -108,8 +108,8 @@ npx prisma db seed
 cd ../..
 
 # 6. Run the Application
-pnpm --filter @hardware-os/backend dev    # Starts backend on http://localhost:4000
-pnpm --filter @hardware-os/web dev        # Starts frontend on http://localhost:3000
+pnpm --filter @swifta/backend dev    # Starts backend on http://localhost:4000
+pnpm --filter @swifta/web dev        # Starts frontend on http://localhost:3000
 ```
 
 ---
@@ -129,4 +129,4 @@ V1 establishes the core transaction loop and foundational WhatsApp integrations.
 - **Phase 2 (Credit):** Behavioral Credit Scoring (TradeScore) leading to embedded BNPL and Trade Credit financing.
 - **Phase 3 (Market Intelligence):** AI-driven demand forecasting and the creation of a Lagos Hardware Price Index.
 
-Looking ahead, SwiftTrade isn't just about software; it's about providing the market infrastructure that scales Africa's largest informal trade network.
+Looking ahead, Swifta isn't just about software; it's about providing the market infrastructure that scales Africa's largest informal trade network.

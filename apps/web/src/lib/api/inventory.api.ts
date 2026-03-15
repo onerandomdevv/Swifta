@@ -1,5 +1,5 @@
 import { apiClient } from '../api-client';
-import type { UpdateStockDto } from '@hardware-os/shared';
+import type { UpdateStockDto } from '@swifta/shared';
 
 export async function getStock(productId: string): Promise<{ productId: string; stock: number }> {
   return apiClient.get(`/inventory/products/${productId}/stock`);

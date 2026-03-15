@@ -8,7 +8,7 @@ import {
 } from "@/lib/api/merchant.api";
 import { useToast } from "@/providers/toast-provider";
 import { authApi } from "@/lib/api/auth.api";
-import { MerchantProfile } from "@hardware-os/shared";
+import { MerchantProfile } from "@swifta/shared";
 
 type SettingsTab = "account" | "notifications" | "security";
 

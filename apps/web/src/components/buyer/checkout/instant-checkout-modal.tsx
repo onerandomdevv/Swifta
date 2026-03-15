@@ -6,7 +6,7 @@ import { createDirectOrder } from "@/lib/api/order.api";
 import { toast } from "sonner";
 import { StateLgaSelector } from "@/components/ui/state-lga-selector";
 import { cn, formatKobo, optimizeCloudinaryUrl } from "@/lib/utils";
-import type { Product, MerchantProfile } from "@hardware-os/shared";
+import type { Product, MerchantProfile } from "@swifta/shared";
 
 interface Props {
   isOpen: boolean;

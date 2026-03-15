@@ -9,7 +9,7 @@ import {
   type Product,
   type Category,
   type MerchantProfile,
-} from "@hardware-os/shared";
+} from "@swifta/shared";
 import { useAuth } from "@/providers/auth-provider";
 import { useRouter } from "next/navigation";
 

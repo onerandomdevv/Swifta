@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import type { Order } from "@hardware-os/shared";
+import type { Order } from "@swifta/shared";
 
 interface Props {
   order: Order;

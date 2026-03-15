@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { merchantApi } from "@/lib/api/merchant.api";
 import { productApi } from "@/lib/api/product.api";
 import { getMerchantReviews } from "@/lib/api/review.api";
-import type { MerchantProfile, Product, Review } from "@hardware-os/shared";
+import type { MerchantProfile, Product, Review } from "@swifta/shared";
+import { DEFAULT_COVER, getDisplayName } from "@swifta/shared";
 import { CatalogueGrid } from "@/components/buyer/catalogue/catalogue-grid";
 import { StarRating } from "@/components/ui/star-rating";
 import { useAuth } from "@/providers/auth-provider";
@@ -14,9 +15,9 @@ import { cn, formatKobo } from "@/lib/utils";
 import { EditProfileModal } from "./edit-profile-modal";
 import { ProductCard } from "@/components/shared/product-card";
 
-const DEFAULT_COVER = "/default-cover.jpg";
 
 interface MerchantProfileViewProps {
+
   initialMerchant?: MerchantProfile;
   merchantId?: string;
 }
@@ -177,11 +178,11 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
       {/* Cover Section */}
       <div className="relative px-4 pt-4 md:px-8">
         <div className="h-56 md:h-64 w-full relative rounded-xl overflow-hidden bg-background-secondary border border-border/50 shadow-sm">
-          {coverImage ? (
-            <img src={coverImage} alt="Cover" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full bg-background-secondary" />
-          )}
+          <img 
+            src={coverImage || DEFAULT_COVER} 
+            alt="Cover" 
+            className="w-full h-full object-cover" 
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
 
           {/* Share Button */}

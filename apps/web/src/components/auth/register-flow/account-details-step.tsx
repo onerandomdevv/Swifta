@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useFormContext } from "react-hook-form";
 import Link from "next/link";
 import type { RegistrationFormData } from "@/lib/validations/auth";
-import { UserRole } from "@hardware-os/shared";
+import { UserRole } from "@swifta/shared";
 
 interface AccountDetailsStepProps {
   onSubmit: (e: React.FormEvent) => void;

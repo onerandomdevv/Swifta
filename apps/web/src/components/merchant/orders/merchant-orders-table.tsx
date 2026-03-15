@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { Money } from "@/components/ui/money";
-import type { Order } from "@hardware-os/shared";
+import type { Order } from "@swifta/shared";
 
 interface Props {
   orders: Order[];

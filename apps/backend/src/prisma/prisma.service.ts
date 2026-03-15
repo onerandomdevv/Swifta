@@ -26,7 +26,6 @@ export class PrismaService
     this.pool = pool;
   }
 
-
   private readonly logger = new Logger(PrismaService.name);
 
   async onModuleInit() {
@@ -45,4 +44,3 @@ export class PrismaService
     await this.pool.end();
   }
 }
-

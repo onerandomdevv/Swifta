@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getOrder, dispatchOrder } from "@/lib/api/order.api";
-import type { Order } from "@hardware-os/shared";
-import { OrderStatus } from "@hardware-os/shared";
+import type { Order } from "@swifta/shared";
+import { OrderStatus } from "@swifta/shared";
 
 interface OrderDrawerProps {
   orderId: string | null;
@@ -76,11 +76,16 @@ export function OrderDrawer({
       />
 
       {/* Drawer Panel */}
-      <div className="fixed top-0 right-0 h-full w-[35%] min-w-[450px] bg-surface z-50 flex flex-col border-l border-border shadow-[-10px_0_30px_rgba(0,0,0,0.1)] animate-in slide-in-from-right duration-300">
+      <div 
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="order-drawer-title"
+        className="fixed top-0 right-0 h-full w-[35%] min-w-[450px] bg-surface z-50 flex flex-col border-l border-border shadow-[-10px_0_30px_rgba(0,0,0,0.1)] animate-in slide-in-from-right duration-300"
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-border bg-surface">
           <div className="flex items-center gap-4">
-            <h2 className="text-xl font-bold tracking-tighter text-foreground uppercase">
+            <h2 id="order-drawer-title" className="text-xl font-bold tracking-tighter text-foreground uppercase">
               Order #{order?.id?.slice(0, 8) || "..."}
             </h2>
             {order && (
@@ -93,6 +98,7 @@ export function OrderDrawer({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close order drawer"
             className="p-1 hover:bg-background-secondary transition-colors flex items-center justify-center border border-transparent hover:border-border"
           >
             <span className="material-symbols-outlined text-foreground-muted text-2xl">

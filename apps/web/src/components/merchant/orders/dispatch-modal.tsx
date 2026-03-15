@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import type { Order } from "@hardware-os/shared";
+import type { Order } from "@swifta/shared";
 import { formatKobo } from "@/lib/utils";
 
 interface DispatchModalProps {

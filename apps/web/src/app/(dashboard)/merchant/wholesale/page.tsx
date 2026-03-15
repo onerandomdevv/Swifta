@@ -11,7 +11,7 @@ import {
   applyForTradeFinancing,
   type TradeFinancingEligibilityResponse,
 } from "@/lib/api/trade-financing.api";
-import { formatKobo } from "@hardware-os/shared";
+import { formatKobo } from "@swifta/shared";
 import { useToast } from "@/providers/toast-provider";
 import { useState, useEffect } from "react";
 import { Modal } from "@/components/ui/modal";

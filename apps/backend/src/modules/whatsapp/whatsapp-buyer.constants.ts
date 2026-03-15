@@ -25,7 +25,7 @@ export const BUYER_GEMINI_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
   {
     name: "search_products",
     description:
-      "Search the global SwiftTrade catalogue for a product based on name and optionally location.",
+      "Search the global Swifta catalogue for a product based on name and optionally location.",
     parameters: {
       type: SchemaType.OBJECT,
       properties: {
@@ -92,7 +92,7 @@ export const BUYER_GEMINI_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
   {
     name: "browse_categories",
     description:
-      "Browse the available product categories in the SwiftTrade marketplace.",
+      "Browse the available product categories in the Swifta marketplace.",
   },
   {
     name: "contact_support",

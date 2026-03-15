@@ -4,7 +4,7 @@ import {
   ForbiddenException,
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
-import { InventoryEventType } from "@hardware-os/shared";
+import { InventoryEventType } from "@swifta/shared";
 
 @Injectable()
 export class InventoryService {

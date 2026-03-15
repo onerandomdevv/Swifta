@@ -9,7 +9,7 @@ import { merchantApi } from "@/lib/api/merchant.api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { StateLgaSelector } from "@/components/ui/state-lga-selector";
-import type { MerchantProfile, UpdateMerchantDto } from "@hardware-os/shared";
+import type { MerchantProfile, UpdateMerchantDto } from "@swifta/shared";
 
 interface EditProfileModalProps {
   isOpen: boolean;

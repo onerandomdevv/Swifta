@@ -12,7 +12,7 @@ export const SUPPLIER_MAIN_MENU = `Supplier Dashboard. Use the menu below to man
 export const FRIENDLY_FALLBACK = `I'm not quite sure I understood that. 😅 Here is what I can help you with today:`;
 
 /** Main menu for buyers */
-export const BUYER_MAIN_MENU = `Welcome to your SwiftTrade Buyer Assistant. Select an option from the menu to get started:`;
+export const BUYER_MAIN_MENU = `Welcome to your Swifta Buyer Assistant. Select an option from the menu to get started:`;
 
 /** Friendly fallback for buyers */
 export const BUYER_FRIENDLY_FALLBACK = `I didn't quite catch that. Try using the menu or ask me questions like:
@@ -25,15 +25,8 @@ export const STOCK_UPDATE_FOLLOWUP = `Understood. Which product would you like t
 
 Example: "Add 50 bags of cement" or "Remove 10 iron rods"`;
 
-/** Follow-up when RFQ response is incomplete */
-export const RFQ_RESPOND_FOLLOWUP = `To provide a quote, please include:
-• The RFQ reference (e.g. "a3f2")
-• Your price per unit in Naira
-
-Example: "Quote a3f2 at 8500 per bag"`;
-
 /** First message for an unlinked phone */
-export const WELCOME_MESSAGE = `Welcome to SwiftTrade, Nigeria's digital marketplace for all your retail and wholesale needs. How would you like to use our platform?`;
+export const WELCOME_MESSAGE = `Welcome to Swifta, Nigeria's digital marketplace for all your retail and wholesale needs. How would you like to use our platform?`;
 
 export const ROLE_SELECTED_MESSAGE = `Great! To link your account, please reply with your registered email address.`;
 
@@ -74,7 +67,6 @@ export enum SessionState {
 // ---------------------------------------------------------------------------
 export const NUMBER_INTENT_MAP: Record<string, string> = {
   "1": "get_sales_summary",
-  "2": "get_pending_rfqs",
   "3": "get_inventory",
   "4": "get_recent_orders",
   "5": "update_stock",
@@ -108,12 +100,6 @@ export const GEMINI_FUNCTION_DECLARATIONS = [
     },
   },
   {
-    name: "get_pending_rfqs",
-    description:
-      "Get open/pending RFQs for the merchant. Triggered by: 'any new order', 'pending orders', 'anybody wan buy', 'check rfq'",
-    parameters: { type: "object" as const, properties: {} },
-  },
-  {
     name: "get_inventory",
     description:
       "Get stock levels for all or specific product. Triggered by: 'check my stock', 'wetin dey my store', 'inventory', 'my goods'",
@@ -140,39 +126,16 @@ export const GEMINI_FUNCTION_DECLARATIONS = [
           type: "string",
           enum: ["add", "remove"],
           description: "Whether to add or remove stock",
-        },
-      },
-      required: ["productName", "quantity", "action"],
-    },
   },
+},
+required: ["productName", "quantity", "action"],
+},
+},
   {
     name: "get_products",
     description:
       "List all merchant products. Triggered by: 'my products', 'wetin I dey sell', 'show listings'",
     parameters: { type: "object" as const, properties: {} },
-  },
-  {
-    name: "respond_to_rfq",
-    description:
-      "Submit a quote for an RFQ. Triggered by: 'quote a3f2 at 8500', 'give am price 8500'",
-    parameters: {
-      type: "object" as const,
-      properties: {
-        rfqReference: {
-          type: "string",
-          description: "RFQ ID or short reference",
-        },
-        unitPriceNaira: {
-          type: "number",
-          description: "Price per unit in Naira",
-        },
-        deliveryFeeNaira: {
-          type: "number",
-          description: "Delivery fee in Naira",
-        },
-      },
-      required: ["unitPriceNaira"],
-    },
   },
   {
     name: "show_menu",
