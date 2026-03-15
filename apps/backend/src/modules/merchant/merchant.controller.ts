@@ -67,6 +67,13 @@ export class MerchantController {
     return this.merchantService.getAllMerchants();
   }
 
+  @Get("balance-summary")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.MERCHANT)
+  async getBalanceSummary(@CurrentMerchant() merchantId: string) {
+    return this.merchantService.getBalanceSummary(merchantId);
+  }
+
   @Get(":id")
   async getPublicProfile(@Param("id", ParseUUIDPipe) id: string) {
     return this.merchantService.getPublicProfile(id);
@@ -116,12 +123,6 @@ export class MerchantController {
     return this.analyticsService.getMerchantStats(merchantId, startDate, endDate);
   }
 
-  @Get("balance-summary")
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.MERCHANT)
-  async getBalanceSummary(@CurrentMerchant() merchantId: string) {
-    return this.merchantService.getBalanceSummary(merchantId);
-  }
 
   @Post(":id/follow")
   @UseGuards(JwtAuthGuard)

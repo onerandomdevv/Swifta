@@ -1,13 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 const PDFDocument = require('pdfkit');
 import { Response } from 'express';
+import { JwtPayload } from '@hardware-os/shared';
 
 @Injectable()
 export class InvoiceService {
   constructor(private prisma: PrismaService) {}
 
-  async generateInvoice(orderId: string, res: Response) {
+  async generateInvoice(orderId: string, res: Response, user: JwtPayload) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: {
@@ -33,6 +34,10 @@ export class InvoiceService {
     });
 
     if (!order) throw new NotFoundException('Order not found');
+
+    if (order.buyerId !== user.sub && order.merchantId !== user?.merchantId) {
+      throw new ForbiddenException('You do not have permission to view this invoice');
+    }
 
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
 

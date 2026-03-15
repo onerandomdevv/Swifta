@@ -693,7 +693,7 @@ export class OrderService {
       {
         where: { merchantId },
         orderBy: { createdAt: "desc" },
-        include: { user: { select: { email: true, phone: true } } },
+        include: { user: { select: { email: true, phone: true } }, product: true },
       },
     );
   }

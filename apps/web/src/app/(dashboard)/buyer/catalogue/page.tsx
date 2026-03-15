@@ -138,6 +138,9 @@ export default function BuyerCataloguePage() {
 
   // ─── Wishlist toggle handler ───
   async function handleToggleSave(productId: string) {
+    const wasSaved = savedIds.has(productId);
+    const isNowSaved = !wasSaved;
+
     // Optimistic update
     setSavedIds((prev) => {
       const next = new Set(prev);
@@ -150,7 +153,6 @@ export default function BuyerCataloguePage() {
     });
     try {
       await toggleWishlist(productId);
-      const isNowSaved = !savedIds.has(productId);
       const { toast } = await import("sonner");
       toast.success(isNowSaved ? "Product saved to wishlist" : "Product removed from wishlist");
     } catch (err) {

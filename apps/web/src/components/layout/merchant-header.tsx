@@ -20,13 +20,13 @@ export function MerchantHeader({
   const { unreadCount } = useNotifications(true, true);
 
   const { data: profile } = useQuery({
-    queryKey: ["merchant", "profile"],
+    queryKey: ["merchant", user?.merchantId, "profile"],
     queryFn: () => merchantApi.getProfile(),
     enabled: !!user?.merchantId,
   });
 
   const { data: balanceData } = useQuery({
-    queryKey: ["merchant", "balance-summary"],
+    queryKey: ["merchant", user?.merchantId, "balance-summary"],
     queryFn: () => merchantApi.getBalanceSummary(),
     enabled: !!user?.merchantId,
     staleTime: 300000, // 5 minutes cache

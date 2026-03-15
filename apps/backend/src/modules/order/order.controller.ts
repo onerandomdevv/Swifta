@@ -141,7 +141,7 @@ export class OrderController {
     @Param("id") id: string,
     @Res() res: Response,
   ) {
-    // Add ownership check if needed, but InvoiceService will handle not found
-    return this.invoiceService.generateInvoice(id, res);
+    // Pass caller identity to the service to enforce ownership validation
+    return this.invoiceService.generateInvoice(id, res, user);
   }
 }
