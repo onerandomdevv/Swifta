@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "../../providers/auth-provider";
 import { Logo } from "@/components/ui/logo";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 
@@ -46,10 +46,10 @@ export function AdminSidebar({
     <aside
       className={`${
         isDesktop ? "hidden lg:flex w-64 sticky top-0 h-screen" : "flex w-full"
-      } bg-navy-dark text-white flex-col z-40 overflow-y-auto shrink-0 shadow-xl`}
+      } bg-surface text-foreground flex-col z-40 overflow-y-auto shrink-0 shadow-xl border-r border-border`}
     >
       <div className="p-6">
-        <Logo variant="dark" size="md" />
+        <Logo variant="light" size="md" />
         <span className="mt-2 block text-xs font-black uppercase text-primary tracking-widest">
           {user?.role?.replace("_", " ") || "ADMIN"}
         </span>
@@ -64,8 +64,8 @@ export function AdminSidebar({
               href={link.href}
               className={`flex items-center justify-between px-4 py-3 rounded-lg font-bold transition-all duration-200 ${
                 isActive
-                  ? "bg-primary text-deep-blue shadow-lg shadow-primary/20 scale-[1.02]"
-                  : "text-slate-300 hover:bg-white/10 hover:text-white"
+                  ? "bg-primary text-white shadow-lg shadow-primary/20 scale-[1.02]"
+                  : "text-foreground-secondary hover:bg-surface-hover hover:text-foreground"
               }`}
             >
               <div className="flex items-center space-x-3">
@@ -81,6 +81,13 @@ export function AdminSidebar({
           );
         })}
       </nav>
+
+      <div className="p-4 border-t border-border mt-auto space-y-4">
+        <div className="flex items-center justify-between px-2">
+          <span className="text-[10px] font-bold text-foreground-muted uppercase tracking-widest">Theme</span>
+          <ThemeToggle />
+        </div>
+      </div>
     </aside>
   );
 }

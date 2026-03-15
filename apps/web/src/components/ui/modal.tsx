@@ -57,7 +57,7 @@ export function Modal({
       <div
         ref={modalRef}
         className={cn(
-          "relative bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] shadow-2xl w-full max-w-xl mx-4 overflow-hidden animate-in zoom-in-95 duration-300 transform transition-all",
+          "relative bg-surface border border-border rounded-[2.5rem] shadow-2xl w-full max-w-xl mx-4 overflow-hidden animate-in zoom-in-95 duration-300 transform transition-all",
           className
         )}
         role="dialog"
@@ -66,12 +66,12 @@ export function Modal({
         aria-describedby={description ? descriptionId : undefined}
       >
         {!hideHeader && (
-          <div className="flex items-center justify-between p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+          <div className="flex items-center justify-between p-8 border-b border-border bg-background-secondary">
             <div>
               {title && (
                 <h3
                   id={titleId}
-                  className="text-xl font-black text-navy-dark dark:text-white uppercase tracking-tight leading-none"
+                  className="text-xl font-black text-foreground uppercase tracking-tight leading-none"
                 >
                   {title}
                 </h3>
@@ -79,7 +79,7 @@ export function Modal({
               {description && (
                 <p
                   id={descriptionId}
-                  className="text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium"
+                  className="text-sm text-foreground-secondary mt-1 font-medium"
                 >
                   {description}
                 </p>
@@ -87,7 +87,7 @@ export function Modal({
             </div>
             <button
               onClick={onClose}
-              className="size-10 flex items-center justify-center rounded-full text-slate-400 hover:text-navy-dark dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors active:scale-95"
+              className="size-10 flex items-center justify-center rounded-full text-foreground-muted hover:text-foreground hover:bg-surface-hover transition-colors active:scale-95"
             >
               <span className="material-symbols-outlined text-2xl">close</span>
             </button>

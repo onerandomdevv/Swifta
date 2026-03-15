@@ -10,6 +10,7 @@ import { WhatsAppLinkStatus } from "@/components/dashboard/whatsapp-link-status"
 import { useNotifications } from "@/hooks/use-notifications";
 import { cn } from "@/lib/utils";
 import { ModeSwitcher } from "./mode-switcher";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 
 export function MerchantSidebar({
   variant = "desktop",
@@ -98,7 +99,7 @@ export function MerchantSidebar({
   return (
     <aside
       className={cn(
-        "bg-white flex flex-col h-full border-r border-slate-100 transition-all duration-300",
+        "bg-surface flex flex-col h-full border-r border-border transition-all duration-300",
         isDesktop ? "hidden lg:flex w-72 sticky top-0 h-screen" : "flex w-full min-h-screen"
       )}
     >
@@ -117,7 +118,7 @@ export function MerchantSidebar({
       <nav className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar space-y-8">
         {navigation.map((section) => (
           <div key={section.group} className="space-y-2">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-4">
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground-muted px-4">
               {section.group}
             </h4>
             <div className="space-y-1">
@@ -128,11 +129,11 @@ export function MerchantSidebar({
                   return (
                     <div
                       key={item.href}
-                      className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-300 cursor-not-allowed group relative"
+                      className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-foreground-muted cursor-not-allowed group relative opacity-50"
                     >
-                      <span className="material-symbols-outlined text-[20px] opacity-40">{item.icon}</span>
+                      <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
                       <span className="text-[13px] font-bold">{item.label}</span>
-                      <span className="ml-auto text-[8px] font-black uppercase tracking-tighter bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded text-slate-400">Soon</span>
+                      <span className="ml-auto text-[8px] font-black uppercase tracking-tighter bg-background-secondary border border-border px-1.5 py-0.5 rounded">Soon</span>
                     </div>
                   );
                 }
@@ -144,7 +145,7 @@ export function MerchantSidebar({
                       "flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 relative group",
                       isActive
                         ? "bg-primary text-white shadow-lg shadow-primary/20"
-                        : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+                        : "text-foreground-secondary hover:text-foreground hover:bg-surface-hover"
                     )}
                   >
                     <span className={cn(
@@ -172,20 +173,25 @@ export function MerchantSidebar({
 
       {/* Bottom Section */}
       <div className="p-6 pt-2 space-y-4">
+        <div className="flex items-center justify-between px-2">
+          <span className="text-[10px] font-bold text-foreground-muted uppercase tracking-widest">Theme</span>
+          <ThemeToggle />
+        </div>
+
         <WhatsAppLinkStatus 
           isLinked={!!user?.isWhatsAppLinked} 
           variant="sidebar" 
         />
 
         {/* User Profile Card */}
-        <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100 group transition-all hover:bg-slate-100/50">
+        <div className="bg-background-secondary rounded-2xl p-3 border border-border group transition-all hover:bg-surface-hover">
           <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-white overflow-hidden border border-slate-200 shadow-sm shrink-0 flex items-center justify-center">
-              <span className="material-symbols-outlined text-slate-300">person</span>
+            <div className="size-10 rounded-xl bg-surface overflow-hidden border border-border shadow-sm shrink-0 flex items-center justify-center">
+              <span className="material-symbols-outlined text-foreground-muted">person</span>
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-1">
-                <p className="text-[13px] font-black truncate text-slate-900 leading-tight">
+                <p className="text-[13px] font-black truncate text-foreground leading-tight">
                   {getDisplayName(user) || "Merchant"}
                 </p>
               </div>
@@ -199,7 +205,7 @@ export function MerchantSidebar({
         {/* Logout */}
         <button
           onClick={() => logout()}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-rose-500 hover:bg-rose-50 transition-all duration-200 group font-black text-[11px] uppercase tracking-widest border border-transparent hover:border-rose-100"
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-rose-500 hover:bg-rose-50/50 transition-all duration-200 group font-black text-[11px] uppercase tracking-widest border border-transparent hover:border-rose-100"
         >
           <span className="material-symbols-outlined text-lg group-hover:rotate-12 transition-transform">logout</span>
           Logout
