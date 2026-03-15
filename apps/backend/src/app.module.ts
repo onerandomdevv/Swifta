@@ -1,4 +1,9 @@
-import { Module, MiddlewareConsumer, RequestMethod, Logger } from "@nestjs/common";
+import {
+  Module,
+  MiddlewareConsumer,
+  RequestMethod,
+  Logger,
+} from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ServeStaticModule } from "@nestjs/serve-static";
 import { ScheduleModule } from "@nestjs/schedule";

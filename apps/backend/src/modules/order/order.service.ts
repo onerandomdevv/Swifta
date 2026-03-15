@@ -146,7 +146,9 @@ export class OrderService {
     if (!product.isActive) throw new BadRequestException("Product is inactive");
 
     if (product.merchantProfile?.userId === buyerId) {
-      throw new ForbiddenException("Merchants cannot purchase their own products");
+      throw new ForbiddenException(
+        "Merchants cannot purchase their own products",
+      );
     }
 
     // Resolve buyer type to determine price
@@ -167,7 +169,9 @@ export class OrderService {
     // Handle missing stock cache: auto-heal for all active products to prevent checkout blocks
     let currentStock = product.productStockCache?.stock ?? 0;
     if (!product.productStockCache && product.isActive) {
-      this.logger.warn(`Auto-creating missing productStockCache for product ${product.id}`);
+      this.logger.warn(
+        `Auto-creating missing productStockCache for product ${product.id}`,
+      );
       currentStock = product.isSeeded ? 100 : 50;
       await this.prisma.productStockCache.upsert({
         where: { productId: product.id },
@@ -291,9 +295,8 @@ export class OrderService {
       });
 
       if (orderWithDetails && order.merchantId) {
-        this.whatsappService.sendDirectOrderNotification(
-          order.merchantId,
-          {
+        this.whatsappService
+          .sendDirectOrderNotification(order.merchantId, {
             orderId: order.id,
             buyerName:
               orderWithDetails.user.firstName +
@@ -303,8 +306,10 @@ export class OrderService {
             quantity: order.quantity || 1,
             amountKobo: order.totalAmountKobo,
             deliveryAddress: order.deliveryAddress || "Not specified",
-          },
-        ).catch(err => this.logger.error(`Error in sendDirectOrderNotification: ${err}`));
+          })
+          .catch((err) =>
+            this.logger.error(`Error in sendDirectOrderNotification: ${err}`),
+          );
       }
     } catch (notifierErr) {
       this.logger.error(
@@ -386,7 +391,9 @@ export class OrderService {
     }
 
     if (merchantProfile.userId === buyerId) {
-      throw new ForbiddenException("Merchants cannot purchase their own products");
+      throw new ForbiddenException(
+        "Merchants cannot purchase their own products",
+      );
     }
 
     await this.prisma.buyerProfile.findUnique({
@@ -414,9 +421,11 @@ export class OrderService {
       // Handle missing stock cache: auto-heal for all active products to prevent checkout blocks
       let currentStock = product.productStockCache?.stock ?? 0;
       if (!product.productStockCache && product.isActive) {
-        this.logger.warn(`Auto-creating missing productStockCache for product ${product.id}`);
+        this.logger.warn(
+          `Auto-creating missing productStockCache for product ${product.id}`,
+        );
         // Give it a default buffer to allow checkout to proceed or 100 for seeded
-        currentStock = product.isSeeded ? 100 : 50; 
+        currentStock = product.isSeeded ? 100 : 50;
         await this.prisma.productStockCache.upsert({
           where: { productId: product.id },
           update: { stock: currentStock },
@@ -697,7 +706,10 @@ export class OrderService {
       {
         where: { merchantId },
         orderBy: { createdAt: "desc" },
-        include: { user: { select: { email: true, phone: true } }, product: true },
+        include: {
+          user: { select: { email: true, phone: true } },
+          product: true,
+        },
       },
     );
   }

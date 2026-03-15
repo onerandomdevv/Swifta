@@ -9,7 +9,7 @@ interface Props {
 
 export function ExploreSearchBar({ value, onChange }: Props) {
   return (
-    <div className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 border-b border-slate-100 dark:border-slate-800 px-4 sm:px-8 py-4 backdrop-blur-sm">
+    <div className="sticky top-16 lg:top-0 z-40 bg-white/95 dark:bg-slate-900/95 border-b border-slate-100 dark:border-slate-800 px-4 sm:px-8 py-4 backdrop-blur-sm">
       <div className="max-w-[1280px] mx-auto flex items-center justify-between gap-4 sm:gap-8 font-display">
         {/* Search Input Area */}
         <div className="flex-1 relative group">

@@ -12,6 +12,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { toast } from "sonner";
 import { cn, formatKobo } from "@/lib/utils";
 import { EditProfileModal } from "./edit-profile-modal";
+import { ProductCard } from "@/components/shared/product-card";
 
 const DEFAULT_COVER = "/default-cover.jpg";
 
@@ -39,63 +40,6 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
 
   const id = merchantId || initialMerchant?.id;
   const isOwner = !!(user && String(user.merchantId) === String(id));
-
-  const handleCopyProductCode = (product: Product) => {
-    navigator.clipboard.writeText(product.productCode);
-    setCopiedId(product.id);
-    toast.success("Product code copied to clipboard");
-    setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  const getStockBadge = (product: Product) => {
-    const stock = product.stockCache?.stock ?? 0;
-    if (stock <= 0) {
-      return (
-        <div className="absolute top-3 left-3 flex items-center gap-1 px-2 py-1 bg-white text-rose-500 border border-rose-100 rounded-md shadow-sm">
-          <span className="material-symbols-outlined text-xs font-bold">error</span>
-          <span className="text-[9px] font-bold uppercase tracking-wider">Out of Stock</span>
-        </div>
-      );
-    }
-    if (stock <= 10) {
-      return (
-        <div className="absolute top-3 left-3 flex items-center gap-1 px-2 py-1 bg-white text-amber-500 border border-amber-100 rounded-md shadow-sm">
-          <span className="material-symbols-outlined text-xs font-bold">warning</span>
-          <span className="text-[9px] font-bold uppercase tracking-wider">Low Stock</span>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  const formatPrice = (priceKobo: string | number | null | undefined) => {
-    if (!priceKobo || Number(priceKobo) === 0) return <span className="text-emerald-500 font-bold">—</span>;
-    return (Number(priceKobo) / 100).toLocaleString("en-NG", {
-      style: "currency",
-      currency: "NGN",
-      minimumFractionDigits: 2,
-    });
-  };
-
-  const renderPriceSection = (p: Product) => (
-    <div className="flex items-center gap-4 pt-3 border-t border-slate-50 dark:border-slate-800">
-      <div className="flex flex-col">
-        <span className="text-[10px] text-slate-400 font-semibold uppercase">Retail</span>
-        <span className="text-sm font-bold text-slate-900 dark:text-slate-200">
-          {formatKobo(Number(p.retailPriceKobo || p.pricePerUnitKobo || 0))}
-          <span className="text-[10px] text-slate-400 font-normal ml-0.5">/ {p.unit || "unit"}</span>
-        </span>
-      </div>
-      <div className="w-[1px] h-6 bg-slate-100 dark:bg-slate-800"></div>
-      <div className="flex flex-col">
-        <span className="text-[10px] text-slate-400 font-semibold uppercase">Wholesale</span>
-        <span className="text-sm font-bold text-primary">
-          {formatKobo(Number(p.wholesalePriceKobo || 0))}
-          <span className="text-[10px] text-primary/60 font-normal ml-0.5">/ {p.unit || "unit"}</span>
-        </span>
-      </div>
-    </div>
-  );
 
   const handleDeleteProduct = async (product: Product) => {
     if (!confirm(`Are you sure you want to delete ${product.name}?`)) return;
@@ -175,265 +119,33 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
     }
   };
 
-  const renderOwnerProductGrid = (productList: Product[]) => {
+  const renderProductGrid = (productList: Product[]) => {
     if (productList.length === 0) {
       return (
         <div className="py-20 text-center space-y-4">
           <span className="material-symbols-outlined text-5xl text-slate-300">search_off</span>
           <h4 className="text-lg font-bold text-slate-900 dark:text-white">No products found</h4>
-          <p className="text-slate-500 text-sm">Add your first product to start selling.</p>
+          <p className="text-slate-500 text-sm">
+            {isOwner ? "Add your first product to start selling." : "This store hasn't listed any products yet."}
+          </p>
         </div>
       );
     }
 
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
         {productList.map((p) => (
-          <div
-            key={p.id}
-            className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col group hover:border-primary/20 transition-all duration-300"
-          >
-            {/* Top Section: Image */}
-            <div className="relative aspect-square w-full p-3">
-              <div className="w-full h-full rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-800 relative border border-slate-50">
-                {p.imageUrl ? (
-                  <img
-                    src={p.imageUrl}
-                    alt={p.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <span className="material-symbols-outlined text-slate-200 dark:text-slate-700 text-5xl">inventory_2</span>
-                  </div>
-                )}
-                {/* Stock Badge Overlay */}
-                {getStockBadge(p)}
-                
-                {/* Wholesale Discount Badge */}
-                {p.wholesaleDiscountPercent && p.wholesaleDiscountPercent > 0 && (
-                  <div className="absolute top-3 right-3 px-2 py-1 bg-primary text-white text-[9px] font-bold rounded-md shadow-sm">
-                    -{p.wholesaleDiscountPercent}%
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Content Section */}
-            <div className="px-5 pb-5 pt-1 flex flex-col grow">
-              <div className="mb-4">
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest truncate">
-                    SKU: {p.productCode || p.id.slice(0, 8).toUpperCase()}
-                  </p>
-                </div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white leading-tight truncate">
-                  {p.name}
-                </h3>
-              </div>
-              
-              {/* Pricing Row */}
-              {renderPriceSection(p)}
-
-              {/* Action */}
-              <div className="mt-6">
-                <button 
-                  onClick={() => router.push(`/merchant/products/${p.id}`)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-900 dark:bg-slate-200 text-white dark:text-slate-900 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:opacity-90 transition-all"
-                >
-                  View Details
-                </button>
-              </div>
-            </div>
-          </div>
+          <ProductCard 
+            key={p.id} 
+            product={p} 
+            isOwner={isOwner} 
+            showMerchant={false}
+          />
         ))}
       </div>
     );
   };
 
-  const renderProductTable = (productList: Product[]) => {
-    if (productList.length === 0) {
-      return (
-        <div className="py-20 text-center space-y-4">
-          <span className="material-symbols-outlined text-5xl text-slate-300">search_off</span>
-          <h4 className="text-lg font-bold text-slate-900 dark:text-white">No products found</h4>
-          <p className="text-slate-500 text-sm">Add your first product to start selling.</p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse font-sans">
-            <thead>
-              <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                <th className="px-6 py-4 text-[9px] font-bold uppercase tracking-widest text-slate-400">Product</th>
-                <th className="px-6 py-4 text-[9px] font-bold uppercase tracking-widest text-slate-400">Category</th>
-                <th className="px-6 py-4 text-[9px] font-bold uppercase tracking-widest text-slate-400">Retail</th>
-                <th className="px-6 py-4 text-[9px] font-bold uppercase tracking-widest text-slate-400">Wholesale</th>
-                <th className="px-6 py-4 text-[9px] font-bold uppercase tracking-widest text-slate-400">Stock</th>
-                <th className="px-6 py-4 text-[9px] font-bold uppercase tracking-widest text-slate-400 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-              {productList.map((p) => (
-                <tr key={p.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-4">
-                      <div className="size-12 rounded-xl bg-slate-50 dark:bg-slate-800 overflow-hidden border border-slate-100 dark:border-slate-700 shrink-0">
-                        {p.imageUrl ? (
-                          <img src={p.imageUrl} className="w-full h-full object-cover" alt={p.name} />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <span className="material-symbols-outlined text-slate-300 dark:text-slate-600">inventory_2</span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-bold text-slate-900 dark:text-white truncate max-w-[200px]">{p.name}</p>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                          SKU: {p.productCode || p.id.slice(0, 8).toUpperCase()}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 text-[9px] font-bold uppercase tracking-widest rounded-md">
-                      {p.categoryTag || "General"}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-bold text-slate-900 dark:text-white">
-                        {formatKobo(Number(p.retailPriceKobo || p.pricePerUnitKobo || 0))}
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-medium lowercase">per {p.unit || "unit"}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    {p.wholesalePriceKobo ? (
-                      <div className="flex flex-col">
-                        <span className="text-sm font-bold text-primary">
-                          {formatKobo(Number(p.wholesalePriceKobo))}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-primary/60 font-medium lowercase">per {p.unit || "unit"}</span>
-                          {p.wholesaleDiscountPercent && p.wholesaleDiscountPercent > 0 && (
-                            <span className="text-[9px] font-black text-primary uppercase ml-1">-{p.wholesaleDiscountPercent}%</span>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-slate-300">—</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <div className={cn(
-                        "size-1.5 rounded-full",
-                        (p.stockCache?.stock ?? 0) <= 0 ? "bg-red-500" : (p.stockCache?.stock ?? 0) <= 10 ? "bg-amber-500" : "bg-emerald-500"
-                      )} />
-                      <span className={cn(
-                        "text-sm font-bold",
-                        (p.stockCache?.stock ?? 0) <= 0 ? "text-red-500" : (p.stockCache?.stock ?? 0) <= 10 ? "text-amber-500" : "text-slate-700 dark:text-slate-200"
-                      )}>
-                        {p.stockCache?.stock ?? 0}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => router.push(`/merchant/products/${p.id}`)}
-                      className="inline-flex items-center justify-center size-9 bg-primary/10 text-primary rounded-xl hover:bg-primary hover:text-white transition-all outline-none"
-                    >
-                      <span className="material-symbols-outlined text-xl">visibility</span>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  };
-
-  const renderBuyerProductGrid = (productList: Product[]) => {
-    if (productList.length === 0) {
-      return (
-        <div className="py-20 text-center space-y-4">
-          <span className="material-symbols-outlined text-5xl text-slate-300">search_off</span>
-          <h4 className="text-lg font-bold text-slate-900 dark:text-white">No products found</h4>
-          <p className="text-slate-500 text-sm">This store hasn&apos;t listed any products yet.</p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {productList.map((p) => (
-          <div
-            key={p.id}
-            className="group cursor-pointer"
-            onClick={() => router.push(`/buyer/products/${p.id}`)}
-          >
-            {/* Square Image Container */}
-            <div className="relative aspect-square rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 shadow-sm group-hover:border-primary/20 transition-all duration-500">
-              {p.imageUrl ? (
-                <img
-                  src={p.imageUrl}
-                  alt={p.name}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <span className="material-symbols-outlined text-slate-200 dark:text-slate-700 text-5xl">inventory_2</span>
-                </div>
-              )}
-              
-              {/* Category Tag overlay */}
-              <span className="absolute top-4 left-4 px-3 py-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-[9px] font-bold uppercase tracking-widest rounded-lg shadow-sm border border-slate-100">
-                {p.categoryTag || "General"}
-              </span>
-
-              {/* Wholesale Discount Badge */}
-              {p.wholesaleDiscountPercent && p.wholesaleDiscountPercent > 0 && (
-                <div className="absolute top-4 right-4 px-2 py-1 bg-primary text-white text-[9px] font-bold rounded-lg shadow-sm">
-                  SAVE {p.wholesaleDiscountPercent}%
-                </div>
-              )}
-            </div>
-
-            {/* Product Info */}
-            <div className="mt-5 space-y-1">
-              <h4 className="font-bold text-lg text-slate-900 dark:text-white group-hover:text-primary transition-colors line-clamp-1">
-                {p.name}
-              </h4>
-              
-              <div className="flex items-end justify-between gap-4 pt-2">
-                <div className="flex flex-col">
-                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-0.5">Retail</span>
-                  <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
-                    {formatKobo(Number(p.retailPriceKobo || p.pricePerUnitKobo || 0))}
-                  </span>
-                </div>
-                
-                {p.wholesalePriceKobo && (
-                  <div className="flex flex-col items-end text-right">
-                    <span className="text-[9px] text-primary font-bold uppercase tracking-widest mb-0.5">Wholesale</span>
-                    <span className="text-base font-bold text-primary/80 tracking-tight">
-                      {formatKobo(Number(p.wholesalePriceKobo))}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  };
 
   if (loading) {
     return (
@@ -500,41 +212,36 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
       <div className="mt-16 px-4 md:px-16 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-3 flex-wrap">
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white tracking-tight">
+            <h2 className="text-2xl md:text-4xl font-bold text-slate-900 dark:text-white tracking-tight">
               {profile.businessName}
             </h2>
             {isVerified && (
-              <span className="material-symbols-outlined text-emerald-500 text-2xl font-variation-fill">verified</span>
+              <span className="material-symbols-outlined text-emerald-500 text-xl md:text-2xl font-variation-fill">verified</span>
             )}
           </div>
 
-          <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-x-4 gap-y-2 flex-wrap">
             <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-bold uppercase tracking-widest rounded-md">
               {profile.slug}
             </span>
-            <div className="flex items-center gap-1.5 text-slate-400 text-xs font-semibold uppercase tracking-wider">
+            <div className="flex items-center gap-1.5 text-slate-400 text-[10px] md:text-xs font-semibold uppercase tracking-wider">
               <span className="material-symbols-outlined text-sm">location_on</span>
-              <span>{profile.businessAddress || "Location not set"}</span>
+              <span className="truncate max-w-[150px] md:max-w-none">{profile.businessAddress || "Location not set"}</span>
             </div>
-            <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold uppercase tracking-widest">
+            <div className="flex items-center gap-1.5 text-slate-400 text-[10px] md:text-xs font-bold uppercase tracking-widest">
               <span className="material-symbols-outlined text-sm">group</span>
               <span className="text-slate-900 dark:text-slate-200">{profile.followersCount || 0}</span>
               <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[10px] text-amber-400">star</span>Stars</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold uppercase tracking-widest">
-              <span className="material-symbols-outlined text-sm text-emerald-500 font-variation-fill">handshake</span>
-              <span className="text-slate-900 dark:text-slate-200">{profile.dealsClosed || 0}</span>
-              <span>Deals</span>
             </div>
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
           {isOwner ? (
             <button
               onClick={() => setIsEditModalOpen(true)}
-              className="px-5 py-2.5 bg-slate-900 text-white rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:opacity-90 transition-all"
+              className="px-4 md:px-5 py-2 md:py-2.5 bg-slate-900 text-white rounded-lg font-bold text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2 hover:opacity-90 transition-all flex-1 sm:flex-none justify-center"
             >
               <span className="material-symbols-outlined text-sm">edit</span>
               Edit Profile
@@ -544,7 +251,7 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
               onClick={handleStarToggle}
               disabled={starLoading}
               className={cn(
-                "px-5 py-2.5 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-all disabled:opacity-50",
+                "px-4 md:px-5 py-2 md:py-2.5 rounded-lg font-bold text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2 transition-all disabled:opacity-50 flex-1 sm:flex-none justify-center",
                 isStarred
                   ? "bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-900/30 dark:border-amber-800 dark:text-amber-400"
                   : "bg-white text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 hover:border-amber-400 hover:text-amber-600 shadow-sm"
@@ -562,7 +269,7 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
               href={`https://wa.me/${profile.contact.phone.replace(/\D/g, "")}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-5 py-2.5 border border-emerald-100 text-emerald-600 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-emerald-50 transition-all"
+              className="px-4 md:px-5 py-2 md:py-2.5 border border-emerald-100 text-emerald-600 rounded-lg font-bold text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-emerald-50 transition-all flex-1 sm:flex-none justify-center"
             >
               <span className="material-symbols-outlined text-sm">chat</span>
               WhatsApp
@@ -678,11 +385,7 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
                 </button>
               )}
             </div>
-            {isOwner ? (
-               viewMode === 'grid' ? renderOwnerProductGrid(products) : renderProductTable(products)
-            ) : (
-              renderBuyerProductGrid(products)
-            )}
+            {renderProductGrid(products)}
           </div>
         )}
 
@@ -691,11 +394,7 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold italic">Wholesale Discounts</h3>
             </div>
-            {isOwner ? (
-              renderOwnerProductGrid(products.filter(p => (p as any).wholesaleDiscountPercent > 0))
-            ) : (
-              renderBuyerProductGrid(products.filter(p => (p as any).wholesaleDiscountPercent > 0))
-            )}
+            {renderProductGrid(products.filter(p => (p as any).wholesaleDiscountPercent > 0))}
           </div>
         )}
 

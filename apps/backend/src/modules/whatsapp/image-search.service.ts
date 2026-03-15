@@ -240,7 +240,9 @@ export class ImageSearchService {
     mimeType: string,
   ): Promise<string[] | null> {
     try {
-      const modelName = this.configService.get<string>("GEMINI_VISION_MODEL") || "gemini-1.5-flash";
+      const modelName =
+        this.configService.get<string>("GEMINI_VISION_MODEL") ||
+        "gemini-1.5-flash";
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
 

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getWishlist, toggleWishlist } from "@/lib/api/wishlist.api";
 import { type Product } from "@hardware-os/shared";
-import { ProductFeedCard } from "@/components/buyer/catalogue/product-feed-card";
+import { ProductCard } from "@/components/shared/product-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -145,12 +145,13 @@ export default function BuyerSavedPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in slide-in-from-bottom-4 duration-500">
             {products.map((product) => (
-              <ProductFeedCard
+              <ProductCard
                 key={product.id}
                 product={product}
                 onQuickBuy={() => router.push(`/buyer/checkout/${product.id}`)}
                 isSaved={true}
                 onToggleSave={handleToggleSave}
+                isOwner={false}
               />
             ))}
           </div>

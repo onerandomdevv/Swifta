@@ -120,9 +120,12 @@ export class MerchantController {
     @Query("startDate") startDate?: string,
     @Query("endDate") endDate?: string,
   ) {
-    return this.analyticsService.getMerchantStats(merchantId, startDate, endDate);
+    return this.analyticsService.getMerchantStats(
+      merchantId,
+      startDate,
+      endDate,
+    );
   }
-
 
   @Post(":id/follow")
   @UseGuards(JwtAuthGuard)

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { productApi } from "@/lib/api/product.api";
-import { ProductFeedCard } from "@/components/buyer/catalogue/product-feed-card";
+import { ProductCard } from "@/components/shared/product-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import EmptyState from "@/components/ui/empty-state";
 import { useAuth } from "@/providers/auth-provider";
@@ -50,9 +50,9 @@ export default function SocialFeedPage() {
           </p>
         </header>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 -mx-4 sm:mx-0">
           {[...Array(8)].map((_, i) => (
-            <Skeleton key={i} className="h-[400px] w-full rounded-xl" />
+            <Skeleton key={i} className="h-[400px] w-full rounded-none sm:rounded-xl" />
           ))}
         </div>
       </div>
@@ -90,11 +90,12 @@ export default function SocialFeedPage() {
         />
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-y-8 sm:gap-6 -mx-4 sm:mx-0">
             {products.map((product) => (
-              <ProductFeedCard 
+              <ProductCard 
                 key={product.id} 
                 product={product} 
+                isOwner={false}
                 onQuickBuy={(p) => {
                   window.location.href = `/buyer/products/${p.id}`;
                 }}
