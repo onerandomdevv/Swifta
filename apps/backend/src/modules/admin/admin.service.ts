@@ -170,16 +170,7 @@ export class AdminService {
         user: {
           select: { firstName: true, lastName: true, email: true },
         },
-        quote: {
-          include: {
-            rfq: {
-              select: {
-                quantity: true,
-                product: { select: { name: true, unit: true } },
-              },
-            },
-          },
-        },
+        product: { select: { name: true, unit: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -250,9 +241,7 @@ export class AdminService {
   }
 
   async getGlobalAnalytics() {
-    const [totalRfqs, totalQuotes, totalOrders] = await Promise.all([
-      this.prisma.rfq.count(),
-      this.prisma.quote.count(),
+    const [totalOrders] = await Promise.all([
       this.prisma.order.count(),
     ]);
 
@@ -271,8 +260,8 @@ export class AdminService {
       _sum: { totalAmountKobo: true },
     });
 
-    // Market Intelligence: Top Requested Categories via RFQs
-    const topCategoriesRaw = await this.prisma.rfq.findMany({
+    // Market Intelligence: Top Requested Categories via Orders
+    const topCategoriesRaw = await this.prisma.order.findMany({
       select: {
         product: {
           select: { categoryTag: true },
@@ -282,8 +271,8 @@ export class AdminService {
 
     // Reduce into category counts
     const categoryCounts: Record<string, number> = {};
-    topCategoriesRaw.forEach((rfq) => {
-      const tag = rfq.product?.categoryTag || "Unknown";
+    topCategoriesRaw.forEach((order) => {
+      const tag = order.product?.categoryTag || "Unknown";
       categoryCounts[tag] = (categoryCounts[tag] || 0) + 1;
     });
 
@@ -294,8 +283,6 @@ export class AdminService {
 
     return {
       funnel: {
-        totalRfqs,
-        totalQuotes,
         totalOrders,
       },
       financials: {

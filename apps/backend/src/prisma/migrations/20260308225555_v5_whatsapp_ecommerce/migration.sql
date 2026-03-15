@@ -21,6 +21,10 @@ CREATE TABLE "categories" (
     CONSTRAINT "categories_pkey" PRIMARY KEY ("id")
 );
 
+-- Indices
+CREATE UNIQUE INDEX "categories_name_key" ON "categories"("name");
+CREATE UNIQUE INDEX "categories_slug_key" ON "categories"("slug");
+
 -- 2. Backfill Categories from Existing Products
 -- Insert unique category tags as categories if they don't exist
 INSERT INTO "categories" ("id", "name", "slug")
@@ -107,8 +111,6 @@ CREATE TABLE "buyer_profiles" (
 );
 
 -- Indices
-CREATE UNIQUE INDEX "categories_name_key" ON "categories"("name");
-CREATE UNIQUE INDEX "categories_slug_key" ON "categories"("slug");
 CREATE UNIQUE INDEX "reviews_order_id_key" ON "reviews"("order_id");
 CREATE UNIQUE INDEX "onboarding_sessions_phone_key" ON "onboarding_sessions"("phone");
 CREATE UNIQUE INDEX "buyer_profiles_user_id_key" ON "buyer_profiles"("user_id");

@@ -25,13 +25,6 @@ export const STOCK_UPDATE_FOLLOWUP = `Understood. Which product would you like t
 
 Example: "Add 50 bags of cement" or "Remove 10 iron rods"`;
 
-/** Follow-up when RFQ response is incomplete */
-export const RFQ_RESPOND_FOLLOWUP = `To provide a quote, please include:
-• The RFQ reference (e.g. "a3f2")
-• Your price per unit in Naira
-
-Example: "Quote a3f2 at 8500 per bag"`;
-
 /** First message for an unlinked phone */
 export const WELCOME_MESSAGE = `Welcome to SwiftTrade, Nigeria's digital marketplace for all your retail and wholesale needs. How would you like to use our platform?`;
 
@@ -74,7 +67,6 @@ export enum SessionState {
 // ---------------------------------------------------------------------------
 export const NUMBER_INTENT_MAP: Record<string, string> = {
   "1": "get_sales_summary",
-  "2": "get_pending_rfqs",
   "3": "get_inventory",
   "4": "get_recent_orders",
   "5": "update_stock",
@@ -106,12 +98,6 @@ export const GEMINI_FUNCTION_DECLARATIONS = [
         },
       },
     },
-  },
-  {
-    name: "get_pending_rfqs",
-    description:
-      "Get open/pending RFQs for the merchant. Triggered by: 'any new order', 'pending orders', 'anybody wan buy', 'check rfq'",
-    parameters: { type: "object" as const, properties: {} },
   },
   {
     name: "get_inventory",
@@ -150,29 +136,6 @@ export const GEMINI_FUNCTION_DECLARATIONS = [
     description:
       "List all merchant products. Triggered by: 'my products', 'wetin I dey sell', 'show listings'",
     parameters: { type: "object" as const, properties: {} },
-  },
-  {
-    name: "respond_to_rfq",
-    description:
-      "Submit a quote for an RFQ. Triggered by: 'quote a3f2 at 8500', 'give am price 8500'",
-    parameters: {
-      type: "object" as const,
-      properties: {
-        rfqReference: {
-          type: "string",
-          description: "RFQ ID or short reference",
-        },
-        unitPriceNaira: {
-          type: "number",
-          description: "Price per unit in Naira",
-        },
-        deliveryFeeNaira: {
-          type: "number",
-          description: "Delivery fee in Naira",
-        },
-      },
-      required: ["unitPriceNaira"],
-    },
   },
   {
     name: "show_menu",

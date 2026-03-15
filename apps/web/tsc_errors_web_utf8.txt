@@ -1,0 +1,1 @@
+﻿src/components/buyer/orders/order-info-sidebar.tsx(20,15): error TS2339: Property 'quoteId' does not exist on type 'Order'.

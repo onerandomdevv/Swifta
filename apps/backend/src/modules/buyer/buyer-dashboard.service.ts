@@ -6,13 +6,7 @@ export class BuyerDashboardService {
   constructor(private prisma: PrismaService) {}
 
   async getDashboardStats(userId: string) {
-    const [rfqs, orders] = await Promise.all([
-      this.prisma.rfq.findMany({
-        where: { buyerId: userId },
-        select: {
-          status: true,
-        },
-      }),
+    const [orders] = await Promise.all([
       this.prisma.order.findMany({
         where: { buyerId: userId },
         select: {
@@ -22,8 +16,8 @@ export class BuyerDashboardService {
       }),
     ]);
 
-    // Pending Quotes (Action Required): An RFQ where the merchant has provided a Quote.
-    const pendingQuotesCount = rfqs.filter((r) => r.status === "QUOTED").length;
+    // Pending Quotes (Action Required): Deprecated
+    const pendingQuotesCount = 0;
 
     // Active Orders: Orders that are not COMPLETED or CANCELLED, but have been initialized/paid.
     const activeOrdersCount = orders.filter(

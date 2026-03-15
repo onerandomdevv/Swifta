@@ -18,14 +18,7 @@ import { UserRole, JwtPayload } from "@hardware-os/shared";
 export class ReorderController {
   constructor(private readonly reorderService: ReorderService) {}
 
-  @Post("rfqs/from-reorder/:reminderId")
-  @Roles(UserRole.BUYER)
-  createRFQFromReminder(
-    @CurrentUser() user: JwtPayload,
-    @Param("reminderId", ParseUUIDPipe) reminderId: string,
-  ) {
-    return this.reorderService.createRFQFromReminder(reminderId, user.sub);
-  }
+
 
   @Patch("reorder-reminders/:id/dismiss")
   dismiss(

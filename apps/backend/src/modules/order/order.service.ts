@@ -54,77 +54,6 @@ export class OrderService {
   ) {}
 
   // ──────────────────────────────────────────────
-  //  CREATE ORDER FROM ACCEPTED QUOTE (transaction)
-  // ──────────────────────────────────────────────
-
-  async createFromQuote(quoteId: string, buyerId: string) {
-    const quote = await this.prisma.quote.findUnique({
-      where: { id: quoteId },
-      include: { rfq: true },
-    });
-    if (!quote) throw new NotFoundException("Quote not found");
-    if (!quote.rfq) throw new NotFoundException("RFQ not found for this quote");
-
-    const idempotencyKey = `order-create-${quoteId}`;
-
-    // Check idempotency — if order already exists for this quote, return it
-    const existing = await this.prisma.order.findUnique({
-      where: { quoteId },
-    });
-    if (existing) return existing;
-
-    // Atomic: create order + reserve inventory + log initial event
-    const order = await this.prisma.$transaction(async (tx) => {
-      const newOrder = await tx.order.create({
-        data: {
-          quoteId,
-          buyerId,
-          merchantId: quote.merchantId,
-          totalAmountKobo: quote.totalPriceKobo,
-          deliveryFeeKobo: quote.deliveryFeeKobo,
-          currency: quote.currency,
-          status: OrderStatus.PENDING_PAYMENT,
-          idempotencyKey,
-        },
-      });
-
-      // Log initial OrderEvent
-      await tx.orderEvent.create({
-        data: {
-          orderId: newOrder.id,
-          fromStatus: null,
-          toStatus: OrderStatus.PENDING_PAYMENT,
-          triggeredBy: buyerId,
-          metadata: { action: "order_created_from_quote", quoteId },
-        },
-      });
-
-      // Reserve inventory
-      await tx.inventoryEvent.create({
-        data: {
-          productId: quote.rfq.productId,
-          merchantId: quote.merchantId,
-          eventType: "ORDER_RESERVED",
-          quantity: -quote.rfq.quantity,
-          referenceId: newOrder.id,
-          notes: "Order reservation",
-        },
-      });
-
-      await tx.productStockCache.upsert({
-        where: { productId: quote.rfq.productId },
-        create: { productId: quote.rfq.productId, stock: -quote.rfq.quantity },
-        update: { stock: { decrement: quote.rfq.quantity } },
-      });
-
-      return newOrder;
-    });
-
-    this.logger.log(`Order ${order.id} created from quote ${quoteId}`);
-    return order;
-  }
-
-  // ──────────────────────────────────────────────
   //  CREATE DIRECT ORDER
   // ──────────────────────────────────────────────
 
@@ -658,7 +587,6 @@ export class OrderService {
     const order = await this.prisma.order.findUnique({
       where: { id },
       include: {
-        quote: { include: { rfq: { include: { product: true } } } },
         orderEvents: { orderBy: { createdAt: "asc" } },
         review: true,
       },
@@ -1059,21 +987,7 @@ export class OrderService {
     );
 
     // Release reserved stock for different order types
-    if (order.quoteId) {
-      // Legacy Quote Flow
-      const quote = await this.prisma.quote.findUnique({
-        where: { id: order.quoteId },
-        include: { rfq: true },
-      });
-      if (quote?.rfq) {
-        await this.inventoryService.releaseStock(
-          quote.rfq.productId,
-          order.merchantId as string,
-          quote.rfq.quantity,
-          orderId,
-        );
-      }
-    } else if (order.productId && order.quantity) {
+    if (order.productId && order.quantity) {
       // Direct Purchase
       await this.inventoryService.releaseStock(
         order.productId,
@@ -1183,13 +1097,6 @@ export class OrderService {
           },
         },
         user: { select: { email: true, phone: true } },
-        quote: {
-          include: {
-            rfq: {
-              include: { product: true },
-            },
-          },
-        },
         payments: {
           where: { status: "SUCCESS" },
           orderBy: { createdAt: "desc" },

@@ -21,7 +21,6 @@ export class PayoutService {
       include: {
         merchantProfile: true,
         product: true,
-        quote: { include: { rfq: { include: { product: true } } } },
       },
     });
     if (!order) {
@@ -33,11 +32,7 @@ export class PayoutService {
 
     // Determine platform fee vs payout amount
     let subtotalKobo = 0;
-    if (
-      order.quoteId === null &&
-      order.productId !== null &&
-      order.quantity !== null
-    ) {
+    if (order.productId !== null && order.quantity !== null) {
       subtotalKobo = Number(order.unitPriceKobo) * order.quantity;
     } else {
       subtotalKobo =
@@ -98,9 +93,8 @@ export class PayoutService {
         data: { paystackTransferCode: transferResponse.transfer_code },
       });
 
-      const productName =
-        order.product?.name || order.quote?.rfq?.product?.name || "Items";
-      const quantity = order.quantity || order.quote?.rfq?.quantity || 1;
+      const productName = order.product?.name || "Items";
+      const quantity = order.quantity || 1;
 
       await this.notifications.triggerPayoutInitiated(merchant.userId, {
         orderId: order.id,
