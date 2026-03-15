@@ -74,7 +74,7 @@ export function VerificationBanner() {
       </div>
       <Link
         href={bannerConfig.actionHref}
-        className="px-6 py-2 bg-white text-navy-dark rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-colors shadow-lg shadow-black/10 shrink-0"
+        className="px-6 py-2 bg-background text-foreground rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-background-secondary transition-colors shadow-lg shadow-black/10 shrink-0"
       >
         {bannerConfig.actionLabel}
       </Link>

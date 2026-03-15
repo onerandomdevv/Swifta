@@ -10,17 +10,17 @@ interface Props {
 export function MerchantOrdersTable({ orders }: Props) {
   if (orders.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-32 text-center space-y-8 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[3rem] shadow-sm">
-        <div className="size-24 rounded-[2rem] bg-slate-50 dark:bg-slate-800 flex items-center justify-center border border-slate-100 dark:border-slate-700">
-          <span className="material-symbols-outlined text-4xl text-slate-200">
+      <div className="flex flex-col items-center justify-center py-32 text-center space-y-8 bg-surface border border-border rounded-[3rem] shadow-sm">
+        <div className="size-24 rounded-[2rem] bg-background-secondary flex items-center justify-center border border-border-light">
+          <span className="material-symbols-outlined text-4xl text-border">
             inventory_2
           </span>
         </div>
         <div className="space-y-2">
-          <h3 className="text-xl font-black text-navy-dark dark:text-white uppercase tracking-tight">
+          <h3 className="text-xl font-black text-foreground uppercase tracking-tight">
             No Orders Yet
           </h3>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+          <p className="text-[10px] font-black text-foreground-muted uppercase tracking-widest">
             Your orders will appear here.
           </p>
         </div>
@@ -29,59 +29,59 @@ export function MerchantOrdersTable({ orders }: Props) {
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900 border-2 border-slate-900 dark:border-slate-100 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] w-full overflow-hidden">
+    <div className="bg-surface border-2 border-foreground shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] w-full overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-slate-900 dark:bg-slate-100">
-              <th className="px-6 py-4 text-[10px] font-bold text-white dark:text-slate-900 uppercase tracking-widest border-r border-slate-800 dark:border-slate-200">
+            <tr className="bg-foreground">
+              <th className="px-6 py-4 text-[10px] font-bold text-background uppercase tracking-widest border-r border-background/20">
                 Order ID
               </th>
-              <th className="px-6 py-4 text-[10px] font-bold text-white dark:text-slate-900 uppercase tracking-widest border-r border-slate-800 dark:border-slate-200">
+              <th className="px-6 py-4 text-[10px] font-bold text-background uppercase tracking-widest border-r border-background/20">
                 Order Date
               </th>
-              <th className="px-6 py-4 text-[10px] font-bold text-white dark:text-slate-900 uppercase tracking-widest border-r border-slate-800 dark:border-slate-200">
+              <th className="px-6 py-4 text-[10px] font-bold text-background uppercase tracking-widest border-r border-background/20">
                 Amount
               </th>
-              <th className="px-6 py-4 text-[10px] font-bold text-white dark:text-slate-900 uppercase tracking-widest border-r border-slate-800 dark:border-slate-200">
+              <th className="px-6 py-4 text-[10px] font-bold text-background uppercase tracking-widest border-r border-background/20">
                 Status
               </th>
-              <th className="px-6 py-4 text-[10px] font-bold text-white dark:text-slate-900 uppercase tracking-widest text-right">
+              <th className="px-6 py-4 text-[10px] font-bold text-background uppercase tracking-widest text-right">
                 Action
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y-2 divide-slate-100 dark:divide-slate-800">
+          <tbody className="divide-y-2 divide-border">
             {orders?.map((order) => (
               <tr
                 key={order.id}
-                className="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                className="group hover:bg-background-secondary/50 transition-colors"
               >
-                <td className="px-6 py-5 border-r border-slate-100 dark:border-slate-800">
-                  <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                <td className="px-6 py-5 border-r border-border">
+                  <p className="text-sm font-black text-foreground uppercase tracking-tight">
                     ORD-{order.id.slice(0, 6)}
                   </p>
                 </td>
-                <td className="px-6 py-5 border-r border-slate-100 dark:border-slate-800">
-                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                <td className="px-6 py-5 border-r border-border">
+                  <p className="text-xs font-bold text-foreground-muted uppercase tracking-widest">
                     {new Date(order.createdAt).toLocaleDateString()}
                   </p>
                 </td>
-                <td className="px-6 py-5 border-r border-slate-100 dark:border-slate-800">
-                  <div className="text-sm font-black text-slate-900 dark:text-white tracking-tight tabular-nums">
+                <td className="px-6 py-5 border-r border-border">
+                  <div className="text-sm font-black text-foreground tracking-tight tabular-nums">
                     <Money amount={BigInt(order.totalAmountKobo)} />
                   </div>
                 </td>
-                <td className="px-6 py-5 border-r border-slate-100 dark:border-slate-800">
+                <td className="px-6 py-5 border-r border-border">
                   <span
                     className={`inline-block px-2 py-1 text-[9px] font-black uppercase tracking-widest border ${
                       order.status === "PENDING_PAYMENT"
-                        ? "bg-amber-50 text-amber-700 border-amber-200"
+                        ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
                         : order.status === "PAID"
-                          ? "bg-blue-50 text-blue-700 border-blue-200"
+                          ? "bg-blue-500/10 text-blue-600 border-blue-500/20"
                           : order.status === "DISPATCHED"
-                            ? "bg-purple-50 text-purple-700 border-purple-200"
-                            : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            ? "bg-purple-500/10 text-purple-600 border-purple-500/20"
+                            : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
                     }`}
                   >
                     {order.status.replace("_", " ")}
@@ -90,7 +90,7 @@ export function MerchantOrdersTable({ orders }: Props) {
                 <td className="px-6 py-5 text-right">
                   <Link
                     href={`/merchant/orders/${order.id}`}
-                    className="px-4 py-2 bg-slate-100 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-[10px] font-black uppercase tracking-widest hover:border-slate-900 dark:hover:border-slate-100 transition-colors inline-flex items-center gap-2"
+                    className="px-4 py-2 bg-background-secondary border-2 border-border text-foreground text-[10px] font-black uppercase tracking-widest hover:border-foreground transition-colors inline-flex items-center gap-2"
                   >
                     <span>View</span>
                     <span className="material-symbols-outlined text-sm leading-none">

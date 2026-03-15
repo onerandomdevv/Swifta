@@ -23,12 +23,12 @@ export function InventoryRow({ product, onRepost }: InventoryRowProps) {
   if (!product.isActive) {
     stockColorClass = "bg-primary";
     statusBadgeClass =
-      "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400";
+      "bg-background-secondary text-foreground-muted";
     statusText = "PAUSED";
   } else if (stockLevel === 0) {
     stockColorClass = "bg-red-500";
     statusBadgeClass =
-      "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400";
+      "bg-red-500/10 text-red-700 dark:text-red-400";
     statusText = "OUT OF STOCK";
   } else if (stockLevel <= lowStockThreshold) {
     stockColorClass = "bg-amber-500";
@@ -36,14 +36,14 @@ export function InventoryRow({ product, onRepost }: InventoryRowProps) {
   }
 
   return (
-    <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+    <tr className="hover:bg-background-secondary/30 transition-colors">
       <td className="px-6 py-4">
         <div className="flex flex-col">
-          <span className="text-sm font-bold text-slate-900 dark:text-slate-100">
+          <span className="text-sm font-bold text-foreground">
             {product.name}
           </span>
           <span
-            className="text-[11px] text-slate-400 truncate max-w-[200px]"
+            className="text-[11px] text-foreground-muted truncate max-w-[200px]"
             title={product.id}
           >
             SKU-{product.id.split("-")[0].toUpperCase()}
@@ -53,13 +53,13 @@ export function InventoryRow({ product, onRepost }: InventoryRowProps) {
 
       <td className="px-6 py-4">
         <div className="flex items-center gap-3">
-          <div className="flex-1 bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden min-w-[100px]">
+          <div className="flex-1 bg-background-secondary h-1.5 rounded-full overflow-hidden min-w-[100px]">
             <div
               className={`h-full ${stockColorClass}`}
               style={{ width: `${stockPercentage}%` }}
             ></div>
           </div>
-          <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+          <span className="text-xs font-semibold text-foreground-secondary">
             {stockLevel}
           </span>
         </div>
@@ -67,17 +67,17 @@ export function InventoryRow({ product, onRepost }: InventoryRowProps) {
 
       <td className="px-6 py-4">
         <div className="flex items-center gap-1.5">
-          <span className="material-symbols-outlined text-[16px] text-slate-400">
+          <span className="material-symbols-outlined text-[16px] text-foreground-muted">
             location_on
           </span>
-          <span className="text-sm text-slate-700 dark:text-slate-300">
+          <span className="text-sm text-foreground-secondary">
             {product.warehouseLocation ||
               `Zone ${product.categoryTag?.slice(0, 2).toUpperCase() || "A"}`}
           </span>
         </div>
       </td>
 
-      <td className="px-6 py-4 text-sm text-slate-700 dark:text-slate-300 font-medium capitalize">
+      <td className="px-6 py-4 text-sm text-foreground-secondary font-medium capitalize">
         {product.unit.toLowerCase()}
       </td>
 

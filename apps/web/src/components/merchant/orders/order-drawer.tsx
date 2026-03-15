@@ -71,20 +71,20 @@ export function OrderDrawer({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-900/40 z-40 transition-opacity"
+        className="fixed inset-0 bg-background/40 z-40 transition-opacity"
         onClick={onClose}
       />
 
       {/* Drawer Panel */}
-      <div className="fixed top-0 right-0 h-full w-[35%] min-w-[450px] bg-white dark:bg-slate-900 z-50 flex flex-col border-l border-slate-400 dark:border-slate-700 shadow-[-10px_0_30px_rgba(0,0,0,0.1)] animate-in slide-in-from-right duration-300">
+      <div className="fixed top-0 right-0 h-full w-[35%] min-w-[450px] bg-surface z-50 flex flex-col border-l border-border shadow-[-10px_0_30px_rgba(0,0,0,0.1)] animate-in slide-in-from-right duration-300">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+        <div className="flex items-center justify-between p-6 border-b border-border bg-surface">
           <div className="flex items-center gap-4">
-            <h2 className="text-xl font-bold tracking-tighter text-slate-900 dark:text-white uppercase">
+            <h2 className="text-xl font-bold tracking-tighter text-foreground uppercase">
               Order #{order?.id?.slice(0, 8) || "..."}
             </h2>
             {order && (
-              <div className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-3 py-1 border border-slate-900 dark:border-white">
+              <div className="bg-foreground text-background px-3 py-1 border border-foreground">
                 <p className="text-[10px] font-bold tracking-widest uppercase">
                   {order.status}
                 </p>
@@ -93,23 +93,23 @@ export function OrderDrawer({
           </div>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-center border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+            className="p-1 hover:bg-background-secondary transition-colors flex items-center justify-center border border-transparent hover:border-border"
           >
-            <span className="material-symbols-outlined text-slate-500 text-2xl">
+            <span className="material-symbols-outlined text-foreground-muted text-2xl">
               close
             </span>
           </button>
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950">
+        <div className="flex-1 overflow-y-auto bg-background-secondary">
           {loading ? (
             <div className="flex items-center justify-center py-32">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
           ) : error && !order ? (
             <div className="flex flex-col items-center justify-center py-32 text-center">
-              <span className="material-symbols-outlined text-4xl text-red-400 mb-4">
+              <span className="material-symbols-outlined text-4xl text-red-500 mb-4">
                 error
               </span>
               <p className="text-sm font-bold text-red-500">{error}</p>
@@ -117,8 +117,8 @@ export function OrderDrawer({
           ) : order ? (
             <>
               {/* Section 1: Order Timeline */}
-              <div className="p-8 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400 mb-8 flex items-center gap-2">
+              <div className="p-8 border-b border-border bg-surface">
+                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-foreground-muted mb-8 flex items-center gap-2">
                   <span className="w-2 h-2 bg-primary"></span> 1. Order Timeline
                 </h3>
                 <div className="space-y-0">
@@ -138,8 +138,8 @@ export function OrderDrawer({
                           <div
                             className={`absolute left-[15px] top-[32px] bottom-[-8px] w-[2px] ${
                               state === "completed"
-                                ? "bg-slate-900 dark:bg-white"
-                                : "bg-slate-200 dark:bg-slate-700"
+                                ? "bg-foreground"
+                                : "bg-border"
                             }`}
                           />
                         )}
@@ -147,10 +147,10 @@ export function OrderDrawer({
                         <div
                           className={`z-10 flex h-8 w-8 shrink-0 items-center justify-center ${
                             state === "completed"
-                              ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border border-slate-900 dark:border-white"
+                              ? "bg-foreground text-background border border-foreground"
                               : state === "current"
-                                ? "border-2 border-primary bg-white dark:bg-slate-900"
-                                : "border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
+                                ? "border-2 border-primary bg-surface"
+                                : "border border-border bg-background-secondary"
                           }`}
                         >
                           {state === "completed" ? (
@@ -160,7 +160,7 @@ export function OrderDrawer({
                           ) : state === "current" ? (
                             <div className="h-3 w-3 bg-primary"></div>
                           ) : (
-                            <span className="material-symbols-outlined text-slate-300 dark:text-slate-600 text-sm">
+                            <span className="material-symbols-outlined text-foreground-muted/40 text-sm">
                               circle
                             </span>
                           )}
@@ -170,10 +170,10 @@ export function OrderDrawer({
                           <p
                             className={`text-sm font-bold uppercase tracking-tight ${
                               state === "completed"
-                                ? "text-slate-900 dark:text-white"
+                                ? "text-foreground"
                                 : state === "current"
                                   ? "text-primary"
-                                  : "text-slate-400"
+                                  : "text-foreground-muted"
                             }`}
                           >
                             {step}
@@ -181,8 +181,8 @@ export function OrderDrawer({
                           <p
                             className={`text-xs uppercase font-medium mt-1 ${
                               state === "current"
-                                ? "text-slate-500"
-                                : "text-slate-400"
+                                ? "text-foreground-secondary"
+                                : "text-foreground-muted"
                             }`}
                           >
                             {state === "completed"
@@ -199,50 +199,50 @@ export function OrderDrawer({
               </div>
 
               {/* Section 2: Product & Pricing */}
-              <div className="p-8 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400 mb-6 flex items-center gap-2">
+              <div className="p-8 border-b border-border bg-surface">
+                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-foreground-muted mb-6 flex items-center gap-2">
                   <span className="w-2 h-2 bg-primary"></span> 2. Product &
                   Pricing
                 </h3>
-                <table className="w-full border-collapse border border-slate-200 dark:border-slate-700">
-                  <thead className="bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-700">
+                <table className="w-full border-collapse border border-border">
+                  <thead className="bg-background-secondary border-b border-border">
                     <tr>
-                      <th className="text-left px-4 py-3 text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                      <th className="text-left px-4 py-3 text-[10px] uppercase font-bold text-foreground-muted tracking-wider">
                         Item Details
                       </th>
-                      <th className="text-right px-4 py-3 text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                      <th className="text-right px-4 py-3 text-[10px] uppercase font-bold text-foreground-muted tracking-wider">
                         Total
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  <tbody className="divide-y divide-border/50">
                     <tr>
                       <td className="px-4 py-4">
-                        <p className="text-sm font-bold text-slate-900 dark:text-white">
+                        <p className="text-sm font-bold text-foreground">
                           Order Items
                         </p>
-                        <p className="text-xs font-mono text-slate-500 mt-1">
+                        <p className="text-xs font-mono text-foreground-muted mt-1">
                           Subtotal
                         </p>
                       </td>
                       <td className="px-4 py-4 text-right align-top">
-                        <p className="text-sm font-mono font-bold text-slate-900 dark:text-white">
+                        <p className="text-sm font-mono font-bold text-foreground">
                           {formatKobo(order.totalAmountKobo)}
                         </p>
                       </td>
                     </tr>
-                    <tr className="bg-slate-50/50 dark:bg-slate-950/30">
-                      <td className="px-4 py-3 text-xs font-medium text-slate-500">
+                    <tr className="bg-background-secondary/30">
+                      <td className="px-4 py-3 text-xs font-medium text-foreground-secondary">
                         Delivery Fee
                       </td>
-                      <td className="px-4 py-3 text-right text-xs font-mono text-slate-900 dark:text-white font-bold">
+                      <td className="px-4 py-3 text-right text-xs font-mono text-foreground font-bold">
                         {formatKobo(order.deliveryFeeKobo)}
                       </td>
                     </tr>
                   </tbody>
                   <tfoot>
-                    <tr className="bg-slate-900 dark:bg-white">
-                      <td className="px-4 py-4 text-xs font-bold text-white dark:text-slate-900 uppercase tracking-widest">
+                    <tr className="bg-foreground text-background">
+                      <td className="px-4 py-4 text-xs font-bold uppercase tracking-widest">
                         Total Order Value
                       </td>
                       <td className="px-4 py-4 text-right text-lg font-mono font-bold text-primary">
@@ -257,25 +257,25 @@ export function OrderDrawer({
               </div>
 
               {/* Section 3: Delivery Logistics */}
-              <div className="p-8 bg-white dark:bg-slate-900">
-                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400 mb-6 flex items-center gap-2">
+              <div className="p-8 bg-surface">
+                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-foreground-muted mb-6 flex items-center gap-2">
                   <span className="w-2 h-2 bg-primary"></span> 3. Delivery
                   Logistics
                 </h3>
-                <div className="grid grid-cols-2 border border-slate-200 dark:border-slate-700 divide-x divide-slate-200 dark:divide-slate-700 mb-4">
-                  <div className="p-4 bg-slate-50/50 dark:bg-slate-800/30">
-                    <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">
+                <div className="grid grid-cols-2 border border-border divide-x divide-border mb-4">
+                  <div className="p-4 bg-background-secondary/30">
+                    <p className="text-[10px] uppercase font-bold text-foreground-muted mb-1">
                       Order ID
                     </p>
-                    <p className="text-sm font-bold text-slate-900 dark:text-white font-mono">
+                    <p className="text-sm font-bold text-foreground font-mono">
                       {order.id.slice(0, 8).toUpperCase()}
                     </p>
                   </div>
-                  <div className="p-4 bg-slate-50/50 dark:bg-slate-800/30">
-                    <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">
+                  <div className="p-4 bg-background-secondary/30">
+                    <p className="text-[10px] uppercase font-bold text-foreground-muted mb-1">
                       Created
                     </p>
-                    <p className="text-sm font-bold text-slate-900 dark:text-white">
+                    <p className="text-sm font-bold text-foreground">
                       {new Date(order.createdAt).toLocaleDateString("en-NG", {
                         month: "short",
                         day: "numeric",
@@ -287,16 +287,16 @@ export function OrderDrawer({
 
                 {/* OTP Display (if dispatched) */}
                 {order.deliveryOtp && (
-                  <div className="border-2 border-slate-900 dark:border-white p-5 bg-white dark:bg-slate-900 mb-4">
+                  <div className="border-2 border-foreground p-5 bg-surface mb-4">
                     <div className="flex items-start gap-3">
                       <span className="material-symbols-outlined text-primary text-xl shrink-0 mt-0.5">
                         lock
                       </span>
                       <div>
-                        <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">
+                        <p className="text-[10px] uppercase font-bold text-foreground-muted mb-1">
                           Delivery OTP
                         </p>
-                        <p className="text-2xl font-mono font-bold text-slate-900 dark:text-white tracking-widest">
+                        <p className="text-2xl font-mono font-bold text-foreground tracking-widest">
                           {order.deliveryOtp}
                         </p>
                       </div>
@@ -312,20 +312,20 @@ export function OrderDrawer({
                     <div
                       className={`border-2 p-5 mb-4 ${
                         (order as any).payoutStatus === "COMPLETED"
-                          ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20"
+                          ? "border-emerald-500 bg-emerald-500/10"
                           : (order as any).payoutStatus === "FAILED"
-                            ? "border-red-500 bg-red-50"
-                            : "border-amber-400 bg-amber-50 dark:bg-amber-900/20"
+                            ? "border-red-500 bg-red-500/10"
+                            : "border-amber-400 bg-amber-400/10"
                       }`}
                     >
                       <div className="flex items-start gap-3">
                         <span
                           className={`material-symbols-outlined text-xl shrink-0 mt-0.5 ${
                             (order as any).payoutStatus === "COMPLETED"
-                              ? "text-emerald-600"
+                              ? "text-emerald-500"
                               : (order as any).payoutStatus === "FAILED"
-                                ? "text-red-600"
-                                : "text-amber-600"
+                                ? "text-red-500"
+                                : "text-amber-500"
                           }`}
                         >
                           account_balance
@@ -334,10 +334,10 @@ export function OrderDrawer({
                           <p
                             className={`text-[10px] uppercase font-bold mb-1 ${
                               (order as any).payoutStatus === "COMPLETED"
-                                ? "text-emerald-700"
+                                ? "text-emerald-600"
                                 : (order as any).payoutStatus === "FAILED"
-                                  ? "text-red-700"
-                                  : "text-amber-700"
+                                  ? "text-red-600"
+                                  : "text-amber-600"
                             }`}
                           >
                             Payout Status
@@ -345,10 +345,10 @@ export function OrderDrawer({
                           <p
                             className={`text-sm font-black tracking-widest uppercase ${
                               (order as any).payoutStatus === "COMPLETED"
-                                ? "text-emerald-800 dark:text-emerald-400"
+                                ? "text-emerald-700 dark:text-emerald-400"
                                 : (order as any).payoutStatus === "FAILED"
-                                  ? "text-red-800 dark:text-red-400"
-                                  : "text-amber-800 dark:text-amber-400"
+                                  ? "text-red-700 dark:text-red-400"
+                                  : "text-amber-700 dark:text-amber-400"
                             }`}
                           >
                             {(order as any).payoutStatus.replace("_", " ")}
@@ -364,7 +364,7 @@ export function OrderDrawer({
 
         {/* Footer — Dispatch Button (only for PAID orders) */}
         {order && order.status === OrderStatus.PAID && (
-          <div className="p-6 bg-white dark:bg-slate-900 border-t-2 border-slate-200 dark:border-slate-800">
+          <div className="p-6 bg-surface border-t-2 border-border">
             <button
               onClick={() => dispatchMutation.mutate()}
               disabled={dispatchMutation.isPending}
@@ -384,8 +384,8 @@ export function OrderDrawer({
 
         {/* Error display */}
         {error && order && (
-          <div className="px-6 pb-4 bg-white dark:bg-slate-900">
-            <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wide">
+          <div className="px-6 pb-4 bg-surface">
+            <div className="p-3 bg-red-500/10 border border-red-500/20 text-xs font-bold text-red-500 uppercase tracking-wide">
               {error}
             </div>
           </div>

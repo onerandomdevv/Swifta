@@ -6,6 +6,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { getDisplayName } from "@hardware-os/shared";
 import { Logo } from "@/components/ui/logo";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 
 export function BuyerSidebar({
   variant = "desktop",
@@ -45,7 +46,7 @@ export function BuyerSidebar({
   return (
     <aside
       className={cn(
-        "bg-white flex flex-col h-full border-r border-slate-100 transition-all duration-300",
+        "bg-surface flex flex-col h-full border-r border-border-light transition-all duration-300",
         isDesktop ? "hidden lg:flex w-64 sticky top-0 h-screen" : "flex w-full min-h-screen"
       )}
     >
@@ -60,7 +61,7 @@ export function BuyerSidebar({
       <nav className="flex-1 overflow-y-auto px-4 py-2 custom-scrollbar space-y-8">
         {sections.map((section) => (
           <div key={section.title} className="space-y-2">
-            <h4 className="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em]">
+            <h4 className="px-4 text-[10px] font-bold text-foreground-muted uppercase tracking-[0.15em]">
               {section.title}
             </h4>
             <div className="space-y-1">
@@ -73,13 +74,13 @@ export function BuyerSidebar({
                     className={cn(
                       "flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group relative",
                       isActive
-                        ? "bg-slate-50 text-primary"
-                        : "text-slate-500 hover:text-slate-900 hover:bg-slate-50/50"
+                        ? "bg-background-secondary text-primary"
+                        : "text-foreground-secondary hover:text-foreground hover:bg-surface-hover"
                     )}
                   >
                     <span className={cn(
                       "material-symbols-outlined text-[20px] transition-colors",
-                      isActive ? "text-primary font-variation-fill" : "text-slate-400 group-hover:text-slate-600"
+                      isActive ? "text-primary font-variation-fill" : "text-foreground-muted group-hover:text-foreground-secondary"
                     )}>
                       {item.icon}
                     </span>
@@ -100,20 +101,25 @@ export function BuyerSidebar({
         ))}
       </nav>
 
-      <div className="p-4 mt-auto">
+      <div className="p-4 mt-auto space-y-4">
+        <div className="flex items-center justify-between px-2">
+          <span className="text-[10px] font-bold text-foreground-muted uppercase tracking-widest">Theme</span>
+          <ThemeToggle />
+        </div>
+
         {/* Simplified User Card */}
-        <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 group">
+        <div className="bg-background-secondary rounded-xl p-3 border border-border-light group">
           <div className="flex items-center gap-3">
-            <div className="size-9 rounded-full bg-white border border-slate-200 flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-slate-400 text-lg">person</span>
+            <div className="size-9 rounded-full bg-surface border border-border flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-foreground-muted text-lg">person</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold truncate text-slate-900 leading-tight">
+              <p className="text-xs font-bold truncate text-foreground leading-tight">
                 {getDisplayName(user) || "Buyer Account"}
               </p>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span className="size-1.5 rounded-full bg-emerald-500" />
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                <span className="text-[9px] font-bold text-foreground-muted uppercase tracking-wider">
                   Verified Buyer
                 </span>
               </div>
@@ -124,7 +130,7 @@ export function BuyerSidebar({
         {/* Minimal Logout */}
         <button
           onClick={() => logout()}
-          className="w-full flex items-center gap-3 px-4 py-3 mt-2 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50/50 transition-all text-xs font-bold"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-foreground-muted hover:text-rose-500 hover:bg-rose-50/50 transition-all text-xs font-bold"
         >
           <span className="material-symbols-outlined text-lg">logout</span>
           Sign Out

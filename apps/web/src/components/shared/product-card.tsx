@@ -108,31 +108,31 @@ export function ProductCard({
   return (
     <article 
       onClick={() => router.push(detailUrl)}
-      className={cn("w-full bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col group transition-all duration-300 hover:shadow-md cursor-pointer overflow-hidden", className)}
+      className={cn("w-full bg-surface rounded-xl shadow-sm border border-border flex flex-col group transition-all duration-300 hover:shadow-md cursor-pointer overflow-hidden", className)}
     >
       {/* Merchant Header (Optional) */}
       {showMerchant && merchant && (
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-50 dark:border-slate-800">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border-light">
           <Link 
             href={`/buyer/merchants/${merchant.id}`}
             onClick={(e) => e.stopPropagation()}
             className="flex items-center gap-2 group/m"
           >
             <div 
-              className="size-7 rounded-lg bg-slate-100 bg-cover bg-center shrink-0 border border-slate-200 dark:border-slate-700"
+              className="size-7 rounded-lg bg-background-secondary bg-cover bg-center shrink-0 border border-border"
               style={{ backgroundImage: merchant.profileImage ? `url('${merchant.profileImage}')` : undefined }}
             >
               {!merchant.profileImage && (
                 <div className="size-full flex items-center justify-center">
-                  <span className="material-symbols-outlined text-slate-400 text-[10px]">storefront</span>
+                  <span className="material-symbols-outlined text-foreground-muted text-[10px]">storefront</span>
                 </div>
               )}
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-slate-900 dark:text-slate-100 font-bold text-[11px] truncate group-hover/m:text-primary transition-colors">
+              <span className="text-foreground font-bold text-[11px] truncate group-hover/m:text-primary transition-colors">
                 {merchant.businessName}
               </span>
-              <span className="text-slate-400 text-[9px] font-medium">
+              <span className="text-foreground-muted text-[9px] font-medium">
                 {p.createdAt ? timeAgo(p.createdAt) : "Recently"}
               </span>
             </div>
@@ -141,7 +141,7 @@ export function ProductCard({
       )}
 
       {/* Product Image Section */}
-      <div className="relative aspect-square w-full overflow-hidden bg-slate-50 dark:bg-slate-800 shrink-0">
+      <div className="relative aspect-square w-full overflow-hidden bg-background-secondary shrink-0">
         {p.imageUrl ? (
           <img 
             alt={p.name} 
@@ -150,7 +150,7 @@ export function ProductCard({
           />
         ) : (
           <div className="size-full flex items-center justify-center">
-             <span className="material-symbols-outlined text-slate-200 dark:text-slate-700 text-5xl">
+             <span className="material-symbols-outlined text-foreground-muted text-5xl opacity-20">
               inventory_2
             </span>
           </div>
@@ -170,11 +170,11 @@ export function ProductCard({
         <div className="space-y-1">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight truncate group-hover:text-primary transition-colors">
+              <h3 className="text-sm font-bold text-foreground leading-tight truncate group-hover:text-primary transition-colors">
                 {p.name}
               </h3>
               {p.categoryTag && (
-                <p className="text-slate-400 text-[9px] font-bold uppercase tracking-wider">
+                <p className="text-foreground-muted text-[9px] font-bold uppercase tracking-wider">
                   {p.categoryTag}
                 </p>
               )}
@@ -184,8 +184,8 @@ export function ProductCard({
               <button 
                 onClick={handleCopyCode}
                 className={cn(
-                  "transition-all flex items-center justify-center size-6 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 shrink-0",
-                  copied ? "text-primary" : "text-slate-300 hover:text-primary"
+                  "transition-all flex items-center justify-center size-6 rounded-md hover:bg-surface-hover shrink-0",
+                  copied ? "text-primary" : "text-foreground-muted hover:text-primary"
                 )}
               >
                 <span className="material-symbols-outlined text-[16px]">
@@ -196,20 +196,20 @@ export function ProductCard({
           </div>
 
           {p.description && (
-            <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed h-[2.8em]">
+            <p className="text-[11px] text-foreground-secondary line-clamp-2 leading-relaxed h-[2.8em]">
               {p.description}
             </p>
           )}
         </div>
 
         {/* Pricing Section */}
-        <div className="pt-2 border-t border-slate-50 dark:border-slate-800">
+        <div className="pt-2 border-t border-border-light">
           <div className="flex items-baseline justify-between">
             <div className="flex flex-col">
-              <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Retail</span>
+              <span className="text-[9px] text-foreground-muted font-bold uppercase tracking-widest">Retail</span>
               <div className="flex items-baseline gap-1">
-                <span className="text-lg font-bold text-slate-900 dark:text-white">{formatKobo(retailPrice)}</span>
-                {p.unit && <span className="text-slate-400 text-[10px] font-bold">/ {p.unit}</span>}
+                <span className="text-lg font-bold text-foreground">{formatKobo(retailPrice)}</span>
+                {p.unit && <span className="text-foreground-muted text-[10px] font-bold">/ {p.unit}</span>}
               </div>
             </div>
             {wholesalePrice && (
@@ -234,7 +234,7 @@ export function ProductCard({
                   e.stopPropagation();
                   router.push(`/merchant/products/${p.id}/edit`);
                 }}
-                className="flex-1 flex items-center justify-center gap-2 bg-slate-900 dark:bg-slate-200 text-white dark:text-slate-900 font-bold text-[10px] uppercase tracking-widest py-2.5 rounded-lg transition-all hover:opacity-90 active:scale-[0.98]"
+                className="flex-1 flex items-center justify-center gap-2 bg-foreground text-foreground-inverse font-bold text-[10px] uppercase tracking-widest py-2.5 rounded-lg transition-all hover:opacity-90 active:scale-[0.98]"
               >
                 <span className="material-symbols-outlined text-[16px]">edit</span>
                 Edit
@@ -244,7 +244,7 @@ export function ProductCard({
                   e.stopPropagation();
                   router.push(detailUrl);
                 }}
-                className="flex-1 flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold text-[10px] uppercase tracking-widest py-2.5 rounded-lg transition-all hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-[0.98]"
+                className="flex-1 flex items-center justify-center gap-2 border border-border text-foreground-secondary font-bold text-[10px] uppercase tracking-widest py-2.5 rounded-lg transition-all hover:bg-surface-hover active:scale-[0.98]"
               >
                 Details
               </button>
@@ -257,7 +257,7 @@ export function ProductCard({
                   if (onQuickBuy) onQuickBuy(p);
                   else router.push(`/buyer/products/${p.id}`);
                 }}
-                className="flex-1 flex items-center justify-center gap-2 bg-primary hover:bg-emerald-600 text-white font-bold text-[10px] uppercase tracking-widest py-2.5 rounded-lg transition-all active:scale-[0.98]"
+                className="flex-1 flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-white font-bold text-[10px] uppercase tracking-widest py-2.5 rounded-lg transition-all active:scale-[0.98]"
               >
                 <span className="material-symbols-outlined text-[16px]">bolt</span>
                 Buy Now
@@ -266,7 +266,7 @@ export function ProductCard({
               <button 
                 onClick={handleAddToCart}
                 disabled={addingToCart}
-                className="size-9 shrink-0 flex items-center justify-center bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-all active:scale-95"
+                className="size-9 shrink-0 flex items-center justify-center bg-background-secondary text-foreground-secondary hover:bg-surface-hover rounded-lg transition-all active:scale-95"
               >
                 <span className="material-symbols-outlined text-[18px]">
                   {addingToCart ? "sync" : "add_shopping_cart"}
@@ -284,7 +284,7 @@ export function ProductCard({
                     "size-9 shrink-0 flex items-center justify-center rounded-lg transition-all active:scale-95 border",
                     isSaved 
                       ? "bg-red-50 text-red-500 border-red-100 shadow-sm" 
-                      : "bg-white dark:bg-slate-900 text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50"
+                      : "bg-surface text-foreground-muted border-border hover:bg-surface-hover"
                   )}
                 >
                   <span 
