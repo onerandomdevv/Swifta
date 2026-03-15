@@ -23,7 +23,7 @@ CREATE TABLE "categories" (
 
 -- Indices
 CREATE UNIQUE INDEX "categories_name_key" ON "categories"("name");
-CREATE UNIQUE INDEX "categories_slug_key" ON "categories"("slug");
+ALTER TABLE "categories" ADD CONSTRAINT "categories_slug_key" UNIQUE ("slug");
 
 -- 2. Backfill Categories from Existing Products
 -- Insert unique category tags as categories if they don't exist

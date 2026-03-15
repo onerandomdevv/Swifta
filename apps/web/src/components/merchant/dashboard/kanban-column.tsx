@@ -35,7 +35,7 @@ export function KanbanColumn({ title, count, colorClass, children }: Props) {
         <h3 className={`text-[11px] font-black uppercase tracking-[0.15em] ${textColorClass}`}>
           {title} ({count})
         </h3>
-        <button className="text-foreground-muted hover:text-foreground transition-colors">
+        <button className="text-foreground-muted hover:text-foreground transition-colors" aria-label="More actions">
           <span className="material-symbols-outlined text-[18px]">more_horiz</span>
         </button>
       </div>

@@ -35,7 +35,13 @@ export function MerchantKpiGrid({
             </div>
             {stat.trend && (
               <span
-                className={`px-3 py-1 rounded-full text-[9px] font-black tracking-widest uppercase border ${stat.trendType === "up" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" : "bg-background-secondary text-foreground-muted border-border"}`}
+                className={`px-3 py-1 rounded-full text-[9px] font-black tracking-widest uppercase border ${
+                  stat.trendType === "up" 
+                    ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" 
+                    : stat.trendType === "down"
+                    ? "bg-red-500/10 text-red-600 border-red-500/20"
+                    : "bg-background-secondary text-foreground-muted border-border"
+                }`}
               >
                 {stat.trend}
               </span>

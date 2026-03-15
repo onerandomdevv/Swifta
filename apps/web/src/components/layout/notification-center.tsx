@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useNotifications, NotificationUI } from "@/hooks/use-notifications";
 
 export function NotificationCenter({
@@ -10,6 +11,7 @@ export function NotificationCenter({
   isOpen: boolean;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"All" | "Orders" | "Financials">(
     "All",
   );
@@ -42,7 +44,7 @@ export function NotificationCenter({
         aria-modal={isOpen}
         aria-hidden={!isOpen}
         tabIndex={isOpen ? 0 : -1}
-        className={`fixed top-0 right-0 h-full w-full max-w-md bg-surface z-[70] shadow-2xl border-l border-border transition-transform duration-500 ease-out transform ${isOpen ? "translate-x-0 pointer-events-auto" : "translate-x-full pointer-events-none"}`}
+        className={`fixed top-0 right-0 h-full w-full max-w-md bg-surface z-[70] shadow-2xl border-l border-border transition-transform duration-500 ease-out transform flex flex-col ${isOpen ? "translate-x-0 pointer-events-auto" : "translate-x-full pointer-events-none"}`}
       >
         {/* Header */}
         <div className="p-8 border-b border-border bg-background-secondary flex items-center justify-between">
@@ -111,10 +113,13 @@ export function NotificationCenter({
             </div>
           ) : filtered.length > 0 ? (
             filtered.map((n: NotificationUI) => (
-              <div
+              <button
                 key={n.id}
+                type="button"
+                aria-pressed={!n.unread}
+                aria-label={`${n.unread ? "Unread" : "Read"} notification: ${n.title}. ${n.desc}`}
                 onClick={() => n.unread && markAsRead(n.id)}
-                className={`p-6 rounded-3xl border transition-all cursor-pointer relative group ${n.unread ? "bg-surface border-border shadow-sm" : "bg-background-secondary/50 border-transparent opacity-80"}`}
+                className={`w-full text-left p-6 rounded-3xl border transition-all relative group ${n.unread ? "bg-surface border-border shadow-sm" : "bg-background-secondary/50 border-transparent opacity-80"}`}
               >
                 {n.unread && (
                   <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-primary rounded-r-full"></div>
@@ -158,7 +163,7 @@ export function NotificationCenter({
                     )}
                   </div>
                 </div>
-              </div>
+              </button>
             ))
           ) : (
             <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 opacity-60">
@@ -181,7 +186,11 @@ export function NotificationCenter({
 
         {/* Sticky Footer */}
         <div className="absolute bottom-0 left-0 w-full p-8 bg-surface/80 backdrop-blur-md border-t border-border">
-          <button className="w-full py-4 bg-background-secondary hover:bg-surface-hover text-foreground text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-3">
+          <button 
+            onClick={() => router.push('/merchant/activity-history')}
+            className="w-full py-4 bg-background-secondary hover:bg-surface-hover text-foreground text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-3"
+            aria-label="View all activity history"
+          >
             View All Activity History
             <span className="material-symbols-outlined text-sm">
               arrow_forward

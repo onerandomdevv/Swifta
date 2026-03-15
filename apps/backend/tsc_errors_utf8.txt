@@ -1,7 +1,0 @@
-﻿src/modules/reorder/reorder.controller.ts(27,32): error TS2551: Property 'createRFQFromReminder' does not exist on type 'ReorderService'. Did you mean 'createReminder'?
-test/golden-path.e2e-spec.ts(76,34): error TS2552: Cannot find name 'RFQStatus'. Did you mean 'status'?
-test/golden-path.e2e-spec.ts(77,5): error TS2304: Cannot find name 'rfqId'.
-test/golden-path.e2e-spec.ts(83,21): error TS2304: Cannot find name 'rfqId'.
-test/golden-path.e2e-spec.ts(92,9): error TS18004: No value exists in scope for the shorthand property 'rfqId'. Either declare one or provide an initializer.
-test/golden-path.e2e-spec.ts(103,5): error TS2304: Cannot find name 'quoteId'.
-test/golden-path.e2e-spec.ts(108,24): error TS2304: Cannot find name 'quoteId'.

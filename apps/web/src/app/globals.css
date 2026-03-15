@@ -4,36 +4,38 @@
 
 :root {
   /* Backgrounds */
-  --background: #F8FAFC;
-  --background-secondary: #F1F5F9;
-  --surface: #FFFFFF;
-  --surface-hover: #F8FAFC;
-  --surface-elevated: #FFFFFF;
+  --background: 210 20% 98%;
+  --background-secondary: 210 40% 96%;
+  --background-light: 210 20% 98%;
+  --background-dark: 222 47% 7%;
+  --surface: 0 0% 100%;
+  --surface-hover: 210 20% 98%;
+  --surface-elevated: 0 0% 100%;
   
   /* Text */
-  --foreground: #0F2B4C;
-  --foreground-secondary: #475569;
-  --foreground-muted: #94A3B8;
-  --foreground-inverse: #FFFFFF;
+  --foreground: 213 67% 18%;
+  --foreground-secondary: 215 16% 47%;
+  --foreground-muted: 215 20% 65%;
+  --foreground-inverse: 0 0% 100%;
   
   /* Borders */
-  --border: #E2E8F0;
-  --border-light: #F1F5F9;
-  --border-input: #CBD5E1;
+  --border: 214 32% 91%;
+  --border-light: 210 40% 96%;
+  --border-input: 214 32% 80%;
   
-  /* Brand — these stay the same in both themes */
-  --primary: #00C853;
-  --primary-hover: #00A844;
-  --primary-foreground: #FFFFFF;
-  --deep-blue: #0F2B4C;
-  --mid-blue: #1E3A5F;
-  --accent-orange: #E87722;
+  /* Brand */
+  --primary: 145 100% 39%;
+  --primary-hover: 144 100% 33%;
+  --primary-foreground: 0 0% 100%;
+  --deep-blue: 213 67% 18%;
+  --mid-blue: 213 52% 25%;
+  --accent-orange: 25 79% 52%;
   
-  /* Status — same in both themes */
-  --success: #00C853;
-  --warning: #F59E0B;
-  --error: #EF4444;
-  --info: #3B82F6;
+  /* Status */
+  --success: 145 100% 39%;
+  --warning: 38 92% 50%;
+  --error: 0 84% 60%;
+  --info: 217 91% 60%;
   
   /* Shadows */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -43,30 +45,30 @@
 
 .dark {
   /* Backgrounds */
-  --background: #0A0F1A;
-  --background-secondary: #111827;
-  --surface: #1A2332;
-  --surface-hover: #1E293B;
-  --surface-elevated: #1E2D3D;
+  --background: 222 47% 7%;
+  --background-secondary: 222 47% 11%;
+  --surface: 217 33% 15%;
+  --surface-hover: 217 33% 17%;
+  --surface-elevated: 217 33% 18%;
   
   /* Text */
-  --foreground: #F1F5F9;
-  --foreground-secondary: #94A3B8;
-  --foreground-muted: #64748B;
-  --foreground-inverse: #0F2B4C;
+  --foreground: 210 40% 96%;
+  --foreground-secondary: 215 20% 65%;
+  --foreground-muted: 217 19% 47%;
+  --foreground-inverse: 213 67% 18%;
   
   /* Borders */
-  --border: #1E293B;
-  --border-light: #1A2332;
-  --border-input: #334155;
+  --border: 217 33% 17%;
+  --border-light: 217 33% 15%;
+  --border-input: 215 25% 27%;
   
-  /* Brand — same as light */
-  --primary: #00C853;
-  --primary-hover: #4ADE80;
-  --primary-foreground: #FFFFFF;
-  --deep-blue: #E2E8F0;
-  --mid-blue: #94A3B8;
-  --accent-orange: #F59E0B;
+  /* Brand */
+  --primary: 145 100% 39%;
+  --primary-hover: 142 70% 58%;
+  --primary-foreground: 0 0% 100%;
+  --deep-blue: 210 40% 96%;
+  --mid-blue: 215 20% 65%;
+  --accent-orange: 38 92% 50%;
   
   /* Shadows — darker in dark mode */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);

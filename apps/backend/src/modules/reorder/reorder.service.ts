@@ -7,7 +7,7 @@ import {
 import { PrismaService } from "../../prisma/prisma.service";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
 import { getReorderWindowDays } from "./reorder.constants";
-import { RFQ_EXPIRY_HOURS } from "@hardware-os/shared";
+
 
 @Injectable()
 export class ReorderService {

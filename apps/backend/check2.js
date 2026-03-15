@@ -1,15 +1,29 @@
 const { PrismaClient } = require('@prisma/client');
 
 async function check() {
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    console.error("DATABASE_URL is not set");
+    process.exit(1);
+  }
+
   const prisma = new PrismaClient({
     datasources: {
-      db: {
-        url: "postgresql://postgres.hfdngfvkgahiwmwtcyed:swiftaDevs12@aws-1-eu-central-1.pooler.supabase.com:5432/postgres?pgbouncer=true&connection_limit=1"
-      }
+      db: { url }
     }
   });
-  const count = await prisma.order.count({ where: { quoteId: { not: null } } });
-  console.log("===RESULT=== COUNT:", count);
-  process.exit(0);
+
+  try {
+    const count = await prisma.order.count({ where: { quoteId: { not: null } } });
+    console.log("===RESULT=== COUNT:", count);
+    process.exitCode = 0;
+  } catch (error) {
+    console.error("Check failed:", error);
+    process.exitCode = 1;
+  } finally {
+    await prisma.$disconnect();
+  }
 }
+
 check();
+
