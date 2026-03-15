@@ -28,7 +28,7 @@ import { WhatsAppLoggerService } from "./whatsapp-logger.service";
  * WhatsApp Bot Module
  *
  * Integrates with Meta's WhatsApp Business Cloud API to provide
- * merchants with a conversational interface to SwiftTrade.
+ * merchants with a conversational interface to Swifta.
  *
  * Dependencies:
  *  - PrismaModule: database access (WhatsAppLink, products, orders, etc.)

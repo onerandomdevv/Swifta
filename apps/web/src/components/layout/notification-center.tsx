@@ -69,7 +69,7 @@ export function NotificationCenter({
         {/* Content Description */}
         <div className="px-8 pt-6 pb-2">
           <p className="text-[11px] font-bold text-foreground-muted uppercase tracking-widest leading-relaxed">
-            Manage your real-time B2B trade alerts and logistics updates.
+            Manage your real-time order and activity alerts and logistics updates.
           </p>
         </div>
 

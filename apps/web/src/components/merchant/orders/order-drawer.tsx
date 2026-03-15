@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getOrder, dispatchOrder } from "@/lib/api/order.api";
-import type { Order } from "@hardware-os/shared";
-import { OrderStatus } from "@hardware-os/shared";
+import type { Order } from "@swifta/shared";
+import { OrderStatus } from "@swifta/shared";
 
 interface OrderDrawerProps {
   orderId: string | null;

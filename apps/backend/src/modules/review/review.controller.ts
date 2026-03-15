@@ -13,7 +13,7 @@ import { CreateReviewDto } from "./dto/create-review.dto";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { OrderService } from "../order/order.service";
-import { JwtPayload } from "@hardware-os/shared";
+import { JwtPayload } from "@swifta/shared";
 
 @Controller("reviews")
 export class ReviewController {

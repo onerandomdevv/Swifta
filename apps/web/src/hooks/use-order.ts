@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { getOrder, confirmDelivery as apiConfirmDelivery, reportIssue as apiReportIssue } from "@/lib/api/order.api";
 import { initializePayment } from "@/lib/api/payment.api";
-import { type Order, type Review } from "@hardware-os/shared";
+import { type Order, type Review } from "@swifta/shared";
 import { getOrderReview } from "@/lib/api/review.api";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";

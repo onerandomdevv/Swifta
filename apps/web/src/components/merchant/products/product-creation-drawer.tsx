@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { productApi } from "@/lib/api/product.api";
 import { getCategories } from "@/lib/api/category.api";
-import { type Category, type Product } from "@hardware-os/shared";
+import { type Category, type Product } from "@swifta/shared";
 import { useToast } from "@/providers/toast-provider";
 
 interface ProductCreationDrawerProps {

@@ -1,7 +1,7 @@
 {
-  "name": "@hardware-os/backend",
+  "name": "@swifta/backend",
   "version": "0.0.1",
-  "description": "SwiftTrade Backend",
+  "description": "Swifta Backend API",
   "author": "",
   "private": true,
   "license": "UNLICENSED",
@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
-    "@hardware-os/shared": "workspace:*",
+    "@swifta/shared": "workspace:*",
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/cache-manager": "^3.1.0",
     "@nestjs/common": "^10.0.0",

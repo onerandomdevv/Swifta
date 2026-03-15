@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { StarRating } from "@/components/ui/star-rating";
 import { getOrder } from "@/lib/api/order.api";
 import { createReview, getOrderReview } from "@/lib/api/review.api";
-import type { Order, Review } from "@hardware-os/shared";
+import type { Order, Review } from "@swifta/shared";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function OrderReviewPage() {

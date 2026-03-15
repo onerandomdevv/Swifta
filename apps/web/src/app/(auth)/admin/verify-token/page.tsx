@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { authApi } from "../../../../lib/api/auth.api";
 import { useAuth } from "../../../../providers/auth-provider";
 import { useToast } from "../../../../providers/toast-provider";
-import { getDisplayName } from "@hardware-os/shared";
+import { getDisplayName } from "@swifta/shared";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import Link from "next/link";

@@ -5,7 +5,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
-import { OrderStatus, UserRole } from "@hardware-os/shared";
+import { OrderStatus, UserRole } from "@swifta/shared";
 import * as bcrypt from "bcrypt";
 import { RedisService } from "../../redis/redis.service";
 import { AuditLogService } from "./audit-log.service";

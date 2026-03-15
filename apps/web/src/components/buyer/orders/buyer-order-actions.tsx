@@ -1,6 +1,6 @@
 import React from "react";
-import { formatKobo } from "@hardware-os/shared";
-import type { Order } from "@hardware-os/shared";
+import { formatKobo } from "@swifta/shared";
+import type { Order } from "@swifta/shared";
 import Link from "next/link";
 
 interface Props {

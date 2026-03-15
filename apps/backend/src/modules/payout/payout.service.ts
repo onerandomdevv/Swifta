@@ -85,7 +85,7 @@ export class PayoutService {
         merchant.paystackRecipientCode,
         payoutAmountKobo,
         `PO-${order.id.slice(0, 8).toUpperCase()}-${Date.now()}`,
-        `SwiftTrade payout for Order #${order.id.slice(0, 8).toUpperCase()}`,
+        `Swifta payout for Order #${order.id.slice(0, 8).toUpperCase()}`,
       );
 
       await this.prisma.payout.update({

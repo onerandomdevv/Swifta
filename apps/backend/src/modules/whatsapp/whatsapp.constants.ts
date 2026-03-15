@@ -12,7 +12,7 @@ export const SUPPLIER_MAIN_MENU = `Supplier Dashboard. Use the menu below to man
 export const FRIENDLY_FALLBACK = `I'm not quite sure I understood that. 😅 Here is what I can help you with today:`;
 
 /** Main menu for buyers */
-export const BUYER_MAIN_MENU = `Welcome to your SwiftTrade Buyer Assistant. Select an option from the menu to get started:`;
+export const BUYER_MAIN_MENU = `Welcome to your Swifta Buyer Assistant. Select an option from the menu to get started:`;
 
 /** Friendly fallback for buyers */
 export const BUYER_FRIENDLY_FALLBACK = `I didn't quite catch that. Try using the menu or ask me questions like:
@@ -26,7 +26,7 @@ export const STOCK_UPDATE_FOLLOWUP = `Understood. Which product would you like t
 Example: "Add 50 bags of cement" or "Remove 10 iron rods"`;
 
 /** First message for an unlinked phone */
-export const WELCOME_MESSAGE = `Welcome to SwiftTrade, Nigeria's digital marketplace for all your retail and wholesale needs. How would you like to use our platform?`;
+export const WELCOME_MESSAGE = `Welcome to Swifta, Nigeria's digital marketplace for all your retail and wholesale needs. How would you like to use our platform?`;
 
 export const ROLE_SELECTED_MESSAGE = `Great! To link your account, please reply with your registered email address.`;
 
@@ -126,11 +126,11 @@ export const GEMINI_FUNCTION_DECLARATIONS = [
           type: "string",
           enum: ["add", "remove"],
           description: "Whether to add or remove stock",
-        },
-      },
-      required: ["productName", "quantity", "action"],
-    },
   },
+},
+required: ["productName", "quantity", "action"],
+},
+},
   {
     name: "get_products",
     description:

@@ -1,5 +1,5 @@
 import { apiClient } from '../api-client';
-import type { CreateProductDto, UpdateProductDto, Product } from '@hardware-os/shared';
+import type { CreateProductDto, UpdateProductDto, Product } from '@swifta/shared';
 
 export const productApi = {
   createProduct: (dto: CreateProductDto): Promise<Product> => {

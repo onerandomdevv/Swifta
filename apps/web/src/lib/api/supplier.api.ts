@@ -1,5 +1,5 @@
 import { apiClient } from "../api-client";
-import { type SupplierProduct } from "@hardware-os/shared";
+import { type SupplierProduct } from "@swifta/shared";
 
 export async function getSupplierProfile(): Promise<any> {
   return apiClient.get("/supplier/profile");

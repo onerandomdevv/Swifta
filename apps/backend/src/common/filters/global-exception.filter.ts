@@ -7,7 +7,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { Response } from "express";
-import { ApiError } from "@hardware-os/shared";
+import { ApiError } from "@swifta/shared";
 
 // Prisma error types — imported by name to avoid hard dependency on @prisma/client at filter level
 const PRISMA_UNIQUE_CONSTRAINT = "P2002";

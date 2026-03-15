@@ -2,7 +2,7 @@ import { ExtractJwt, Strategy } from "passport-jwt";
 import { PassportStrategy } from "@nestjs/passport";
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { JwtPayload, UserRole } from "@hardware-os/shared";
+import { JwtPayload, UserRole } from "@swifta/shared";
 import { PrismaService } from "../../../prisma/prisma.service";
 
 import { Request } from "express";

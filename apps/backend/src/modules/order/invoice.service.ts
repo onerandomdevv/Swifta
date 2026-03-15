@@ -6,7 +6,7 @@ import {
 import { PrismaService } from "../../prisma/prisma.service";
 import PDFDocument from "pdfkit";
 import { Response } from "express";
-import { JwtPayload } from "@hardware-os/shared";
+import { JwtPayload } from "@swifta/shared";
 
 @Injectable()
 export class InvoiceService {

@@ -1,6 +1,6 @@
-# SwiftTrade — Backend
+# Swifta — Backend
 
-NestJS modular monolith API server for SwiftTrade.
+NestJS modular monolith API server for Swifta.
 
 ---
 

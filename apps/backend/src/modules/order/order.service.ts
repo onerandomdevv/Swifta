@@ -23,7 +23,7 @@ import {
   OrderStatus,
   PaginatedResponse,
   PriceType,
-} from "@hardware-os/shared";
+} from "@swifta/shared";
 
 import { paginate } from "../../common/utils/pagination";
 import { validateTransition, getNextStates } from "./order-state-machine";

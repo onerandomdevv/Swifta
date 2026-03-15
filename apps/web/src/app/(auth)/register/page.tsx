@@ -9,8 +9,8 @@ import {
   baseRegistrationSchema,
   type RegistrationFormData,
 } from "@/lib/validations/auth";
-import { UserRole } from "@hardware-os/shared";
-import type { RegisterDto } from "@hardware-os/shared";
+import { UserRole } from "@swifta/shared";
+import type { RegisterDto } from "@swifta/shared";
 import { useAuth } from "@/providers/auth-provider";
 import { useToast } from "@/providers/toast-provider";
 import { authApi } from "@/lib/api/auth.api";
@@ -227,7 +227,7 @@ export default function RegisterPage() {
           >
             <img
               src={src}
-              alt="Construction materials"
+              alt="Swifta marketplace"
               className="w-full h-full object-cover"
             />
           </div>

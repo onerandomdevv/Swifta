@@ -11,7 +11,7 @@ import {
   BUYER_MAIN_MENU,
   BUYER_FRIENDLY_FALLBACK,
 } from "./whatsapp-buyer.constants";
-import { OrderStatus } from "@hardware-os/shared";
+import { OrderStatus } from "@swifta/shared";
 import { ReviewService } from "../review/review.service";
 import { WhatsAppInteractiveService } from "./whatsapp-interactive.service";
 
@@ -213,7 +213,7 @@ export class WhatsAppBuyerService {
 
       await this.interactiveService.sendCTAUrlButton(
         phone,
-        `✅ *Logistics Protocol Confirmed: ${session.deliveryMethod === "MERCHANT_DELIVERY" ? "Direct Merchant Delivery" : "SwiftTrade Tracked"}*\n\nPlease tap below to complete your secure payment.`,
+        `✅ *Logistics Protocol Confirmed: ${session.deliveryMethod === "MERCHANT_DELIVERY" ? "Direct Merchant Delivery" : "Swifta Tracked"}*\n\nPlease tap below to complete your secure payment.`,
         "Secure Payment",
         checkoutLink,
       );
@@ -404,7 +404,7 @@ export class WhatsAppBuyerService {
     if (session.step === "SELECT_DELIVERY") {
       if (input === "1" || input.toLowerCase().includes("merchant")) {
         session.deliveryMethod = "MERCHANT_DELIVERY";
-      } else if (input === "2" || input.toLowerCase().includes("swifttrade")) {
+      } else if (input === "2" || input.toLowerCase().includes("Swifta")) {
         session.deliveryMethod = "PLATFORM_LOGISTICS";
       } else {
         await this.interactiveService.sendReplyButtons(
@@ -481,7 +481,7 @@ export class WhatsAppBuyerService {
         case "contact_support":
           await this.interactiveService.sendTextMessage(
             phone,
-            "📞 You can contact SwiftTrade Support directly at 0800-SWIFTTRADE or email support@swifta.store for any disputes or assistance.",
+            "📞 You can contact Swifta Support directly at 0800-Swifta or email support@swifta.store for any disputes or assistance.",
           );
           break;
         case "friendly_fallback":
@@ -730,7 +730,7 @@ export class WhatsAppBuyerService {
         `🛒 *${product.name}* (${quantity} units)\n\nHow would you like this delivered?`,
         [
           { id: "delivery_merchant", title: "Direct Merchant" },
-          { id: "delivery_track", title: "SwiftTrade Tracked" },
+          { id: "delivery_track", title: "Swifta Tracked" },
         ],
       );
     } catch (e) {

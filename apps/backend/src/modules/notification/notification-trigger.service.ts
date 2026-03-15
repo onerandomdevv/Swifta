@@ -5,7 +5,7 @@ import {
   NOTIFICATION_QUEUE,
   WHATSAPP_QUEUE,
 } from "../../queue/queue.constants";
-import { NotificationType, NotificationChannel } from "@hardware-os/shared";
+import { NotificationType, NotificationChannel } from "@swifta/shared";
 
 @Injectable()
 export class NotificationTriggerService {
@@ -50,7 +50,7 @@ export class NotificationTriggerService {
     await this.addJob(
       userId,
       NotificationType.WELCOME,
-      "Welcome to SwiftTrade",
+      "Welcome to Swifta",
       "Welcome to Africa's hardware trade network.",
     );
   }

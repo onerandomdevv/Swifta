@@ -11,7 +11,7 @@ import type { Cache } from "cache-manager";
 import { PrismaService } from "../../prisma/prisma.service";
 import { CreateProductDto } from "./dto/create-product.dto";
 import { UpdateProductDto } from "./dto/update-product.dto";
-import { PaginatedResponse, Product } from "@hardware-os/shared";
+import { PaginatedResponse, Product } from "@swifta/shared";
 import { paginate } from "../../common/utils/pagination";
 
 @Injectable()

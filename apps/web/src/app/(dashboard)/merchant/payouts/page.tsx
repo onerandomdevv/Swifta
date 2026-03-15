@@ -6,8 +6,8 @@ import { formatKobo } from "@/lib/utils";
 import { getOrders, getOrderSummary } from "@/lib/api/order.api";
 import { merchantApi } from "@/lib/api/merchant.api";
 import { useToast } from "@/providers/toast-provider";
-import { OrderStatus } from "@hardware-os/shared";
-import type { Order } from "@hardware-os/shared";
+import { OrderStatus } from "@swifta/shared";
+import type { Order } from "@swifta/shared";
 
 function resolveBankName(
   code?: string | null,

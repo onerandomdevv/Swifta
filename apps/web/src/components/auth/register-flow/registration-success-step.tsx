@@ -1,5 +1,5 @@
 import { useRouter } from "next/navigation";
-import { UserRole } from "@hardware-os/shared";
+import { UserRole } from "@swifta/shared";
 
 interface RegistrationSuccessStepProps {
   role: UserRole | null;

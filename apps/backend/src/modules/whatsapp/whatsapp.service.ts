@@ -21,7 +21,7 @@ import {
   STOCK_UPDATE_FOLLOWUP,
   META_API_VERSION,
 } from "./whatsapp.constants";
-import { OrderStatus } from "@hardware-os/shared";
+import { OrderStatus } from "@swifta/shared";
 
 /**
  * Core WhatsApp Bot service.
@@ -265,7 +265,7 @@ export class WhatsAppService {
     if (id === "menu_help") {
       await this.interactiveService.sendTextMessage(
         phone,
-        `🤝 *SwiftTrade Merchant Support*\n\nYou can manage your business by using the menu or via natural language commands:\n\n• *"sales summary"* - View performance\n• *"my orders"* - Manage latest orders\n• *"check inventory"* - Monitor stock\n• *"update price of [item] to [amount]"*\n• *"add [qty] to [item] stock"*\n\nNeed more help? Visit our web dashboard or contact support at support@swifta.store`,
+        `🤝 *Swifta Merchant Support*\n\nYou can manage your business by using the menu or via natural language commands:\n\n• *"sales summary"* - View performance\n• *"my orders"* - Manage latest orders\n• *"check inventory"* - Monitor stock\n• *"update price of [item] to [amount]"*\n• *"add [qty] to [item] stock"*\n\nNeed more help? Visit our web dashboard or contact support at support@swifta.store`,
       );
       return;
     }
@@ -490,7 +490,7 @@ export class WhatsAppService {
   private async sendMerchantMenu(phone: string): Promise<void> {
     await this.interactiveService.sendListMessage(
       phone,
-      "Welcome back to SwiftTrade! 🤝\n\nManage your business efficiently through this menu or simply tell me what you need in plain English (or Pidgin).",
+      "Welcome back to Swifta! 🤝\n\nManage your business efficiently through this menu or simply tell me what you need in plain English (or Pidgin).",
       "Main Menu",
       [
         {
@@ -741,7 +741,7 @@ export class WhatsAppService {
     if (products.length === 0) {
       await this.interactiveService.sendTextMessage(
         phone,
-        "📦 You do not have any active product listings. Please add products via the SwiftTrade web dashboard to begin selling. 🛒",
+        "📦 You do not have any active product listings. Please add products via the Swifta web dashboard to begin selling. 🛒",
       );
       return;
     }
@@ -849,7 +849,7 @@ export class WhatsAppService {
     if (products.length === 0) {
       await this.interactiveService.sendTextMessage(
         phone,
-        "🏪 You have no products listed currently. Please add products via the SwiftTrade web dashboard to begin selling. 🛒",
+        "🏪 You have no products listed currently. Please add products via the Swifta web dashboard to begin selling. 🛒",
       );
       return;
     }
@@ -1090,7 +1090,7 @@ export class WhatsAppService {
           msg = `Hello ${name}! 👋\n\nYour account is currently in the *Basic* tier.\n\nCompleting your government ID verification will upgrade your status to *Verified*, offering:\n• Reduced platform fees (1%)\n• Direct customer payments\n• Enhanced profile trust ✅`;
           break;
         case "VERIFIED":
-          msg = `✅ *Verified Merchant Status* — ${name}\n\nYou are currently enjoying:\n• Competitive 1% platform fees\n• Direct customer payments\n• Verified badge on your profile\n\nThank you for choosing SwiftTrade! 💪`;
+          msg = `✅ *Verified Merchant Status* — ${name}\n\nYou are currently enjoying:\n• Competitive 1% platform fees\n• Direct customer payments\n• Verified badge on your profile\n\nThank you for choosing Swifta! 💪`;
           break;
         case "TRUSTED":
           msg = `⭐ *Trusted Merchant Status* — ${name}\n\nYou have achieved the highest trust level! You benefit from minimal fees, featured listings, and a ⭐ Trusted merchant badge.\n\nExcellent work! 🎉`;
@@ -1813,7 +1813,7 @@ export class WhatsAppService {
       // Complete - generate app link or pay stack link
       await this.redisService.del(key);
       const appUrl =
-        this.configService.get("FRONTEND_URL") || "https://swifttrade.com";
+        this.configService.get("FRONTEND_URL") || "https://Swifta.com";
 
       if (paymentMethod === "PAY_NOW") {
         const merchant = await this.prisma.merchantProfile.findUnique({
@@ -2309,7 +2309,7 @@ export class WhatsAppService {
           await this.redisService.del(sessionKey);
           await this.interactiveService.sendTextMessage(
             phone,
-            `✅ *Success!* "${data.name}" is now live on SwiftTrade.`,
+            `✅ *Success!* "${data.name}" is now live on Swifta.`,
           );
           return;
         }

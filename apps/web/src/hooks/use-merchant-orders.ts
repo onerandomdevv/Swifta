@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { getOrders } from "@/lib/api/order.api";
-import type { Order } from "@hardware-os/shared";
+import type { Order } from "@swifta/shared";
 
 export function useMerchantOrders() {
   const { data, isLoading, error } = useQuery({

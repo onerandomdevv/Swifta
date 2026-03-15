@@ -1,5 +1,5 @@
 import { apiClient } from "../api-client";
-import type { Category } from "@hardware-os/shared";
+import type { Category } from "@swifta/shared";
 
 export async function getCategories(): Promise<Category[]> {
   return apiClient.get("/categories");

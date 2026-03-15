@@ -21,7 +21,7 @@ export class UploadService {
 
   async uploadImageToCloudinary(
     file: Express.Multer.File,
-    folder: string = "hardware-os/merchants",
+    folder: string = "swifta/merchants",
   ): Promise<string> {
     return new Promise((resolve, reject) => {
       const upload = cloudinary.uploader.upload_stream(

@@ -1,13 +1,13 @@
 import { PrismaClient } from "@prisma/client";
 import * as bcrypt from "bcrypt";
-import { UserRole } from "@hardware-os/shared";
+import { UserRole } from "@swifta/shared";
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log("🌱 Starting Database Seeding Process...");
 
-  const LEGACY_ADMIN_EMAIL = "admin@swifttrade.ng";
+  const LEGACY_ADMIN_EMAIL = "admin@swifta.store";
   const BOOTSTRAP_ADMIN_EMAIL =
     process.env.ADMIN_BOOTSTRAP_EMAIL || LEGACY_ADMIN_EMAIL;
   const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_BOOTSTRAP_PASSWORD;
@@ -70,7 +70,7 @@ async function main() {
           data: {
             email: BOOTSTRAP_ADMIN_EMAIL,
             phone: "+234000000000",
-            firstName: "HARDWARE",
+            firstName: "Swifta",
             lastName: "Admin",
             passwordHash: passwordHash,
             role: UserRole.SUPER_ADMIN,
@@ -265,9 +265,9 @@ async function main() {
   }
   console.log(`✅ ${associations.length} product associations seeded.`);
 
-  // 3. Seed Sample Building Materials Catalogue
+  // 3. Seed Sample Product Catalogue
   console.log(`\n🏪 Seeding Sample Merchant & Products...`);
-  const DEMO_MERCHANT_EMAIL = "merchant@demo.swifttrade.ng";
+  const DEMO_MERCHANT_EMAIL = "merchant@demo.swifta.store";
   const DEMO_PASSWORD = process.env.DEV_DEMO_MERCHANT_PASSWORD;
 
   let merchantUser = await prisma.user.findUnique({
@@ -286,7 +286,7 @@ async function main() {
         role: UserRole.MERCHANT,
         merchantProfile: {
           create: {
-            businessName: "Demo Building Materials Ltd",
+            businessName: "Demo Swifta Store",
             slug: "demo-building", // Added static slug for demo
             businessAddress: "123 Trade Way, Lagos",
             verificationTier: "BASIC",
@@ -397,7 +397,7 @@ async function main() {
               .toLowerCase()
               .replace(/[^a-z0-9]+/g, "-")
               .substring(0, 10);
-            const pCode = `demo-building-${baseNameSlug}`;
+            const pCode = `demo-${baseNameSlug}`;
 
             if (existing) {
               await tx.product.update({

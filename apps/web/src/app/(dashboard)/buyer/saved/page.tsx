@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getWishlist, toggleWishlist } from "@/lib/api/wishlist.api";
-import { type Product } from "@hardware-os/shared";
+import { type Product } from "@swifta/shared";
 import { ProductCard } from "@/components/shared/product-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
