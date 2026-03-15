@@ -111,12 +111,12 @@ swifta/
 
 - **Monorepo** with Turborepo and pnpm workspaces
 - **Append-only event tables** for inventory tracking (InventoryEvent → ProductStockCache)
-- **All money stored as BigInt** (kobo) — no floating point currency math
+- **All money stored as BigInt** (kobo) — no floating-point currency math
 - **UUID primary keys** everywhere
 - **BullMQ** for async job processing (payouts, notifications, auto-confirmation timers)
-- **JWT authentication** with role-based access control (6 roles: Buyer, Merchant, Supplier, Super Admin, Operator, Support)
+- **JWT authentication** with role-based access control (roles: Buyer, Merchant, Supplier)
 - **Paystack webhook signature verification** on all payment callbacks
-- **WhatsApp function-calling only** — AI can only call predefined functions, never generates free-form responses to users
+- **WhatsApp function-calling only** — AI can call predefined functions, never generates free-form responses to users
 
 ---
 

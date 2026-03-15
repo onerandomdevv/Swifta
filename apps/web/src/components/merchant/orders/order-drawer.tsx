@@ -45,15 +45,19 @@ export function OrderDrawer({
   useEffect(() => {
     if (!orderId) return;
 
-    // Save previous active element
-    const previousActiveElement = document.activeElement as HTMLElement;
-
     setLoading(true);
     setError(null);
     getOrder(orderId)
       .then((data) => setOrder(data as any as Order))
       .catch((err: any) => setError(err?.message || "Failed to load order"))
       .finally(() => setLoading(false));
+  }, [orderId]);
+
+  useEffect(() => {
+    if (!orderId) return;
+
+    // Save previous active element
+    const previousActiveElement = document.activeElement as HTMLElement;
 
     // Focus management & Keyboard handling
     const handleKeyDown = (e: KeyboardEvent) => {
