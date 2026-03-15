@@ -323,14 +323,14 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
       </div>
 
       {/* Tabs */}
-      <div className="mt-10 px-4 md:px-16 border-b border-slate-200 dark:border-slate-800 flex justify-between items-end">
-        <div className="flex gap-8">
+      <div className="mt-10 px-4 md:px-16 border-b border-slate-200 dark:border-slate-800 flex justify-between items-end overflow-x-auto scrollbar-hide">
+        <div className="flex gap-4 sm:gap-8">
           {(['products', 'discounts', 'reviews'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={cn(
-                "pb-4 px-2 font-bold transition-all capitalize flex items-center gap-2 text-sm",
+                "pb-4 px-2 font-bold transition-all capitalize flex items-center gap-2 text-sm whitespace-nowrap",
                 activeTab === tab
                   ? "text-primary border-b-2 border-primary"
                   : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
@@ -347,7 +347,7 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
         </div>
 
         {activeTab === 'products' && (
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-3">
+          <div className="hidden sm:flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-3">
             <button
               onClick={() => setViewMode('grid')}
               className={cn(

@@ -453,6 +453,30 @@ export function CartView({
           </div>
         </aside>
       </div>
+
+      {/* ── Mobile Sticky Checkout Bar ── */}
+      {cartItems.length > 0 && (
+        <div className="fixed bottom-20 left-0 right-0 z-50 lg:hidden bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-3 shadow-lg">
+          <div className="flex items-center justify-between max-w-lg mx-auto">
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total</p>
+              <p className="text-lg font-black text-slate-900 tracking-tight">{formatKobo(totalKobo)}</p>
+            </div>
+            <button
+              onClick={handleCheckout}
+              disabled={isSubmitting || !selectedMerchantId || !isAddressComplete}
+              className={cn(
+                "px-8 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all",
+                !selectedMerchantId || !isAddressComplete
+                  ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                  : "bg-primary text-white shadow-lg shadow-primary/20 active:scale-95"
+              )}
+            >
+              {isSubmitting ? "Processing..." : "Checkout"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
