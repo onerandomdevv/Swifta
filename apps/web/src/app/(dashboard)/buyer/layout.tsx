@@ -16,8 +16,12 @@ export default function BuyerLayout({ children }: { children: ReactNode }) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   useEffect(() => {
-    // Allow any role to view public merchant profiles and product details
-    if (pathname.startsWith("/buyer/merchants/") || pathname.startsWith("/buyer/products/")) {
+    // Allow any role to view public merchant profiles, product details, and the catalogue
+    if (
+      pathname.startsWith("/buyer/merchants/") || 
+      pathname.startsWith("/buyer/products/") ||
+      pathname.startsWith("/buyer/catalogue")
+    ) {
       return;
     }
 
@@ -37,7 +41,7 @@ export default function BuyerLayout({ children }: { children: ReactNode }) {
           router.push("/admin/dashboard");
           break;
         default:
-          router.push("/");
+          router.push("/buyer/catalogue");
       }
     }
   }, [user, router, pathname]);

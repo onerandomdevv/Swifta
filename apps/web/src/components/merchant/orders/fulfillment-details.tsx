@@ -16,7 +16,7 @@ export function FulfillmentDetails({ order }: Props) {
               <span className="material-symbols-outlined text-white text-lg">local_shipping</span>
            </div>
            <h3 className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-widest">
-             Fulfillment Intel
+             Order Details
            </h3>
         </div>
         <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-[10px] font-black text-slate-500 rounded-full uppercase tracking-widest">
@@ -27,7 +27,7 @@ export function FulfillmentDetails({ order }: Props) {
       <div className="p-10 grid grid-cols-1 md:grid-cols-2 gap-10">
         <div className="space-y-1">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            Order Valuation
+            Order Total
           </p>
           <p className="text-4xl font-black text-navy-dark dark:text-white tabular-nums tracking-tighter">
             {formatKobo(order.totalAmountKobo)}
@@ -37,7 +37,7 @@ export function FulfillmentDetails({ order }: Props) {
         
         <div className="space-y-1 md:text-right">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            Logistics Levy
+            Delivery Fee
           </p>
           <p className="text-2xl font-black text-navy-dark dark:text-white tabular-nums tracking-tight">
             {formatKobo(order.deliveryFeeKobo)}
@@ -49,16 +49,16 @@ export function FulfillmentDetails({ order }: Props) {
       <div className="p-10 bg-slate-50/50 dark:bg-slate-800/20 border-t border-slate-50 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-8">
         <div className="flex-1 space-y-2">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            Settlement Protection
+            Payment Protection
           </p>
           <div className="flex items-center gap-2">
             <div className="size-2 rounded-full bg-emerald-500 animate-pulse"></div>
             <p className="text-xs font-black text-navy-dark dark:text-white uppercase tracking-wider">
-              Escrow Governance Active
+              Payment Secured in Escrow
             </p>
           </div>
           <p className="text-[10px] text-slate-500 font-bold leading-relaxed max-w-sm">
-            Liquidity is strictly preserved in our industrial vault. Dispatch to initiate the verification phase.
+            Your payment is held safely in escrow. Funds are released to the merchant once you confirm delivery.
           </p>
         </div>
         

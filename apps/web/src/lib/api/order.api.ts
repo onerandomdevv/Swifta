@@ -59,6 +59,10 @@ export async function getReceipt(id: string): Promise<Order> {
   return apiClient.get(`/orders/${id}/receipt`);
 }
 
+export async function downloadInvoice(id: string): Promise<Blob> {
+  return apiClient.download(`/orders/${id}/invoice`);
+}
+
 export interface CreateDirectOrderData {
   productId: string;
   quantity: number;

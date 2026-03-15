@@ -100,7 +100,7 @@ export function CatalogueGrid({
 
             {/* Short Product Description */}
             <p className="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-3 overflow-hidden">
-              {p.description || "Premium quality supplies for professional construction and industrial hardware needs."}
+              {p.description || "Premium quality products for your professional and home needs."}
             </p>
 
             <div className="mt-auto pt-6">

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { getOrder, addTracking, getTracking } from "@/lib/api/order.api";
+import { getOrder, addTracking, getTracking, downloadInvoice } from "@/lib/api/order.api";
 import { type Order, OrderStatus } from "@hardware-os/shared";
 import { formatKobo } from "@/lib/utils";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -86,11 +86,27 @@ export default function MerchantOrderDetailsPage() {
 
   const isUpdating = trackingMutation.isPending;
 
+  const handleDownloadInvoice = async () => {
+    try {
+      const blob = await downloadInvoice(order?.id as string);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Invoice-${order?.id.slice(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err: any) {
+      console.error("Failed to download invoice:", err);
+    }
+  };
+
   if (loading) {
     return (
       <div className="h-full bg-slate-50 dark:bg-background-dark p-8 flex flex-col items-center justify-center gap-4">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Compiling Execution Data...</p>
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Loading Order Data...</p>
       </div>
     );
   }
@@ -102,14 +118,14 @@ export default function MerchantOrderDetailsPage() {
           <span className="material-symbols-outlined text-4xl text-red-500">terminal_error</span>
         </div>
         <div>
-          <h3 className="text-xl font-black text-navy-dark dark:text-white uppercase tracking-tight">System Interrupt</h3>
+          <h3 className="text-xl font-black text-navy-dark dark:text-white uppercase tracking-tight">Order Error</h3>
           <p className="text-slate-500 max-w-xs mx-auto mt-1">{error}</p>
         </div>
         <button
           onClick={() => router.back()}
           className="px-8 py-3 bg-navy-dark text-white rounded-xl font-black uppercase tracking-widest text-[10px] transition-all hover:scale-105 shadow-lg shadow-navy-dark/20"
         >
-          Return to Registry
+          Return to Orders
         </button>
       </div>
     );
@@ -117,8 +133,9 @@ export default function MerchantOrderDetailsPage() {
 
   if (!order) return null;
 
-  const totalAmount = Number(order.totalAmountKobo) + Number(order.deliveryFeeKobo);
-  const escrowFee = Math.round(totalAmount * 0.012);
+  // totalAmountKobo already includes subtotal + platform fee + delivery fee
+  const totalAmount = Number(order.totalAmountKobo);
+  const escrowFee = Math.round((Number(order.totalAmountKobo) - Number(order.deliveryFeeKobo)) * 0.012);
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-background-dark font-display text-navy-dark dark:text-slate-100 transition-colors duration-300">
@@ -135,9 +152,9 @@ export default function MerchantOrderDetailsPage() {
               </button>
               <div>
                 <h2 className="text-navy-dark dark:text-white text-lg font-black tracking-tighter uppercase leading-none">
-                  SwiftTrade <span className="text-primary italic">Execution</span>
+                  SwiftTrade <span className="text-primary italic">Management</span>
                 </h2>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Order Intelligence Terminal</p>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Order Details View</p>
               </div>
             </div>
             <nav className="hidden lg:flex items-center gap-8">
@@ -152,7 +169,7 @@ export default function MerchantOrderDetailsPage() {
               <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
               <input 
                 className="w-80 bg-slate-100 dark:bg-slate-800 border-none rounded-xl py-2.5 pl-12 pr-6 text-xs font-medium focus:ring-2 focus:ring-primary outline-none text-navy-dark dark:text-white" 
-                placeholder="Scan manifests or TXIDs..."
+                placeholder="Search orders or IDs..."
               />
             </div>
             <div className="flex items-center gap-4">
@@ -174,13 +191,13 @@ export default function MerchantOrderDetailsPage() {
             <aside className="xl:col-span-4 flex flex-col gap-8">
               <div className="bg-white dark:bg-navy-dark border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-8 shadow-sm">
                 <div className="flex flex-col gap-2 mb-8">
-                  <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Protocol Identifier</p>
+                  <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Order ID</p>
                   <h3 className="text-navy-dark dark:text-white text-3xl font-black font-display tracking-tighter uppercase">
                     #{order.id.slice(0, 4).toUpperCase()}<span className="text-primary italic">-{order.id.slice(-4).toUpperCase()}</span>
                   </h3>
                   <div className="flex items-center gap-2 mt-2">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary border border-primary/20">
-                      <span className="size-1.5 rounded-full bg-primary animate-pulse"></span> Industrial Escrow Active
+                      <span className="size-1.5 rounded-full bg-primary animate-pulse"></span> Payment Secured in Escrow
                     </span>
                   </div>
                 </div>
@@ -188,10 +205,10 @@ export default function MerchantOrderDetailsPage() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-4 p-5 rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
                     <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                      <span className="material-symbols-outlined text-2xl font-black">account_balance_wallet</span>
+                      <span className="material-symbols-outlined text-2xl font-black">payments</span>
                     </div>
                     <div>
-                      <p className="text-[9px] text-slate-500 dark:text-slate-400 uppercase font-black tracking-widest">Settlement Value</p>
+                      <p className="text-[9px] text-slate-500 dark:text-slate-400 uppercase font-black tracking-widest">Sales Value</p>
                       <p className="text-navy-dark dark:text-white text-2xl font-black tabular-nums tracking-tighter">
                         {formatKobo(totalAmount)}
                       </p>
@@ -205,8 +222,8 @@ export default function MerchantOrderDetailsPage() {
                   </button>
 
                   <button className="w-full flex items-center gap-4 p-5 rounded-3xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border border-transparent text-left">
-                    <span className="material-symbols-outlined text-slate-400 text-2xl">gavel</span>
-                    <p className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-300 flex-1">Platform Contract Terms</p>
+                    <span className="material-symbols-outlined text-slate-400 text-2xl">description</span>
+                    <p className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-300 flex-1">General Sales Terms</p>
                     <span className="material-symbols-outlined text-slate-300">chevron_right</span>
                   </button>
                 </div>
@@ -215,8 +232,8 @@ export default function MerchantOrderDetailsPage() {
                   onClick={() => router.push(`/merchant/orders/${order.id}/dispatch-slip`)}
                   className="w-full mt-10 py-5 bg-primary text-navy-dark rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 hover:opacity-90 transition-all shadow-xl shadow-primary/20"
                 >
-                  <span className="material-symbols-outlined text-xl">description</span>
-                  Generate Dispatch Manifest
+                  <span className="material-symbols-outlined text-xl">local_shipping</span>
+                  Generate Shipping Slip
                 </button>
               </div>
 
@@ -224,8 +241,8 @@ export default function MerchantOrderDetailsPage() {
               <div className="bg-white dark:bg-navy-dark border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-8 shadow-sm">
                 <div className="flex items-center justify-between mb-8">
                   <h3 className="text-navy-dark dark:text-white text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary text-lg">terminal</span>
-                    System Logs
+                    <span className="material-symbols-outlined text-primary text-lg">history</span>
+                    Order Timeline
                   </h3>
                   <div className="size-2 rounded-full bg-primary animate-pulse shadow-[0_0_10px_#00D084]"></div>
                 </div>
@@ -247,8 +264,8 @@ export default function MerchantOrderDetailsPage() {
                   ) : (
                     <div className="relative pl-10">
                       <div className="absolute left-0 top-1.5 size-2 rounded-full bg-primary border-4 border-white dark:border-navy-dark shadow-sm"></div>
-                      <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Initialization</p>
-                      <p className="text-[11px] font-bold text-navy-dark dark:text-slate-200 mt-1 uppercase">Genesis Log Recorded</p>
+                      <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Placed</p>
+                      <p className="text-[11px] font-bold text-navy-dark dark:text-slate-200 mt-1 uppercase">Order received</p>
                     </div>
                   )}
                   {/* Future Step Placeholder */}
@@ -273,10 +290,10 @@ export default function MerchantOrderDetailsPage() {
                 <div className="flex items-center justify-between mb-12 relative z-10">
                   <div>
                     <h2 className="text-navy-dark dark:text-white text-3xl font-black flex items-center gap-3 tracking-tighter uppercase font-display">
-                      <span className="material-symbols-outlined text-primary text-3xl">analytics</span>
-                      Lifecycle <span className="text-primary italic">Status</span>
+                      <span className="material-symbols-outlined text-primary text-3xl">local_shipping</span>
+                      Order <span className="text-primary italic">Status</span>
                     </h2>
-                    <p className="text-[10px] font-black text-slate-400 tracking-widest uppercase mt-2">Real-time logistics monitoring active</p>
+                    <p className="text-[10px] font-black text-slate-400 tracking-widest uppercase mt-2">Live tracking for this shipment</p>
                   </div>
                   <StatusBadge status={order.status} className="px-6 py-3 text-[10px] tracking-widest border-2" />
                 </div>
@@ -298,9 +315,9 @@ export default function MerchantOrderDetailsPage() {
                   {/* Steps */}
                   {[
                     { label: "Confirmed", status: OrderStatus.PAID, icon: "check_circle" },
-                    { label: "Preparation", status: OrderStatus.PREPARING, icon: "manufacturing" },
+                    { label: "Packaging", status: OrderStatus.PREPARING, icon: "package_2" },
                     { label: "In Transit", status: OrderStatus.DISPATCHED, icon: "local_shipping" },
-                    { label: "Fulfilled", status: "COMPLETED", icon: "task_alt" }
+                    { label: "Delivered", status: "COMPLETED", icon: "task_alt" }
                   ].map((step, idx) => {
                     const isCompleted = trackingEvents.some(e => e.toStatus === step.status) || (idx === 0);
                     const isActive = order.status === step.status;
@@ -389,11 +406,14 @@ export default function MerchantOrderDetailsPage() {
               <div className="bg-white dark:bg-navy-dark border border-slate-100 dark:border-slate-800 rounded-[3rem] overflow-hidden shadow-sm">
                 <div className="px-10 py-8 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
                   <div>
-                    <h3 className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-[0.2em]">Procurement Manifest</h3>
-                    <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mt-1">Line item specifications and unit appraisal</p>
+                    <h3 className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-[0.2em]">Order Details</h3>
+                    <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mt-1">List of items purchased in this order</p>
                   </div>
-                  <button className="text-[10px] font-black px-6 py-3 bg-white dark:bg-navy-dark border border-slate-200 dark:border-slate-800 text-navy-dark dark:text-white rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 uppercase tracking-widest transition-all">
-                    Export Manifest
+                  <button 
+                    onClick={handleDownloadInvoice}
+                    className="text-[10px] font-black px-6 py-3 bg-white dark:bg-navy-dark border border-slate-200 dark:border-slate-800 text-navy-dark dark:text-white rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 uppercase tracking-widest transition-all"
+                  >
+                    Download Invoice
                   </button>
                 </div>
                 
@@ -401,10 +421,10 @@ export default function MerchantOrderDetailsPage() {
                   <table className="w-full text-left">
                     <thead>
                       <tr className="text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
-                        <th className="pb-5 px-4 font-black">Apparatus Description</th>
+                        <th className="pb-5 px-4 font-black">Item Name</th>
                         <th className="pb-5 px-4 text-center font-black">Quantity</th>
-                        <th className="pb-5 px-4 text-right font-black">Unit Valuation</th>
-                        <th className="pb-5 px-4 text-right font-black">Extended Price</th>
+                        <th className="pb-5 px-4 text-right font-black">Unit Price</th>
+                        <th className="pb-5 px-4 text-right font-black">Total</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
@@ -421,17 +441,7 @@ export default function MerchantOrderDetailsPage() {
                             unitPrice: item.unitPriceKobo,
                           })));
                         } 
-                        // Case 2: RFQ/Quote (Through order.quote.rfq)
-                        else if ((order as any).quote?.rfq) {
-                          const rfq = (order as any).quote.rfq;
-                          items.push({
-                            name: rfq.product?.name || rfq.unlistedItemDetails?.name || "Premium RFQ Item",
-                            sku: `ST-${rfq.id.slice(0, 5)}-RFQ`,
-                            quantity: rfq.quantity,
-                            unitPrice: (order as any).quote.unitPriceKobo,
-                          });
-                        }
-                        // Case 3: Direct Order (Single product)
+                        // Case 2: Direct Order (Single product)
                         else if ((order as any).product) {
                           items.push({
                             name: (order as any).product.name,
@@ -483,19 +493,19 @@ export default function MerchantOrderDetailsPage() {
                     </tbody>
                     <tfoot>
                       <tr>
-                        <td className="pt-10 pb-2 px-4 text-right text-slate-400 font-black text-[9px] uppercase tracking-widest" colSpan={3}>Subtotal Valuation</td>
+                        <td className="pt-10 pb-2 px-4 text-right text-slate-400 font-black text-[9px] uppercase tracking-widest" colSpan={3}>Subtotal</td>
                         <td className="pt-10 pb-2 px-4 text-right font-black text-navy-dark dark:text-white tabular-nums">{formatKobo(order.totalAmountKobo)}</td>
                       </tr>
                       <tr>
-                        <td className="py-1 px-4 text-right text-slate-400 font-black text-[9px] uppercase tracking-widest" colSpan={3}>Infrastructure Logistics</td>
+                        <td className="py-1 px-4 text-right text-slate-400 font-black text-[9px] uppercase tracking-widest" colSpan={3}>Shipping Fee</td>
                         <td className="py-1 px-4 text-right font-black text-navy-dark dark:text-white tabular-nums">{formatKobo(order.deliveryFeeKobo)}</td>
                       </tr>
                       <tr>
-                        <td className="py-1 px-4 text-right text-slate-400 font-black text-[9px] uppercase tracking-widest" colSpan={3}>Escrow Security (1.2%)</td>
+                        <td className="py-1 px-4 text-right text-slate-400 font-black text-[9px] uppercase tracking-widest" colSpan={3}>Escrow Fee (1.2%)</td>
                         <td className="py-1 px-4 text-right font-black text-navy-dark dark:text-white tabular-nums">{formatKobo(escrowFee)}</td>
                       </tr>
                       <tr>
-                        <td className="pt-8 pb-4 px-4 text-right text-navy-dark dark:text-white font-black uppercase text-[11px] tracking-[0.2em]" colSpan={3}>Cumulative Execution Value</td>
+                        <td className="pt-8 pb-4 px-4 text-right text-navy-dark dark:text-white font-black uppercase text-[11px] tracking-[0.2em]" colSpan={3}>Total Payment</td>
                         <td className="pt-8 pb-4 px-4 text-right font-black text-primary text-3xl tabular-nums tracking-tighter">
                           {formatKobo(totalAmount + escrowFee)}
                         </td>
@@ -510,18 +520,18 @@ export default function MerchantOrderDetailsPage() {
                 <div className="absolute left-0 top-0 size-40 bg-primary opacity-5 rounded-full -translate-x-1/2 -translate-y-1/2"></div>
                 
                 <div className="size-24 rounded-full border-8 border-primary/20 bg-white dark:bg-navy-dark flex items-center justify-center shrink-0 shadow-xl group-hover:scale-110 transition-transform duration-500">
-                  <span className="text-3xl font-black text-primary">A+</span>
+                  <span className="text-3xl font-black text-primary">Safe</span>
                 </div>
                 <div className="flex-1 text-center md:text-left relative z-10">
-                  <h4 className="font-black text-navy-dark dark:text-white uppercase tracking-[0.2em] text-lg">Transactional Health: <span className="text-primary italic">Optimal</span></h4>
+                  <h4 className="font-black text-navy-dark dark:text-white uppercase tracking-[0.2em] text-lg">Order Security: <span className="text-primary italic">Verified</span></h4>
                   <p className="text-sm font-medium text-slate-600 dark:text-slate-400 leading-relaxed max-w-xl mt-2">
-                    Infrastructure funds are verified in multi-sig escrow. System validates 99.8% merchant fulfill rate. Risk parameters cleared through platform audit.
+                    Payment is held securely in escrow and will only be released after the buyer confirms delivery. Our system ensures a safe trading environment for everyone.
                   </p>
                 </div>
                 <div className="flex gap-4 shrink-0 relative z-10">
                   <div className="px-8 py-4 bg-white dark:bg-navy-dark rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
-                    <p className="text-[9px] uppercase font-black text-slate-400 tracking-widest">Release Protocol</p>
-                    <p className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-tight mt-1">T+2 Cycles</p>
+                    <p className="text-[9px] uppercase font-black text-slate-400 tracking-widest">Release Time</p>
+                    <p className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-tight mt-1">Instant</p>
                   </div>
                 </div>
               </div>

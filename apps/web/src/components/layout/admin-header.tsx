@@ -33,7 +33,7 @@ export function AdminHeader({ onMenuClick }: { onMenuClick?: () => void }) {
         </div>
 
         <div className="md:hidden text-lg font-black text-primary uppercase tracking-tight leading-none">
-          SwiftTrade
+          Swifta
         </div>
       </div>
 

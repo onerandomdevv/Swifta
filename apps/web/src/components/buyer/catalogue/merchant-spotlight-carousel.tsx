@@ -13,52 +13,41 @@ interface Props {
 
 export function MerchantSpotlightCarousel({ merchants, loading }: Props) {
   // Sort by averageRating descending and take the top 8
-  const topMerchants = [...merchants]
-    .filter((m) => m.averageRating && m.averageRating > 0)
+  const displayMerchants = [...merchants]
     .sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0))
     .slice(0, 8);
-
-  // If no rated merchants exist, show all sorted by reviewCount
-  const displayMerchants =
-    topMerchants.length > 0
-      ? topMerchants
-      : [...merchants]
-          .sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0))
-          .slice(0, 8);
 
   if (displayMerchants.length === 0 && !loading) return null;
 
   return (
-    <section className="space-y-3">
+    <section className="space-y-6 font-display">
       <div className="flex items-center justify-between">
-        <h2 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white tracking-tight">
-          Top Merchants This Week
+        <h2 className="text-xl font-bold flex items-center gap-2 text-slate-900 dark:text-white">
+          Merchant Spotlight
         </h2>
         <Link
           href="/buyer/merchants"
-          className="text-[10px] font-bold text-primary uppercase tracking-widest hover:underline underline-offset-4"
+          className="text-sm font-bold text-primary hover:underline underline-offset-4"
         >
-          See All
+          Explore All
         </Link>
       </div>
 
-      <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 scroll-smooth no-scrollbar">
+      <div className="flex gap-6 overflow-x-auto pb-4 px-2 scroll-smooth no-scrollbar">
         {loading
           ? Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className="shrink-0 w-[180px] sm:w-[200px] h-[100px] sm:h-[110px] bg-slate-100 dark:bg-slate-800 rounded-2xl animate-pulse"
+                className="shrink-0 w-44 h-48 bg-slate-100 dark:bg-slate-800 rounded-2xl animate-pulse"
               />
             ))
           : displayMerchants.map((m) => (
-              <Link
+              <div
                 key={m.id}
-                href={`/buyer/merchants/${m.id}`}
-                className="shrink-0 w-[180px] sm:w-[200px] bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl p-3 sm:p-4 hover:border-primary hover:shadow-md hover:shadow-primary/5 transition-all group"
+                className="shrink-0 w-44 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm text-center flex flex-col group"
               >
-                <div className="flex items-center gap-2.5">
-                  {/* Avatar */}
-                  <div className="size-10 sm:size-11 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden shrink-0 ring-2 ring-slate-200 dark:ring-slate-600 group-hover:ring-primary transition-all">
+                <div className="relative size-16 mx-auto mb-3">
+                  <div className="size-full rounded-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 overflow-hidden transition-all group-hover:border-primary">
                     {m.profileImage ? (
                       <img
                         src={m.profileImage}
@@ -67,48 +56,28 @@ export function MerchantSpotlightCarousel({ merchants, loading }: Props) {
                       />
                     ) : (
                       <div className="size-full flex items-center justify-center">
-                        <span className="material-symbols-outlined text-slate-400 text-lg">
-                          storefront
+                        <span className="material-symbols-outlined text-slate-300 text-2xl">
+                          store
                         </span>
                       </div>
                     )}
                   </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1">
-                      <span className="text-[11px] sm:text-xs font-black text-slate-900 dark:text-white truncate leading-tight">
-                        {m.businessName}
-                      </span>
-                      <div className="shrink-0 scale-75 origin-left">
-                        <VerificationBadge
-                          tier={m.verificationTier as any}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Rating */}
-                    <div className="flex items-center gap-1 mt-1">
-                      <span className="text-amber-500 text-[10px]">⭐</span>
-                      <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">
-                        {(m.averageRating || 0).toFixed(1)}
-                      </span>
-                      <span className="text-[9px] text-slate-400">
-                        ({m.reviewCount || 0} reviews)
-                      </span>
-                    </div>
+                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-primary text-[8px] text-white font-bold px-2 py-0.5 rounded-full border-2 border-white dark:border-slate-900 shadow-sm">
+                    LIVE
                   </div>
                 </div>
 
-                {/* Verified tag */}
-                {m.verificationTier !== "UNVERIFIED" && (
-                  <div className="mt-2.5 flex items-center gap-1 text-[9px] font-bold text-primary uppercase tracking-wider">
-                    <span className="material-symbols-outlined text-[12px]">
-                      verified
-                    </span>
-                    Verified Merchant
-                  </div>
-                )}
-              </Link>
+                <div className="flex-1 min-w-0 mb-3 mt-1">
+                  <h3 className="font-bold text-xs truncate text-slate-900 dark:text-white leading-tight">{m.businessName}</h3>
+                </div>
+
+                <Link
+                  href={`/buyer/merchants/${m.id}`}
+                  className="w-full py-1.5 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 transition-all active:scale-95"
+                >
+                  Visit Store
+                </Link>
+              </div>
             ))}
       </div>
     </section>

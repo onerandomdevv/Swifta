@@ -6,7 +6,7 @@ import { productApi } from "@/lib/api/product.api";
 import { getMerchantReviews } from "@/lib/api/review.api";
 import type { Product, Review } from "@hardware-os/shared";
 import { toast } from "sonner";
-import { cn, formatKobo } from "@/lib/utils";
+import { cn, formatKobo, optimizeCloudinaryUrl } from "@/lib/utils";
 
 interface MerchantProductDetailViewProps {
   productId: string;
@@ -137,7 +137,7 @@ export function MerchantProductDetailView({ productId }: MerchantProductDetailVi
             <div className="lg:col-span-5 space-y-4">
               <div className="aspect-square bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
                 {product.imageUrl ? (
-                  <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                  <img src={optimizeCloudinaryUrl(product.imageUrl, 800)} alt={product.name} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800">
                     <span className="material-symbols-outlined text-6xl text-slate-300">inventory_2</span>
@@ -146,7 +146,7 @@ export function MerchantProductDetailView({ productId }: MerchantProductDetailVi
               </div>
               <div className="grid grid-cols-4 gap-4">
                 <div className="aspect-square rounded-xl border-2 border-primary overflow-hidden cursor-pointer ring-2 ring-primary/20 bg-white shadow-sm">
-                   {product.imageUrl && <img src={product.imageUrl} alt="Thumbnail" className="w-full h-full object-cover" />}
+                   {product.imageUrl && <img src={optimizeCloudinaryUrl(product.imageUrl, 150)} alt="Thumbnail" className="w-full h-full object-cover" />}
                 </div>
                 <div className="aspect-square rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 flex items-center justify-center cursor-pointer opacity-70 hover:opacity-100 transition-opacity">
                   <span className="material-symbols-outlined text-slate-400">add_photo_alternate</span>

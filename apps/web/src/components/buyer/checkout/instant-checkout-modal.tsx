@@ -2,21 +2,20 @@
 
 import React, { useState, useEffect } from "react";
 import { Modal } from "@/components/ui/modal";
-import { Button } from "@/components/ui/button";
 import { createDirectOrder } from "@/lib/api/order.api";
 import { toast } from "sonner";
 import { StateLgaSelector } from "@/components/ui/state-lga-selector";
+import { cn, formatKobo, optimizeCloudinaryUrl } from "@/lib/utils";
 import type { Product, MerchantProfile } from "@hardware-os/shared";
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   product: Product;
-  merchant: MerchantProfile;
+  merchant?: Partial<MerchantProfile>;
 }
 
 export function InstantCheckoutModal({ isOpen, onClose, product, merchant }: Props) {
-  // Determine available price types
   const hasRetail = !!product.retailPriceKobo;
   const hasWholesale = !!product.wholesalePriceKobo;
   
@@ -29,14 +28,29 @@ export function InstantCheckoutModal({ isOpen, onClose, product, merchant }: Pro
   const [deliveryState, setDeliveryState] = useState("");
   const [deliveryStreet, setDeliveryStreet] = useState("");
   const [primaryPhone, setPrimaryPhone] = useState("");
-  const [altPhone, setAltPhone] = useState("");
-  const [busStop, setBusStop] = useState("");
-  const [showOptionalFields, setShowOptionalFields] = useState(false);
-
-  const [deliveryMethod, setDeliveryMethod] = useState<"PLATFORM_LOGISTICS" | "MERCHANT_DELIVERY">("PLATFORM_LOGISTICS");
+  const [paymentMethod, setPaymentMethod] = useState<"Paystack" | "Transfer" | "Escrow">("Escrow");
+  const [deliveryMethod, setDeliveryMethod] = useState<"PLATFORM_LOGISTICS" | "MERCHANT_DELIVERY">("MERCHANT_DELIVERY");
+  const [discountCode, setDiscountCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
-  // Update quantity whenever purchase type changes
+  // Constants
+  const minQty = purchaseType === "RETAIL" ? (product.minOrderQuantityConsumer || 1) : (product.minOrderQuantity || 1);
+  const unitPriceKobo = purchaseType === "RETAIL" 
+    ? Number(product.retailPriceKobo || 0) 
+    : Number(product.wholesalePriceKobo || 0);
+
+  const deliveryFeeKobo = deliveryMethod === "PLATFORM_LOGISTICS" ? 250000 : 0; // ₦2,500 if platform, ₦0 if merchant
+  const subtotalKobo = unitPriceKobo * quantity;
+  
+  const isVerifiedMerchant = merchant?.verificationTier === "VERIFIED" || merchant?.verificationTier === "TRUSTED";
+  const isDirect = paymentMethod !== "Escrow";
+  const feePercentage = (isVerifiedMerchant && isDirect) ? 0.01 : 0.02;
+  const platformFeeKobo = Math.floor(subtotalKobo * feePercentage);
+  const totalPayableKobo = subtotalKobo + deliveryFeeKobo + platformFeeKobo;
+
+  const isAddressComplete = !!(deliveryState && deliveryLga && deliveryStreet.trim() && primaryPhone.trim());
+
   useEffect(() => {
     if (purchaseType === "RETAIL") {
       setQuantity(Math.max(1, product.minOrderQuantityConsumer || 1));
@@ -45,338 +59,421 @@ export function InstantCheckoutModal({ isOpen, onClose, product, merchant }: Pro
     }
   }, [purchaseType, product]);
 
-  const minQty = purchaseType === "RETAIL" ? (product.minOrderQuantityConsumer || 1) : (product.minOrderQuantity || 1);
-  const unitPrice = purchaseType === "RETAIL" 
-    ? Number(product.retailPriceKobo || 0) 
-    : Number(product.wholesalePriceKobo || 0);
-    
-  const totalCost = (unitPrice * quantity) / 100;
+  useEffect(() => {
+    if (!isOpen) {
+      setLoading(false);
+      setIsRedirecting(false);
+    }
+  }, [isOpen]);
+
+
+  if (isRedirecting) {
+    return (
+      <Modal isOpen={isOpen} onClose={onClose} title="">
+        <div className="py-20 flex flex-col items-center justify-center text-center animate-in fade-in duration-500">
+          <div className="relative h-24 w-24 mb-8 flex items-center justify-center">
+            <div className="absolute inset-0 border-4 border-emerald-100 border-t-emerald-500 rounded-full animate-spin" />
+            <span className="material-symbols-outlined text-4xl text-emerald-600">lock</span>
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Secure Connection</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm max-w-[280px] leading-relaxed">
+            Please wait while we securely connect you to Paystack for payment processing...
+          </p>
+          <div className="mt-10 w-48 bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+            <div className="bg-emerald-500 h-full w-1/3 animate-[slide_2s_ease-in-out_infinite]" />
+          </div>
+          <style jsx>{`
+            @keyframes slide {
+              0% { transform: translateX(-100%); }
+              100% { transform: translateX(300%); }
+            }
+          `}</style>
+        </div>
+      </Modal>
+    );
+  }
+
 
   const handleCheckout = async () => {
     if (quantity < minQty) {
       toast.error(`Minimum order quantity for this tier is ${minQty} ${product.unit}`);
       return;
     }
-    if (!deliveryState || !deliveryLga || !deliveryStreet.trim() || !primaryPhone.trim()) {
-      toast.error("Please provide complete delivery details including your phone number.");
+
+    if (!deliveryState) {
+      toast.error("Please select a State.");
+      return;
+    }
+    if (!deliveryLga) {
+      toast.error("Please select an LGA.");
+      return;
+    }
+    if (!deliveryStreet.trim()) {
+      toast.error("Please enter a street address.");
+      return;
+    }
+    if (!primaryPhone.trim()) {
+      toast.error("Please enter a phone number.");
       return;
     }
 
-    // Retain legacy string for backward compatibility
-    let fullDeliveryAddress = `${deliveryStreet.trim()}, ${deliveryLga}, ${deliveryState}`;
-    if (busStop.trim()) fullDeliveryAddress += ` (Nearest Bus Stop: ${busStop.trim()})`;
-
-    // New V5 Structured JSON payload
-    const deliveryDetails = {
-      state: deliveryState,
-      lga: deliveryLga,
-      street: deliveryStreet.trim(),
-      busStop: busStop.trim() || undefined,
-      primaryPhone: primaryPhone.trim(),
-      altPhone: altPhone.trim() || undefined,
-    };
-
+    const fullDeliveryAddress = `${deliveryStreet.trim()}, ${deliveryLga}, ${deliveryState}`;
+    
     try {
       setLoading(true);
-      const res = await createDirectOrder({
+      const result = await createDirectOrder({
         productId: product.id,
         quantity,
         deliveryAddress: fullDeliveryAddress,
-        deliveryDetails,
-        paymentMethod: "ESCROW",
+        deliveryDetails: {
+          state: deliveryState,
+          lga: deliveryLga,
+          street: deliveryStreet.trim(),
+          primaryPhone: primaryPhone.trim(),
+        },
+        paymentMethod: isDirect ? "DIRECT" : "ESCROW",
         deliveryMethod,
-        priceType: purchaseType as any,
       });
-      
-      toast.success("Order Created! Redirecting to payment...");
-      if (res.authorizationUrl) {
-        window.location.href = res.authorizationUrl;
+
+      if (result.authorizationUrl) {
+        setIsRedirecting(true);
+        window.location.href = result.authorizationUrl;
       } else {
-        onClose();
-        window.location.href = `/buyer/orders/${res.orderId}`;
+        toast.success("Order placed successfully!");
+        window.location.href = "/buyer/orders";
       }
     } catch (err: any) {
-      toast.error(err.message || "Checkout failed.");
+      const msg = err?.error || err?.message || "Checkout failed.";
+      toast.error(msg);
       setLoading(false);
     }
   };
 
   return (
-    <Modal 
-      isOpen={isOpen} 
-      onClose={onClose} 
-      title="Terminal Checkout" 
-      className="max-w-xl bg-white dark:bg-navy-dark border-none shadow-2xl overflow-hidden"
-    >
-      <div className="space-y-8 pb-4">
-        {/* Pricing Tier Selection - Premium Sliding Pill */}
-        <div className="bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-[2rem] flex gap-2 relative border border-slate-200/50 dark:border-slate-700/50 shadow-inner">
-          <button
-            onClick={() => setPurchaseType("RETAIL")}
-            disabled={!hasRetail}
-            className={`flex-1 py-3.5 rounded-[1.75rem] text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-500 ${
-              purchaseType === "RETAIL" 
-                ? "bg-white text-primary shadow-2xl dark:bg-slate-700 dark:text-white" 
-                : "text-slate-400 hover:text-slate-600 dark:text-slate-500"
-            } ${!hasRetail && "opacity-20 cursor-not-allowed"}`}
-          >
-            Retail Unit
-          </button>
-          <button
-            onClick={() => setPurchaseType("WHOLESALE")}
-            disabled={!hasWholesale}
-            className={`flex-1 py-3.5 rounded-[1.75rem] text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-500 ${
-              purchaseType === "WHOLESALE" 
-                ? "bg-primary text-white shadow-2xl shadow-primary/40" 
-                : "text-slate-400 hover:text-slate-600 dark:text-slate-500"
-            } ${!hasWholesale && "opacity-20 cursor-not-allowed"}`}
-          >
-            Wholesale Bulk
-          </button>
-        </div>
-
-        {/* Product Synopsis - Glassmorphic */}
-        <div className="relative group overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent dark:from-primary/10 opacity-50 rounded-[2.5rem]" />
-          <div className="relative flex items-center gap-6 p-6 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-[2.5rem]">
-            <div className="size-20 rounded-3xl overflow-hidden bg-slate-800 shrink-0 p-3 shadow-2xl ring-4 ring-white/10">
-              {product.imageUrl ? (
-                <img src={product.imageUrl} alt={product.name} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
-              ) : (
-                <span className="material-symbols-outlined text-slate-300 text-3xl">inventory_2</span>
-              )}
+    <Modal isOpen={isOpen} onClose={onClose} hideHeader className="max-w-[520px] p-0 rounded-2xl">
+        
+        {/* Header Section */}
+        <header className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center size-10 rounded-full bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400">
+              <span className="material-symbols-outlined text-[24px]">bolt</span>
             </div>
-            <div className="overflow-hidden space-y-1">
-              <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Manifest Item</p>
-              <h4 className="text-xl font-black text-navy-dark dark:text-white leading-none tracking-tighter truncate">
-                {product.name}
-              </h4>
-              <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
-                {(unitPrice / 100).toLocaleString("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 })} <span className="text-[10px] uppercase tracking-widest opacity-60">Per {product.unit}</span>
-              </p>
+            <div>
+              <h1 className="text-xl font-bold text-slate-900 dark:text-white leading-tight">Instant Checkout</h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Secure & fast transaction</p>
             </div>
           </div>
-        </div>
+        </header>
 
-        {/* Quantity Selection - Tactile Controls */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between px-2">
-            <label className="text-[10px] font-black text-navy-dark dark:text-white uppercase tracking-[0.25em]">
-              Quantity Required
-            </label>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">
-              Min: {minQty} {product.unit}
-            </span>
-          </div>
-          <div className="flex bg-slate-100/50 dark:bg-slate-900/50 rounded-[2.25rem] border border-slate-200/50 dark:border-slate-800/50 items-center justify-between p-2.5">
-            <button 
-              onClick={() => setQuantity(Math.max(minQty, quantity - 1))}
-              className="size-14 bg-white dark:bg-slate-800 rounded-[1.5rem] shadow-xl border border-slate-100 dark:border-slate-700 flex items-center justify-center text-primary/70 hover:text-primary transition-all active:scale-90"
-            >
-              <span className="material-symbols-outlined text-2xl font-black">remove</span>
-            </button>
-            <div className="flex flex-col items-center">
-              <input 
-                type="number" 
-                value={quantity}
-                onChange={(e) => setQuantity(Math.max(minQty, parseInt(e.target.value) || minQty))}
-                className="w-24 text-center bg-transparent font-black text-3xl text-navy-dark dark:text-white outline-none font-display h-8"
-              />
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">{product.unit}</span>
+        <div className="p-6 space-y-6">
+          
+          {/* Your Order */}
+          <section>
+             <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[11px] font-bold tracking-widest text-slate-400 dark:text-slate-500 uppercase">Your Order</h3>
             </div>
-            <button 
-              onClick={() => setQuantity(quantity + 1)}
-              className="size-14 bg-white dark:bg-slate-800 rounded-[1.5rem] shadow-xl border border-slate-100 dark:border-slate-700 flex items-center justify-center text-primary/70 hover:text-primary transition-all active:scale-90"
-            >
-              <span className="material-symbols-outlined text-2xl font-black">add</span>
-            </button>
-          </div>
-          {quantity < minQty && (
-            <div className="flex items-center gap-2 text-[10px] font-black text-red-500 uppercase tracking-widest px-4">
-              <span className="material-symbols-outlined text-sm">warning</span>
-              Compliance error: Minimum requirement is {minQty} {product.unit}
-            </div>
-          )}
-        </div>
-
-        {/* Address and Delivery Method block */}
-        <div className="space-y-6">
-          <div className="flex items-center gap-4">
-             <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800" />
-             <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em]">
-               Logistics Protocol
-             </label>
-             <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-             <button
-              onClick={() => setDeliveryMethod("PLATFORM_LOGISTICS")}
-              className={`p-4 rounded-[1.75rem] border-2 transition-all duration-500 flex flex-col items-center gap-2 group ${
-                deliveryMethod === "PLATFORM_LOGISTICS" 
-                  ? "border-primary bg-primary/5 text-primary shadow-xl shadow-primary/5" 
-                  : "border-slate-100 dark:border-slate-800 text-slate-400 hover:border-slate-200 dark:hover:border-slate-700"
-              }`}
-            >
-              <div className={`size-10 rounded-2xl flex items-center justify-center transition-colors ${deliveryMethod === "PLATFORM_LOGISTICS" ? "bg-primary text-white" : "bg-slate-100 dark:bg-slate-800 group-hover:bg-slate-200"}`}>
-                <span className="material-symbols-outlined text-xl">local_shipping</span>
+            <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 flex items-center gap-4">
+              <div className="size-20 rounded-xl overflow-hidden shrink-0 border border-slate-200 dark:border-slate-700 bg-white flex items-center justify-center">
+                 {product.imageUrl ? (
+                    <img src={optimizeCloudinaryUrl(product.imageUrl, 200)} alt={product.name} className="w-full h-full object-cover" />
+                 ) : (
+                    <div className="flex flex-col items-center gap-1 text-slate-300">
+                      <span className="material-symbols-outlined text-2xl font-variation-light">inventory_2</span>
+                      <span className="text-[7px] font-black uppercase tracking-widest">No Image</span>
+                    </div>
+                 )}
               </div>
-              <div className="text-center">
-                <span className="text-[10px] font-black uppercase tracking-widest block">Swift Route</span>
-                <span className="text-[9px] font-bold opacity-60">Verified Logistics</span>
+              <div className="flex-1 min-w-0">
+                 <div className="flex justify-between items-start gap-2 mb-2">
+                    <div className="min-w-0">
+                       <p className="font-bold text-sm text-slate-900 dark:text-white leading-tight truncate">{product.name}</p>
+                       {merchant && (
+                         <p className="text-[10px] text-slate-500 font-medium mt-0.5 truncate">Sold by {merchant.businessName}</p>
+                       )}
+                    </div>
+                    <p className="text-sm font-bold text-slate-900 dark:text-white shrink-0">{formatKobo(subtotalKobo)}</p>
+                 </div>
+                 <div className="flex items-center justify-between">
+                    <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden w-fit">
+                       <button onClick={() => setQuantity(Math.max(minQty, quantity - 1))} className="size-7 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 border-r border-slate-200 dark:border-slate-700 text-slate-500 transition-colors">-</button>
+                       <span className="px-3 py-1 text-[10px] font-bold font-mono">{quantity}</span>
+                       <button onClick={() => setQuantity(quantity + 1)} className="size-7 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 border-l border-slate-200 dark:border-slate-700 text-slate-500 transition-colors">+</button>
+                    </div>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{formatKobo(unitPriceKobo)} / {product.unit}</p>
+                 </div>
               </div>
-             </button>
-             <button
-              onClick={() => setDeliveryMethod("MERCHANT_DELIVERY")}
-              className={`p-4 rounded-[1.75rem] border-2 transition-all duration-500 flex flex-col items-center gap-2 group ${
-                deliveryMethod === "MERCHANT_DELIVERY" 
-                  ? "border-amber-500 bg-amber-500/5 text-amber-500 shadow-xl shadow-amber-500/5" 
-                  : "border-slate-100 dark:border-slate-800 text-slate-400 hover:border-slate-200 dark:hover:border-slate-700"
-              }`}
-            >
-              <div className={`size-10 rounded-2xl flex items-center justify-center transition-colors ${deliveryMethod === "MERCHANT_DELIVERY" ? "bg-amber-500 text-white" : "bg-slate-100 dark:bg-slate-800 group-hover:bg-slate-200"}`}>
-                <span className="material-symbols-outlined text-xl">storefront</span>
-              </div>
-              <div className="text-center">
-                <span className="text-[10px] font-black uppercase tracking-widest block">Direct Origin</span>
-                <span className="text-[9px] font-bold opacity-60">Merchant Route</span>
-              </div>
-             </button>
-          </div>
-
-          {deliveryMethod === "MERCHANT_DELIVERY" && (
-            <div className="bg-amber-50/50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50 p-4 rounded-3xl flex gap-4 text-amber-700 dark:text-amber-400 items-start animate-in slide-in-from-top-4 duration-500">
-              <span className="material-symbols-outlined text-xl shrink-0">security</span>
-              <p className="text-[11px] leading-relaxed font-bold uppercase tracking-tight opacity-80">
-                You have bypassed SwiftTrade high-speed logistics. Escrow remains active for capital safety, but merchant assumes transit liability.
-              </p>
             </div>
-          )}
+          </section>
 
-          <div className="space-y-4">
-            <div className="flex items-center gap-4 mb-2">
-               <label className="text-[10px] font-black text-navy-dark dark:text-white uppercase tracking-[0.3em]">Destiniation</label>
-               <div className="h-px flex-1 bg-slate-50 dark:bg-slate-800/50" />
+          {/* Delivery Address */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[11px] font-bold tracking-widest text-slate-400 dark:text-slate-500 uppercase">Delivery Address</h3>
             </div>
             
-            <StateLgaSelector 
-              selectedState={deliveryState}
-              selectedLga={deliveryLga}
-              onStateChange={setDeliveryState}
-              onLgaChange={setDeliveryLga}
-            />
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-slate-100/50 dark:bg-slate-900/50 p-1.5 pl-4 rounded-2xl border border-slate-200/40 dark:border-slate-800/50 flex items-center gap-3 group focus-within:border-primary transition-colors">
-                <span className="material-symbols-outlined text-primary text-sm">location_on</span>
+            <div className="space-y-4">
+               <StateLgaSelector 
+                  selectedState={deliveryState}
+                  selectedLga={deliveryLga}
+                  onStateChange={setDeliveryState}
+                  onLgaChange={setDeliveryLga}
+                />
                 <input
                   type="text"
                   value={deliveryStreet}
                   onChange={(e) => setDeliveryStreet(e.target.value)}
-                  className="flex-1 bg-transparent text-[11px] font-black uppercase tracking-widest placeholder:text-slate-400 outline-none h-10"
-                  placeholder="Street / Facility"
+                  className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                  placeholder="Street address for delivery"
                 />
-              </div>
-
-              <div className="bg-slate-100/50 dark:bg-slate-900/50 p-1.5 pl-4 rounded-2xl border border-slate-200/40 dark:border-slate-800/50 flex items-center gap-3 group focus-within:border-primary transition-colors">
-                <span className="material-symbols-outlined text-slate-400 text-sm">call</span>
                 <input
                   type="tel"
                   value={primaryPhone}
-                  onChange={(e) => setPrimaryPhone(e.target.value)}
-                  className="flex-1 bg-transparent text-[11px] font-black uppercase tracking-widest placeholder:text-slate-400 outline-none h-10"
-                  placeholder="Primary Comms"
+                  onChange={(e) => setPrimaryPhone(e.target.value.replace(/\D/g, ""))}
+                  className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                  placeholder="Contact phone number"
                 />
-              </div>
-            </div>
 
-            {/* Optional Fields Toggle */}
-            <div className="pt-2">
-              <button
-                onClick={() => setShowOptionalFields(!showOptionalFields)}
-                className="flex items-center gap-2 text-[10px] font-black text-primary hover:opacity-80 transition-opacity uppercase tracking-widest"
+                {/* Full Address Preview */}
+                {isAddressComplete && (
+                  <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl p-4 flex items-start gap-3">
+                    <span className="material-symbols-outlined text-emerald-600 dark:text-emerald-400 text-lg mt-0.5">check_circle</span>
+                    <div>
+                      <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest mb-1">Delivering To</p>
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 leading-relaxed">
+                        {deliveryStreet.trim()},<br />
+                        {deliveryLga}, {deliveryState}<br />
+                        Phone: {primaryPhone.trim()}
+                      </p>
+                    </div>
+                  </div>
+                )}
+            </div>
+          </section>
+
+          {/* Shipping Method Selection */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[11px] font-bold tracking-widest text-slate-400 dark:text-slate-500 uppercase">Shipping Method</h3>
+            </div>
+            <div className="grid grid-cols-1 gap-3">
+              <label 
+                className={cn(
+                  "relative flex items-center justify-between p-4 h-[84px] rounded-xl cursor-not-allowed border transition-all",
+                  deliveryMethod === 'PLATFORM_LOGISTICS' ? 'border-primary bg-primary/[0.02] ring-1 ring-primary' : 'border-slate-200 dark:border-slate-700 opacity-60'
+                )}
               >
-                <div className="size-4 rounded-full border border-primary flex items-center justify-center">
-                   <span className="material-symbols-outlined text-[10px]">
-                    {showOptionalFields ? "remove" : "add"}
-                  </span>
+                <div className="flex items-center gap-4">
+                  <div className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-slate-400">local_shipping</span>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                       <span className="text-sm font-bold text-slate-900 dark:text-white">Swifta</span>
+                       <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-[8px] font-black text-emerald-700 uppercase tracking-tighter">Best</span>
+                    </div>
+                    <span className="text-[10px] font-bold text-primary uppercase tracking-[0.15em] mt-1 block">Coming Soon</span>
+                  </div>
                 </div>
-                Extended Manifest Details
-              </button>
-            </div>
+                <div className="size-5 rounded-full border-2 border-slate-200"></div>
+              </label>
 
-            {showOptionalFields && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 animate-in slide-in-from-top-4 fade-in duration-500">
-                <div className="bg-slate-100/50 dark:bg-slate-900/50 p-1.5 pl-4 rounded-2xl border border-slate-200/40 dark:border-slate-800/50 flex items-center gap-3">
-                  <span className="material-symbols-outlined text-slate-400 text-sm">directions_bus</span>
-                  <input
-                    type="text"
-                    value={busStop}
-                    onChange={(e) => setBusStop(e.target.value)}
-                    className="w-full bg-transparent text-[11px] font-black uppercase tracking-widest placeholder:text-slate-400 outline-none h-10"
-                    placeholder="Terminal / Bus Stop"
-                  />
+              <label 
+                onClick={() => setDeliveryMethod('MERCHANT_DELIVERY')}
+                className={cn(
+                  "relative flex items-center justify-between p-4 h-[84px] rounded-xl cursor-pointer border transition-all",
+                  deliveryMethod === 'MERCHANT_DELIVERY' ? 'border-slate-900 dark:border-white bg-slate-50 dark:bg-slate-800 ring-1 ring-slate-900 dark:ring-white' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                )}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-slate-400">hail</span>
+                  </div>
+                  <div>
+                    <span className="text-sm font-bold text-slate-900 dark:text-white">Seller Shipping</span>
+                    <p className="text-[10px] font-semibold text-slate-500 mt-1">Merchant handles delivery</p>
+                  </div>
                 </div>
-                <div className="bg-slate-100/50 dark:bg-slate-900/50 p-1.5 pl-4 rounded-2xl border border-slate-200/40 dark:border-slate-800/50 flex items-center gap-3">
-                  <span className="material-symbols-outlined text-slate-400 text-sm">phone_iphone</span>
-                  <input
-                    type="tel"
-                    value={altPhone}
-                    onChange={(e) => setAltPhone(e.target.value)}
-                    className="w-full bg-transparent text-[11px] font-black uppercase tracking-widest placeholder:text-slate-400 outline-none h-10"
-                    placeholder="Backup WhatsApp"
-                  />
+                <div className={cn(
+                  "size-5 rounded-full border-2 transition-all flex items-center justify-center",
+                  deliveryMethod === 'MERCHANT_DELIVERY' ? 'border-primary' : 'border-slate-200'
+                )}>
+                  {deliveryMethod === 'MERCHANT_DELIVERY' && <div className="size-2.5 rounded-full bg-primary" />}
+                </div>
+              </label>
+            </div>
+          </section>
+
+          {/* Payment Method Selection */}
+          <section>
+            <h3 className="text-[11px] font-bold tracking-widest text-slate-400 dark:text-slate-500 uppercase mb-3">Payment Method</h3>
+            <div className="grid grid-cols-1 gap-3">
+              
+              <label 
+                onClick={() => setPaymentMethod('Escrow')}
+                className={cn(
+                  "relative flex items-center justify-between p-4 h-[84px] rounded-xl cursor-pointer border transition-all",
+                  paymentMethod === 'Escrow' ? 'border-primary bg-primary/[0.02] ring-1 ring-primary' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                )}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="size-10 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-emerald-600">verified_user</span>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                       <span className="text-sm font-bold text-slate-900 dark:text-white">Secure Escrow</span>
+                       <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-[8px] font-black text-emerald-700 uppercase tracking-tighter">Best</span>
+                    </div>
+                    <p className="text-[10px] font-semibold text-slate-500 mt-1">Funds held safely until confirmed</p>
+                  </div>
+                </div>
+                <div className={cn(
+                  "size-5 rounded-full border-2 transition-all flex items-center justify-center",
+                  paymentMethod === 'Escrow' ? 'border-primary' : 'border-slate-200'
+                )}>
+                   {paymentMethod === 'Escrow' && <div className="size-2.5 rounded-full bg-primary" />}
+                </div>
+              </label>
+
+              <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="px-4 py-2 bg-slate-100 dark:bg-white/5 border-b border-slate-200 dark:border-slate-700">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Pay Direct</span>
+                </div>
+                <div className="p-1 space-y-1">
+                  <label 
+                    onClick={() => setPaymentMethod('Paystack')}
+                    className={cn(
+                      "flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all hover:bg-white dark:hover:bg-slate-800",
+                      paymentMethod === 'Paystack' ? 'bg-white dark:bg-slate-800 shadow-sm' : ''
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={cn("material-symbols-outlined text-xl", paymentMethod === 'Paystack' ? 'text-primary' : 'text-slate-400')}>credit_card</span>
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Card / Paystack</span>
+                    </div>
+                    {paymentMethod === 'Paystack' && <span className="material-symbols-outlined text-primary text-lg">check_circle</span>}
+                  </label>
+
+                  <label 
+                    onClick={() => setPaymentMethod('Transfer')}
+                    className={cn(
+                      "flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all hover:bg-white dark:hover:bg-slate-800",
+                      paymentMethod === 'Transfer' ? 'bg-white dark:bg-slate-800 shadow-sm' : ''
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={cn("material-symbols-outlined text-xl", paymentMethod === 'Transfer' ? 'text-primary' : 'text-slate-400')}>account_balance</span>
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Bank Transfer</span>
+                    </div>
+                    {paymentMethod === 'Transfer' && <span className="material-symbols-outlined text-primary text-lg">check_circle</span>}
+                  </label>
                 </div>
               </div>
-            )}
+            </div>
+          </section>
+
+          {/* Discount Code */}
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">sell</span>
+              <input 
+                 type="text" 
+                 value={discountCode}
+                 onChange={(e) => setDiscountCode(e.target.value)}
+                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-slate-900 dark:text-white" 
+                 placeholder="Discount Code" 
+              />
+            </div>
+            <button className="px-5 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-bold rounded-xl hover:opacity-90 transition-opacity">Apply</button>
           </div>
+
+          {/* Summary */}
+          <div className="bg-[#0f172a] rounded-xl p-8 text-white shadow-2xl relative border border-white/5">
+                <div className="space-y-8">
+                  <div>
+                    <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-500 mb-6">Order Summary</h2>
+                    <div className="h-px bg-white/5" />
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-bold text-emerald-500 uppercase tracking-widest leading-tight">
+                      {merchant?.businessName || product.merchantProfile?.businessName || "AmeenStore"}
+                    </h3>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                      1 item in checkout
+                    </p>
+                  </div>
+
+                  <div className="h-px bg-white/5" />
+
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center text-sm font-medium">
+                      <span className="text-slate-300">Subtotal</span>
+                      <span className="font-mono text-white tracking-tighter font-bold">{formatKobo(subtotalKobo)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm font-medium">
+                      <span className="text-slate-400">Platform Fee ({feePercentage * 100}%)</span>
+                      <span className="font-mono text-slate-400 tracking-tighter font-bold">{formatKobo(platformFeeKobo)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm font-medium">
+                      <div className="flex items-center gap-2 text-slate-400">
+                        <span>Shipping</span>
+                      </div>
+                      <span className="font-mono text-white tracking-tighter font-bold">{formatKobo(deliveryFeeKobo)}</span>
+                    </div>
+                  </div>
+
+                  <div className="h-px bg-white/5" />
+
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-xs font-bold text-white uppercase tracking-[0.25em]">Total</span>
+                    <span className="text-3xl font-bold text-emerald-400 font-mono tracking-tighter">{formatKobo(totalPayableKobo)}</span>
+                  </div>
+
+                  <div className="space-y-6">
+                    <button 
+                      onClick={handleCheckout}
+                      disabled={loading || !isAddressComplete}
+                      className={cn(
+                        "w-full py-5 rounded-xl font-bold text-sm flex items-center justify-center gap-3 transition-all active:scale-[0.98]",
+                        !isAddressComplete 
+                           ? "bg-[#065f46] opacity-50 cursor-not-allowed text-white"
+                           : "bg-[#065f46] hover:bg-[#065f46]/90 text-white disabled:opacity-50"
+                      )}
+                    >
+                      <span className="material-symbols-outlined text-xl">lock</span>
+                      {loading 
+                        ? "PROCESSING..." 
+                        : !isAddressComplete
+                          ? "FILL DELIVERY ADDRESS"
+                          : `PAY ${formatKobo(totalPayableKobo)}`}
+                    </button>
+
+                    <div className="text-center">
+                      <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em] leading-relaxed">
+                        Payments securely processed by Paystack Escrow
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+          {/* Action Button */}
+          <div className="space-y-4">
+            
+            <div className="text-center">
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.15em] leading-relaxed">
+                Payments securely processed by Paystack Escrow
+              </p>
+            </div>
+
+            <p className="text-[10px] text-center text-slate-400 dark:text-slate-500 leading-relaxed px-4 pt-2">
+                By clicking "Pay", you agree to Swifta's <a href="#" className="underline hover:text-primary">Terms</a> and <a href="#" className="underline hover:text-primary">Privacy Policy</a>.
+            </p>
+          </div>
+        
         </div>
-
-        {/* Final Settlement Block */}
-        <div className="bg-navy-dark dark:bg-slate-900 p-8 rounded-[3rem] border border-white/5 shadow-2xl relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
-            <span className="material-symbols-outlined text-[100px]">account_balance_wallet</span>
-          </div>
-          
-          <div className="space-y-4 mb-8 relative z-10">
-            <div className="flex justify-between items-center">
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">Unit Valuation</span>
-              <span className="text-sm font-black text-white">
-                {(unitPrice / 100).toLocaleString("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 })}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">Logistics Surcharge</span>
-              <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest border border-emerald-400/30 px-3 py-1 rounded-full">Calculated at Hub</span>
-            </div>
-            <div className="h-px bg-white/10 my-4" />
-            <div className="flex justify-between items-end">
-              <div>
-                <span className="text-[10px] text-primary font-black uppercase tracking-[0.4em] block mb-1">Total Settlement</span>
-                <span className="text-3xl font-black text-white font-display leading-none">
-                  {totalCost.toLocaleString("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 })}
-                </span>
-              </div>
-              <div className="text-right">
-                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest border border-slate-700 px-2 py-0.5 rounded-md">V5 Industrial Standard</span>
-              </div>
-            </div>
-          </div>
-
-          <button 
-            className="w-full h-16 bg-white dark:bg-primary text-navy-dark dark:text-white rounded-[1.5rem] text-[11px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-3 shadow-2xl shadow-white/10 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100 relative z-10 overflow-hidden group/btn"
-            onClick={handleCheckout}
-            disabled={loading || quantity < minQty || !deliveryState || !deliveryLga || !deliveryStreet.trim() || !primaryPhone.trim()}
-          >
-            {loading ? (
-              <span className="material-symbols-outlined animate-spin">progress_activity</span>
-            ) : (
-              <span className="material-symbols-outlined text-lg group-hover/btn:translate-x-1 transition-transform">encrypted</span>
-            )}
-            {loading ? "Initializing Terminal..." : "Execute Settlement"}
-          </button>
-        </div>
-      </div>
-    </Modal>
+      </Modal>
   );
 }
+

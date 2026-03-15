@@ -19,10 +19,10 @@ export function KanbanOrderCard({ order, onAction }: Props) {
   }
 
   const shortId = `#ORD-${order.id.slice(0, 4).toUpperCase()}`;
-  // Prioritize product name from order object directly, then fallbacks
-  const productName = order.product?.name || (order as any).quote?.product?.name || (order as any).rfq?.product?.name || "Premium Hardware Materials";
+  // Prioritize product name from order object directly
+  const productName = order.product?.name || "Product";
   // Safely access buyer name if populated by backend joins
-  const buyerName = (order as any).buyer?.name || (order as any).quote?.rfq?.buyer?.name;
+  const buyerName = (order as any).buyer?.name;
   const buyerInitial = buyerName?.slice(0, 2).toUpperCase() || order.buyerId?.slice(0, 2).toUpperCase() || "CU";
   const amount = Number(order.totalAmountKobo || 0) / 100;
   
@@ -66,7 +66,7 @@ export function KanbanOrderCard({ order, onAction }: Props) {
         <div className="flex items-center justify-between mt-auto">
           <div className="flex items-center gap-2">
             <span className="size-2 bg-blue-500 rounded-full animate-pulse"></span>
-            <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">Awaiting Truck</span>
+            <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">Ready to Ship</span>
           </div>
           <span className="text-sm font-black text-navy-dark dark:text-white tabular-nums tracking-widest">₦{amount.toLocaleString()}</span>
         </div>
@@ -110,7 +110,7 @@ export function KanbanOrderCard({ order, onAction }: Props) {
       <div className="flex items-center justify-between mt-auto">
         <div className="flex items-center gap-1.5">
           <span className="material-symbols-outlined text-[14px] text-emerald-500">task_alt</span>
-          <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Cycle Complete</span>
+          <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Completed</span>
         </div>
         <span className="text-sm font-black text-navy-dark dark:text-white tabular-nums tracking-widest">₦{amount.toLocaleString()}</span>
       </div>

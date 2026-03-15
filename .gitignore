@@ -10,6 +10,8 @@ dist/
 # Environment files
 .env
 .env.local
+.env.development
+.env.production
 .env.*.local
 
 # Database
@@ -18,13 +20,6 @@ dist/
 
 # Logs
 *.log
-*.txt
-ts_errors.txt
-tsc_output.txt
-tsc_log.txt
-prisma_error.txt
-build_error.log
-build_error_utf8.log
 
 # OS files
 .DS_Store

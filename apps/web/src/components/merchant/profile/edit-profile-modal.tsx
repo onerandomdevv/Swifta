@@ -118,7 +118,7 @@ export function EditProfileModal({
       isOpen={isOpen}
       onClose={onClose}
       title="Edit Store Profile"
-      description="Update your business identity and presence on SwiftTrade."
+      description="Update your business identity and presence on Swifta."
       className="relative bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] shadow-2xl w-full max-w-2xl mx-4 overflow-hidden"
     >
       <form onSubmit={handleSubmit} className="p-8 space-y-8">

@@ -46,7 +46,7 @@ export default function SocialFeedPage() {
             Discover
           </h1>
           <p className="text-slate-500">
-            Latest products from merchants you follow.
+            Latest products from your starred merchants.
           </p>
         </header>
 
@@ -67,7 +67,7 @@ export default function SocialFeedPage() {
             Discover
           </h1>
           <p className="text-slate-500">
-            Stay updated with products from your favorite merchants.
+            Stay updated with products from your starred merchants.
           </p>
         </div>
         
@@ -84,7 +84,7 @@ export default function SocialFeedPage() {
         <EmptyState
           icon="explore"
           message="Your feed is empty"
-          description="Follow merchants to see their latest products here. Start exploring our catalogue to find merchants you love."
+          description="Star merchants to see their latest products here. Start exploring our catalogue to find merchants you love."
           actionLabel="Explore Catalogue"
           onAction={() => window.location.href = "/buyer/catalogue"}
         />

@@ -85,7 +85,7 @@ export class ProductService {
       this.prisma.product,
       { page, limit },
       {
-        where: { merchantId },
+        where: { merchantId, deletedAt: null },
         orderBy: { createdAt: "desc" },
         include: { productStockCache: true },
       },
@@ -414,7 +414,7 @@ export class ProductService {
     await this.verifyProductOwnership(merchantId, productId);
     const deleted = await this.prisma.product.update({
       where: { id: productId },
-      data: { deletedAt: new Date() },
+      data: { deletedAt: new Date(), isActive: false },
     });
     await this.invalidateCatalogueCache();
     return deleted;

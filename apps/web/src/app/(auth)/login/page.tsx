@@ -70,13 +70,13 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user) {
-      let dashboardPath = "/";
+      let dashboardPath = "/buyer/catalogue";
       if (user.role === "SUPER_ADMIN") dashboardPath = "/admin";
       else if (user.role === "OPERATOR") dashboardPath = "/operator";
       else if (user.role === "SUPPORT") dashboardPath = "/support";
       else if (user.role === UserRole.MERCHANT)
         dashboardPath = "/merchant/dashboard";
-      else dashboardPath = "/buyer/dashboard";
+      else dashboardPath = "/buyer/catalogue";
       router.push(dashboardPath);
     }
   }, [user, router]);
@@ -137,25 +137,38 @@ export default function LoginPage() {
   };
 
   const handleOtpChange = (index: number, value: string) => {
-    if (!/^[0-9]*$/.test(value)) return;
+    // Take only the last character entered to allow replacing existing digit
+    const char = value.length > 1 ? value.slice(-1) : value;
+    if (!/^[0-9]*$/.test(char)) return;
 
     const newOtpArray = [...otpArray];
-    newOtpArray[index] = value;
+    newOtpArray[index] = char;
     setOtpArray(newOtpArray);
     
     // Update the actual otp string
     const otpString = newOtpArray.join("");
     setWhatsappOtp(otpString);
 
-    // Auto-focus next input
-    if (value && index < 5) {
+    // Auto-focus next input if a value was entered
+    if (char && index < 5) {
       otpInputRefs.current[index + 1]?.focus();
     }
   };
 
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !otpArray[index] && index > 0) {
+    if (e.key === "Backspace") {
+      if (!otpArray[index] && index > 0) {
+        // If current is empty, move back and clear previous
+        const newOtpArray = [...otpArray];
+        newOtpArray[index - 1] = "";
+        setOtpArray(newOtpArray);
+        setWhatsappOtp(newOtpArray.join(""));
+        otpInputRefs.current[index - 1]?.focus();
+      }
+    } else if (e.key === "ArrowLeft" && index > 0) {
       otpInputRefs.current[index - 1]?.focus();
+    } else if (e.key === "ArrowRight" && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
     }
   };
 
@@ -202,7 +215,7 @@ export default function LoginPage() {
           >
             <img
               src={src}
-              alt="SwiftTrade marketplace"
+              alt="Swifta marketplace"
               className="w-full h-full object-cover"
             />
           </div>
@@ -367,7 +380,7 @@ export default function LoginPage() {
                       placeholder="e.g. 08100000000"
                       type="tel"
                       value={whatsappPhone}
-                      onChange={(e) => setWhatsappPhone(e.target.value)}
+                      onChange={(e) => setWhatsappPhone(e.target.value.replace(/\D/g, ""))}
                       required
                     />
                     <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
@@ -516,12 +529,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Footer */}
-        <footer className="px-8 py-6 border-t border-slate-100">
-          <p className="text-center text-xs text-slate-400">
-            &copy; {new Date().getFullYear()} SwiftTrade. Lagos, Nigeria.
-          </p>
-        </footer>
       </div>
     </div>
   );

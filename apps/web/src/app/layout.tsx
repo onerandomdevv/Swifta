@@ -5,15 +5,24 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL || "https://swifttrade.store",
+    process.env.NEXT_PUBLIC_APP_URL || "https://swifta.store",
   ),
-  title: "SwiftTrade — Nigeria's WhatsApp E-Commerce Platform",
+  title: "Swifta — Nigeria's WhatsApp E-Commerce Platform",
+  /*
+  ### Instant Checkout & Toast Fixes
+  - **Redirection Delay:** Removed the 1.5s delay in `InstantCheckoutModal` that was causing browsers to block the Paystack redirect.
+  - **Backend Optimizations:** Made `sendDirectOrderNotification` in `OrderService` non-blocking to prevent checkout timeouts.
+  - **Fixed Toast Notifications:** Added the `sonner` `Toaster` component to the root `Providers`, resolving the issue where error/success messages were not appearing.
+
+  ### Phone Number Input Validation
+  - Implemented real-time numeric-only validation across all phone fields (Login, Register, Profile, Cart, Instant Checkout).
+  */
   description:
     "Buy and sell anything on WhatsApp with escrow payment protection. Verified merchants, tracked delivery, instant payouts.",
   manifest: "/manifest.json",
   openGraph: {
-    title: "SwiftTrade — Nigeria's WhatsApp E-Commerce Platform",
-    siteName: "SwiftTrade",
+    title: "Swifta — Nigeria's WhatsApp E-Commerce Platform",
+    siteName: "Swifta",
     description:
       "Buy and sell anything on WhatsApp with escrow payment protection. Verified merchants, tracked delivery, instant payouts.",
   },

@@ -35,7 +35,7 @@ export function MerchantProductsGrid({ products, onDelist, onRepost, onAddClick 
             Catalog is Empty
           </h3>
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            List your products to start receiving quote requests.
+            List your products to start selling to buyers.
           </p>
         </div>
         <button
@@ -140,7 +140,7 @@ export function MerchantProductsGrid({ products, onDelist, onRepost, onAddClick 
                             currency: "NGN",
                           },
                         )
-                      : "No price (RFQ only)"}
+                      : "N/A"}
                   </p>
                 </div>
               </div>

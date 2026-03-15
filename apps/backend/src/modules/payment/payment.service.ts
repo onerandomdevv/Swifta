@@ -76,7 +76,10 @@ export class PaymentService {
     );
     const callbackUrl = `${frontendUrl}/buyer/orders/payment/callback`;
 
-    const totalKobo = order.totalAmountKobo + order.deliveryFeeKobo;
+    // Total amount in kobo (subtotal + platform fee + shipping)
+    // IMPORTANT: order.totalAmountKobo already includes the delivery fee in the current logic.
+    // Adding it again here would double-charge the shipping cost.
+    const totalKobo = order.totalAmountKobo;
 
     // Idempotency: if payment already exists for this order, return existing
     const existingPayment = await this.prisma.payment.findFirst({
@@ -401,6 +404,23 @@ export class PaymentService {
           OrderStatus.PAID,
           { paymentId: payment.id, reference },
         );
+
+        // Clear cart items for the products in this order
+        const orderItems = payment.order.items as any[];
+        if (Array.isArray(orderItems) && orderItems.length > 0) {
+          const productIds = orderItems.map((item: any) => item.productId).filter(Boolean);
+          if (productIds.length > 0) {
+            const deleted = await this.prisma.cartItem.deleteMany({
+              where: {
+                buyerId: payment.order.buyerId,
+                productId: { in: productIds },
+              },
+            });
+            this.logger.log(
+              `Cleared ${deleted.count} cart items for order ${payment.orderId}`,
+            );
+          }
+        }
       }
 
       const orderData = await this.prisma.order.findUnique({

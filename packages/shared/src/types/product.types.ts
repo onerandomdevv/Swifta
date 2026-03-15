@@ -35,6 +35,8 @@ export interface Product {
   attributes?: any; // Added in V5: Category-specific key-value pairs
 
   warehouseLocation?: string;
+  weightKg?: number;
+  processingDays?: number;
   createdAt: Date;
   updatedAt: Date;
   merchantProfile?: Partial<MerchantProfile>;
@@ -56,6 +58,8 @@ export interface CreateProductDto {
   pricePerUnitKobo?: string;
   retailPriceKobo?: string;
   wholesaleDiscountPercent?: number;
+  weightKg?: number;
+  processingDays?: number;
 }
 
 export type UpdateProductDto = Partial<CreateProductDto> & {

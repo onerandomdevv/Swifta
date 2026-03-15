@@ -82,8 +82,22 @@ export const merchantApi = {
     return apiClient.get("/verification/status");
   },
 
-  getAnalytics: (): Promise<any> => {
-    return apiClient.get("/merchants/me/analytics");
+  getAnalytics: (startDate?: string, endDate?: string): Promise<any> => {
+    let url = "/merchants/me/analytics";
+    const params = new URLSearchParams();
+    if (startDate) params.append("startDate", startDate);
+    if (endDate) params.append("endDate", endDate);
+    if (params.toString()) url += `?${params.toString()}`;
+    return apiClient.get(url);
+  },
+
+  getBalanceSummary: (): Promise<{
+    escrowBalanceKobo: string;
+    availableBalanceKobo: string;
+    totalRevenueKobo: string;
+    pendingPayoutsKobo: string;
+  }> => {
+    return apiClient.get("/merchants/balance-summary");
   },
 
   updateUsername: (username: string): Promise<MerchantProfile> => {
@@ -94,15 +108,18 @@ export const merchantApi = {
     return apiClient.get(`/merchants/lookup/${slug}`);
   },
 
-  followMerchant: (id: string): Promise<any> => {
+  starMerchant: (id: string): Promise<any> => {
     return apiClient.post(`/merchants/${id}/follow`, {});
   },
 
-  unfollowMerchant: (id: string): Promise<any> => {
+  unstarMerchant: (id: string): Promise<any> => {
     return apiClient.delete(`/merchants/${id}/follow`);
   },
 
-  isFollowing: (id: string): Promise<{ isFollowing: boolean }> => {
+  isStarred: (id: string): Promise<{ isFollowing: boolean }> => {
     return apiClient.get(`/merchants/${id}/is-following`);
+  },
+  updatePreferences: (notificationPreferences: Record<string, any>): Promise<MerchantProfile> => {
+    return apiClient.patch("/merchants/me/preferences", { notificationPreferences });
   },
 };

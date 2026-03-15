@@ -456,7 +456,7 @@ export default function MerchantVerificationPage() {
                 <div className="flex-1">
                   <h4 className="text-slate-900 dark:text-white font-bold mb-2">Data Security Notice</h4>
                   <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
-                    Your documents are encrypted and stored securely. We never share your private business data with third parties. SwiftTrade complies with NDPR data protection standards.
+                    Your documents are encrypted and stored securely. We never share your private business data with third parties. Swifta complies with NDPR data protection standards.
                   </p>
                   <a className="text-primary text-xs font-bold mt-4 inline-block hover:underline" href="#">
                     Learn more about our privacy policy
@@ -467,18 +467,6 @@ export default function MerchantVerificationPage() {
           </div>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="mt-auto border-t border-slate-200 dark:border-slate-800 py-8 px-4 md:px-8">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-slate-500 dark:text-slate-400 text-sm">© 2026 SwiftTrade Technologies Inc. All rights reserved.</p>
-          <div className="flex gap-6">
-            <a className="text-slate-400 hover:text-primary transition-colors text-xs font-medium uppercase tracking-widest" href="#">Help Center</a>
-            <a className="text-slate-400 hover:text-primary transition-colors text-xs font-medium uppercase tracking-widest" href="#">Terms</a>
-            <a className="text-slate-400 hover:text-primary transition-colors text-xs font-medium uppercase tracking-widest" href="#">Privacy</a>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

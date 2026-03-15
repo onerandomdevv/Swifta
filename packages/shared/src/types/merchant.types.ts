@@ -44,6 +44,7 @@ export interface MerchantProfile {
   socialLinks?: Record<string, string>;
   websiteUrl?: string;
   slugChangesCount?: number;
+  notificationPreferences?: Record<string, any>;
 }
 
 export interface UpdateMerchantDto {

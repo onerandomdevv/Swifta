@@ -6,7 +6,6 @@ import { useAuth } from "@/providers/auth-provider";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useQuery } from "@tanstack/react-query";
 import { merchantApi } from "@/lib/api/merchant.api";
-import { useMerchantDashboard } from "@/hooks/use-merchant-data";
 import { formatKobo } from "@hardware-os/shared";
 
 export function MerchantHeader({
@@ -26,11 +25,14 @@ export function MerchantHeader({
     enabled: !!user?.merchantId,
   });
 
-  const { orders } = useMerchantDashboard();
+  const { data: balanceData } = useQuery({
+    queryKey: ["merchant", "balance-summary"],
+    queryFn: () => merchantApi.getBalanceSummary(),
+    enabled: !!user?.merchantId,
+    staleTime: 300000, // 5 minutes cache
+  });
 
-  const escrowBalance = orders
-    .filter((o) => o.status === "PAID" || o.status === "DISPATCHED")
-    .reduce((sum, o) => sum + BigInt(o.totalAmountKobo || 0), 0n);
+  const escrowBalance = BigInt(balanceData?.escrowBalanceKobo || 0);
 
   return (
     <header className="h-16 lg:h-20 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-4 lg:px-6 shrink-0 sticky top-0 z-40">
@@ -54,7 +56,7 @@ export function MerchantHeader({
         </div>
 
         <div className="sm:hidden text-lg font-black text-primary uppercase tracking-tight leading-none">
-          SwiftTrade
+          Swifta
         </div>
       </div>
 
