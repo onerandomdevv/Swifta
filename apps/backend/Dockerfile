@@ -22,7 +22,7 @@ RUN npm install -g pnpm && pnpm install --frozen-lockfile
 COPY --from=builder /app/out/full/ .
 
 # Generate Prisma Client
-RUN npx prisma generate --schema=apps/backend/src/prisma/schema.prisma
+RUN npx prisma generate --schema=apps/backend/prisma/schema.prisma
 
 # Build backend + shared
 RUN pnpm turbo run build --filter=@swifta/backend...
