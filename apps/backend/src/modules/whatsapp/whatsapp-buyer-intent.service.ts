@@ -69,7 +69,8 @@ export class WhatsAppBuyerIntentService {
     const systemPrompt =
       this.configService.get<string>("WHATSAPP_BUYER_SYSTEM_PROMPT") || "";
 
-    const modelName = this.configService.get<string>("GEMINI_MODEL") || "gemini-1.5-flash";
+    const modelName =
+      this.configService.get<string>("GEMINI_MODEL") || "gemini-1.5-flash";
     const model = this.genAI.getGenerativeModel({
       model: modelName,
       systemInstruction: systemPrompt,

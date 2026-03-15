@@ -60,7 +60,7 @@ export function CartView({
   });
 
   // Group items by merchant
-  const cartItems = cart?.items || [];
+  const cartItems = React.useMemo(() => cart?.items || [], [cart?.items]);
   const groupedItems = React.useMemo(() => {
     const groups: Record<string, { merchantName: string; merchantTier: string; merchantAddress?: string; items: any[] }> = {};
     cartItems.forEach((item) => {
@@ -88,9 +88,9 @@ export function CartView({
   }, [merchantIds, selectedMerchantId]);
 
   // Derived states for SELECTED merchant
-  const activeGroup = selectedMerchantId ? groupedItems[selectedMerchantId] : null;
-  const activeItems = activeGroup?.items || [];
-  const activeSubtotalKobo = activeItems.reduce((sum, item) => sum + Number(item.itemTotalKobo), 0);
+  const activeGroup = React.useMemo(() => selectedMerchantId ? groupedItems[selectedMerchantId] : null, [selectedMerchantId, groupedItems]);
+  const activeItems = React.useMemo(() => activeGroup?.items || [], [activeGroup?.items]);
+  const activeSubtotalKobo = React.useMemo(() => activeItems.reduce((sum, item) => sum + Number(item.itemTotalKobo), 0), [activeItems]);
   const activeMerchantTier = activeGroup?.merchantTier;
   const isVerifiedMerchant = activeMerchantTier === "VERIFIED" || activeMerchantTier === "TRUSTED";
 
@@ -354,7 +354,7 @@ export function CartView({
 
                   <div className="px-6 py-2 divide-y divide-slate-50">
                     {group.items.map((item) => (
-                      <div key={item.id} className="py-5 flex gap-5">
+                      <div key={item.id} className="py-5 flex flex-col sm:flex-row gap-5">
                         <div className="size-16 rounded-xl bg-slate-100 overflow-hidden flex items-center justify-center shrink-0 border border-slate-50">
                           {item.product.imageUrl ? (
                             <img src={optimizeCloudinaryUrl(item.product.imageUrl, 200)} alt={item.product.name} className="w-full h-full object-cover" />
@@ -362,7 +362,7 @@ export function CartView({
                             <span className="material-symbols-outlined text-slate-300">inventory_2</span>
                           )}
                         </div>
-                        <div className="flex-1 flex justify-between gap-4">
+                        <div className="flex-1 flex flex-col sm:flex-row justify-between gap-4">
                           <div className="space-y-1">
                             <h4 className="font-bold text-sm text-slate-900">{item.product.name}</h4>
                             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">
@@ -377,7 +377,7 @@ export function CartView({
                               <button onClick={(e) => { e.stopPropagation(); handleRemoveItem(item.id); }} className="text-[9px] font-black text-slate-300 hover:text-rose-500 uppercase tracking-widest transition-colors">Remove</button>
                             </div>
                           </div>
-                          <div className="text-right">
+                          <div className="sm:text-right">
                             <p className="text-sm font-black text-slate-900 leading-none">{formatKobo(Number(item.itemTotalKobo))}</p>
                           </div>
                         </div>

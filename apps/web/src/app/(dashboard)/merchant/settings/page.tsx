@@ -553,7 +553,8 @@ export default function MerchantSettingsPage() {
             />
             <Card>
               <div className="space-y-1">
-                <div className="grid grid-cols-12 px-4 py-3 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
+                {/* Header (Desktop only) */}
+                <div className="hidden md:grid grid-cols-12 px-4 py-3 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
                   <div className="col-span-6">Event Type</div>
                   <div className="col-span-2 text-center">Email</div>
                   <div className="col-span-2 text-center">SMS</div>
@@ -561,20 +562,24 @@ export default function MerchantSettingsPage() {
                 </div>
                 <div className="divide-y divide-slate-100 dark:divide-slate-800">
                   {Object.entries(notifPrefs).map(([event, prefs]) => (
-                    <div key={event} className="grid grid-cols-12 px-4 py-5 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                      <div className="col-span-6 flex flex-col justify-center">
-                        <span className="text-xs font-black text-navy-dark dark:text-white uppercase tracking-wider">{event}</span>
+                    <div key={event} className="flex flex-col md:grid md:grid-cols-12 px-4 py-6 md:py-5 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors gap-6 md:gap-0">
+                      <div className="md:col-span-6 flex flex-col justify-center">
+                        <span className="text-sm md:text-xs font-black text-navy-dark dark:text-white uppercase tracking-wider">{event}</span>
+                        <p className="md:hidden text-[10px] text-slate-500 font-medium mt-1">Configure alerts for this event</p>
                       </div>
-                      {(["email", "sms", "push"] as const).map((channel) => (
-                        <div key={channel} className="col-span-2 flex justify-center items-center">
-                          <button
-                            onClick={() => toggleNotif(event, channel)}
-                            className={`w-10 h-5 rounded-full relative transition-colors ${prefs[channel] ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-700'}`}
-                          >
-                            <div className={`absolute top-1 size-3 bg-white rounded-full transition-all ${prefs[channel] ? 'right-1' : 'left-1'}`} />
-                          </button>
-                        </div>
-                      ))}
+                      <div className="grid grid-cols-3 md:contents gap-2">
+                        {(["email", "sms", "push"] as const).map((channel) => (
+                          <div key={channel} className="md:col-span-2 flex flex-col items-center justify-center gap-2">
+                            <span className="md:hidden text-[8px] font-black uppercase text-slate-400 tracking-widest">{channel}</span>
+                            <button
+                              onClick={() => toggleNotif(event, channel)}
+                              className={`w-10 h-5 rounded-full relative transition-colors ${prefs[channel] ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-700'}`}
+                            >
+                              <div className={`absolute top-1 size-3 bg-white rounded-full transition-all ${prefs[channel] ? 'right-1' : 'left-1'}`} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>

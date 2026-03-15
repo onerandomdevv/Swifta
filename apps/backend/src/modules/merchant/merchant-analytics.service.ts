@@ -5,7 +5,11 @@ import { PrismaService } from "../../prisma/prisma.service";
 export class MerchantAnalyticsService {
   constructor(private prisma: PrismaService) {}
 
-  async getMerchantStats(merchantId: string, startDate?: string, endDate?: string) {
+  async getMerchantStats(
+    merchantId: string,
+    startDate?: string,
+    endDate?: string,
+  ) {
     if (!merchantId) {
       throw new BadRequestException("Merchant claim is missing");
     }

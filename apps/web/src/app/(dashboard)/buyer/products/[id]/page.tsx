@@ -1,9 +1,9 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { BuyerProductDetailView } from "@/components/buyer/products/buyer-product-detail-view";
+import { ProductDetailView } from "@/components/shared/product-detail-view";
 
-export default function PremiumProductDetails() {
+export default function BuyerProductDetailPage() {
   const { id } = useParams();
 
   if (!id || typeof id !== "string") {
@@ -14,5 +14,5 @@ export default function PremiumProductDetails() {
     );
   }
 
-  return <BuyerProductDetailView productId={id} />;
+  return <ProductDetailView productId={id} isOwner={false} />;
 }

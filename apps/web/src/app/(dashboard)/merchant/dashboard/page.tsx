@@ -274,7 +274,33 @@ export default function MerchantDashboard() {
             </Link>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+            {orders.length === 0 ? (
+              <div className="px-6 py-12 text-center text-slate-400 text-xs font-bold uppercase tracking-widest opacity-50">
+                No matching order records
+              </div>
+            ) : (
+              orders.slice(0, 5).map((order) => (
+                <div key={order.id} className="p-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div className="flex flex-col">
+                      <span className="font-bold text-navy-dark dark:text-white text-xs">#ORD-{order.id.slice(0, 4).toUpperCase()}</span>
+                      <span className="text-[10px] font-medium text-slate-400 mt-0.5">{order.product?.name || "Materials Bulk"}</span>
+                    </div>
+                    <StatusBadge status={order.status} />
+                  </div>
+                  <div className="flex justify-between items-center text-[10px] font-bold">
+                    <span className="text-navy-dark dark:text-white">{formatKobo(BigInt(order.totalAmountKobo))}</span>
+                    <span className="text-slate-500 uppercase">
+                      {new Date(order.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">

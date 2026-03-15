@@ -16,7 +16,7 @@ import { useRouter } from "next/navigation";
 import { ExploreSearchBar } from "@/components/buyer/catalogue/explore-search-bar";
 import { CategoryStoriesBar } from "@/components/buyer/catalogue/category-stories-bar";
 import { MerchantSpotlightCarousel } from "@/components/buyer/catalogue/merchant-spotlight-carousel";
-import { ProductFeedCard } from "@/components/buyer/catalogue/product-feed-card";
+import { ProductCard } from "@/components/shared/product-card";
 import { ExploreSkeleton } from "@/components/buyer/catalogue/explore-skeleton";
 import { InstantCheckoutModal } from "@/components/buyer/checkout/instant-checkout-modal";
 import { cn } from "@/lib/utils";
@@ -264,9 +264,10 @@ export default function BuyerCataloguePage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {sortedProducts.map((product) => (
-                <ProductFeedCard
+                <ProductCard
                   key={product.id}
                   product={product}
+                  isOwner={false}
                   onQuickBuy={handleQuickBuy}
                   isSaved={savedIds.has(product.id)}
                   onToggleSave={handleToggleSave}
@@ -278,7 +279,7 @@ export default function BuyerCataloguePage() {
       </div>
 
       {/* ─── Sticky Bottom Controls ─── */}
-      <div className="fixed bottom-8 left-0 right-0 z-50 flex justify-center pointer-events-none px-4">
+      <div className="fixed bottom-20 lg:bottom-8 left-0 right-0 z-50 flex justify-center pointer-events-none px-4">
         <div className="pointer-events-auto bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-1.5 py-1.5 rounded-xl shadow-lg flex items-center gap-1 border border-slate-800 dark:border-slate-200">
           {sortOptions.slice(0, 3).map((opt) => (
             <button 
