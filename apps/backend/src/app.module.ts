@@ -26,7 +26,6 @@ import { HealthModule } from "./health/health.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { MerchantModule } from "./modules/merchant/merchant.module";
 import { ProductModule } from "./modules/product/product.module";
-import { OrderModule } from "./modules/order/order.module";
 import { PaymentModule } from "./modules/payment/payment.module";
 import { InventoryModule } from "./modules/inventory/inventory.module";
 import { NotificationModule } from "./modules/notification/notification.module";

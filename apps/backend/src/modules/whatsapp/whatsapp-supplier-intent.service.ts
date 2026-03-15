@@ -50,8 +50,6 @@ export class WhatsAppSupplierIntentService {
   private readonly systemPrompt: string;
 
   constructor(private configService: ConfigService) {
-    const modelName =
-      this.configService.get<string>("GEMINI_MODEL") || "gemini-1.5-flash";
     this.apiKey = this.configService.get<string>("GEMINI_API_KEY") || "";
     this.systemPrompt =
       this.configService.get<string>("WHATSAPP_SUPPLIER_SYSTEM_PROMPT") || "";

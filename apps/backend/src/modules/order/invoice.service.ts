@@ -79,8 +79,6 @@ export class InvoiceService {
   }
 
   private generateCustomerInformation(doc: PDFKit.PDFDocument, order: any) {
-    const shipping = order.deliveryAddress || "Pick-up";
-
     doc
       .fillColor("#444444")
       .fontSize(12)
@@ -106,7 +104,6 @@ export class InvoiceService {
   }
 
   private generateInvoiceTable(doc: PDFKit.PDFDocument, order: any) {
-    let i;
     const invoiceTableTop = 230;
 
     doc.font("Helvetica-Bold");
@@ -125,7 +122,7 @@ export class InvoiceService {
     const items = (order.items as any[]) || [];
     let position = invoiceTableTop + 30;
 
-    items.forEach((item, index) => {
+    items.forEach((item) => {
       const lineTotal = (Number(item.unitPriceKobo) * item.quantity) / 100;
       this.generateTableRow(
         doc,

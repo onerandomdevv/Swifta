@@ -241,9 +241,7 @@ export class AdminService {
   }
 
   async getGlobalAnalytics() {
-    const [totalOrders] = await Promise.all([
-      this.prisma.order.count(),
-    ]);
+    const [totalOrders] = await Promise.all([this.prisma.order.count()]);
 
     // Financial calculations
     const gmvAggregate = await this.prisma.order.aggregate({
