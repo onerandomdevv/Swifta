@@ -301,6 +301,36 @@ export default function BuyerCataloguePage() {
           >
             <span className="material-symbols-outlined text-lg">tune</span>
           </button>
+
+          {/* Sort Menu Dropdown */}
+          {showSortMenu && (
+            <div className="absolute bottom-full right-0 mb-2 w-48 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+              <div className="p-2 border-b border-slate-100 dark:border-slate-800">
+                <p className="text-xs font-bold text-slate-500 px-2 uppercase tracking-wider">
+                  Sort By
+                </p>
+              </div>
+              <div className="flex flex-col">
+                {sortOptions.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => {
+                      setSortBy(opt.value);
+                      setShowSortMenu(false);
+                    }}
+                    className={cn(
+                      "text-left px-4 py-3 text-sm font-medium transition-colors hover:bg-slate-50 dark:hover:bg-slate-800",
+                      sortBy === opt.value
+                        ? "text-primary bg-slate-50 dark:bg-slate-800/50"
+                        : "text-slate-700 dark:text-slate-300",
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
       {/* ─── Instant Checkout Modal ─── */}

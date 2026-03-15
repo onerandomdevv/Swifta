@@ -169,8 +169,10 @@ export class OrderService {
     if (!product.productStockCache && product.isActive) {
       this.logger.warn(`Auto-creating missing productStockCache for product ${product.id}`);
       currentStock = product.isSeeded ? 100 : 50;
-      await this.prisma.productStockCache.create({
-        data: { productId: product.id, stock: currentStock },
+      await this.prisma.productStockCache.upsert({
+        where: { productId: product.id },
+        update: { stock: currentStock },
+        create: { productId: product.id, stock: currentStock },
       });
     }
 
@@ -415,8 +417,10 @@ export class OrderService {
         this.logger.warn(`Auto-creating missing productStockCache for product ${product.id}`);
         // Give it a default buffer to allow checkout to proceed or 100 for seeded
         currentStock = product.isSeeded ? 100 : 50; 
-        await this.prisma.productStockCache.create({
-          data: { productId: product.id, stock: currentStock },
+        await this.prisma.productStockCache.upsert({
+          where: { productId: product.id },
+          update: { stock: currentStock },
+          create: { productId: product.id, stock: currentStock },
         });
       }
 

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-const PDFDocument = require('pdfkit');
+import PDFDocument from 'pdfkit';
 import { Response } from 'express';
 import { JwtPayload } from '@hardware-os/shared';
 
@@ -25,9 +25,6 @@ export class InvoiceService {
           select: {
             businessName: true,
             businessAddress: true,
-            bankAccountNumber: true,
-            bankCode: true,
-            settlementAccountName: true,
           },
         },
       },
@@ -60,7 +57,7 @@ export class InvoiceService {
     doc
       .fillColor('#444444')
       .fontSize(20)
-      .text('SwiftTrade', 50, 45, { align: 'left' })
+      .text('Swifta', 50, 45, { align: 'left' })
       .fontSize(10)
       .text('Hardware & Industrial Procurement', 50, 70, { align: 'left' })
       .fillColor('#000000')
