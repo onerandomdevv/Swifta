@@ -17,16 +17,7 @@ export function OrderInfoSidebar({ order }: Props) {
           {order.id}
         </p>
       </div>
-      {order.quoteId ? (
-        <div className="space-y-2">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            Quote Reference
-          </p>
-          <p className="text-xs font-black text-navy-dark dark:text-white uppercase tracking-widest break-all">
-            {order.quoteId}
-          </p>
-        </div>
-      ) : (
+      {!order.quoteId && (
         <div className="space-y-2">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
             Order Type
@@ -41,7 +32,7 @@ export function OrderInfoSidebar({ order }: Props) {
       {order.merchant && (
         <div className="space-y-2 pt-6 border-t border-slate-200 dark:border-slate-700">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            Supplier
+            Merchant
           </p>
           <Link
             href={`/buyer/merchants/${order.merchantId || order.merchant.id}`}

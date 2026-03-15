@@ -12,7 +12,7 @@ import { DeleteConfirmationModal } from "@/components/merchant/products/delete-c
 import { toast } from "sonner";
 
 function formatPrice(kobo: string | number | undefined): string {
-  if (!kobo) return "RFQ Only";
+  if (!kobo) return "Price Not Available";
   const val = Number(kobo) / 100;
   return val.toLocaleString("en-NG", { style: "currency", currency: "NGN" });
 }
@@ -535,21 +535,6 @@ export default function MerchantProductsPage() {
           </div>
         )}
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-slate-200 dark:border-slate-800 py-8 px-8">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">storefront</span>
-            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">© 2026 SwiftTrade Merchant Console. All rights reserved.</p>
-          </div>
-          <div className="flex gap-8">
-            <a className="text-slate-500 dark:text-slate-400 hover:text-primary text-sm font-medium transition-colors" href="#">Support Center</a>
-            <a className="text-slate-500 dark:text-slate-400 hover:text-primary text-sm font-medium transition-colors" href="#">Privacy Policy</a>
-            <a className="text-slate-500 dark:text-slate-400 hover:text-primary text-sm font-medium transition-colors" href="#">Terms of Service</a>
-          </div>
-        </div>
-      </footer>
 
       {/* Product Management Modal */}
       <ProductModal

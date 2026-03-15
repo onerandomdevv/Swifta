@@ -8,6 +8,7 @@ import { AppModule } from "./app.module";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import { Logger } from "nestjs-pino";
+import { Logger as NestLogger } from "@nestjs/common";
 import { AppValidationPipe } from "./common/pipes/validation.pipe";
 import { GlobalExceptionFilter } from "./common/filters/global-exception.filter";
 import { ResponseTransformInterceptor } from "./common/interceptors/response-transform.interceptor";
@@ -57,9 +58,9 @@ async function bootstrap() {
 
   const port = process.env.PORT || 4000;
   await app.listen(port, "0.0.0.0");
-  console.log(`Application is running on: ${await app.getUrl()}`);
+  NestLogger.log(`Application is running on: ${await app.getUrl()}`);
   if (isDev) {
-    console.log(`CORS enabled for: ${origins.join(", ")} (or TRUE in dev)`);
+    NestLogger.log(`CORS enabled for: ${origins.join(", ")} (or TRUE in dev)`);
   }
 }
 bootstrap();

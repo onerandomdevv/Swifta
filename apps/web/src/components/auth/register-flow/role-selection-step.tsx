@@ -34,7 +34,7 @@ export function RoleSelectionStep({
           Select Your Role
         </h2>
         <p className="text-slate-500 dark:text-slate-400">
-          Choose how you want to interact with the SwiftTrade marketplace.
+          Choose how you want to interact with the Swifta marketplace.
         </p>
       </div>
 

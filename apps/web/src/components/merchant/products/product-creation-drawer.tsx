@@ -325,7 +325,7 @@ export function ProductCreationDrawer({
 
               <div className="space-y-4">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                  Inventory Protocol (Unit)
+                  Stock Type (Unit)
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   {["BAGS", "TONNES", "PIECES", "BUNDLES", "ROLLS", "LENGTHS", "KG", "SQM"].map((u) => (
@@ -474,7 +474,7 @@ export function ProductCreationDrawer({
               <div className="space-y-2">
                 <h3 className="text-3xl font-black text-navy-dark dark:text-white uppercase tracking-tighter">Material Live</h3>
                 <p className="text-slate-500 font-bold max-w-xs mx-auto leading-relaxed">
-                  Your listing protocol has been successfully executed. The industrial market can now discover your inventory.
+                  Your listing has been successfully created. The Swifta marketplace can now discover your products.
                 </p>
               </div>
               <button
@@ -513,7 +513,7 @@ export function ProductCreationDrawer({
               <span className="material-symbols-outlined text-lg">
                 {currentStep === "VISUALS" ? "close" : "arrow_back"}
               </span>
-              {currentStep === "VISUALS" ? "Abort Protocol" : "Backtrack"}
+              {currentStep === "VISUALS" ? "Cancel" : "Back"}
             </button>
 
             <button

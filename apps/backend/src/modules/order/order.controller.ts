@@ -8,9 +8,12 @@ import {
   Query,
   ForbiddenException,
   ParseIntPipe,
+  Res,
 } from "@nestjs/common";
 import { OrderService } from "./order.service";
+import { InvoiceService } from "./invoice.service";
 import { ConfirmDeliveryDto } from "./dto/confirm-delivery.dto";
+import type { Response } from "express";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
@@ -24,7 +27,10 @@ import { CheckoutCartDto } from "./dto/checkout-cart.dto";
 @Controller("orders")
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class OrderController {
-  constructor(private readonly orderService: OrderService) {}
+  constructor(
+    private readonly orderService: OrderService,
+    private readonly invoiceService: InvoiceService,
+  ) {}
 
   @Get()
   findAll(
@@ -48,7 +54,7 @@ export class OrderController {
   }
 
   @Post("direct")
-  @Roles(UserRole.BUYER)
+  @Roles(UserRole.BUYER, UserRole.MERCHANT)
   createDirectOrder(
     @CurrentUser() user: JwtPayload,
     @Body() dto: CreateDirectOrderDto,
@@ -57,7 +63,7 @@ export class OrderController {
   }
 
   @Post("checkout/cart")
-  @Roles(UserRole.BUYER)
+  @Roles(UserRole.BUYER, UserRole.MERCHANT)
   checkoutCart(@CurrentUser() user: JwtPayload, @Body() dto: CheckoutCartDto) {
     return this.orderService.checkoutCart(user.sub, dto);
   }
@@ -98,7 +104,7 @@ export class OrderController {
   }
 
   @Post(":id/confirm-delivery")
-  @Roles(UserRole.BUYER)
+  @Roles(UserRole.BUYER, UserRole.MERCHANT)
   confirmDelivery(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,
@@ -113,7 +119,7 @@ export class OrderController {
   }
 
   @Post(":id/report-issue")
-  @Roles(UserRole.BUYER)
+  @Roles(UserRole.BUYER, UserRole.MERCHANT)
   reportIssue(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,
@@ -123,8 +129,19 @@ export class OrderController {
   }
 
   @Get(":id/receipt")
-  @Roles(UserRole.BUYER)
+  @Roles(UserRole.BUYER, UserRole.MERCHANT)
   getReceipt(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.orderService.getReceipt(id, user.sub);
+  }
+
+  @Get(":id/invoice")
+  @Roles(UserRole.BUYER, UserRole.MERCHANT)
+  async getInvoice(
+    @CurrentUser() user: JwtPayload,
+    @Param("id") id: string,
+    @Res() res: Response,
+  ) {
+    // Pass caller identity to the service to enforce ownership validation
+    return this.invoiceService.generateInvoice(id, res, user);
   }
 }

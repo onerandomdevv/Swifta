@@ -127,10 +127,10 @@ export default function DispatchSlipPage() {
               Buyer Details
             </p>
             <p className="text-xs font-bold uppercase leading-tight">
-              {getDisplayName(order.rfq?.buyer) || "Buyer"}
+              {getDisplayName((order as any).user || (order as any).buyer) || "Buyer"}
             </p>
             <p className="text-[10px] leading-tight">
-              {order.rfq?.deliveryAddress || "Lagos, Nigeria"}
+              {order.deliveryAddress || (order as any).metadata?.deliveryAddress || "Lagos, Nigeria"}
             </p>
           </div>
         </div>

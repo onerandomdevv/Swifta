@@ -145,6 +145,10 @@ export class OrderService {
     if (!product) throw new NotFoundException("Product not found");
     if (!product.isActive) throw new BadRequestException("Product is inactive");
 
+    if (product.merchantProfile?.userId === buyerId) {
+      throw new ForbiddenException("Merchants cannot purchase their own products");
+    }
+
     // Resolve buyer type to determine price
     const buyerProfile = await this.prisma.buyerProfile.findUnique({
       where: { userId: buyerId },
@@ -160,23 +164,16 @@ export class OrderService {
       throw new BadRequestException("Product requires an RFQ");
     }
 
-    // Handle missing stock cache: Fail closed for real products, auto-heal for seeded demo items
+    // Handle missing stock cache: auto-heal for all active products to prevent checkout blocks
     let currentStock = product.productStockCache?.stock ?? 0;
-    if (!product.productStockCache) {
-      if (product.isSeeded) {
-        this.logger.warn(
-          `Auto-creating missing productStockCache for seeded product ${product.id}`,
-        );
-        currentStock = 100; // Safe default for demo
-        await this.prisma.productStockCache.create({
-          data: { productId: product.id, stock: currentStock },
-        });
-      } else if (product.isActive) {
-        // Fail closed for active merchant products without cache
-        throw new BadRequestException(
-          "Product inventory not initialized. Please contact the merchant.",
-        );
-      }
+    if (!product.productStockCache && product.isActive) {
+      this.logger.warn(`Auto-creating missing productStockCache for product ${product.id}`);
+      currentStock = product.isSeeded ? 100 : 50;
+      await this.prisma.productStockCache.upsert({
+        where: { productId: product.id },
+        update: { stock: currentStock },
+        create: { productId: product.id, stock: currentStock },
+      });
     }
 
     if (currentStock < quantity) {
@@ -294,7 +291,7 @@ export class OrderService {
       });
 
       if (orderWithDetails && order.merchantId) {
-        await this.whatsappService.sendDirectOrderNotification(
+        this.whatsappService.sendDirectOrderNotification(
           order.merchantId,
           {
             orderId: order.id,
@@ -307,7 +304,7 @@ export class OrderService {
             amountKobo: order.totalAmountKobo,
             deliveryAddress: order.deliveryAddress || "Not specified",
           },
-        );
+        ).catch(err => this.logger.error(`Error in sendDirectOrderNotification: ${err}`));
       }
     } catch (notifierErr) {
       this.logger.error(
@@ -388,6 +385,10 @@ export class OrderService {
       );
     }
 
+    if (merchantProfile.userId === buyerId) {
+      throw new ForbiddenException("Merchants cannot purchase their own products");
+    }
+
     await this.prisma.buyerProfile.findUnique({
       where: { userId: buyerId },
     });
@@ -410,22 +411,17 @@ export class OrderService {
         ? product.minOrderQuantity
         : product.minOrderQuantityConsumer;
 
-      // Handle missing stock cache: Fail closed for real products, auto-heal for seeded demo items
+      // Handle missing stock cache: auto-heal for all active products to prevent checkout blocks
       let currentStock = product.productStockCache?.stock ?? 0;
-      if (!product.productStockCache) {
-        if (product.isSeeded) {
-          this.logger.warn(
-            `Auto-creating missing productStockCache for seeded product ${product.id}`,
-          );
-          currentStock = 100;
-          await this.prisma.productStockCache.create({
-            data: { productId: product.id, stock: currentStock },
-          });
-        } else if (product.isActive) {
-          throw new BadRequestException(
-            `Inventory not initialized for ${product.name}.`,
-          );
-        }
+      if (!product.productStockCache && product.isActive) {
+        this.logger.warn(`Auto-creating missing productStockCache for product ${product.id}`);
+        // Give it a default buffer to allow checkout to proceed or 100 for seeded
+        currentStock = product.isSeeded ? 100 : 50; 
+        await this.prisma.productStockCache.upsert({
+          where: { productId: product.id },
+          update: { stock: currentStock },
+          create: { productId: product.id, stock: currentStock },
+        });
       }
 
       if (currentStock < item.quantity || item.quantity < minQty) {
@@ -546,10 +542,9 @@ export class OrderService {
         },
       });
 
-      // 4. Clear the checked-out cart items
-      await tx.cartItem.deleteMany({
-        where: { id: { in: cartItemIds } },
-      });
+      // 4. NOTE: Cart items are NOT cleared here anymore.
+      // They will be cleared in the webhook handler after payment succeeds.
+      // This prevents data loss when buyers abandon payment.
 
       return newOrder;
     });
@@ -702,7 +697,7 @@ export class OrderService {
       {
         where: { merchantId },
         orderBy: { createdAt: "desc" },
-        include: { user: { select: { email: true, phone: true } } },
+        include: { user: { select: { email: true, phone: true } }, product: true },
       },
     );
   }

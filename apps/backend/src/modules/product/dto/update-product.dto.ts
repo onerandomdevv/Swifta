@@ -68,4 +68,12 @@ export class UpdateProductDto {
   @IsOptional()
   @IsBoolean()
   wholesaleEnabled?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  weightKg?: number;
+
+  @IsOptional()
+  @IsInt()
+  processingDays?: number;
 }

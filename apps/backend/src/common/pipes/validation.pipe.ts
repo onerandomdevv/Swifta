@@ -10,7 +10,6 @@ export class AppValidationPipe extends ValidationPipe {
       whitelist: true,
       transform: true,
       exceptionFactory: (errors: ValidationError[]) => {
-        console.error("VALIDATION ERROR IS:", JSON.stringify(errors, null, 2));
         const messages = errors.map((error) =>
           Object.values(error.constraints || {}).join(", "),
         );

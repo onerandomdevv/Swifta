@@ -1,5 +1,6 @@
 import { Module, forwardRef } from "@nestjs/common";
 import { OrderService } from "./order.service";
+import { InvoiceService } from "./invoice.service";
 import { OrderController } from "./order.controller";
 import { PrismaModule } from "../../prisma/prisma.module";
 import { NotificationModule } from "../notification/notification.module";
@@ -22,7 +23,7 @@ import { WhatsAppModule } from "../whatsapp/whatsapp.module";
     forwardRef(() => WhatsAppModule),
   ],
   controllers: [OrderController],
-  providers: [OrderService],
+  providers: [OrderService, InvoiceService],
   exports: [OrderService],
 })
 export class OrderModule {}

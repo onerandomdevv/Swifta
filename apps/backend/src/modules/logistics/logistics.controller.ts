@@ -8,9 +8,9 @@ import {
   UseGuards,
   UnauthorizedException,
   ForbiddenException,
-  RawBodyRequest,
-  Logger,
+  Logger
 } from "@nestjs/common";
+import type { RawBodyRequest } from "@nestjs/common";
 import * as crypto from "crypto";
 import { LogisticsService } from "./logistics.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
@@ -53,7 +53,7 @@ export class LogisticsController {
   }
 
   @Post("webhook")
-  async handleWebhook(@Body() payload: any, @Req() req: RawBodyRequest<any>) {
+  async handleWebhook(@Body() payload: any, @Req() req: any) {
     // 0. Optional IP allowlisting
     const allowedIps = process.env.LOGISTICS_ALLOWED_IPS;
     if (allowedIps) {

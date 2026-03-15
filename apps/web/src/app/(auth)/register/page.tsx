@@ -133,18 +133,33 @@ export default function RegisterPage() {
   };
 
   const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) return;
+    // Take only the last character entered to allow replacing existing digit
+    const char = value.length > 1 ? value.slice(-1) : value;
+    if (!/^[0-9]*$/.test(char)) return;
+
     const newOtp = [...otp];
-    newOtp[index] = value;
+    newOtp[index] = char;
     setOtp(newOtp);
-    if (value !== "" && index < 5) {
+
+    // Auto-focus next input if a value was entered
+    if (char !== "" && index < 5) {
       otpRefs.current[index + 1]?.focus();
     }
   };
 
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
+    if (e.key === "Backspace") {
+      if (!otp[index] && index > 0) {
+        // If current is empty, move back and clear previous
+        const newOtp = [...otp];
+        newOtp[index - 1] = "";
+        setOtp(newOtp);
+        otpRefs.current[index - 1]?.focus();
+      }
+    } else if (e.key === "ArrowLeft" && index > 0) {
       otpRefs.current[index - 1]?.focus();
+    } else if (e.key === "ArrowRight" && index < 5) {
+      otpRefs.current[index + 1]?.focus();
     }
   };
 
@@ -169,7 +184,7 @@ export default function RegisterPage() {
           : role === UserRole.SUPPLIER
             ? "/supplier/dashboard"
             : role === UserRole.BUYER
-              ? "/buyer/dashboard"
+              ? "/buyer/catalogue"
               : "/admin/dashboard";
       setTimeout(() => {
         router.push(dashboardPath);
@@ -303,11 +318,6 @@ export default function RegisterPage() {
           </FormProvider>
         </div>
 
-        <footer className="px-8 py-6 border-t border-slate-100">
-          <p className="text-center text-xs text-slate-400">
-            &copy; {new Date().getFullYear()} SwiftTrade. Lagos, Nigeria.
-          </p>
-        </footer>
       </div>
     </div>
   );

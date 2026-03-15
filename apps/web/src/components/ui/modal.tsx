@@ -93,7 +93,7 @@ export function Modal({
             </button>
           </div>
         )}
-        <div className="max-h-[80vh] overflow-y-auto w-full inline-block">
+        <div className="max-h-[80vh] overflow-y-auto w-full">
           {children}
         </div>
       </div>

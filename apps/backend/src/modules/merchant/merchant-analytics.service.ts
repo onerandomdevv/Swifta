@@ -5,20 +5,26 @@ import { PrismaService } from "../../prisma/prisma.service";
 export class MerchantAnalyticsService {
   constructor(private prisma: PrismaService) {}
 
-  async getMerchantStats(merchantId: string) {
+  async getMerchantStats(merchantId: string, startDate?: string, endDate?: string) {
     if (!merchantId) {
       throw new BadRequestException("Merchant claim is missing");
     }
 
-    const [orders] = await Promise.all([
-      this.prisma.order.findMany({
-        where: { merchantId },
-        select: {
-          status: true,
-          totalAmountKobo: true,
-        },
-      }),
-    ]);
+    const where: any = { merchantId };
+
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = new Date(startDate);
+      if (endDate) where.createdAt.lte = new Date(endDate);
+    }
+
+    const orders = await this.prisma.order.findMany({
+      where,
+      select: {
+        status: true,
+        totalAmountKobo: true,
+      },
+    });
 
     const pipelineValue = orders
       .filter((o) => o.status !== "CANCELLED" && o.status !== "DISPUTE")

@@ -1,4 +1,4 @@
-import { Global, Module } from "@nestjs/common";
+import { Global, Module, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { RedisService } from "./redis.service";
 import Redis from "ioredis";
@@ -28,7 +28,7 @@ function sanitizeRedisUrl(url: string | undefined): string | undefined {
         const urlString = sanitizeRedisUrl(rawUrl);
 
         if (!urlString) {
-          console.warn(
+          Logger.warn(
             "REDIS_URL not found in config, falling back to localhost",
           );
           return new Redis("redis://127.0.0.1:6379", {
@@ -48,7 +48,7 @@ function sanitizeRedisUrl(url: string | undefined): string | undefined {
             enableReadyCheck: false, // Required for Upstash compatibility
           });
         } catch (error: any) {
-          console.error(
+          Logger.error(
             `Failed to parse REDIS_URL prefix: ${urlString.substring(0, 15)}...`,
           );
           throw new Error(

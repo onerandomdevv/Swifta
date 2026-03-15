@@ -7,12 +7,12 @@ import {
   Res,
   HttpCode,
   Logger,
-  RawBodyRequest,
 } from "@nestjs/common";
+import type { RawBodyRequest } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Queue } from "bullmq";
-import { Request, Response } from "express";
+import type { Request, Response } from "express";
 import * as crypto from "crypto";
 import { SkipThrottle } from "@nestjs/throttler";
 import { RedisService } from "../../redis/redis.service";

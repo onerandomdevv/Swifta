@@ -1,7 +1,7 @@
 {
-  "name": "SwiftTrade",
-  "short_name": "SwiftTrade",
-  "description": "B2B Trade Platform for Construction Materials",
+  "name": "Swifta",
+  "short_name": "Swifta",
+  "description": "Nigeria's WhatsApp E-Commerce Platform",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0F2B4C",

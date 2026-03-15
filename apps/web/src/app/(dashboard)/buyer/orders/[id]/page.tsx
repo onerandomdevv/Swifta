@@ -8,6 +8,7 @@ import type { Order } from "@hardware-os/shared";
 import { useOrder } from "@/hooks/use-order";
 import { OrderTimeline } from "@/components/ui/order-timeline";
 import { Modal } from "@/components/ui/modal";
+import { downloadInvoice } from "@/lib/api/order.api";
 
 function getStatusBadge(status: string) {
   switch (status) {
@@ -67,6 +68,22 @@ export default function BuyerOrderDetailsPage() {
   const [disputeReason, setDisputeReason] = useState("");
   const [reporting, setReporting] = useState(false);
 
+  const handleDownloadInvoice = async () => {
+    try {
+      const blob = await downloadInvoice(order?.id as string);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Invoice-${order?.id.slice(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err: any) {
+      console.error("Failed to download invoice:", err);
+    }
+  };
+
   // Resolve line items from different order types
   const lineItems = useMemo(() => {
     if (!order) return [];
@@ -80,16 +97,6 @@ export default function BuyerOrderDetailsPage() {
         quantity: item.quantity,
         unitPrice: item.unitPriceKobo,
       })));
-    }
-    // RFQ/Quote
-    else if ((order as any).quote?.rfq) {
-      const rfq = (order as any).quote.rfq;
-      items.push({
-        name: rfq.product?.name || rfq.unlistedItemDetails?.name || "RFQ Item",
-        sku: `${rfq.id.slice(0, 8).toUpperCase()}`,
-        quantity: rfq.quantity,
-        unitPrice: (order as any).quote.unitPriceKobo,
-      });
     }
     // Direct order
     else if ((order as any).product) {
@@ -147,7 +154,7 @@ export default function BuyerOrderDetailsPage() {
   };
 
   const badge = getStatusBadge(order.status);
-  const merchantName = order.merchant?.businessName || order.merchant?.companyName || "Industrial Merchant";
+  const merchantName = order.merchant?.businessName || order.merchant?.companyName || "Verified Merchant";
   const shortId = `ST-${id.slice(0, 5).toUpperCase()}`;
   const isPaymentPending = order.status === "PENDING_PAYMENT";
   const isDispatched = order.status === "DISPATCHED" || order.status === "DELIVERED";
@@ -174,26 +181,20 @@ export default function BuyerOrderDetailsPage() {
             </h1>
           </div>
           <div className="flex gap-3">
-            {["PAID", "DISPATCHED", "DELIVERED", "COMPLETED"].includes(order.status) && (
-              <Link
-                href={`/buyer/orders/${order.id}/receipt`}
-                target="_blank"
-                rel="noopener noreferrer"
+            {["PAID", "PREPARING", "DISPATCHED", "DELIVERED", "COMPLETED"].includes(order.status) && (
+              <button
+                onClick={handleDownloadInvoice}
                 className="flex items-center gap-2 px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
               >
                 <span className="material-symbols-outlined text-lg">download</span>
                 Invoice
-              </Link>
+              </button>
             )}
             {isPaymentPending && (
-              <button
-                onClick={onPay}
-                disabled={paying}
-                className="flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-xl text-sm font-bold shadow-lg shadow-primary/20 hover:brightness-110 transition-all disabled:opacity-70"
-              >
-                <span className="material-symbols-outlined text-lg">payments</span>
-                {paying ? "Processing..." : "Pay Now"}
-              </button>
+              <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-900/10 text-amber-600 dark:text-amber-400 rounded-xl text-xs font-bold uppercase tracking-widest border border-amber-100 dark:border-amber-900/20">
+                <span className="material-symbols-outlined text-sm">schedule</span>
+                Awaiting Payment
+              </div>
             )}
           </div>
         </div>
@@ -202,7 +203,7 @@ export default function BuyerOrderDetailsPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* Asset Value */}
           <div className="bg-[#0f172a] dark:bg-slate-900 rounded-2xl p-6 border border-slate-800 flex flex-col justify-between">
-            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Asset Value</p>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Order Value</p>
             <div className="mt-2">
               <span className="text-white text-3xl font-black">{formatKobo(order.totalAmountKobo)}</span>
               <p className="text-primary text-xs mt-1 flex items-center gap-1">
@@ -223,7 +224,7 @@ export default function BuyerOrderDetailsPage() {
 
           {/* Terminal ID */}
           <div className="bg-[#0f172a] dark:bg-slate-900 rounded-2xl p-6 border border-slate-800 flex flex-col justify-between">
-            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Terminal ID</p>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Order ID</p>
             <div className="mt-2">
               <span className="text-white text-2xl font-mono">{id.slice(0, 9).toUpperCase()}</span>
               <p className="text-slate-500 text-xs mt-1">Region: {order.deliveryDetails?.state || "NG"}</p>
@@ -232,7 +233,7 @@ export default function BuyerOrderDetailsPage() {
 
           {/* Seller Reputation */}
           <div className="bg-[#0f172a] dark:bg-slate-900 rounded-2xl p-6 border border-slate-800 flex flex-col justify-between">
-            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Seller Reputation</p>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Seller Rating</p>
             <div className="mt-2 flex items-center gap-1">
               {[1, 2, 3, 4].map((i) => (
                 <span key={i} className="text-primary material-symbols-outlined">grade</span>
@@ -252,7 +253,7 @@ export default function BuyerOrderDetailsPage() {
               </div>
               <div>
                 <h3 className="text-lg font-bold">Confirm Delivery</h3>
-                <p className="text-slate-500 text-sm">Input the 6-digit OTP sent to your secure terminal to release funds.</p>
+                <p className="text-slate-500 text-sm">Enter the code sent to you to confirm you have received your order.</p>
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
@@ -289,7 +290,7 @@ export default function BuyerOrderDetailsPage() {
                   : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
-              Order Manifest
+              Order Details
             </button>
             <button
               onClick={() => setActiveTab("TIMELINE")}
@@ -299,7 +300,7 @@ export default function BuyerOrderDetailsPage() {
                   : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
-              Execution Timeline
+              Order Timeline
             </button>
           </div>
 
@@ -313,7 +314,7 @@ export default function BuyerOrderDetailsPage() {
                     <table className="w-full text-left text-sm">
                       <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 font-bold uppercase tracking-wider">
                         <tr>
-                          <th className="px-6 py-4">Item Description</th>
+                          <th className="px-6 py-4">Item</th>
                           <th className="px-6 py-4">Quantity</th>
                           <th className="px-6 py-4">Unit Price</th>
                           <th className="px-6 py-4 text-right">Total</th>
@@ -374,17 +375,17 @@ export default function BuyerOrderDetailsPage() {
                   {!["COMPLETED", "CANCELLED", "DISPUTE"].includes(order.status) && (
                     <div className="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
                       <div className="flex items-center gap-4">
-                        <span className="material-symbols-outlined text-red-500 text-3xl">gavel</span>
+                        <span className="material-symbols-outlined text-red-500 text-3xl">report</span>
                         <div>
-                          <h4 className="font-bold text-red-700 dark:text-red-400">Dispute Order</h4>
-                          <p className="text-sm text-red-600/70 dark:text-red-400/60">Notice a discrepancy? Report a violation to SwiftTrade Arbitrators.</p>
+                          <h4 className="font-bold text-red-700 dark:text-red-400">Report an Issue</h4>
+                          <p className="text-sm text-red-600/70 dark:text-red-400/60">Something wrong? Report this order to our customer support team.</p>
                         </div>
                       </div>
                       <button
                         onClick={() => setShowDisputeModal(true)}
                         className="px-5 py-2.5 bg-white dark:bg-slate-900 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-xl text-sm font-bold hover:bg-red-50 transition-colors whitespace-nowrap"
                       >
-                        Report Violation
+                        Contact Support
                       </button>
                     </div>
                   )}
@@ -450,9 +451,9 @@ export default function BuyerOrderDetailsPage() {
                 <div className="bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 rounded-2xl p-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="size-8 bg-primary rounded-lg flex items-center justify-center text-white">
-                      <span className="material-symbols-outlined text-lg">stars</span>
+                      <span className="material-symbols-outlined text-lg">thumb_up</span>
                     </div>
-                    <h3 className="font-bold text-slate-900 dark:text-white">Trader Review</h3>
+                    <h3 className="font-bold text-slate-900 dark:text-white">Rate your Experience</h3>
                   </div>
 
                   {existingReview ? (
@@ -506,26 +507,13 @@ export default function BuyerOrderDetailsPage() {
             </div>
           </div>
         </div>
-
-        {/* Footer Meta */}
-        <footer className="pt-12 pb-8 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500 font-medium">
-          <div className="flex items-center gap-4">
-            <span>© 2026 SwiftTrade Buyer Terminal</span>
-            <a className="hover:text-primary transition-colors" href="#">Compliance Policy</a>
-            <a className="hover:text-primary transition-colors" href="#">Security Audit</a>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="size-2 rounded-full bg-primary"></span>
-            Terminal Secure Connection: 128-bit Encrypted
-          </div>
-        </footer>
       </main>
 
       {/* Dispute Modal */}
       <Modal
         isOpen={showDisputeModal}
         onClose={() => setShowDisputeModal(false)}
-        title="Report Protocol Violation"
+        title="Report an Issue"
       >
         <div className="space-y-6">
           <p className="text-sm text-slate-500">
@@ -549,7 +537,7 @@ export default function BuyerOrderDetailsPage() {
               disabled={reporting || !disputeReason.trim()}
               className="flex-1 py-3 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 disabled:opacity-50 transition-all"
             >
-              {reporting ? "Submitting..." : "Submit Violation"}
+              {reporting ? "Submitting..." : "Submit Issue"}
             </button>
           </div>
         </div>

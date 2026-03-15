@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { NotificationsSharedPage } from "@/components/notifications/notifications-page";
 
 export const metadata: Metadata = {
-  title: "Notifications | SwiftTrade Merchant",
+  title: "Notifications | Swifta Merchant",
   description: "View your recent activities and alerts.",
 };
 

@@ -111,7 +111,7 @@ export default function StaffJoinPage() {
             <span className="text-orange-400 font-bold block mb-1 tracking-widest text-xs uppercase">
               Internal Operations Portal
             </span>
-            Secure administration and operational management for the SwiftTrade
+            Secure administration and operational management for the Swifta
             infrastructure.
           </p>
           <div className="flex flex-col gap-3">
@@ -279,7 +279,7 @@ export default function StaffJoinPage() {
                   </label>
                   <input
                     className={`w-full px-4 py-3.5 bg-white border shadow-sm rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all text-slate-900 text-sm ${errors.email ? "border-red-400" : "border-slate-200"}`}
-                    placeholder="yusuf@swifttrade.com"
+                    placeholder="yusuf@Swifta.com"
                     type="email"
                     {...register("email")}
                   />
@@ -362,12 +362,6 @@ export default function StaffJoinPage() {
           )}
         </div>
 
-        {/* Footer */}
-        <footer className="px-8 py-6 border-t border-slate-200 bg-white">
-          <p className="text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-            SwiftTrade Internal Portal &bull; Strictly Confidential
-          </p>
-        </footer>
       </div>
     </div>
   );

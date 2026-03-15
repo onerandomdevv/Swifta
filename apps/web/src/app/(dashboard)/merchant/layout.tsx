@@ -6,6 +6,7 @@ import { NotificationCenter } from "@/components/layout/notification-center";
 import { MerchantSidebar } from "@/components/layout/merchant-sidebar";
 import { MobileDrawer } from "@/components/layout/mobile-drawer";
 import { useAuth } from "@/providers/auth-provider";
+import { VerificationBanner } from "@/components/merchant/verification-banner";
 
 export default function MerchantLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -18,7 +19,7 @@ export default function MerchantLayout({ children }: { children: ReactNode }) {
       if (user.role === "SUPER_ADMIN") {
         router.push("/admin/dashboard");
       } else {
-        router.push("/buyer/dashboard");
+        router.push("/buyer/catalogue");
       }
     }
   }, [user, router]);
@@ -48,6 +49,8 @@ export default function MerchantLayout({ children }: { children: ReactNode }) {
           isOpen={isNotificationsOpen}
           onClose={() => setIsNotificationsOpen(false)}
         />
+
+        <VerificationBanner />
 
         <main className="flex-1 overflow-y-auto p-4 lg:p-8 bg-background-light dark:bg-[#14171e]">
           {children}

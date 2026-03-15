@@ -10,7 +10,7 @@ import {
   Get,
   Req,
 } from "@nestjs/common";
-import { Response, Request } from "express";
+import type { Response, Request } from "express";
 import { Throttle } from "@nestjs/throttler";
 import { AuthService } from "./auth.service";
 import { RegisterDto } from "./dto/register.dto";
@@ -179,7 +179,7 @@ export class AuthController {
   ) {
     // Prefer HttpOnly cookie first, fallback to DTO body
     const refreshToken =
-      req.cookies?.["hwos_refresh_token"] || dto.refreshToken;
+      (req.cookies as Record<string, string>)?.["hwos_refresh_token"] || dto.refreshToken;
     const result = await this.authService.refreshTokens(user.sub, refreshToken);
     this.setCookies(res, result);
     return { success: true };

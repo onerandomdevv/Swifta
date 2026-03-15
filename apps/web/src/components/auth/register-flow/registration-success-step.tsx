@@ -29,7 +29,7 @@ export function RegistrationSuccessStep({
             </h1>
             <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-8 font-medium">
               Your email has been verified and your account is now fully active.
-              Welcome to the SwiftTrade marketplace!
+              Welcome to the Swifta marketplace!
             </p>
           </div>
 
@@ -54,14 +54,14 @@ export function RegistrationSuccessStep({
                 router.push(
                   role === UserRole.MERCHANT
                     ? "/merchant/dashboard"
-                    : "/buyer/dashboard",
+                    : "/buyer/catalogue",
                 )
               }
               className="w-full bg-primary hover:bg-primary/90 text-white font-black py-4 px-6 rounded-lg transition-all shadow-lg active:scale-[0.98] flex items-center justify-center gap-2"
             >
               {role === UserRole.MERCHANT
                 ? "Complete Profile"
-                : "Go to Dashboard"}
+                : "Start Shopping"}
               <span className="material-symbols-outlined font-bold">
                 dashboard
               </span>

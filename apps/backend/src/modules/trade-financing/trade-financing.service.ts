@@ -8,7 +8,7 @@ import {
   InternalServerErrorException,
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
-import {
+import type {
   TradeFinancingPartnerClient,
   MerchantCreditData,
 } from "./trade-financing-partner.interface";

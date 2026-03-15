@@ -95,9 +95,7 @@ export default function MerchantSettingsPage() {
   const handleSaveNotifications = async () => {
     setSavingNotifications(true);
     try {
-      // Simulate API call for now since backend notification preference endpoint 
-      // is not yet finalized in the Merchant module
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await merchantApi.updatePreferences(notifPrefs);
       toast.success("Notification preferences saved successfully");
     } catch (err) {
       toast.error("Failed to save preferences");
@@ -132,6 +130,11 @@ export default function MerchantSettingsPage() {
       if (data.bankAccountNumber) setBankAccountNo(data.bankAccountNumber);
       if (data.settlementAccountName) setBankAccountName(data.settlementAccountName);
       if (data.slug) setUsername(data.slug);
+      
+      // Load preferences if they exist
+      if (data.notificationPreferences && Object.keys(data.notificationPreferences).length > 0) {
+        setNotifPrefs(data.notificationPreferences as any);
+      }
     } catch (err) {
       toast.error("Failed to load profile");
     }
@@ -350,7 +353,7 @@ export default function MerchantSettingsPage() {
               <SectionHeader
                 icon="alternate_email"
                 title="Business Username"
-                subtitle="Your unique handle on SwiftTrade. Used for logins and product links."
+                subtitle="Your unique handle on Swifta. Used for logins and product links."
               />
               <Card>
                 <div className="space-y-6">
@@ -546,7 +549,7 @@ export default function MerchantSettingsPage() {
             <SectionHeader
               icon="notifications_active"
               title="Global Notifications"
-              subtitle="Control how and when you receive alerts from SwiftTrade."
+              subtitle="Control how and when you receive alerts from Swifta."
             />
             <Card>
               <div className="space-y-1">
