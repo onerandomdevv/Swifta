@@ -38,7 +38,11 @@ export function NotificationCenter({
 
       {/* Slide-out Panel */}
       <div
-        className={`fixed top-0 right-0 h-full w-full max-w-md bg-surface z-[70] shadow-2xl border-l border-border transition-transform duration-500 ease-out transform ${isOpen ? "translate-x-0" : "translate-x-full"}`}
+        role="dialog"
+        aria-modal={isOpen}
+        aria-hidden={!isOpen}
+        tabIndex={isOpen ? 0 : -1}
+        className={`fixed top-0 right-0 h-full w-full max-w-md bg-surface z-[70] shadow-2xl border-l border-border transition-transform duration-500 ease-out transform ${isOpen ? "translate-x-0 pointer-events-auto" : "translate-x-full pointer-events-none"}`}
       >
         {/* Header */}
         <div className="p-8 border-b border-border bg-background-secondary flex items-center justify-between">

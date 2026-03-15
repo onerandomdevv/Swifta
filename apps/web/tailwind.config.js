@@ -37,6 +37,8 @@ module.exports = {
         slate: require("tailwindcss/colors").slate,
         white: "#FFFFFF",
         black: "#000000",
+        "background-light": "var(--background-light)",
+        "background-dark": "var(--background-dark)",
         transparent: "transparent",
       },
       fontFamily: {

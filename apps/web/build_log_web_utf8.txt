@@ -1,0 +1,188 @@
+﻿
+> @hardware-os/web@1.0.0 build C:\Users\HP\OneDrive\Desktop\startup\Team\Coded-devs\Building\hardware-os\apps\web
+> next build
+
+   Ôû▓ Next.js 14.1.0
+   - Environments: .env
+   - Experiments (use at your own risk):
+     ┬À instrumentationHook
+
+   Creating an optimized production build ...
+node.exe : 
+[@sentry/nextjs] It 
+appears you've 
+configured a `sentry.ser
+ver.config.ts` file. 
+Please ensure to put 
+this file's content 
+into the `register()` 
+function of a Next.js 
+instrumentation file 
+instead. To ensure 
+correct functionality 
+of the SDK, 
+`Sentry.init` must be 
+called inside of an 
+instrumentation file. 
+Learn more about 
+setting up an 
+instrumentation file in 
+Next.js: https://nextjs.
+org/docs/app/building-yo
+ur-application/optimizin
+g/instrumentation. You 
+can safely delete the `s
+entry.server.config.ts` 
+file afterward.
+At C:\Users\HP\AppData\R
+oaming\npm\pnpm.ps1:24 
+char:5
++     & "node$exe"  "$ba
+sedir/node_modules/pnpm/
+bin/pnpm.cjs" $args
++     ~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo      
+        : NotSpecified: 
+([@sen    
+try/nextjs...file after 
+   ward.:String) [], 
+Remot    eException
+    + 
+FullyQualifiedErrorId   
+  : NativeCommandError
+ 
+[@sentry/nextjs] It 
+appears you've 
+configured a 
+`sentry.edge.config.ts` 
+file. Please ensure to 
+put this file's content 
+into the `register()` 
+function of a Next.js 
+instrumentation file 
+instead. To ensure 
+correct functionality 
+of the SDK, 
+`Sentry.init` must be 
+called inside of an 
+instrumentation file. 
+Learn more about 
+setting up an 
+instrumentation file in 
+Next.js: https://nextjs.
+org/docs/app/building-yo
+ur-application/optimizin
+g/instrumentation. You 
+can safely delete the 
+`sentry.edge.config.ts` 
+file afterward.
+[@sentry/nextjs] 
+DEPRECATION WARNING: It 
+is recommended renaming 
+your `sentry.client.conf
+ig.ts` file, or moving 
+its content to `instrume
+ntation-client.ts`. 
+When using Turbopack `se
+ntry.client.config.ts` 
+will no longer work. 
+Read more about the `ins
+trumentation-client.ts` 
+file: https://nextjs.org
+/docs/app/api-reference/
+file-conventions/instrum
+entation-client
+Failed to compile.
+
+./src/components/merchan
+t/profile/merchant-profi
+le-view.tsx
+Error: 
+  [31mx[0m the name 
+`DEFAULT_COVER` is 
+defined multiple times
+    ,-[[36;1;4mC:\Users
+\HP\OneDrive\Desktop\sta
+rtup\Team\Coded-devs\Bui
+lding\hardware-os\apps\w
+eb\src\components\mercha
+nt\profile\merchant-prof
+ile-view.tsx[0m:6:1]
+ [2m 6[0m | import { 
+productApi } from 
+"@/lib/api/product.api";
+ [2m 7[0m | import { 
+getMerchantReviews } 
+from 
+"@/lib/api/review.api";
+ [2m 8[0m | import 
+type { MerchantProfile, 
+Product, Review } from 
+"@hardware-os/shared";
+ [2m 9[0m | import { 
+DEFAULT_COVER, 
+getDisplayName } from 
+"@hardware-os/shared";
+    : [31;1m         
+^^^^^^|^^^^^^[0m
+    :                
+[31;1m`-- 
+[31;1mprevious 
+definition of 
+`DEFAULT_COVER` 
+here[0m[0m
+ [2m10[0m | import { 
+CatalogueGrid } from "@/
+components/buyer/catalog
+ue/catalogue-grid";
+ [2m11[0m | import { 
+StarRating } from "@/com
+ponents/ui/star-rating";
+ [2m12[0m | import { 
+useAuth } from "@/provid
+ers/auth-provider";
+ [2m13[0m | import { 
+toast } from "sonner";
+ [2m14[0m | import { 
+cn, formatKobo } from 
+"@/lib/utils";
+ [2m15[0m | import { 
+EditProfileModal } from 
+"./edit-profile-modal";
+ [2m16[0m | import { 
+ProductCard } from "@/co
+mponents/shared/product-
+card";
+ [2m17[0m | 
+ [2m18[0m | const 
+DEFAULT_COVER = 
+"/default-cover.jpg";
+    : [33;1m      
+^^^^^^|^^^^^^[0m
+    :             
+[33;1m`-- 
+[33;1m`DEFAULT_COVER` 
+redefined here[0m[0m
+ [2m19[0m | 
+ [2m20[0m | interface 
+MerchantProfileViewProps
+ {
+ [2m20[0m |   
+initialMerchant?: 
+MerchantProfile;
+    `----
+
+Import trace for 
+requested module:
+./src/components/merchan
+t/profile/merchant-profi
+le-view.tsx
+./src/app/(dashboard)/m/
+[slug]/page.tsx
+
+
+> Build failed because 
+of webpack errors
+ÔÇëELIFECYCLEÔÇë Command failed with exit code 1.

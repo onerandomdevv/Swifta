@@ -10,7 +10,7 @@ import { WhatsAppLinkStatus } from "@/components/dashboard/whatsapp-link-status"
 import { useNotifications } from "@/hooks/use-notifications";
 import { cn } from "@/lib/utils";
 import { ModeSwitcher } from "./mode-switcher";
-import { ThemeToggle } from "@/components/shared/theme-toggle";
+
 
 export function MerchantSidebar({
   variant = "desktop",
@@ -175,7 +175,7 @@ export function MerchantSidebar({
       <div className="p-6 pt-2 space-y-4">
         <div className="flex items-center justify-between px-2">
           <span className="text-[10px] font-bold text-foreground-muted uppercase tracking-widest">Theme</span>
-          <ThemeToggle />
+          <span className="text-[10px] font-black text-foreground uppercase tracking-widest bg-background-secondary px-2 py-0.5 rounded border border-border">Auto</span>
         </div>
 
         <WhatsAppLinkStatus 

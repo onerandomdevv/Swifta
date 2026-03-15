@@ -27,12 +27,13 @@ export function KanbanOrderCard({ order, onAction }: Props) {
   const amount = Number(order.totalAmountKobo || 0) / 100;
   
   const CardWrapper = ({ children, className = "", onClick }: { children: React.ReactNode, className?: string, onClick?: () => void }) => (
-    <div 
+    <button 
+      type="button"
       onClick={onClick}
-      className={`bg-surface border border-border p-5 rounded-[1.5rem] shadow-sm hover:border-primary/50 transition-all group active:scale-[0.98] relative overflow-hidden flex flex-col cursor-pointer ${className}`}
+      className={`appearance-none outline-none text-left w-full bg-surface border border-border p-5 rounded-[1.5rem] shadow-sm hover:border-primary/50 transition-all group active:scale-[0.98] relative overflow-hidden flex flex-col ${className}`}
     >
       {children}
-    </div>
+    </button>
   );
 
   // --- New Orders (PENDING_PAYMENT) ---
