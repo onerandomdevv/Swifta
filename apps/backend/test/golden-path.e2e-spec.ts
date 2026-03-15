@@ -1,4 +1,4 @@
-import request = require("supertest");
+import request from "supertest";
 import { TestSetup } from "./helpers/test-setup";
 import { OrderStatus, RFQStatus } from "@prisma/client";
 

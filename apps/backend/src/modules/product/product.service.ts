@@ -7,7 +7,7 @@ import {
 } from "@nestjs/common";
 import { randomBytes } from "crypto";
 import { CACHE_MANAGER } from "@nestjs/cache-manager";
-import { Cache } from "cache-manager";
+import type { Cache } from "cache-manager";
 import { PrismaService } from "../../prisma/prisma.service";
 import { CreateProductDto } from "./dto/create-product.dto";
 import { UpdateProductDto } from "./dto/update-product.dto";
