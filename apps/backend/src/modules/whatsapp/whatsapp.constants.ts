@@ -126,11 +126,11 @@ export const GEMINI_FUNCTION_DECLARATIONS = [
           type: "string",
           enum: ["add", "remove"],
           description: "Whether to add or remove stock",
+        },
+      },
+      required: ["productName", "quantity", "action"],
+    },
   },
-},
-required: ["productName", "quantity", "action"],
-},
-},
   {
     name: "get_products",
     description:

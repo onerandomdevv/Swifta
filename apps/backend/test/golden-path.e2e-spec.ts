@@ -17,7 +17,7 @@ describe("The Golden Path (e2e)", () => {
 
   let merchantToken: string;
   let merchantId: string;
-  
+
   let productId: string;
 
   // Track the flow IDs
@@ -36,14 +36,14 @@ describe("The Golden Path (e2e)", () => {
     const merchantData = await ctx.createMockMerchant();
     merchantToken = merchantData.token;
     merchantId = merchantData.merchantProfile!.id;
-    
+
     // Seed a product
     const category = await ctx.prisma.category.upsert({
       where: { slug: "building-materials" },
       update: {},
-      create: { name: "building-materials", slug: "building-materials" }
+      create: { name: "building-materials", slug: "building-materials" },
     });
-    
+
     const product = await ctx.prisma.product.create({
       data: {
         merchantId: merchantId,
@@ -53,7 +53,7 @@ describe("The Golden Path (e2e)", () => {
         pricePerUnitKobo: 500000,
         unit: "bags",
         isActive: true,
-      }
+      },
     });
     productId = product.id;
   });
@@ -85,7 +85,7 @@ describe("The Golden Path (e2e)", () => {
         quantity: 100,
         deliveryAddress: "Lekki Phase 1 Construction Site",
         paymentMethod: "ESCROW",
-        deliveryMethod: "MERCHANT_DELIVERY"
+        deliveryMethod: "MERCHANT_DELIVERY",
       })
       .expect(201); // Created
 
