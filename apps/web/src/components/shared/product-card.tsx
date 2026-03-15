@@ -14,6 +14,7 @@ interface ProductCardProps {
   onQuickBuy?: (product: Product) => void;
   isSaved?: boolean;
   onToggleSave?: (productId: string) => void;
+  className?: string;
 }
 
 function timeAgo(dateStr: string | Date): string {
@@ -38,6 +39,7 @@ export function ProductCard({
   onQuickBuy,
   isSaved = false,
   onToggleSave,
+  className,
 }: ProductCardProps) {
   const router = useRouter();
   const [addingToCart, setAddingToCart] = useState(false);
@@ -106,7 +108,7 @@ export function ProductCard({
   return (
     <article 
       onClick={() => router.push(detailUrl)}
-      className="w-full bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col group transition-all duration-300 hover:shadow-md cursor-pointer overflow-hidden"
+      className={cn("w-full bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col group transition-all duration-300 hover:shadow-md cursor-pointer overflow-hidden", className)}
     >
       {/* Merchant Header (Optional) */}
       {showMerchant && merchant && (

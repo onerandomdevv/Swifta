@@ -142,7 +142,7 @@ export default function MerchantVerificationPage() {
             <div className="flex flex-col gap-2">
               <p className="text-emerald-500 text-sm font-bold uppercase tracking-wider">Trust & Verification</p>
               <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-slate-900 dark:text-white text-4xl font-black leading-tight tracking-tight">
+                <h1 className="text-slate-900 dark:text-white text-2xl sm:text-3xl lg:text-4xl font-black leading-tight tracking-tight">
                   Business <span className="text-emerald-500">Verification</span>
                 </h1>
                 <span className={`px-3 py-1 ${getTierBadgeStyle(tier)} text-xs font-bold rounded-full uppercase tracking-widest`}>
@@ -220,7 +220,7 @@ export default function MerchantVerificationPage() {
                       <h3 className="text-slate-900 dark:text-white font-bold text-lg">Identity Verification</h3>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-11">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-0 sm:pl-11">
                       <div className="flex flex-col gap-2">
                         <label className="text-slate-700 dark:text-slate-300 text-sm font-semibold">Identity Document Type</label>
                         <select
@@ -238,7 +238,7 @@ export default function MerchantVerificationPage() {
                     </div>
 
                     {/* ID Upload Zone */}
-                    <div className="pl-11">
+                    <div className="pl-0 sm:pl-11">
                       <div
                         onClick={() => !isUploadingId && idInputRef.current?.click()}
                         className={`relative border-2 border-dashed rounded-xl p-8 transition-all group cursor-pointer ${
@@ -288,7 +288,7 @@ export default function MerchantVerificationPage() {
                       <h3 className="text-slate-900 dark:text-white font-bold text-lg">Business Registration</h3>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-11">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-0 sm:pl-11">
                       <div className="flex flex-col gap-2">
                         <label className="text-slate-700 dark:text-slate-300 text-sm font-semibold">CAC Registration Number</label>
                         <input
@@ -302,7 +302,7 @@ export default function MerchantVerificationPage() {
                     </div>
 
                     {/* CAC Upload Zone */}
-                    <div className="pl-11">
+                    <div className="pl-0 sm:pl-11">
                       <div
                         onClick={() => !isUploadingCac && cacInputRef.current?.click()}
                         className={`relative border-2 border-dashed rounded-xl p-8 transition-all group cursor-pointer ${

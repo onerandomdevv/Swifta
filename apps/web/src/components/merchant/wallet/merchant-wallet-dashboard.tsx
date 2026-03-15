@@ -146,7 +146,34 @@ export function MerchantWalletDashboard() {
           </div>
 
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-white/5 overflow-hidden shadow-sm">
-            <div className="overflow-x-auto">
+            {/* Mobile: Card View */}
+            <div className="md:hidden divide-y divide-slate-100 dark:divide-white/5">
+              {orders.length === 0 ? (
+                <div className="px-4 py-10 text-center">
+                  <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">No order transactions found</p>
+                </div>
+              ) : (
+                orders.map((order: any) => (
+                  <div key={order.id} className="p-4 flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-tight">#{order.id.slice(0, 8).toUpperCase()}</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">{order.user?.firstName || "Customer"}</p>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className={cn(
+                        "size-1.5 rounded-full",
+                        order.status === "COMPLETED" ? "bg-emerald-500" : order.status === "PAID" ? "bg-amber-500" : "bg-slate-300"
+                      )} />
+                      <span className="text-[9px] font-bold text-slate-500 uppercase">{order.status}</span>
+                    </div>
+                    <span className="text-xs font-bold text-slate-900 dark:text-white tabular-nums">{formatKobo(order.totalAmountKobo)}</span>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Desktop: Table View */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-white/5">

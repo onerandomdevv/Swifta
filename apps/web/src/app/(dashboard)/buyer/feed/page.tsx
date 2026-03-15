@@ -90,7 +90,7 @@ export default function SocialFeedPage() {
         />
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-y-8 sm:gap-6 -mx-4 sm:mx-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0 sm:gap-6 -mx-4 sm:mx-0 divide-y sm:divide-y-0 divide-slate-100 dark:divide-slate-800">
             {products.map((product) => (
               <ProductCard 
                 key={product.id} 
@@ -99,6 +99,7 @@ export default function SocialFeedPage() {
                 onQuickBuy={(p) => {
                   window.location.href = `/buyer/products/${p.id}`;
                 }}
+                className="rounded-none sm:rounded-xl"
               />
             ))}
           </div>

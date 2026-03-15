@@ -103,15 +103,15 @@ export function MerchantSidebar({
       )}
     >
       {/* Header Area */}
-      {isDesktop && (
-        <div className="p-8 pb-4 space-y-6">
+      <div className={cn("space-y-6", isDesktop ? "p-8 pb-4" : "p-6 pb-4")}>
+        {isDesktop && (
           <Link href="/merchant/dashboard" className="flex items-center gap-3 group">
             <Logo variant="light" size="sm" className="group-hover:scale-105 transition-transform" />
           </Link>
-          
-          <ModeSwitcher onModeChange={setActiveMode} />
-        </div>
-      )}
+        )}
+        
+        <ModeSwitcher onModeChange={setActiveMode} />
+      </div>
 
       {/* Navigation Area */}
       <nav className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar space-y-8">
