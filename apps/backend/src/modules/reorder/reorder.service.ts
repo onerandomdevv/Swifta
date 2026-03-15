@@ -8,7 +8,6 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
 import { getReorderWindowDays } from "./reorder.constants";
 
-
 @Injectable()
 export class ReorderService {
   private readonly logger = new Logger(ReorderService.name);
@@ -143,7 +142,6 @@ export class ReorderService {
 
     return reminders.length;
   }
-
 
   async dismiss(reminderId: string, userId: string) {
     const reminder = await this.prisma.reorderReminder.findUnique({

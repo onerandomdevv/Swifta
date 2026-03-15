@@ -10,7 +10,6 @@ import {
   ForbiddenException,
   Logger,
 } from "@nestjs/common";
-import type { RawBodyRequest } from "@nestjs/common";
 import * as crypto from "crypto";
 import { LogisticsService } from "./logistics.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
