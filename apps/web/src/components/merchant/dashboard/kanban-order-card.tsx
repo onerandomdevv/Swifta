@@ -30,7 +30,7 @@ export function KanbanOrderCard({ order, onAction }: Props) {
     <button 
       type="button"
       onClick={onClick}
-      className={`appearance-none outline-none text-left w-full bg-surface border border-border p-5 rounded-[1.5rem] shadow-sm hover:border-primary/50 transition-all group active:scale-[0.98] relative overflow-hidden flex flex-col ${className}`}
+      className={`appearance-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 text-left w-full bg-surface border border-border p-5 rounded-[1.5rem] shadow-sm hover:border-primary/50 transition-all group active:scale-[0.98] relative overflow-hidden flex flex-col ${className}`}
     >
       {children}
     </button>

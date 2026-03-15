@@ -27,9 +27,9 @@ export class ReorderService {
       },
     });
 
-    if (!order?.product) {
+    if (!order?.product || !order.merchantId) {
       this.logger.log(
-        `Order ${orderId} has no linked product, skipping reorder reminder`,
+        `Order ${orderId} has no linked product or merchant, skipping reorder reminder`,
       );
       return;
     }
