@@ -4,6 +4,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { OrderStatus } from "@swifta/shared";
 import { OrderService } from "../order/order.service";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
+import { RedisService } from "../../redis/redis.service";
 
 @Injectable()
 export class AdminCronService {
@@ -13,56 +14,99 @@ export class AdminCronService {
     private readonly prisma: PrismaService,
     private readonly orderService: OrderService,
     private readonly notifications: NotificationTriggerService,
+    private readonly redis: RedisService,
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR)
   async handleUnconfirmedDeliveries() {
-    this.logger.log("Scanning for unconfirmed deliveries requiring action...");
+    const lockKey = "lock:admin-cron:unconfirmed-deliveries";
+    const lockAcquired = await this.redis.set(lockKey, "locked", 3600, true);
 
-    const seventyTwoHoursAgo = new Date(Date.now() - 72 * 60 * 60 * 1000);
-    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-
-    // 1. Auto-confirm orders older than 72h
-    const overdueOrders = await this.prisma.order.findMany({
-      where: {
-        status: { in: [OrderStatus.DISPATCHED, OrderStatus.IN_TRANSIT] },
-        updatedAt: { lt: seventyTwoHoursAgo },
-      },
-    });
-
-    for (const order of overdueOrders) {
-      try {
-        await this.orderService.autoConfirmDelivery(order.id);
-        this.logger.log(`Auto-confirmed order ${order.id} (over 72h since update)`);
-      } catch (err: unknown) {
-        this.logger.error(`Failed to auto-confirm order ${order.id}: ${err instanceof Error ? err.message : String(err)}`);
-      }
+    if (!lockAcquired) {
+      this.logger.log(
+        "Cron job handleUnconfirmedDeliveries is already running on another instance. Skipping.",
+      );
+      return;
     }
 
-    // 2. 48h & 24h Warnings
-    // For simplicity, we scan orders in the warning windows and trigger if not already warned (mocking warning status via logs for now, or could use metadata)
-    const warningCandidates = await this.prisma.order.findMany({
-      where: {
-        status: { in: [OrderStatus.DISPATCHED, OrderStatus.IN_TRANSIT] },
-        updatedAt: {
-          lt: twentyFourHoursAgo,
-          gt: seventyTwoHoursAgo,
-        },
-      },
-      select: { id: true, buyerId: true, updatedAt: true },
-    });
+    try {
+      this.logger.log(
+        "Scanning for unconfirmed deliveries requiring action...",
+      );
 
-    for (const order of warningCandidates) {
-      const hoursSinceUpdate = (Date.now() - order.updatedAt.getTime()) / (1000 * 60 * 60);
-      
-      if (hoursSinceUpdate >= 48 && hoursSinceUpdate < 49) {
-        // 48h Warning
-        await this.notifications.triggerAutoConfirmationWarning(order.buyerId, order.id.slice(0, 8).toUpperCase(), 24);
-      } else if (hoursSinceUpdate >= 24 && hoursSinceUpdate < 25) {
-        // 24h Warning
-        await this.notifications.triggerAutoConfirmationWarning(order.buyerId, order.id.slice(0, 8).toUpperCase(), 48);
+      const seventyTwoHoursAgo = new Date(Date.now() - 72 * 60 * 60 * 1000);
+      const seventyThreeHoursAgo = new Date(Date.now() - 73 * 60 * 60 * 1000); // 1-hour window for auto-confirm
+
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+      // 1. Auto-confirm orders older than 72h
+      // We process orders updated between 72h and 73h ago to avoid duplicate attempts every hour if failure persists
+      const overdueOrders = await this.prisma.order.findMany({
+        where: {
+          status: { in: [OrderStatus.DISPATCHED, OrderStatus.IN_TRANSIT] },
+          updatedAt: {
+            lt: seventyTwoHoursAgo,
+            gt: seventyThreeHoursAgo,
+          },
+        },
+      });
+
+      for (const order of overdueOrders) {
+        try {
+          await this.orderService.autoConfirmDelivery(order.id);
+          this.logger.log(
+            `Auto-confirmed order ${order.id} (over 72h since update)`,
+          );
+        } catch (err: unknown) {
+          this.logger.error(
+            `Failed to auto-confirm order ${order.id}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
       }
+
+      // 2. 48h & 24h Warnings
+      const warningCandidates = await this.prisma.order.findMany({
+        where: {
+          status: { in: [OrderStatus.DISPATCHED, OrderStatus.IN_TRANSIT] },
+          updatedAt: {
+            lt: twentyFourHoursAgo,
+            gt: seventyTwoHoursAgo,
+          },
+        },
+        select: { id: true, buyerId: true, updatedAt: true },
+      });
+
+      for (const order of warningCandidates) {
+        try {
+          const hoursSinceUpdate =
+            (Date.now() - order.updatedAt.getTime()) / (1000 * 60 * 60);
+
+          if (hoursSinceUpdate >= 48 && hoursSinceUpdate < 49) {
+            // 48h Warning (24h remaining)
+            await this.notifications.triggerAutoConfirmationWarning(
+              order.buyerId,
+              order.id.slice(0, 8).toUpperCase(),
+              24,
+            );
+            this.logger.log(`Sent 24h remaining warning for order ${order.id}`);
+          } else if (hoursSinceUpdate >= 24 && hoursSinceUpdate < 25) {
+            // 24h Warning (48h remaining)
+            await this.notifications.triggerAutoConfirmationWarning(
+              order.buyerId,
+              order.id.slice(0, 8).toUpperCase(),
+              48,
+            );
+            this.logger.log(`Sent 48h remaining warning for order ${order.id}`);
+          }
+        } catch (error) {
+          this.logger.error(
+            `Failed to process warning for order ${order.id}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      }
+    } finally {
+      // Release lock after work or failure
+      await this.redis.del(lockKey);
     }
   }
 

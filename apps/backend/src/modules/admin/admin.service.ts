@@ -5,7 +5,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
-import { OrderStatus, UserRole } from "@swifta/shared";
+import { OrderStatus, UserRole, VerificationTier } from "@swifta/shared";
 import * as bcrypt from "bcrypt";
 import { RedisService } from "../../redis/redis.service";
 import { AuditLogService } from "./audit-log.service";
@@ -37,7 +37,11 @@ export class AdminService {
     ] = await Promise.all([
       this.prisma.merchantProfile.count(),
       this.prisma.merchantProfile.count({
-        where: { verificationTier: { in: ["VERIFIED", "TRUSTED"] } },
+        where: {
+          verificationTier: {
+            in: [VerificationTier.TIER_2, VerificationTier.TIER_3],
+          },
+        },
       }),
       this.prisma.merchantProfile.count({
         where: {
@@ -86,7 +90,10 @@ export class AdminService {
       // Fallback: If no pending request, just update the tier directly (legacy/manual flow)
       return this.prisma.merchantProfile.update({
         where: { id: merchantId },
-        data: { verificationTier: "VERIFIED", verifiedAt: new Date() },
+        data: {
+          verificationTier: VerificationTier.TIER_2,
+          verifiedAt: new Date(),
+        },
       });
     }
 
@@ -406,7 +413,11 @@ export class AdminService {
 
   async broadcastMessage(message: string) {
     const verifiedMerchants = await this.prisma.merchantProfile.findMany({
-      where: { verificationTier: { in: ["VERIFIED", "TRUSTED"] } },
+      where: {
+        verificationTier: {
+          in: [VerificationTier.TIER_2, VerificationTier.TIER_3],
+        },
+      },
       include: { user: true },
     });
 

@@ -35,10 +35,16 @@ export class VerificationService {
     }
 
     // Validate prerequisite tier
-    if (dto.targetTier === "TIER_2" && merchant.verificationTier !== VerificationTier.TIER_1) {
+    if (
+      dto.targetTier === "TIER_2" &&
+      merchant.verificationTier !== VerificationTier.TIER_1
+    ) {
       throw new BadRequestException("You must be TIER_1 to apply for TIER_2");
     }
-    if (dto.targetTier === "TIER_3" && merchant.verificationTier !== VerificationTier.TIER_2) {
+    if (
+      dto.targetTier === "TIER_3" &&
+      merchant.verificationTier !== VerificationTier.TIER_2
+    ) {
       throw new BadRequestException("You must be TIER_2 to apply for TIER_3");
     }
 
@@ -97,62 +103,90 @@ export class VerificationService {
   async getStatus(merchantId: string) {
     const merchant = await this.prisma.merchantProfile.findUnique({
       where: { id: merchantId },
-      include: { user: true }
+      include: { user: true },
     });
 
     if (!merchant) throw new NotFoundException("Merchant profile not found");
 
-    const [completedOrdersCount, openDisputesCount, pendingRequest] = await Promise.all([
-      this.prisma.order.count({ where: { merchantId, status: OrderStatus.COMPLETED } }),
-      this.prisma.order.count({ where: { merchantId, disputeStatus: { not: null } } }),
-      this.prisma.verificationRequest.findFirst({
-        where: { merchantId, status: "PENDING" },
-        orderBy: { createdAt: "desc" },
-      })
-    ]);
+    const [completedOrdersCount, openDisputesCount, pendingRequest] =
+      await Promise.all([
+        this.prisma.order.count({
+          where: { merchantId, status: OrderStatus.COMPLETED },
+        }),
+        this.prisma.order.count({
+          where: { merchantId, disputeStatus: { not: null } },
+        }),
+        this.prisma.verificationRequest.findFirst({
+          where: { merchantId, status: "PENDING" },
+          orderBy: { createdAt: "desc" },
+        }),
+      ]);
 
     const user = merchant.user;
-    const accountAgeDays = Math.floor((Date.now() - new Date(merchant.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+    const accountAgeDays = Math.floor(
+      (Date.now() - new Date(merchant.createdAt).getTime()) /
+        (1000 * 60 * 60 * 24),
+    );
     const months = Math.floor(accountAgeDays / 30);
-    const accountAgeStr = months >= 1 ? `${months} month${months > 1 ? 's' : ''}` : "Less than a month";
+    const accountAgeStr =
+      months >= 1
+        ? `${months} month${months > 1 ? "s" : ""}`
+        : "Less than a month";
 
     return {
       currentTier: merchant.verificationTier,
       tier1: {
-        status: merchant.verificationTier !== VerificationTier.UNVERIFIED ? "COMPLETE" : "IN_PROGRESS",
+        status:
+          merchant.verificationTier !== VerificationTier.UNVERIFIED
+            ? "COMPLETE"
+            : "IN_PROGRESS",
         requirements: {
           emailVerified: user.emailVerified,
           phoneVerified: user.phoneVerified,
           bankVerified: merchant.bankVerified,
-          fullName: !!(merchant.fullName || (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : null)),
+          fullName: !!(
+            merchant.fullName ||
+            (user.firstName && user.lastName
+              ? `${user.firstName} ${user.lastName}`
+              : null)
+          ),
           businessAddress: !!merchant.businessAddress,
-        }
+        },
       },
       tier2: {
-        status: merchant.verificationTier === VerificationTier.TIER_2 || merchant.verificationTier === VerificationTier.TIER_3 
-          ? "COMPLETE" 
-          : (merchant.verificationTier === VerificationTier.TIER_1 ? "IN_PROGRESS" : "LOCKED"),
+        status:
+          merchant.verificationTier === VerificationTier.TIER_2 ||
+          merchant.verificationTier === VerificationTier.TIER_3
+            ? "COMPLETE"
+            : merchant.verificationTier === VerificationTier.TIER_1
+              ? "IN_PROGRESS"
+              : "LOCKED",
         requirements: {
           ninVerified: merchant.ninVerified,
           completedOrders: { current: completedOrdersCount, required: 5 },
           zeroDisputes: openDisputesCount === 0,
-          profilePhoto: !!merchant.profilePhotoUrl
+          profilePhoto: !!merchant.profilePhotoUrl,
         },
-        pendingRequest: pendingRequest?.targetTier === "TIER_2" ? pendingRequest : null
+        pendingRequest:
+          pendingRequest?.targetTier === "TIER_2" ? pendingRequest : null,
       },
       tier3: {
-        status: merchant.verificationTier === VerificationTier.TIER_3 
-          ? "COMPLETE" 
-          : (merchant.verificationTier === VerificationTier.TIER_2 ? "IN_PROGRESS" : "LOCKED"),
+        status:
+          merchant.verificationTier === VerificationTier.TIER_3
+            ? "COMPLETE"
+            : merchant.verificationTier === VerificationTier.TIER_2
+              ? "IN_PROGRESS"
+              : "LOCKED",
         requirements: {
           cacVerified: merchant.cacVerified,
           addressVerified: merchant.addressVerified,
           completedOrders: { current: completedOrdersCount, required: 20 },
           averageRating: { current: merchant.averageRating, required: 4.0 },
-          accountAge: { current: accountAgeStr, required: "3 months" }
+          accountAge: { current: accountAgeStr, required: "3 months" },
         },
-        pendingRequest: pendingRequest?.targetTier === "TIER_3" ? pendingRequest : null
-      }
+        pendingRequest:
+          pendingRequest?.targetTier === "TIER_3" ? pendingRequest : null,
+      },
     };
   }
 
@@ -272,7 +306,7 @@ export class VerificationService {
             ninVerified: true,
             ninVerifiedAt: new Date(),
             ninVerifiedVia: "MANUAL",
-            ninNumber: request.ninNumber || request.merchant.ninNumber
+            ninNumber: request.ninNumber || request.merchant.ninNumber,
           },
         });
       } else if (request.targetTier === "TIER_3") {
@@ -282,7 +316,7 @@ export class VerificationService {
             cacVerified: true,
             addressVerified: true, // Assuming proof of address document approval
             cacVerifiedVia: "MANUAL",
-            addressVerifiedVia: "MANUAL"
+            addressVerifiedVia: "MANUAL",
           },
         });
       }
@@ -301,32 +335,31 @@ export class VerificationService {
   async checkAndUpgradeTier(merchantId: string): Promise<VerificationTier> {
     const merchant = await this.prisma.merchantProfile.findUnique({
       where: { id: merchantId },
-      include: { user: true }
+      include: { user: true },
     });
 
-    if (!merchant) throw new NotFoundException('Merchant not found');
+    if (!merchant) throw new NotFoundException("Merchant not found");
 
     const currentTier = merchant.verificationTier;
 
     // Check Tier 1 requirements
     if (currentTier === VerificationTier.UNVERIFIED) {
       const user = merchant.user;
-      const meetsT1 = (
+      const meetsT1 =
         user.emailVerified &&
         user.phoneVerified &&
         merchant.bankVerified &&
         merchant.bankAccountNumber &&
         (merchant.fullName || (user.firstName && user.lastName)) &&
-        merchant.businessAddress
-      );
+        merchant.businessAddress;
 
       if (meetsT1) {
         await this.prisma.merchantProfile.update({
           where: { id: merchantId },
-          data: { 
+          data: {
             verificationTier: VerificationTier.TIER_1,
-            tierUpgradedAt: new Date()
-          }
+            tierUpgradedAt: new Date(),
+          },
         });
         await this.notifyTierUpgrade(merchantId, VerificationTier.TIER_1);
         return VerificationTier.TIER_1;
@@ -336,27 +369,26 @@ export class VerificationService {
     // Check Tier 2 requirements
     if (currentTier === VerificationTier.TIER_1) {
       const completedOrders = await this.prisma.order.count({
-        where: { merchantId, status: OrderStatus.COMPLETED }
+        where: { merchantId, status: OrderStatus.COMPLETED },
       });
       const openDisputes = await this.prisma.order.count({
-        where: { merchantId, disputeStatus: { not: null } }
+        where: { merchantId, disputeStatus: { not: null } },
       });
 
-      const meetsT2 = (
+      const meetsT2 =
         merchant.ninVerified &&
         completedOrders >= 5 &&
         openDisputes === 0 &&
-        merchant.profilePhotoUrl
-      );
+        merchant.profilePhotoUrl;
 
       if (meetsT2) {
         await this.prisma.merchantProfile.update({
           where: { id: merchantId },
-          data: { 
+          data: {
             verificationTier: VerificationTier.TIER_2,
             tierUpgradedAt: new Date(),
-            verifiedAt: new Date()
-          }
+            verifiedAt: new Date(),
+          },
         });
         await this.notifyTierUpgrade(merchantId, VerificationTier.TIER_2);
         return VerificationTier.TIER_2;
@@ -366,28 +398,27 @@ export class VerificationService {
     // Check Tier 3 requirements
     if (currentTier === VerificationTier.TIER_2) {
       const completedOrders = await this.prisma.order.count({
-        where: { merchantId, status: OrderStatus.COMPLETED }
+        where: { merchantId, status: OrderStatus.COMPLETED },
       });
-      
+
       const accountAge = merchant.createdAt;
       const threeMonthsAgo = new Date();
       threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
 
-      const meetsT3 = (
+      const meetsT3 =
         merchant.cacVerified &&
         merchant.addressVerified &&
         completedOrders >= 20 &&
         (merchant.averageRating || 0) >= 4.0 &&
-        accountAge <= threeMonthsAgo
-      );
+        accountAge <= threeMonthsAgo;
 
       if (meetsT3) {
         await this.prisma.merchantProfile.update({
           where: { id: merchantId },
-          data: { 
+          data: {
             verificationTier: VerificationTier.TIER_3,
-            tierUpgradedAt: new Date()
-          }
+            tierUpgradedAt: new Date(),
+          },
         });
         await this.notifyTierUpgrade(merchantId, VerificationTier.TIER_3);
         return VerificationTier.TIER_3;
@@ -399,14 +430,17 @@ export class VerificationService {
 
   private async notifyTierUpgrade(merchantId: string, tier: VerificationTier) {
     const tierNames = {
-      [VerificationTier.TIER_1]: 'Basic Verified',
-      [VerificationTier.TIER_2]: 'Identity Verified', 
-      [VerificationTier.TIER_3]: 'Business Verified'
+      [VerificationTier.TIER_1]: "Basic Verified",
+      [VerificationTier.TIER_2]: "Identity Verified",
+      [VerificationTier.TIER_3]: "Business Verified",
     };
     const tierBenefits = {
-      [VerificationTier.TIER_1]: 'You can now list products and receive orders with escrow protection.',
-      [VerificationTier.TIER_2]: 'You now have a verified badge, direct payment option (1.5% fee), and higher visibility.',
-      [VerificationTier.TIER_3]: 'You now have a blue business badge, lowest fees (1%), priority search placement, and premium features.'
+      [VerificationTier.TIER_1]:
+        "You can now list products and receive orders with escrow protection.",
+      [VerificationTier.TIER_2]:
+        "You now have a verified badge, direct payment option (1.5% fee), and higher visibility.",
+      [VerificationTier.TIER_3]:
+        "You now have a blue business badge, lowest fees (1%), priority search placement, and premium features.",
     };
 
     const merchant = await this.prisma.merchantProfile.findUnique({
@@ -415,12 +449,16 @@ export class VerificationService {
 
     if (!merchant) return;
 
-    await this.notifications.addJob(
-      merchant.userId,
-      "TIER_UPGRADED",
-      `Upgraded to ${tierNames[tier]}`,
-      tierBenefits[tier],
-      { tier }
-    ).catch(err => this.logger.error(`Failed to notify tier upgrade: ${err.message}`));
+    await this.notifications
+      .addJob(
+        merchant.userId,
+        "TIER_UPGRADED",
+        `Upgraded to ${tierNames[tier]}`,
+        tierBenefits[tier],
+        { tier },
+      )
+      .catch((err) =>
+        this.logger.error(`Failed to notify tier upgrade: ${err.message}`),
+      );
   }
 }

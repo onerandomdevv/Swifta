@@ -11,7 +11,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { toast } from "sonner";
 import Link from "next/link";
 import { cn, formatKobo, optimizeCloudinaryUrl } from "@/lib/utils";
-import { Product } from "@swifta/shared";
+import { Product, VerificationTier } from "@swifta/shared";
 import { StateLgaSelector } from "@/components/ui/state-lga-selector";
 
 type PaymentMethod = "ESCROW" | "DIRECT";
@@ -92,7 +92,7 @@ export function CartView({
   const activeItems = React.useMemo(() => activeGroup?.items || [], [activeGroup?.items]);
   const activeSubtotalKobo = React.useMemo(() => activeItems.reduce((sum, item) => sum + Number(item.itemTotalKobo), 0), [activeItems]);
   const activeMerchantTier = activeGroup?.merchantTier;
-  const isVerifiedMerchant = activeMerchantTier === "VERIFIED" || activeMerchantTier === "TRUSTED";
+  const isVerifiedMerchant = activeMerchantTier === VerificationTier.TIER_2 || activeMerchantTier === VerificationTier.TIER_3;
 
   // Fetch Related Products
   useEffect(() => {

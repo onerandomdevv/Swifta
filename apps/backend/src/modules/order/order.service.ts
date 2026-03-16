@@ -33,6 +33,8 @@ import { CreateDirectOrderDto } from "./dto/create-direct-order.dto";
 import { CreateTrackingDto } from "./dto/create-tracking.dto";
 import { CheckoutCartDto } from "./dto/checkout-cart.dto";
 
+import { PayoutService } from "../payout/payout.service";
+
 @Injectable()
 export class OrderService {
   private readonly logger = new Logger(OrderService.name);
@@ -51,6 +53,7 @@ export class OrderService {
     private logisticsService: LogisticsService,
     @Inject(forwardRef(() => WhatsAppService))
     private whatsappService: WhatsAppService,
+    private payoutService: PayoutService,
   ) {}
 
   // ──────────────────────────────────────────────
@@ -115,8 +118,7 @@ export class OrderService {
 
     // Determine payment method based on merchant verification tier
     const merchantTier = product.merchantProfile?.verificationTier;
-    const isTier2Or3 =
-      merchantTier === "TIER_2" || merchantTier === "TIER_3";
+    const isTier2Or3 = merchantTier === "TIER_2" || merchantTier === "TIER_3";
     const paymentMethod =
       requestedMethod === "DIRECT" && isTier2Or3 ? "DIRECT" : "ESCROW";
 
@@ -127,7 +129,7 @@ export class OrderService {
     } else if (merchantTier === "TIER_2") {
       platformFeePercentage = 1.5; // Tier 2: 1.5%
     }
-    
+
     const subtotalKobo = Number(resolvedPriceKobo) * quantity;
     const platformFeeKobo = Math.floor(
       subtotalKobo * (platformFeePercentage / 100),
@@ -397,11 +399,10 @@ export class OrderService {
 
     // Determine payment method and platform fee
     const merchantTier = merchantProfile.verificationTier;
-    const isTier2Or3 =
-      merchantTier === "TIER_2" || merchantTier === "TIER_3";
+    const isTier2Or3 = merchantTier === "TIER_2" || merchantTier === "TIER_3";
     const paymentMethod =
       requestedMethod === "DIRECT" && isTier2Or3 ? "DIRECT" : "ESCROW";
-    
+
     // Dynamic platform fee based on tier
     let platformFeePercentage = 2; // Default 2% (Tier 1 / Unverified)
     if (merchantTier === "TIER_3") {
@@ -988,15 +989,22 @@ export class OrderService {
 
     this.logger.log(`Auto-confirming delivery for order ${orderId}`);
 
-    // Update status and create tracking
-    await this.prisma.$transaction(async (tx) => {
-      await tx.order.update({
-        where: { id: orderId },
+    // Use updateMany to ensure atomicity and status check
+    const updateResult = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.order.updateMany({
+        where: {
+          id: orderId,
+          status: { in: [OrderStatus.DISPATCHED, OrderStatus.IN_TRANSIT] },
+        },
         data: {
           status: OrderStatus.DELIVERED,
           disputeWindowEndsAt: new Date(), // Auto-confirmation bypasses dispute window
         },
       });
+
+      if (result.count === 0) {
+        return { success: false };
+      }
 
       await tx.orderTracking.create({
         data: {
@@ -1005,18 +1013,54 @@ export class OrderService {
           note: "Delivery auto-confirmed after 72 hours of no response.",
         },
       });
+
+      await tx.orderEvent.create({
+        data: {
+          order: { connect: { id: orderId } },
+          fromStatus: order.status,
+          toStatus: OrderStatus.DELIVERED,
+          metadata: { note: "System auto-confirmation" },
+          user: { connect: { id: order.buyerId } }, // Assuming triggered by system but we need a user ID for the relation
+        },
+      });
+
+      return { success: true };
     });
 
-    // Notify participants
-    await this.notifications.triggerOrderAutoConfirmed(
-      order.buyerId,
-      order.merchantId,
-      {
-        orderId: order.id,
-        reference: order.id.slice(0, 8).toUpperCase(),
-        amountKobo: order.totalAmountKobo,
-      },
-    );
+    if (!updateResult.success) {
+      this.logger.warn(
+        `Order ${orderId} was already processed or state changed. Skipping.`,
+      );
+      return;
+    }
+
+    // Notify participants with isolation
+    try {
+      await this.notifications.triggerOrderAutoConfirmed(
+        order.buyerId,
+        order.merchantId,
+        {
+          orderId: order.id,
+          reference: order.id.slice(0, 8).toUpperCase(),
+          amountKobo: order.totalAmountKobo,
+        },
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to notify for auto-confirmed order ${orderId}: ${error instanceof Error ? error.message : error}`,
+      );
+      // Continue execution regardless of notification failure
+    }
+
+    // Process payout and tier checks (these are existing methods, assumed to be robust or handled elsewhere)
+    try {
+      await this.payoutService.initiatePayout(orderId);
+      await this.verificationService.checkAndUpgradeTier(order.merchantId);
+    } catch (error) {
+      this.logger.error(
+        `Failed to process payout/tier after auto-confirm for order ${orderId}: ${error instanceof Error ? error.message : error}`,
+      );
+    }
 
     // Transition to COMPLETED
     await this.transition(

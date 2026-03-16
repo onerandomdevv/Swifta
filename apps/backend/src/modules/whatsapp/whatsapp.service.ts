@@ -21,7 +21,7 @@ import {
   STOCK_UPDATE_FOLLOWUP,
   META_API_VERSION,
 } from "./whatsapp.constants";
-import { OrderStatus } from "@swifta/shared";
+import { OrderStatus, VerificationTier } from "@swifta/shared";
 
 /**
  * Core WhatsApp Bot service.
@@ -1083,16 +1083,16 @@ export class WhatsAppService {
 
       let msg = "";
       switch (tier) {
-        case "UNVERIFIED":
+        case VerificationTier.UNVERIFIED:
           msg = `Hello ${name}! 👋\n\nYour account is currently *unverified*.\n\nPlease visit your dashboard settings to upload your ID and complete verification. Verified merchants benefit from lower fees and more direct customer trust. 🚀\n\n🔗 Dashboard: Settings → Verification`;
           break;
-        case "BASIC":
-          msg = `Hello ${name}! 👋\n\nYour account is currently in the *Basic* tier.\n\nCompleting your government ID verification will upgrade your status to *Verified*, offering:\n• Reduced platform fees (1%)\n• Direct customer payments\n• Enhanced profile trust ✅`;
+        case VerificationTier.TIER_1:
+          msg = `Hello ${name}! 👋\n\nYour account is currently in the *Tier 1* (Basic) tier.\n\nCompleting your identity verification will upgrade your status to *Tier 2* (Verified), offering:\n• Reduced platform fees (1%)\n• Direct customer payments\n• Enhanced profile trust ✅`;
           break;
-        case "VERIFIED":
+        case VerificationTier.TIER_2:
           msg = `✅ *Verified Merchant Status* — ${name}\n\nYou are currently enjoying:\n• Competitive 1% platform fees\n• Direct customer payments\n• Verified badge on your profile\n\nThank you for choosing Swifta! 💪`;
           break;
-        case "TRUSTED":
+        case VerificationTier.TIER_3:
           msg = `⭐ *Trusted Merchant Status* — ${name}\n\nYou have achieved the highest trust level! You benefit from minimal fees, featured listings, and a ⭐ Trusted merchant badge.\n\nExcellent work! 🎉`;
           break;
         default:

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { merchantApi } from "@/lib/api/merchant.api";
-import type { MerchantProfile } from "@swifta/shared";
+import { MerchantProfile, VerificationTier } from "@swifta/shared";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -108,7 +108,7 @@ export function MerchantDiscovery() {
                       <span className="material-symbols-outlined text-slate-200 dark:text-slate-700 text-3xl">storefront</span>
                     </div>
                   )}
-                  {merchant.verificationTier === "VERIFIED" && (
+                  {merchant.verificationTier === VerificationTier.TIER_2 && (
                      <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-800 rounded-full p-0.5 shadow-sm">
                         <span className="material-symbols-outlined text-emerald-500 text-lg font-variation-fill">verified</span>
                      </div>

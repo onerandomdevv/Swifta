@@ -150,6 +150,47 @@ class ApiClient {
 
     let response = await performRequest();
 
+    // Handle 401 Unauthorized - Attempt Token Refresh
+    if (
+      response.status === 401 &&
+      this.refreshToken &&
+      !endpoint.includes("/auth/login") &&
+      !endpoint.includes("/auth/refresh")
+    ) {
+      if (this.isRefreshing) {
+        const success = await new Promise<boolean>((resolve) => {
+          this.subscribeTokenRefresh((s) => resolve(s));
+        });
+
+        if (success) {
+          response = await performRequest();
+        }
+      } else {
+        this.isRefreshing = true;
+        try {
+          const success = await this.refreshToken();
+          this.isRefreshing = false;
+          this.onTokenRefreshed(success);
+
+          if (success) {
+            response = await performRequest();
+          } else {
+            this.onUnauthorized?.();
+            throw await this.handleError(response);
+          }
+        } catch (error) {
+          this.isRefreshing = false;
+          this.onTokenRefreshed(false);
+          this.onUnauthorized?.();
+          throw error;
+        }
+      }
+    }
+
+    if (!response.ok) {
+      throw await this.handleError(response);
+    }
+
     const text = await response.text();
     if (!text) return {};
 

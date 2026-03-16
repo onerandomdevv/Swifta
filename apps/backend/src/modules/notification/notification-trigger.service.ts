@@ -613,7 +613,7 @@ export class NotificationTriggerService {
   ) {
     await this.addJob(
       userId,
-      "DISPUTE_RESOLVED",
+      NotificationType.DISPUTE_RESOLVED,
       "Dispute Resolved",
       `The dispute for Order #${orderId.slice(0, 8)} has been resolved.`,
       { orderId, resolution },
@@ -629,7 +629,7 @@ export class NotificationTriggerService {
   ) {
     await this.addJob(
       buyerId,
-      "ORDER_AUTO_CONFIRM_WARNING",
+      NotificationType.ORDER_AUTO_CONFIRM_WARNING,
       "Action Required: Order Confirmation",
       `Your order #${orderRef} will be automatically confirmed in ${hoursRemaining} hours. Please confirm delivery or raise a dispute if there are issues.`,
       { orderRef, hoursRemaining },
@@ -642,28 +642,31 @@ export class NotificationTriggerService {
     merchantId: string,
     metadata: { orderId: string; reference: string; amountKobo: bigint },
   ) {
+    const serializedMetadata = {
+      ...metadata,
+      amountKobo: metadata.amountKobo.toString(),
+    };
+
     // Notify buyer
     await this.addJob(
       buyerId,
-      "ORDER_AUTO_CONFIRMED",
+      NotificationType.ORDER_AUTO_CONFIRMED,
       "Order Auto-Confirmed",
       `Order #${metadata.reference.slice(0, 8)} has been automatically confirmed after 72 hours.`,
-      { ...metadata, amountKobo: metadata.amountKobo.toString() },
+      serializedMetadata,
       [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+      { url: `/buyer/orders/${metadata.orderId}` },
     );
 
     // Notify merchant
     await this.addJob(
       merchantId,
-      "ORDER_AUTO_CONFIRMED",
+      NotificationType.ORDER_AUTO_CONFIRMED,
       "Order Auto-Confirmed",
-      `Order #${metadata.reference.slice(0, 8)} has been automatically confirmed by the system.`,
-      {
-        ...metadata,
-        amountKobo: metadata.amountKobo.toString(),
-        isMerchantId: true,
-      },
+      `Order #${metadata.reference.slice(0, 8)} has been automatically confirmed by the system. Payout will be processed shortly.`,
+      { ...serializedMetadata, isMerchant: true },
       [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+      { url: `/merchant/orders/${metadata.orderId}` },
     );
   }
 }
