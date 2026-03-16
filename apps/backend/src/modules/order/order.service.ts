@@ -33,6 +33,8 @@ import { CreateDirectOrderDto } from "./dto/create-direct-order.dto";
 import { CreateTrackingDto } from "./dto/create-tracking.dto";
 import { CheckoutCartDto } from "./dto/checkout-cart.dto";
 
+import { PayoutService } from "../payout/payout.service";
+
 @Injectable()
 export class OrderService {
   private readonly logger = new Logger(OrderService.name);
@@ -51,6 +53,7 @@ export class OrderService {
     private logisticsService: LogisticsService,
     @Inject(forwardRef(() => WhatsAppService))
     private whatsappService: WhatsAppService,
+    private payoutService: PayoutService,
   ) {}
 
   // ──────────────────────────────────────────────
@@ -115,13 +118,18 @@ export class OrderService {
 
     // Determine payment method based on merchant verification tier
     const merchantTier = product.merchantProfile?.verificationTier;
-    const isVerifiedMerchant =
-      merchantTier === "VERIFIED" || merchantTier === "TRUSTED";
+    const isTier2Or3 = merchantTier === "TIER_2" || merchantTier === "TIER_3";
     const paymentMethod =
-      requestedMethod === "DIRECT" && isVerifiedMerchant ? "DIRECT" : "ESCROW";
+      requestedMethod === "DIRECT" && isTier2Or3 ? "DIRECT" : "ESCROW";
 
-    // Dynamic platform fee: 1% for DIRECT, 2% for ESCROW
-    const platformFeePercentage = paymentMethod === "DIRECT" ? 1 : 2;
+    // Dynamic platform fee based on tier
+    let platformFeePercentage = 2; // Default 2% (Tier 1 / Unverified)
+    if (merchantTier === "TIER_3") {
+      platformFeePercentage = 1; // Tier 3: 1%
+    } else if (merchantTier === "TIER_2") {
+      platformFeePercentage = 1.5; // Tier 2: 1.5%
+    }
+
     const subtotalKobo = Number(resolvedPriceKobo) * quantity;
     const platformFeeKobo = Math.floor(
       subtotalKobo * (platformFeePercentage / 100),
@@ -391,11 +399,18 @@ export class OrderService {
 
     // Determine payment method and platform fee
     const merchantTier = merchantProfile.verificationTier;
-    const isVerifiedMerchant =
-      merchantTier === "VERIFIED" || merchantTier === "TRUSTED";
+    const isTier2Or3 = merchantTier === "TIER_2" || merchantTier === "TIER_3";
     const paymentMethod =
-      requestedMethod === "DIRECT" && isVerifiedMerchant ? "DIRECT" : "ESCROW";
-    const platformFeePercentage = paymentMethod === "DIRECT" ? 1 : 2;
+      requestedMethod === "DIRECT" && isTier2Or3 ? "DIRECT" : "ESCROW";
+
+    // Dynamic platform fee based on tier
+    let platformFeePercentage = 2; // Default 2% (Tier 1 / Unverified)
+    if (merchantTier === "TIER_3") {
+      platformFeePercentage = 1; // Tier 3: 1%
+    } else if (merchantTier === "TIER_2") {
+      platformFeePercentage = 1.5; // Tier 2: 1.5%
+    }
+
     const platformFeeKobo = BigInt(
       Math.floor(Number(subtotalKobo) * (platformFeePercentage / 100)),
     );
@@ -974,69 +989,77 @@ export class OrderService {
 
     this.logger.log(`Auto-confirming delivery for order ${orderId}`);
 
-    // Update status and create tracking
-    await this.prisma.$transaction(async (tx) => {
-      await tx.order.update({
-        where: { id: orderId },
-        data: {
-          status: OrderStatus.DELIVERED,
-          disputeWindowEndsAt: new Date(), // Auto-confirmation bypasses dispute window
-        },
-      });
-
-      await tx.orderTracking.create({
-        data: {
-          orderId,
-          status: OrderStatus.DELIVERED,
-          note: "Delivery auto-confirmed after 72 hours of no response.",
-        },
-      });
-    });
-
-    // Notify participants
-    await this.notifications.triggerOrderAutoConfirmed(
-      order.buyerId,
-      order.merchantId,
-      {
-        orderId: order.id,
-        reference: order.id.slice(0, 8).toUpperCase(),
-        amountKobo: order.totalAmountKobo,
-      },
+    // 1. Transition to DELIVERED (uses standard audit trail)
+    await this.transition(
+      orderId,
+      order.status as OrderStatus,
+      OrderStatus.DELIVERED,
+      order.buyerId, // System acting on behalf of buyer's silence
+      { action: "system_auto_confirm" },
     );
 
-    // Transition to COMPLETED
+    // 2. Clear dispute window immediately for auto-confirmation
+    await this.prisma.order.update({
+      where: { id: orderId },
+      data: { disputeWindowEndsAt: new Date() },
+    });
+
+    // 3. Create tracking entry AFTER transition
+    await this.prisma.orderTracking.create({
+      data: {
+        orderId,
+        status: OrderStatus.DELIVERED,
+        note: "Delivery auto-confirmed after 72 hours of no response.",
+      },
+    });
+
+    // 4. Notify participants with strict isolation
+    try {
+      if (order.merchantId) {
+        await this.notifications.triggerOrderAutoConfirmed(
+          order.buyerId,
+          order.merchantId,
+          {
+            orderId: order.id,
+            reference: order.id.slice(0, 8).toUpperCase(),
+            amountKobo: order.totalAmountKobo,
+          },
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to notify for auto-confirmed order ${orderId}: ${error instanceof Error ? error.message : error}`,
+      );
+    }
+
+    // 5. Final transition to COMPLETED
     await this.transition(
       orderId,
       OrderStatus.DELIVERED,
       OrderStatus.COMPLETED,
-      "SYSTEM",
-      { action: "auto_confirmed_system" },
+      order.buyerId,
+      { action: "auto_completion_payout" },
     );
 
-    // Evaluate tier upgrade
+    // 6. Post-completion processing (payouts and tier checks)
     try {
       if (order.merchantId) {
+        // Upgrade check
         await this.verificationService.checkAndUpgradeTier(order.merchantId);
+
+        // Payout if ESCROW
+        if (order.paymentMethod === "ESCROW") {
+          await this.payoutQueue.add(
+            "process-payout",
+            { orderId },
+            { jobId: `payout-${orderId}` },
+          );
+        }
       }
     } catch (err: unknown) {
       this.logger.error(
-        `Tier upgrade check failed: ${err instanceof Error ? err.message : String(err)}`,
+        `Post-auto-confirm processing failed for ${orderId}: ${err instanceof Error ? err.message : String(err)}`,
       );
-    }
-
-    // Trigger payout if ESCROW
-    if (order.paymentMethod === "ESCROW") {
-      try {
-        await this.payoutQueue.add(
-          "process-payout",
-          { orderId },
-          { jobId: `payout-${orderId}` },
-        );
-      } catch (error: unknown) {
-        this.logger.error(
-          `Auto-payout queue failed: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
     }
 
     return { success: true };

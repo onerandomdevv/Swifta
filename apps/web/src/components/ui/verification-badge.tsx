@@ -10,11 +10,11 @@ export function VerificationBadge({
   tier,
   className = "",
 }: VerificationBadgeProps) {
-  if (tier === "UNVERIFIED" || tier === "BASIC") {
+  if (tier === VerificationTier.UNVERIFIED || tier === VerificationTier.TIER_1) {
     return null; // Don't show badges for lower tiers per spec
   }
 
-  if (tier === "TRUSTED") {
+  if (tier === VerificationTier.TIER_3) {
     return (
       <span
         className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-widest bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800 ${className}`}
@@ -26,7 +26,7 @@ export function VerificationBadge({
     );
   }
 
-  if (tier === "VERIFIED") {
+  if (tier === VerificationTier.TIER_2) {
     return (
       <span
         className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800 ${className}`}

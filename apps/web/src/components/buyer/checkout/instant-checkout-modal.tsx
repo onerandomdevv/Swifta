@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { StateLgaSelector } from "@/components/ui/state-lga-selector";
 import { cn, formatKobo, optimizeCloudinaryUrl } from "@/lib/utils";
 import type { Product, MerchantProfile } from "@swifta/shared";
+import { VerificationTier } from "@swifta/shared";
 
 interface Props {
   isOpen: boolean;
@@ -43,7 +44,7 @@ export function InstantCheckoutModal({ isOpen, onClose, product, merchant }: Pro
   const deliveryFeeKobo = deliveryMethod === "PLATFORM_LOGISTICS" ? 250000 : 0; // ₦2,500 if platform, ₦0 if merchant
   const subtotalKobo = unitPriceKobo * quantity;
   
-  const isVerifiedMerchant = merchant?.verificationTier === "VERIFIED" || merchant?.verificationTier === "TRUSTED";
+  const isVerifiedMerchant = merchant?.verificationTier === VerificationTier.TIER_2 || merchant?.verificationTier === VerificationTier.TIER_3;
   const isDirect = paymentMethod !== "Escrow";
   const feePercentage = (isVerifiedMerchant && isDirect) ? 0.01 : 0.02;
   const platformFeeKobo = Math.floor(subtotalKobo * feePercentage);

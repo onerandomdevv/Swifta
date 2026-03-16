@@ -523,7 +523,7 @@ export default function MerchantProductsPage() {
                               <span className={`text-xs ${stockInfo.color}`}>{stockInfo.label}</span>
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{product.unit}</td>
+                          <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{product.unit?.toLowerCase() || "pcs"}</td>
                           <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">
                             {formatPrice(product.retailPriceKobo || product.pricePerUnitKobo)}
                           </td>

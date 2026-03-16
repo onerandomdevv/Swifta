@@ -6,7 +6,7 @@ import {
 import { PrismaService } from "../../prisma/prisma.service";
 import { UpdateMerchantDto } from "./dto/update-merchant.dto";
 import { UpdateBankAccountDto } from "./dto/update-bank-account.dto";
-import { UserRole } from "@swifta/shared";
+import { UserRole, VerificationTier } from "@swifta/shared";
 import { PaystackClient } from "../payment/paystack.client";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
 import { UpdatePreferencesDto } from "./dto/update-preferences.dto";
@@ -114,8 +114,10 @@ export class MerchantService {
 
     if (!merchant) throw new NotFoundException("Merchant not found");
 
-    // We only expose contact info if the merchant is VERIFIED
-    const isVerified = merchant.verificationTier === "VERIFIED";
+    // We only expose contact info if the merchant is TIER_2 or higher
+    const isVerified =
+      merchant.verificationTier === VerificationTier.TIER_2 ||
+      merchant.verificationTier === VerificationTier.TIER_3;
 
     return {
       id: merchant.id,
@@ -156,7 +158,7 @@ export class MerchantService {
   async getAllMerchants() {
     return this.prisma.merchantProfile.findMany({
       where: {
-        verificationTier: "VERIFIED",
+        verificationTier: { in: [VerificationTier.TIER_2, VerificationTier.TIER_3] },
       },
       select: {
         id: true,

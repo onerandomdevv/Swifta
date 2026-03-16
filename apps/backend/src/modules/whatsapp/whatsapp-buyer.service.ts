@@ -599,7 +599,7 @@ export class WhatsAppBuyerService {
             return {
               id: `buy_${p.id.substring(0, 8)}_${quantity}`,
               title: p.name,
-              description: `${p.category?.name || "General"} | ${this.formatNaira(Number(isConsumer && (p as any).retailPriceKobo ? (p as any).retailPriceKobo : (p as any).pricePerUnitKobo || 0))}${starStr} | Seller: ${p.merchantProfile?.businessName || "Verified"}`,
+              description: `${p.category?.name || "General"} | ${this.formatNaira(Number(isConsumer && (p as any).retailPriceKobo ? (p as any).retailPriceKobo : (p as any).pricePerUnitKobo || 0))}${starStr} | Seller: ${p.merchantProfile?.businessName || "Verified Merchant"}`,
             };
           }),
         },

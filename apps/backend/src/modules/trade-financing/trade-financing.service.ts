@@ -43,11 +43,11 @@ export class TradeFinancingService {
 
     // Eligibility check for merchant tier
     if (
-      merchant.verificationTier !== VerificationTier.VERIFIED &&
-      merchant.verificationTier !== VerificationTier.TRUSTED
+      merchant.verificationTier !== VerificationTier.TIER_2 &&
+      merchant.verificationTier !== VerificationTier.TIER_3
     ) {
       throw new ForbiddenException(
-        "Trade Financing is only available to VERIFIED or TRUSTED merchants",
+        "Trade Financing is only available to Level 2 or Level 3 merchants",
       );
     }
 
