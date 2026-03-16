@@ -192,7 +192,7 @@ class ApiClient {
     }
 
     const text = await response.text();
-    if (!text) return {};
+    if (!text) return { data: [], meta: { total: 0, page: 1, limit: 10 } };
 
     return JSON.parse(text);
   }

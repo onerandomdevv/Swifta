@@ -664,7 +664,7 @@ export class NotificationTriggerService {
       NotificationType.ORDER_AUTO_CONFIRMED,
       "Order Auto-Confirmed",
       `Order #${metadata.reference.slice(0, 8)} has been automatically confirmed by the system. Payout will be processed shortly.`,
-      { ...serializedMetadata, isMerchant: true },
+      { ...serializedMetadata, isMerchantId: true },
       [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
       { url: `/merchant/orders/${metadata.orderId}` },
     );

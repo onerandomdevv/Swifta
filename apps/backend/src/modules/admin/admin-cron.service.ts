@@ -35,18 +35,14 @@ export class AdminCronService {
       );
 
       const seventyTwoHoursAgo = new Date(Date.now() - 72 * 60 * 60 * 1000);
-      const seventyThreeHoursAgo = new Date(Date.now() - 73 * 60 * 60 * 1000); // 1-hour window for auto-confirm
-
       const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
       // 1. Auto-confirm orders older than 72h
-      // We process orders updated between 72h and 73h ago to avoid duplicate attempts every hour if failure persists
       const overdueOrders = await this.prisma.order.findMany({
         where: {
           status: { in: [OrderStatus.DISPATCHED, OrderStatus.IN_TRANSIT] },
           updatedAt: {
             lt: seventyTwoHoursAgo,
-            gt: seventyThreeHoursAgo,
           },
         },
       });
@@ -73,30 +69,57 @@ export class AdminCronService {
             gt: seventyTwoHoursAgo,
           },
         },
-        select: { id: true, buyerId: true, updatedAt: true },
+        select: { id: true, buyerId: true, updatedAt: true, meta: true },
       });
 
       for (const order of warningCandidates) {
         try {
           const hoursSinceUpdate =
             (Date.now() - order.updatedAt.getTime()) / (1000 * 60 * 60);
+          
+          const meta = (order.meta as any) || {};
 
-          if (hoursSinceUpdate >= 48 && hoursSinceUpdate < 49) {
-            // 48h Warning (24h remaining)
-            await this.notifications.triggerAutoConfirmationWarning(
-              order.buyerId,
-              order.id.slice(0, 8).toUpperCase(),
-              24,
-            );
-            this.logger.log(`Sent 24h remaining warning for order ${order.id}`);
-          } else if (hoursSinceUpdate >= 24 && hoursSinceUpdate < 25) {
-            // 24h Warning (48h remaining)
-            await this.notifications.triggerAutoConfirmationWarning(
-              order.buyerId,
-              order.id.slice(0, 8).toUpperCase(),
-              48,
-            );
-            this.logger.log(`Sent 48h remaining warning for order ${order.id}`);
+          // Decision logic based on hours since last update
+          if (hoursSinceUpdate >= 48) {
+            // Already past 48h (24h remaining), check if this specific warning was sent
+            if (!meta.autoConfirmationWarningSent48) {
+              await this.notifications.triggerAutoConfirmationWarning(
+                order.buyerId,
+                order.id.slice(0, 8).toUpperCase(),
+                24, // 24h remaining until 72h mark
+              );
+              
+              await this.prisma.order.update({
+                where: { id: order.id },
+                data: {
+                  meta: {
+                    ...meta,
+                    autoConfirmationWarningSent48: true,
+                  },
+                },
+              });
+              this.logger.log(`Sent 24h remaining warning (at 48h mark) for order ${order.id}`);
+            }
+          } else if (hoursSinceUpdate >= 24) {
+            // Past 24h but less than 48h (48h remaining)
+            if (!meta.autoConfirmationWarningSent24) {
+              await this.notifications.triggerAutoConfirmationWarning(
+                order.buyerId,
+                order.id.slice(0, 8).toUpperCase(),
+                48, // 48h remaining until 72h mark
+              );
+              
+              await this.prisma.order.update({
+                where: { id: order.id },
+                data: {
+                  meta: {
+                    ...meta,
+                    autoConfirmationWarningSent24: true,
+                  },
+                },
+              });
+              this.logger.log(`Sent 48h remaining warning (at 24h mark) for order ${order.id}`);
+            }
           }
         } catch (error) {
           this.logger.error(

@@ -158,7 +158,7 @@ export class MerchantService {
   async getAllMerchants() {
     return this.prisma.merchantProfile.findMany({
       where: {
-        verificationTier: VerificationTier.TIER_2,
+        verificationTier: { in: [VerificationTier.TIER_2, VerificationTier.TIER_3] },
       },
       select: {
         id: true,

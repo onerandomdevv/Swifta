@@ -553,8 +553,21 @@ function BenefitItem({ label, tier, current }: { label: string, tier: 2 | 3, cur
 }
 
 function TierDetailView({ title, description, children, footer, status, pendingRequest }: { title: string, description: string, children: React.ReactNode, footer: React.ReactNode, status?: TierStatus, pendingRequest?: any }) {
+  const isLocked = status === "LOCKED";
+
   return (
-    <div className="bg-surface rounded-3xl border border-border p-8 shadow-sm space-y-8 animate-in fade-in duration-500">
+    <div className="bg-surface rounded-3xl border border-border p-8 shadow-sm space-y-8 animate-in fade-in duration-500 relative overflow-hidden">
+      {isLocked && (
+        <div className="absolute inset-0 z-10 bg-surface/60 backdrop-blur-[1px] flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
+          <div className="size-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center border border-slate-100 dark:border-slate-700 mb-4 shadow-sm">
+            <span className="material-symbols-outlined text-3xl text-slate-400 font-variation-fill">lock</span>
+          </div>
+          <h4 className="text-lg font-black uppercase tracking-tight text-foreground dark:text-white mb-2">Requirement Locked</h4>
+          <p className="text-sm text-foreground-muted max-w-xs mx-auto font-medium">
+            You must complete the previous level fully before these requirements and benefits become available.
+          </p>
+        </div>
+      )}
       <div className="space-y-2">
         <h2 className="text-2xl font-black text-foreground">{title}</h2>
         <p className="text-sm text-foreground-muted leading-relaxed">{description}</p>

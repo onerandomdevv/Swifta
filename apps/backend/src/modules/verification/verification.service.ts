@@ -372,7 +372,7 @@ export class VerificationService {
         where: { merchantId, status: OrderStatus.COMPLETED },
       });
       const openDisputes = await this.prisma.order.count({
-        where: { merchantId, disputeStatus: { not: null } },
+        where: { merchantId, disputeStatus: { not: "NONE" } },
       });
 
       const meetsT2 =
@@ -401,7 +401,7 @@ export class VerificationService {
         where: { merchantId, status: OrderStatus.COMPLETED },
       });
 
-      const accountAge = merchant.createdAt;
+      const accountCreatedAt = merchant.createdAt;
       const threeMonthsAgo = new Date();
       threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
 
@@ -410,7 +410,7 @@ export class VerificationService {
         merchant.addressVerified &&
         completedOrders >= 20 &&
         (merchant.averageRating || 0) >= 4.0 &&
-        accountAge <= threeMonthsAgo;
+        accountCreatedAt < threeMonthsAgo;
 
       if (meetsT3) {
         await this.prisma.merchantProfile.update({

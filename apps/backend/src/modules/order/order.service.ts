@@ -989,112 +989,77 @@ export class OrderService {
 
     this.logger.log(`Auto-confirming delivery for order ${orderId}`);
 
-    // Use updateMany to ensure atomicity and status check
-    const updateResult = await this.prisma.$transaction(async (tx) => {
-      const result = await tx.order.updateMany({
-        where: {
-          id: orderId,
-          status: { in: [OrderStatus.DISPATCHED, OrderStatus.IN_TRANSIT] },
-        },
-        data: {
-          status: OrderStatus.DELIVERED,
-          disputeWindowEndsAt: new Date(), // Auto-confirmation bypasses dispute window
-        },
-      });
+    // 1. Transition to DELIVERED (uses standard audit trail)
+    await this.transition(
+      orderId,
+      order.status as OrderStatus,
+      OrderStatus.DELIVERED,
+      order.buyerId, // System acting on behalf of buyer's silence
+      { action: "system_auto_confirm" },
+    );
 
-      if (result.count === 0) {
-        return { success: false };
-      }
-
-      await tx.orderTracking.create({
-        data: {
-          orderId,
-          status: OrderStatus.DELIVERED,
-          note: "Delivery auto-confirmed after 72 hours of no response.",
-        },
-      });
-
-      await tx.orderEvent.create({
-        data: {
-          order: { connect: { id: orderId } },
-          fromStatus: order.status,
-          toStatus: OrderStatus.DELIVERED,
-          metadata: { note: "System auto-confirmation" },
-          user: { connect: { id: order.buyerId } }, // Assuming triggered by system but we need a user ID for the relation
-        },
-      });
-
-      return { success: true };
+    // 2. Clear dispute window immediately for auto-confirmation
+    await this.prisma.order.update({
+      where: { id: orderId },
+      data: { disputeWindowEndsAt: new Date() },
     });
 
-    if (!updateResult.success) {
-      this.logger.warn(
-        `Order ${orderId} was already processed or state changed. Skipping.`,
-      );
-      return;
-    }
+    // 3. Create tracking entry AFTER transition
+    await this.prisma.orderTracking.create({
+      data: {
+        orderId,
+        status: OrderStatus.DELIVERED,
+        note: "Delivery auto-confirmed after 72 hours of no response.",
+      },
+    });
 
-    // Notify participants with isolation
+    // 4. Notify participants with strict isolation
     try {
-      await this.notifications.triggerOrderAutoConfirmed(
-        order.buyerId,
-        order.merchantId,
-        {
-          orderId: order.id,
-          reference: order.id.slice(0, 8).toUpperCase(),
-          amountKobo: order.totalAmountKobo,
-        },
-      );
+      if (order.merchantId) {
+        await this.notifications.triggerOrderAutoConfirmed(
+          order.buyerId,
+          order.merchantId,
+          {
+            orderId: order.id,
+            reference: order.id.slice(0, 8).toUpperCase(),
+            amountKobo: order.totalAmountKobo,
+          },
+        );
+      }
     } catch (error) {
       this.logger.error(
         `Failed to notify for auto-confirmed order ${orderId}: ${error instanceof Error ? error.message : error}`,
       );
-      // Continue execution regardless of notification failure
     }
 
-    // Process payout and tier checks (these are existing methods, assumed to be robust or handled elsewhere)
-    try {
-      await this.payoutService.initiatePayout(orderId);
-      await this.verificationService.checkAndUpgradeTier(order.merchantId);
-    } catch (error) {
-      this.logger.error(
-        `Failed to process payout/tier after auto-confirm for order ${orderId}: ${error instanceof Error ? error.message : error}`,
-      );
-    }
-
-    // Transition to COMPLETED
+    // 5. Final transition to COMPLETED
     await this.transition(
       orderId,
       OrderStatus.DELIVERED,
       OrderStatus.COMPLETED,
-      "SYSTEM",
-      { action: "auto_confirmed_system" },
+      order.buyerId,
+      { action: "auto_completion_payout" },
     );
 
-    // Evaluate tier upgrade
+    // 6. Post-completion processing (payouts and tier checks)
     try {
       if (order.merchantId) {
+        // Upgrade check
         await this.verificationService.checkAndUpgradeTier(order.merchantId);
+
+        // Payout if ESCROW
+        if (order.paymentMethod === "ESCROW") {
+          await this.payoutQueue.add(
+            "process-payout",
+            { orderId },
+            { jobId: `payout-${orderId}` },
+          );
+        }
       }
     } catch (err: unknown) {
       this.logger.error(
-        `Tier upgrade check failed: ${err instanceof Error ? err.message : String(err)}`,
+        `Post-auto-confirm processing failed for ${orderId}: ${err instanceof Error ? err.message : String(err)}`,
       );
-    }
-
-    // Trigger payout if ESCROW
-    if (order.paymentMethod === "ESCROW") {
-      try {
-        await this.payoutQueue.add(
-          "process-payout",
-          { orderId },
-          { jobId: `payout-${orderId}` },
-        );
-      } catch (error: unknown) {
-        this.logger.error(
-          `Auto-payout queue failed: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
     }
 
     return { success: true };

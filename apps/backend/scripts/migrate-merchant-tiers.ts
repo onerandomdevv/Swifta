@@ -5,10 +5,22 @@ const prisma = new PrismaClient();
 async function migrate() {
   console.log("Starting merchant verification tier migration...");
 
-  // We need to map old values if they exist, but since I already changed the Prisma Schema,
-  // I must be careful. If I already ran migrate dev, the old values might be gone or replaced.
-  
-  // Let's check current merchants
+  // First, convert old enum strings at the DB level so Prisma can load rows safely
+  await prisma.$executeRaw`
+    UPDATE merchant_profiles 
+    SET verification_tier = CASE
+      WHEN verification_tier::text = 'BASIC' THEN 'TIER_1'::"VerificationTier"
+      WHEN verification_tier::text = 'VERIFIED' THEN 'TIER_2'::"VerificationTier"
+      WHEN verification_tier::text = 'TRUSTED' THEN 'TIER_3'::"VerificationTier"
+      ELSE verification_tier
+    END,
+    tier_upgraded_at = CASE 
+      WHEN verification_tier::text IN ('BASIC', 'VERIFIED', 'TRUSTED') THEN NOW()
+      ELSE tier_upgraded_at
+    END
+    WHERE verification_tier::text IN ('BASIC', 'VERIFIED', 'TRUSTED')
+  `;
+
   const merchants = await prisma.merchantProfile.findMany();
   console.log(`Found ${merchants.length} merchants to check.`);
 

@@ -423,7 +423,7 @@ export class AdminService {
 
     const phoneNumbers = verifiedMerchants
       .map((m) => m.user?.phone)
-      .filter(Boolean);
+      .filter((phone): phone is string => !!phone);
 
     // MOCK: Integration with Email / In-App Notification API
     this.logger.log(

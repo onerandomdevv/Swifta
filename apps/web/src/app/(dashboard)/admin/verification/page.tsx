@@ -334,6 +334,9 @@ export default function AdminVerificationQueuePage() {
 }
 
 function DocumentLink({ url, label, subLabel, icon }: { url: string, label: string, subLabel?: string, icon: string }) {
+  // Protocol validation to prevent XSS (javascript: urls, etc.)
+  const isSafeUrl = /^(https?|ipfs):\/\//i.test(url);
+
   return (
     <div className="flex items-center justify-between p-3.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-background-secondary/50">
       <div className="flex items-center gap-3 overflow-hidden">
@@ -346,11 +349,22 @@ function DocumentLink({ url, label, subLabel, icon }: { url: string, label: stri
         </div>
       </div>
       <a
-        href={url}
-        target="_blank"
+        href={isSafeUrl ? url : "#"}
+        target={isSafeUrl ? "_blank" : undefined}
         rel="noopener noreferrer"
-        className="size-9 rounded-lg hover:bg-primary/10 text-primary flex items-center justify-center transition-all group shrink-0 ml-2"
-        title="View Document"
+        onClick={(e) => {
+          if (!isSafeUrl) {
+            e.preventDefault();
+            console.warn("Blocked potentially unsafe URL:", url);
+          }
+        }}
+        className={cn(
+          "size-9 rounded-lg flex items-center justify-center transition-all group shrink-0 ml-2",
+          isSafeUrl 
+            ? "hover:bg-primary/10 text-primary" 
+            : "text-slate-300 dark:text-slate-600 cursor-not-allowed opacity-50"
+        )}
+        title={isSafeUrl ? "View Document" : "Unsafe or Invalid Link"}
       >
         <span className="material-symbols-outlined text-lg">open_in_new</span>
       </a>

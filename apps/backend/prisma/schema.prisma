@@ -178,6 +178,7 @@ model Order {
   payout              Payout?
   reorderReminder     ReorderReminder?
   review              Review?
+  meta                Json?              @default("{}")
 
   @@index([buyerId])
   @@index([merchantId])
