@@ -38,24 +38,24 @@ export function AccountDetailsStep({
           <span className="text-[10px] font-bold text-primary uppercase tracking-[0.1em]">
             Step 2 of 3
           </span>
-          <span className="text-[10px] font-medium text-slate-400">
+          <span className="text-[10px] font-medium text-foreground-secondary">
             Account Details
           </span>
         </div>
-        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+        <div className="h-1.5 w-full bg-surface border border-border rounded-full overflow-hidden">
           <div className="h-full bg-primary w-2/3 rounded-full transition-all duration-1000 ease-out" />
         </div>
       </div>
 
       <div className="mb-6 lg:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2">
+        <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight mb-2">
           {isMerchant
             ? "Set Up Your Store"
             : isSupplier
               ? "Merchant Partner Registration"
               : "Create Your Account"}
         </h1>
-        <p className="text-sm sm:text-base text-slate-500 font-medium">
+        <p className="text-sm sm:text-base text-foreground-secondary font-medium">
           {isMerchant
             ? "Register your business to start selling on Lagos's premier wholesale and retail marketplace."
             : isSupplier
@@ -79,11 +79,11 @@ export function AccountDetailsStep({
         {/* Name row: First + Middle + Last */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="sm:col-span-1">
-            <label className="block text-sm font-bold text-slate-700 mb-1.5">
+            <label className="block text-sm font-bold text-foreground mb-1.5">
               First Name
             </label>
             <input
-              className={`w-full px-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.firstName ? "border-red-400" : "border-slate-200"}`}
+              className={`w-full px-4 py-3 bg-surface border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-foreground text-sm ${errors.firstName ? "border-red-400" : "border-border"}`}
               placeholder="John"
               type="text"
               {...register("firstName")}
@@ -95,22 +95,22 @@ export function AccountDetailsStep({
             )}
           </div>
           <div className="sm:col-span-1">
-            <label className="block text-sm font-bold text-slate-700 mb-1.5">
+            <label className="block text-sm font-bold text-foreground mb-1.5">
               Middle Name
             </label>
             <input
-              className="w-full px-4 py-3 bg-[#f6f6f8] border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm"
+              className="w-full px-4 py-3 bg-surface border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-foreground text-sm"
               placeholder="Emeka (opt.)"
               type="text"
               {...register("middleName")}
             />
           </div>
           <div className="sm:col-span-1">
-            <label className="block text-sm font-bold text-slate-700 mb-1.5">
+            <label className="block text-sm font-bold text-foreground mb-1.5">
               Last Name
             </label>
             <input
-              className={`w-full px-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.lastName ? "border-red-400" : "border-slate-200"}`}
+              className={`w-full px-4 py-3 bg-surface border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-foreground text-sm ${errors.lastName ? "border-red-400" : "border-border"}`}
               placeholder="Adeyemi"
               type="text"
               {...register("lastName")}
@@ -127,15 +127,15 @@ export function AccountDetailsStep({
         {isMerchant && (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1.5">
+              <label className="block text-sm font-bold text-foreground mb-1.5">
                 Business Name
               </label>
               <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-foreground-secondary text-xl">
                   storefront
                 </span>
                 <input
-                  className={`w-full pl-10 pr-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.businessName ? "border-red-400" : "border-slate-200"}`}
+                  className={`w-full pl-10 pr-4 py-3 bg-surface border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-foreground text-sm ${errors.businessName ? "border-red-400" : "border-border"}`}
                   placeholder="Adamu Cement Supplies"
                   type="text"
                   {...register("businessName")}
@@ -149,15 +149,15 @@ export function AccountDetailsStep({
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1.5">
+              <label className="block text-sm font-bold text-foreground mb-1.5">
                 Business Username
               </label>
               <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-foreground-secondary text-xl">
                   alternate_email
                 </span>
                 <input
-                  className={`w-full pl-10 pr-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.slug ? "border-red-400" : "border-slate-200"}`}
+                  className={`w-full pl-10 pr-4 py-3 bg-surface border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-foreground text-sm ${errors.slug ? "border-red-400" : "border-border"}`}
                   placeholder="e.g. adamu-cement"
                   type="text"
                   {...register("slug", {
@@ -168,10 +168,10 @@ export function AccountDetailsStep({
                 />
               </div>
               <div className="mt-1.5 flex items-center justify-between px-1">
-                <p className="text-[10px] text-slate-400 font-medium italic">
+                <p className="text-[10px] text-foreground-secondary font-medium italic">
                   Handle: @{watch("slug") || "your-handle"}
                 </p>
-                <p className="text-[10px] text-slate-400 font-medium">
+                <p className="text-[10px] text-foreground-secondary font-medium">
                   3-30 chars, lowercase & hyphens
                 </p>
               </div>
@@ -188,15 +188,15 @@ export function AccountDetailsStep({
         {isSupplier && (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1.5">
+              <label className="block text-sm font-bold text-foreground mb-1.5">
                 Company Name
               </label>
               <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-foreground-secondary text-xl">
                   factory
                 </span>
                 <input
-                  className={`w-full pl-10 pr-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.companyName ? "border-red-400" : "border-slate-200"}`}
+                  className={`w-full pl-10 pr-4 py-3 bg-surface border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-foreground text-sm ${errors.companyName ? "border-red-400" : "border-border"}`}
                   placeholder="Dangote Cement PLC"
                   type="text"
                   {...register("companyName")}
@@ -210,15 +210,15 @@ export function AccountDetailsStep({
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1.5">
+              <label className="block text-sm font-bold text-foreground mb-1.5">
                 Company Address
               </label>
               <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-foreground-secondary text-xl">
                   location_on
                 </span>
                 <input
-                  className={`w-full pl-10 pr-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.companyAddress ? "border-red-400" : "border-slate-200"}`}
+                  className={`w-full pl-10 pr-4 py-3 bg-surface border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-foreground text-sm ${errors.companyAddress ? "border-red-400" : "border-border"}`}
                   placeholder="12 Business Way, Ikeja, Lagos"
                   type="text"
                   {...register("companyAddress")}
@@ -232,15 +232,15 @@ export function AccountDetailsStep({
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1.5">
+              <label className="block text-sm font-bold text-foreground mb-1.5">
                 CAC Number (Optional)
               </label>
               <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-foreground-secondary text-xl">
                   badge
                 </span>
                 <input
-                  className={`w-full pl-10 pr-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.cacNumber ? "border-red-400" : "border-slate-200"}`}
+                  className={`w-full pl-10 pr-4 py-3 bg-surface border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-foreground text-sm ${errors.cacNumber ? "border-red-400" : "border-border"}`}
                   placeholder="RC123456"
                   type="text"
                   {...register("cacNumber")}
@@ -257,15 +257,15 @@ export function AccountDetailsStep({
 
         {/* Phone */}
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-1.5">
+          <label className="block text-sm font-bold text-foreground mb-1.5">
             Phone Number
           </label>
           <div className="relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-foreground-secondary text-xl">
               call
             </span>
             <input
-              className={`w-full pl-10 pr-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.phone ? "border-red-400" : "border-slate-200"}`}
+              className={`w-full pl-10 pr-4 py-3 bg-surface border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-foreground text-sm ${errors.phone ? "border-red-400" : "border-border"}`}
               placeholder="+234 800 000 0000"
               type="tel"
               {...register("phone", {
@@ -284,15 +284,15 @@ export function AccountDetailsStep({
 
         {/* Email */}
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-1.5">
+          <label className="block text-sm font-bold text-foreground mb-1.5">
             Email Address
           </label>
           <div className="relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-foreground-secondary text-xl">
               mail
             </span>
             <input
-              className={`w-full pl-10 pr-4 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.email ? "border-red-400" : "border-slate-200"}`}
+              className={`w-full pl-10 pr-4 py-3 bg-surface border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-foreground text-sm ${errors.email ? "border-red-400" : "border-border"}`}
               placeholder="john@example.com"
               type="email"
               {...register("email")}
@@ -333,7 +333,7 @@ export function AccountDetailsStep({
       <div className="mt-6 flex flex-col items-center gap-3">
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 text-slate-500 hover:text-primary text-sm font-semibold transition-colors"
+          className="flex items-center gap-1.5 text-foreground-secondary hover:text-primary text-sm font-semibold transition-colors"
           type="button"
         >
           <span className="material-symbols-outlined text-[18px]">
@@ -341,7 +341,7 @@ export function AccountDetailsStep({
           </span>
           Back to Role Selection
         </button>
-        <p className="text-center text-sm text-slate-600 font-medium">
+        <p className="text-center text-sm text-foreground-secondary font-medium">
           Already have an account?{" "}
           <Link
             className="text-primary font-bold hover:underline"
@@ -359,15 +359,15 @@ function PasswordField({ errors, register }: { errors: any; register: any }) {
   const [show, setShow] = useState(false);
   return (
     <div>
-      <label className="block text-sm font-bold text-slate-700 mb-1.5">
+      <label className="block text-sm font-bold text-foreground mb-1.5">
         Password
       </label>
       <div className="relative">
-        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
+        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-foreground-secondary text-xl">
           lock
         </span>
         <input
-          className={`w-full pl-10 pr-12 py-3 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.password ? "border-red-400" : "border-slate-200"}`}
+          className={`w-full pl-10 pr-12 py-3 bg-surface border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-foreground text-sm ${errors.password ? "border-red-400" : "border-border"}`}
           placeholder="••••••••"
           type={show ? "text" : "password"}
           {...register("password")}
@@ -375,7 +375,7 @@ function PasswordField({ errors, register }: { errors: any; register: any }) {
         <button
           type="button"
           onClick={() => setShow(!show)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-secondary hover:text-foreground-secondary transition-colors"
           aria-label={show ? "Hide password" : "Show password"}
           aria-pressed={show}
         >
