@@ -3,6 +3,7 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { merchantApi } from "@/lib/api/merchant.api";
+import { VerificationTier } from "@swifta/shared";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -14,9 +15,10 @@ export function VerificationBanner() {
 
   if (isLoading || !status) return null;
 
-  const isVerified = status.tier === "VERIFIED" || status.tier === "TRUSTED";
-  const hasPending = status.pendingRequest?.status === "PENDING";
-  const isRejected = status.pendingRequest?.status === "REJECTED";
+  const isVerified = status.currentTier === VerificationTier.TIER_2 || status.currentTier === VerificationTier.TIER_3;
+  const hasPending = status.tier2.status === "IN_PROGRESS" || status.tier3.status === "IN_PROGRESS";
+  const activeRequest = status.tier2.pendingRequest || status.tier3.pendingRequest;
+  const isRejected = activeRequest?.status === "REJECTED";
 
   // If verified, don't show the banner
   if (isVerified && !isRejected) return null;
@@ -47,7 +49,7 @@ export function VerificationBanner() {
       text: "text-white",
       icon: "error",
       title: "Verification Rejected",
-      description: `Reason: ${status.pendingRequest?.rejectionReason || "Documents were insufficient."}. Please update and resubmit.`,
+      description: `Reason: ${activeRequest?.rejectionReason || "Documents were insufficient."}. Please update and resubmit.`,
       actionLabel: "Fix Issues",
       actionHref: "/merchant/verification"
     };

@@ -535,7 +535,7 @@ export class NotificationTriggerService {
 
   async triggerNewMerchantSubmission(
     adminUserIds: string[],
-    metadata: { merchantId: string; merchantName: string },
+    metadata: { merchantId: string; merchantName: string; targetTier?: string },
   ) {
     await Promise.allSettled(
       adminUserIds.map((adminId) =>
@@ -543,7 +543,7 @@ export class NotificationTriggerService {
           adminId,
           "NEW_MERCHANT_SUBMISSION",
           "New Merchant Verification Pending",
-          `${metadata.merchantName} has submitted their account for verification.`,
+          `${metadata.merchantName} has submitted their account for verification${metadata.targetTier ? ` (${metadata.targetTier})` : ""}.`,
           { ...metadata },
         ),
       ),
@@ -613,12 +613,60 @@ export class NotificationTriggerService {
   ) {
     await this.addJob(
       userId,
-      "DISPUTE_RESOLVED",
+      NotificationType.DISPUTE_RESOLVED,
       "Dispute Resolved",
       `The dispute for Order #${orderId.slice(0, 8)} has been resolved.`,
       { orderId, resolution },
       [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
       { url: `/buyer/orders/${orderId}` },
+    );
+  }
+
+  async triggerAutoConfirmationWarning(
+    buyerId: string,
+    orderRef: string,
+    hoursRemaining: number,
+  ) {
+    await this.addJob(
+      buyerId,
+      NotificationType.ORDER_AUTO_CONFIRM_WARNING,
+      "Action Required: Order Confirmation",
+      `Your order #${orderRef} will be automatically confirmed in ${hoursRemaining} hours. Please confirm delivery or raise a dispute if there are issues.`,
+      { orderRef, hoursRemaining },
+      [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+    );
+  }
+
+  async triggerOrderAutoConfirmed(
+    buyerId: string,
+    merchantId: string,
+    metadata: { orderId: string; reference: string; amountKobo: bigint },
+  ) {
+    const serializedMetadata = {
+      ...metadata,
+      amountKobo: metadata.amountKobo.toString(),
+    };
+
+    // Notify buyer
+    await this.addJob(
+      buyerId,
+      NotificationType.ORDER_AUTO_CONFIRMED,
+      "Order Auto-Confirmed",
+      `Order #${metadata.reference.slice(0, 8)} has been automatically confirmed after 72 hours.`,
+      serializedMetadata,
+      [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+      { url: `/buyer/orders/${metadata.orderId}` },
+    );
+
+    // Notify merchant
+    await this.addJob(
+      merchantId,
+      NotificationType.ORDER_AUTO_CONFIRMED,
+      "Order Auto-Confirmed",
+      `Order #${metadata.reference.slice(0, 8)} has been automatically confirmed by the system. Payout will be processed shortly.`,
+      { ...serializedMetadata, isMerchantId: true },
+      [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+      { url: `/merchant/orders/${metadata.orderId}` },
     );
   }
 }

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { PriceType, type Product } from "@swifta/shared";
 import { toast } from "sonner";
 import { cn, formatKobo, optimizeCloudinaryUrl } from "@/lib/utils";
+import { VerificationBadge } from "@/components/shared/verification-badge";
 
 interface ProductCardProps {
   product: Product;
@@ -132,6 +133,9 @@ export function ProductCard({
               <span className="text-foreground font-bold text-[11px] truncate group-hover/m:text-primary transition-colors">
                 {merchant.businessName}
               </span>
+              {merchant.verificationTier && (
+                <VerificationBadge tier={merchant.verificationTier} size="xs" showLabel={false} />
+              )}
               <span className="text-foreground-muted text-[9px] font-medium">
                 {p.createdAt ? timeAgo(p.createdAt) : "Recently"}
               </span>

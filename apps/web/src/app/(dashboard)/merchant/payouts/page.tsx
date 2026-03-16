@@ -6,7 +6,7 @@ import { formatKobo } from "@/lib/utils";
 import { getOrders, getOrderSummary } from "@/lib/api/order.api";
 import { merchantApi } from "@/lib/api/merchant.api";
 import { useToast } from "@/providers/toast-provider";
-import { OrderStatus } from "@swifta/shared";
+import { OrderStatus, VerificationTier } from "@swifta/shared";
 import type { Order } from "@swifta/shared";
 
 function resolveBankName(
@@ -152,8 +152,8 @@ export default function MerchantPayoutsPage() {
   const accountNo = maskAccountNo((profile as any)?.bankAccountNumber);
   const accountName = (profile as any)?.settlementAccountName || "Not configured";
   const isVerified =
-    (profile as any)?.verificationTier === "VERIFIED" ||
-    (profile as any)?.verificationTier === "TRUSTED";
+    (profile as any)?.verificationTier === VerificationTier.TIER_2 ||
+    (profile as any)?.verificationTier === VerificationTier.TIER_3;
 
   const updateBankMutation = useMutation({
     mutationFn: (data: { bankCode: string; bankAccountNo: string }) =>

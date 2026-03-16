@@ -59,24 +59,42 @@ export const merchantApi = {
   },
 
   submitVerificationRequest: (dto: {
-    governmentIdUrl: string;
-    idType: string;
+    targetTier: string;
+    idType?: string;
+    governmentIdUrl?: string;
+    ninNumber?: string;
     cacCertUrl?: string;
+    proofOfAddressUrl?: string;
   }): Promise<{ id: string; status: string; createdAt: string }> => {
     return apiClient.post("/verification/request", dto);
   },
 
   getVerificationStatus: (): Promise<{
-    tier: string;
-    verifiedAt?: string;
-    pendingRequest?: {
-      id: string;
-      status: string;
-      rejectionReason?: string;
-      createdAt: string;
-      governmentIdUrl?: string;
-      cacCertUrl?: string;
-      idType?: string;
+    currentTier: string;
+    tier1: {
+      status: "COMPLETE" | "IN_PROGRESS" | "LOCKED";
+      requirements: Record<string, boolean>;
+    };
+    tier2: {
+      status: "COMPLETE" | "IN_PROGRESS" | "LOCKED";
+      requirements: {
+        ninVerified: boolean;
+        completedOrders: { current: number; required: number };
+        zeroDisputes: boolean;
+        profilePhoto: boolean;
+      };
+      pendingRequest?: any;
+    };
+    tier3: {
+      status: "COMPLETE" | "IN_PROGRESS" | "LOCKED";
+      requirements: {
+        cacVerified: boolean;
+        addressVerified: boolean;
+        completedOrders: { current: number; required: number };
+        averageRating: { current: number | null; required: number };
+        accountAge: { current: string; required: string };
+      };
+      pendingRequest?: any;
     };
   }> => {
     return apiClient.get("/verification/status");

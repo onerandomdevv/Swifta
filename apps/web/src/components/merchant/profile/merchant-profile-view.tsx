@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { cn, formatKobo } from "@/lib/utils";
 import { EditProfileModal } from "./edit-profile-modal";
 import { ProductCard } from "@/components/shared/product-card";
+import { VerificationBadge } from "@/components/shared/verification-badge";
 
 
 interface MerchantProfileViewProps {
@@ -170,7 +171,7 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
     );
   }
 
-  const isVerified = profile.verificationTier === "VERIFIED" || profile.verificationTier === "TRUSTED";
+  const verificationTier = profile.verificationTier;
   const coverImage = profile.coverImage;
 
   return (
@@ -217,9 +218,7 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
             <h2 className="text-2xl md:text-4xl font-bold text-foreground tracking-tight">
               {profile.businessName}
             </h2>
-            {isVerified && (
-              <span className="material-symbols-outlined text-emerald-500 text-xl md:text-2xl font-variation-fill">verified</span>
-            )}
+              <VerificationBadge tier={verificationTier} size="lg" />
           </div>
 
           <div className="flex items-center gap-x-4 gap-y-2 flex-wrap">
@@ -301,23 +300,23 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
           
           {showVerificationDetails && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-6 animate-in fade-in slide-in-from-top-1 duration-200">
+              <div className={`flex items-center gap-2 p-2.5 bg-background-secondary rounded-lg border ${profile.verificationTier !== 'UNVERIFIED' ? 'border-primary/10' : 'border-border opacity-60'}`}>
+                <span className={cn("material-symbols-outlined text-sm font-variation-fill", profile.verificationTier !== 'UNVERIFIED' ? "text-primary" : "text-foreground-muted/40")}>
+                  {profile.verificationTier !== 'UNVERIFIED' ? 'check_circle' : 'cancel'}
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-wider">Level 1: Basic</span>
+              </div>
+              <div className={`flex items-center gap-2 p-2.5 bg-background-secondary rounded-lg border ${profile.ninVerified ? 'border-primary/10' : 'border-border opacity-60'}`}>
+                <span className={cn("material-symbols-outlined text-sm font-variation-fill", profile.ninVerified ? "text-primary" : "text-foreground-muted/40")}>
+                  {profile.ninVerified ? 'check_circle' : 'cancel'}
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-wider">Level 2: Identity</span>
+              </div>
               <div className={`flex items-center gap-2 p-2.5 bg-background-secondary rounded-lg border ${profile.cacVerified ? 'border-primary/10' : 'border-border opacity-60'}`}>
                 <span className={cn("material-symbols-outlined text-sm font-variation-fill", profile.cacVerified ? "text-primary" : "text-foreground-muted/40")}>
                   {profile.cacVerified ? 'check_circle' : 'cancel'}
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-wider">{profile.cacVerified ? 'CAC Verified' : 'CAC Pending'}</span>
-              </div>
-              <div className={`flex items-center gap-2 p-2.5 bg-background-secondary rounded-lg border ${profile.addressVerified ? 'border-primary/10' : 'border-border opacity-60'}`}>
-                <span className={cn("material-symbols-outlined text-sm font-variation-fill", profile.addressVerified ? "text-primary" : "text-foreground-muted/40")}>
-                  {profile.addressVerified ? 'check_circle' : 'cancel'}
-                </span>
-                <span className="text-[10px] font-bold uppercase tracking-wider">{profile.addressVerified ? 'Address Verified' : 'Address Pending'}</span>
-              </div>
-              <div className={`flex items-center gap-2 p-2.5 bg-background-secondary rounded-lg border ${profile.bankVerified ? 'border-primary/10' : 'border-border opacity-60'}`}>
-                <span className={cn("material-symbols-outlined text-sm font-variation-fill", profile.bankVerified ? "text-primary" : "text-foreground-muted/40")}>
-                  {profile.bankVerified ? 'check_circle' : 'cancel'}
-                </span>
-                <span className="text-[10px] font-bold uppercase tracking-wider">{profile.bankVerified ? 'Bank Verified' : 'Bank Pending'}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider">Level 3: Business</span>
               </div>
             </div>
           )}
@@ -438,7 +437,14 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
           </div>
         )}
       </div>
-
+      {profile && (
+        <EditProfileModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          profile={profile}
+          onSuccess={(updated: MerchantProfile) => setProfile(updated)}
+        />
+      )}
     </div>
   );
 }
