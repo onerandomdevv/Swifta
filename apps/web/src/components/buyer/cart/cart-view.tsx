@@ -98,8 +98,8 @@ export function CartView({
   useEffect(() => {
     async function fetchRelated() {
       try {
-        const data = await productApi.getCatalogue("", "All Categories", 1, 5);
-        setRelatedProducts(data);
+        const response = await productApi.getCatalogue("", "All Categories", 1, 5);
+        setRelatedProducts(response.data);
       } catch (err) {
         console.error("Failed to load related products", err);
       }

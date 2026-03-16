@@ -8,8 +8,15 @@ import { AuditLogController } from "./audit-log.controller";
 import { AuthModule } from "../auth/auth.module";
 import { VerificationModule } from "../verification/verification.module";
 
+import { OrderModule } from "../order/order.module";
+
 @Module({
-  imports: [PrismaModule, forwardRef(() => AuthModule), VerificationModule],
+  imports: [
+    PrismaModule,
+    forwardRef(() => AuthModule),
+    VerificationModule,
+    OrderModule,
+  ],
   controllers: [AdminController, AuditLogController],
   providers: [AdminService, AdminCronService, AuditLogService],
   exports: [AdminService, AuditLogService],
