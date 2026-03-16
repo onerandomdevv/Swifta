@@ -5,6 +5,7 @@ import { OrderStatus } from "@swifta/shared";
 import { OrderService } from "../order/order.service";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
 import { RedisService } from "../../redis/redis.service";
+import { PlatformConfig } from "../../config/platform.config";
 
 @Injectable()
 export class AdminCronService {
@@ -34,8 +35,13 @@ export class AdminCronService {
         "Scanning for unconfirmed deliveries requiring action...",
       );
 
-      const seventyTwoHoursAgo = new Date(Date.now() - 72 * 60 * 60 * 1000);
-      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const seventyTwoHoursAgo = new Date(
+        Date.now() -
+          PlatformConfig.timers.autoConfirmationHours * 60 * 60 * 1000,
+      );
+      const twentyFourHoursAgo = new Date(
+        Date.now() - PlatformConfig.timers.escrowWindowHours * 60 * 60 * 1000,
+      );
 
       // 1. Auto-confirm orders older than 72h
       const overdueOrders = await this.prisma.order.findMany({
@@ -51,7 +57,7 @@ export class AdminCronService {
         try {
           await this.orderService.autoConfirmDelivery(order.id);
           this.logger.log(
-            `Auto-confirmed order ${order.id} (over 72h since update)`,
+            `Auto-confirmed order ${order.id} (over ${PlatformConfig.timers.autoConfirmationHours}h since update)`,
           );
         } catch (err: unknown) {
           this.logger.error(

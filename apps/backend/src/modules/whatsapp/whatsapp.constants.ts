@@ -1,6 +1,6 @@
-// ---------------------------------------------------------------------------
 // WhatsApp Bot — Constants, templates & Gemini function declarations
 // ---------------------------------------------------------------------------
+import { PlatformConfig } from "../../config/platform.config";
 
 /** Professional English menu for linked merchants */
 export const MAIN_MENU = `Manage your business efficiently on WhatsApp. Select an option from the menu or state your request.`;
@@ -26,7 +26,9 @@ export const STOCK_UPDATE_FOLLOWUP = `Understood. Which product would you like t
 Example: "Add 50 bags of cement" or "Remove 10 iron rods"`;
 
 /** First message for an unlinked phone */
-export const WELCOME_MESSAGE = `Welcome to Swifta. Nigeria's digital marketplace for retail and wholesale needs. How would you like to use our platform?`;
+export const WELCOME_MESSAGE =
+  process.env.WHATSAPP_WELCOME_MESSAGE ||
+  `Welcome to Swifta. Nigeria's digital marketplace for retail and wholesale needs. How would you like to use our platform?`;
 
 export const ROLE_SELECTED_MESSAGE = `To link your account, please reply with your registered email address.`;
 
@@ -260,7 +262,7 @@ export const WA_OTP_PREFIX = "wa:otp:";
 /** Session TTL in seconds (30 minutes) */
 export const SESSION_TTL = 30 * 60;
 /** OTP TTL in seconds (10 minutes) */
-export const OTP_TTL = 10 * 60;
+export const OTP_TTL = PlatformConfig.timers.otpExpiryWhatsappMinutes * 60; // Use WhatsApp expiry from config
 
 /** Redis key prefix for message dedup */
 export const WA_MSG_DEDUP_PREFIX = "wa:msg:";
@@ -287,7 +289,8 @@ export enum OnboardingStep {
 }
 
 /** Onboarding session TTL in seconds (1 hour) */
-export const ONBOARDING_SESSION_TTL = 60 * 60;
+export const ONBOARDING_SESSION_TTL =
+  PlatformConfig.timers.onboardingSessionTtl;
 
 /** Nigerian banks for List Message (using Paystack bank codes) */
 export const NIGERIAN_BANKS = [

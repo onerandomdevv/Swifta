@@ -226,12 +226,25 @@ export function CartView({
     }
   };
 
+  // Platform Fee Calculation (Sync with backend PlatformConfig)
+  const FEE_ESCROW = Number(process.env.NEXT_PUBLIC_PLATFORM_FEE_ESCROW || 2);
+  const FEE_DIRECT_TIER2 = Number(process.env.NEXT_PUBLIC_PLATFORM_FEE_DIRECT_TIER2 || 1.5);
+  const FEE_DIRECT_TIER3 = Number(process.env.NEXT_PUBLIC_PLATFORM_FEE_DIRECT_TIER3 || 1);
+
+  const getFeePercent = () => {
+    if (paymentMethod === "ESCROW") return FEE_ESCROW;
+    if (activeMerchantTier === "TIER_3") return FEE_DIRECT_TIER3;
+    if (activeMerchantTier === "TIER_2") return FEE_DIRECT_TIER2;
+    return FEE_ESCROW;
+  };
+
   const isSubmitting = createOrderMutation.isPending;
-  const feePercentage = (isVerifiedMerchant && paymentMethod === "DIRECT") ? 0.01 : 0.02;
+  const isAddressComplete = !!(deliveryState && deliveryLga && deliveryStreet.trim() && primaryPhone.trim());
+
+  const feePercentage = getFeePercent() / 100;
   const platformFeeKobo = Math.floor(activeSubtotalKobo * feePercentage);
   const deliveryFeeKobo = deliveryMethod === "PLATFORM_LOGISTICS" ? deliveryQuoteKobo || 250000 : 0;
   const totalKobo = activeSubtotalKobo + platformFeeKobo + deliveryFeeKobo;
-  const isAddressComplete = !!(deliveryState && deliveryLga && deliveryStreet.trim() && primaryPhone.trim());
 
   if (isRedirecting) {
     return (

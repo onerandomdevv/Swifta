@@ -32,7 +32,7 @@ export class SmsService {
 
   /**
    * Dispatches an SMS to a specified phone number using Africa's Talking.
-   * Phone number must be in E.164 format (e.g., +2348012345678).
+   * Phone number must be in E.164 format (e.g., 2348147846093).
    *
    * @param to The recipient's phone number
    * @param message The message body

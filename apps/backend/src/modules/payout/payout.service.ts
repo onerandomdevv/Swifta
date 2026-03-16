@@ -39,14 +39,11 @@ export class PayoutService {
         Number(order.totalAmountKobo) - Number(order.deliveryFeeKobo);
     }
 
-    // Dynamic fee: 1% for DIRECT payments, 2% for ESCROW
-    const platformFeePercentage = order.paymentMethod === "DIRECT" ? 1 : 2;
-    const platformFeeKobo = Math.floor(
-      subtotalKobo * (platformFeePercentage / 100),
-    );
+    // Use saved platform fee directly from the order
+    const platformFeeKoboCount = BigInt(order.platformFeeKobo || 0n);
     const payoutAmountKobo =
       BigInt(subtotalKobo) -
-      BigInt(platformFeeKobo) +
+      platformFeeKoboCount +
       BigInt(order.deliveryFeeKobo);
 
     if (!merchant.paystackRecipientCode) {
@@ -58,7 +55,7 @@ export class PayoutService {
           orderId,
           merchantId: merchant.id,
           amountKobo: payoutAmountKobo,
-          platformFeeKobo: BigInt(platformFeeKobo),
+          platformFeeKobo: platformFeeKoboCount,
           status: "FAILED",
           failureReason: "Merchant has no registered bank account",
         },
@@ -71,7 +68,7 @@ export class PayoutService {
         orderId,
         merchantId: merchant.id,
         amountKobo: payoutAmountKobo,
-        platformFeeKobo: BigInt(platformFeeKobo),
+        platformFeeKobo: platformFeeKoboCount,
         status: "PROCESSING",
         initiatedAt: new Date(),
       },
