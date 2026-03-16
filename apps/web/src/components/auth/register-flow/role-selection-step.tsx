@@ -20,20 +20,20 @@ export function RoleSelectionStep({
           <span className="text-[10px] font-bold text-primary uppercase tracking-[0.1em]">
             Step 1 of 3
           </span>
-          <span className="text-[10px] font-medium text-slate-400">
+          <span className="text-[10px] font-medium text-foreground-secondary">
             Role Selection
           </span>
         </div>
-        <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+        <div className="h-1.5 w-full bg-surface border border-border rounded-full overflow-hidden">
           <div className="h-full bg-primary w-1/3 rounded-full transition-all duration-1000 ease-out"></div>
         </div>
       </div>
 
       <div className="space-y-2">
-        <h2 className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+        <h2 className="text-3xl font-extrabold text-foreground tracking-tight">
           Select Your Role
         </h2>
-        <p className="text-slate-500 dark:text-slate-400">
+        <p className="text-foreground-secondary">
           Choose how you want to interact with the Swifta marketplace.
         </p>
       </div>
@@ -49,7 +49,7 @@ export function RoleSelectionStep({
             onChange={() => onRoleSelect(UserRole.MERCHANT)}
             className="peer sr-only"
           />
-          <div className="p-6 border-2 border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/50 transition-all hover:border-primary/50 peer-checked:border-primary peer-checked:ring-1 peer-checked:ring-primary shadow-sm hover:shadow-md">
+          <div className="p-6 border-2 border-border rounded-xl bg-surface transition-all hover:border-primary/50 peer-checked:border-primary peer-checked:ring-1 peer-checked:ring-primary shadow-sm hover:shadow-md">
             <div className="flex items-start gap-4">
               <div
                 className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center transition-colors ${role === UserRole.MERCHANT ? "bg-primary text-white" : "bg-primary/10 text-primary"}`}
@@ -60,7 +60,7 @@ export function RoleSelectionStep({
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                  <p className="text-lg font-bold text-foreground">
                     I am a Merchant
                   </p>
                   {role === UserRole.MERCHANT && (
@@ -71,7 +71,7 @@ export function RoleSelectionStep({
                     </div>
                   )}
                 </div>
-                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                <p className="text-sm text-foreground-secondary leading-relaxed">
                   Sell products and manage your retail/wholesale inventory at
                   scale with our merchant tools.
                 </p>
@@ -90,10 +90,10 @@ export function RoleSelectionStep({
             onChange={() => onRoleSelect(UserRole.BUYER)}
             className="peer sr-only"
           />
-          <div className="p-6 border-2 border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/50 transition-all hover:border-primary/50 peer-checked:border-primary peer-checked:ring-1 peer-checked:ring-primary shadow-sm hover:shadow-md">
+          <div className="p-6 border-2 border-border rounded-xl bg-surface transition-all hover:border-primary/50 peer-checked:border-primary peer-checked:ring-1 peer-checked:ring-primary shadow-sm hover:shadow-md">
             <div className="flex items-start gap-4">
               <div
-                className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center transition-colors ${role === UserRole.BUYER ? "bg-primary text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 group-hover:text-primary"}`}
+                className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center transition-colors ${role === UserRole.BUYER ? "bg-primary text-white" : "bg-background-secondary text-foreground-muted group-hover:text-primary"}`}
               >
                 <span className="material-symbols-outlined text-2xl">
                   shopping_cart
@@ -101,7 +101,7 @@ export function RoleSelectionStep({
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                  <p className="text-lg font-bold text-foreground">
                     I am a Buyer
                   </p>
                   {role === UserRole.BUYER && (
@@ -112,7 +112,7 @@ export function RoleSelectionStep({
                     </div>
                   )}
                 </div>
-                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                <p className="text-sm text-foreground-secondary leading-relaxed">
                   Source quality products and goods for your personal or
                   business needs from verified suppliers.
                 </p>
@@ -134,7 +134,7 @@ export function RoleSelectionStep({
           </span>
         </button>
         <div className="text-center">
-          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+          <p className="text-sm text-foreground-secondary font-medium">
             Already have an account?
             <Link
               className="text-primary font-bold hover:underline ml-1"
