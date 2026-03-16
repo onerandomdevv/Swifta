@@ -621,4 +621,49 @@ export class NotificationTriggerService {
       { url: `/buyer/orders/${orderId}` },
     );
   }
+
+  async triggerAutoConfirmationWarning(
+    buyerId: string,
+    orderRef: string,
+    hoursRemaining: number,
+  ) {
+    await this.addJob(
+      buyerId,
+      "ORDER_AUTO_CONFIRM_WARNING",
+      "Action Required: Order Confirmation",
+      `Your order #${orderRef} will be automatically confirmed in ${hoursRemaining} hours. Please confirm delivery or raise a dispute if there are issues.`,
+      { orderRef, hoursRemaining },
+      [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+    );
+  }
+
+  async triggerOrderAutoConfirmed(
+    buyerId: string,
+    merchantId: string,
+    metadata: { orderId: string; reference: string; amountKobo: bigint },
+  ) {
+    // Notify buyer
+    await this.addJob(
+      buyerId,
+      "ORDER_AUTO_CONFIRMED",
+      "Order Auto-Confirmed",
+      `Order #${metadata.reference.slice(0, 8)} has been automatically confirmed after 72 hours.`,
+      { ...metadata, amountKobo: metadata.amountKobo.toString() },
+      [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+    );
+
+    // Notify merchant
+    await this.addJob(
+      merchantId,
+      "ORDER_AUTO_CONFIRMED",
+      "Order Auto-Confirmed",
+      `Order #${metadata.reference.slice(0, 8)} has been automatically confirmed by the system.`,
+      {
+        ...metadata,
+        amountKobo: metadata.amountKobo.toString(),
+        isMerchantId: true,
+      },
+      [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+    );
+  }
 }

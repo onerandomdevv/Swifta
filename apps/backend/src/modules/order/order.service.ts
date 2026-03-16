@@ -946,6 +946,102 @@ export class OrderService {
     return { message: "Delivery confirmed" };
   }
 
+  /**
+   * System-triggered delivery confirmation after 72 hours of inactivity.
+   */
+  async autoConfirmDelivery(orderId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        user: true, // buyer
+        merchantProfile: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order ${orderId} not found`);
+    }
+
+    if (
+      order.status !== OrderStatus.DISPATCHED &&
+      order.status !== OrderStatus.IN_TRANSIT
+    ) {
+      this.logger.warn(
+        `Order ${orderId} is in ${order.status} state, cannot auto-confirm.`,
+      );
+      return;
+    }
+
+    this.logger.log(`Auto-confirming delivery for order ${orderId}`);
+
+    // Update status and create tracking
+    await this.prisma.$transaction(async (tx) => {
+      await tx.order.update({
+        where: { id: orderId },
+        data: {
+          status: OrderStatus.DELIVERED,
+          disputeWindowEndsAt: new Date(), // Auto-confirmation bypasses dispute window
+        },
+      });
+
+      await tx.orderTracking.create({
+        data: {
+          orderId,
+          status: OrderStatus.DELIVERED,
+          note: "Delivery auto-confirmed after 72 hours of no response.",
+        },
+      });
+    });
+
+    // Notify participants
+    await this.notifications.triggerOrderAutoConfirmed(
+      order.buyerId,
+      order.merchantId,
+      {
+        orderId: order.id,
+        reference: order.id.slice(0, 8).toUpperCase(),
+        amountKobo: order.totalAmountKobo,
+      },
+    );
+
+    // Transition to COMPLETED
+    await this.transition(
+      orderId,
+      OrderStatus.DELIVERED,
+      OrderStatus.COMPLETED,
+      "SYSTEM",
+      { action: "auto_confirmed_system" },
+    );
+
+    // Evaluate tier upgrade
+    try {
+      if (order.merchantId) {
+        await this.verificationService.checkAndUpgradeTier(order.merchantId);
+      }
+    } catch (err: unknown) {
+      this.logger.error(
+        `Tier upgrade check failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+
+    // Trigger payout if ESCROW
+    if (order.paymentMethod === "ESCROW") {
+      try {
+        await this.payoutQueue.add(
+          "process-payout",
+          { orderId },
+          { jobId: `payout-${orderId}` },
+        );
+      } catch (error: unknown) {
+        this.logger.error(
+          `Auto-payout queue failed: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+
+    return { success: true };
+  }
+
   // ──────────────────────────────────────────────
   //  CANCEL (role-based status rules)
   // ──────────────────────────────────────────────

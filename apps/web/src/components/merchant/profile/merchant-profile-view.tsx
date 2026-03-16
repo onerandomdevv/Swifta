@@ -438,7 +438,14 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
           </div>
         )}
       </div>
-
+      {profile && (
+        <EditProfileModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          profile={profile}
+          onSuccess={(updated) => setProfile(updated)}
+        />
+      )}
     </div>
   );
 }
