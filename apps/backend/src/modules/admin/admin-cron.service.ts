@@ -76,7 +76,7 @@ export class AdminCronService {
         try {
           const hoursSinceUpdate =
             (Date.now() - order.updatedAt.getTime()) / (1000 * 60 * 60);
-          
+
           const meta = (order.meta as any) || {};
 
           // Decision logic based on hours since last update
@@ -88,7 +88,7 @@ export class AdminCronService {
                 order.id.slice(0, 8).toUpperCase(),
                 24, // 24h remaining until 72h mark
               );
-              
+
               await this.prisma.order.update({
                 where: { id: order.id },
                 data: {
@@ -98,7 +98,9 @@ export class AdminCronService {
                   },
                 },
               });
-              this.logger.log(`Sent 24h remaining warning (at 48h mark) for order ${order.id}`);
+              this.logger.log(
+                `Sent 24h remaining warning (at 48h mark) for order ${order.id}`,
+              );
             }
           } else if (hoursSinceUpdate >= 24) {
             // Past 24h but less than 48h (48h remaining)
@@ -108,7 +110,7 @@ export class AdminCronService {
                 order.id.slice(0, 8).toUpperCase(),
                 48, // 48h remaining until 72h mark
               );
-              
+
               await this.prisma.order.update({
                 where: { id: order.id },
                 data: {
@@ -118,7 +120,9 @@ export class AdminCronService {
                   },
                 },
               });
-              this.logger.log(`Sent 48h remaining warning (at 24h mark) for order ${order.id}`);
+              this.logger.log(
+                `Sent 48h remaining warning (at 24h mark) for order ${order.id}`,
+              );
             }
           }
         } catch (error) {

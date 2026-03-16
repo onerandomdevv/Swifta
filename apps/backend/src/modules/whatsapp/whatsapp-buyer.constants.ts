@@ -3,9 +3,9 @@
 // ---------------------------------------------------------------------------
 import { SchemaType, FunctionDeclaration } from "@google/generative-ai";
 
-export const BUYER_MAIN_MENU = `Command Center Active! 🛒 How can I assist your trade today?`;
+export const BUYER_MAIN_MENU = `Buyer Menu. How can I assist you today?`;
 
-export const BUYER_FRIENDLY_FALLBACK = `I didn't quite catch that protocol. 😅 I can assist with product search across all industries, tracking manifest deliveries, or connecting you with support.
+export const BUYER_FRIENDLY_FALLBACK = `I did not understand that. I can assist with product searches, tracking deliveries, or connecting you with support.
 
 What is your objective?`;
 
