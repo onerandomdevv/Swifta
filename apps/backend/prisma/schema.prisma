@@ -73,6 +73,21 @@ model MerchantProfile {
   socialLinks           Json?                 @default("{}") @map("social_links")
   lastSlugChangeAt      DateTime?             @map("last_slug_change_at")
   notificationPreferences Json?               @default("{}") @map("notification_preferences")
+
+  // Tier 1 fields
+  fullName            String?   @map("full_name")
+  profilePhotoUrl     String?   @map("profile_photo_url")
+
+  // Tier 2 fields
+  ninNumber           String?   @map("nin_number")
+  ninVerified         Boolean   @default(false) @map("nin_verified")
+  ninVerifiedAt       DateTime? @map("nin_verified_at")
+  ninVerifiedVia      String?   @map("nin_verified_via") // "PREMBLY" or "MANUAL"
+
+  // Tier 3 fields
+  cacVerifiedVia      String?   @map("cac_verified_via") // "PREMBLY" or "MANUAL"
+  addressVerifiedVia  String?   @map("address_verified_via") // "PREMBLY" or "MANUAL"
+  tierUpgradedAt      DateTime? @map("tier_upgraded_at")
   creditApplications    CreditApplication[]
   followers             Follow[]              @relation("MerchantFollowers")
   inventoryEvents       InventoryEvent[]
@@ -443,6 +458,8 @@ model VerificationRequest {
   createdAt       DateTime                  @default(now()) @map("created_at")
   idType          VerificationIdType?       @map("id_type")
   status          VerificationRequestStatus @default(PENDING)
+  targetTier      String?                   @map("target_tier") // "TIER_2" or "TIER_3"
+  ninNumber       String?                   @map("nin_number")
   merchant        MerchantProfile           @relation(fields: [merchantId], references: [id])
   reviewer        User?                     @relation("VerificationRequestsReviewed", fields: [reviewedBy], references: [id])
 
@@ -752,9 +769,9 @@ enum OrderDisputeStatus {
 
 enum VerificationTier {
   UNVERIFIED
-  BASIC
-  VERIFIED
-  TRUSTED
+  TIER_1
+  TIER_2
+  TIER_3
 }
 
 enum PaymentMethod {

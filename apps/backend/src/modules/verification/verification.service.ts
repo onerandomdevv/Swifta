@@ -22,28 +22,35 @@ export class VerificationService {
   ) {}
 
   async submitRequest(merchantId: string, dto: SubmitVerificationDto) {
-    // 1. Check if trying to upgrade while already TRUSTED
     const merchant = await this.prisma.merchantProfile.findUnique({
       where: { id: merchantId },
     });
 
     if (!merchant) throw new NotFoundException("Merchant profile not found");
 
-    if (merchant.verificationTier === VerificationTier.TRUSTED) {
+    if (merchant.verificationTier === VerificationTier.TIER_3) {
       throw new BadRequestException(
         "You are already at the highest verification tier",
       );
     }
 
-    // 2 & 3. Atomically check for existing PENDING request and create if none exists
+    // Validate prerequisite tier
+    if (dto.targetTier === "TIER_2" && merchant.verificationTier !== VerificationTier.TIER_1) {
+      throw new BadRequestException("You must be TIER_1 to apply for TIER_2");
+    }
+    if (dto.targetTier === "TIER_3" && merchant.verificationTier !== VerificationTier.TIER_2) {
+      throw new BadRequestException("You must be TIER_2 to apply for TIER_3");
+    }
+
+    // Atomically check for existing PENDING request and create
     const request = await this.prisma.$transaction(async (tx) => {
       const existing = await tx.verificationRequest.findFirst({
-        where: { merchantId, status: "PENDING" },
+        where: { merchantId, status: "PENDING", targetTier: dto.targetTier },
       });
 
       if (existing) {
         throw new BadRequestException(
-          "You already have a verification request pending review",
+          `You already have a ${dto.targetTier} verification request pending review`,
         );
       }
 
@@ -53,6 +60,8 @@ export class VerificationService {
           governmentIdUrl: dto.governmentIdUrl,
           idType: dto.idType,
           cacCertUrl: dto.cacCertUrl,
+          targetTier: dto.targetTier,
+          ninNumber: dto.ninNumber,
           status: "PENDING",
         },
         include: {
@@ -63,9 +72,8 @@ export class VerificationService {
       });
     });
 
-    // Notify admins (best effort)
+    // Notify admins
     try {
-      // Find admins to notify
       const admins = await this.prisma.adminProfile.findMany({
         include: { user: true },
         where: { user: { role: { in: ["SUPER_ADMIN", "OPERATOR"] } } },
@@ -76,6 +84,7 @@ export class VerificationService {
         await this.notifications.triggerNewMerchantSubmission(adminIds, {
           merchantId: request.merchantId,
           merchantName: request.merchant.businessName,
+          targetTier: dto.targetTier as string,
         });
       }
     } catch (e) {
@@ -88,26 +97,62 @@ export class VerificationService {
   async getStatus(merchantId: string) {
     const merchant = await this.prisma.merchantProfile.findUnique({
       where: { id: merchantId },
-      select: {
-        verificationTier: true,
-        verifiedAt: true,
-      },
+      include: { user: true }
     });
 
     if (!merchant) throw new NotFoundException("Merchant profile not found");
 
-    const pendingRequest = await this.prisma.verificationRequest.findFirst({
-      where: {
-        merchantId,
-        status: "PENDING",
-      },
-      orderBy: { createdAt: "desc" },
-    });
+    const [completedOrdersCount, openDisputesCount, pendingRequest] = await Promise.all([
+      this.prisma.order.count({ where: { merchantId, status: OrderStatus.COMPLETED } }),
+      this.prisma.order.count({ where: { merchantId, disputeStatus: { not: null } } }),
+      this.prisma.verificationRequest.findFirst({
+        where: { merchantId, status: "PENDING" },
+        orderBy: { createdAt: "desc" },
+      })
+    ]);
+
+    const user = merchant.user;
+    const accountAgeDays = Math.floor((Date.now() - new Date(merchant.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+    const months = Math.floor(accountAgeDays / 30);
+    const accountAgeStr = months >= 1 ? `${months} month${months > 1 ? 's' : ''}` : "Less than a month";
 
     return {
-      tier: merchant.verificationTier,
-      verifiedAt: merchant.verifiedAt,
-      pendingRequest,
+      currentTier: merchant.verificationTier,
+      tier1: {
+        status: merchant.verificationTier !== VerificationTier.UNVERIFIED ? "COMPLETE" : "IN_PROGRESS",
+        requirements: {
+          emailVerified: user.emailVerified,
+          phoneVerified: user.phoneVerified,
+          bankVerified: merchant.bankVerified,
+          fullName: !!(merchant.fullName || (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : null)),
+          businessAddress: !!merchant.businessAddress,
+        }
+      },
+      tier2: {
+        status: merchant.verificationTier === VerificationTier.TIER_2 || merchant.verificationTier === VerificationTier.TIER_3 
+          ? "COMPLETE" 
+          : (merchant.verificationTier === VerificationTier.TIER_1 ? "IN_PROGRESS" : "LOCKED"),
+        requirements: {
+          ninVerified: merchant.ninVerified,
+          completedOrders: { current: completedOrdersCount, required: 5 },
+          zeroDisputes: openDisputesCount === 0,
+          profilePhoto: !!merchant.profilePhotoUrl
+        },
+        pendingRequest: pendingRequest?.targetTier === "TIER_2" ? pendingRequest : null
+      },
+      tier3: {
+        status: merchant.verificationTier === VerificationTier.TIER_3 
+          ? "COMPLETE" 
+          : (merchant.verificationTier === VerificationTier.TIER_2 ? "IN_PROGRESS" : "LOCKED"),
+        requirements: {
+          cacVerified: merchant.cacVerified,
+          addressVerified: merchant.addressVerified,
+          completedOrders: { current: completedOrdersCount, required: 20 },
+          averageRating: { current: merchant.averageRating, required: 4.0 },
+          accountAge: { current: accountAgeStr, required: "3 months" }
+        },
+        pendingRequest: pendingRequest?.targetTier === "TIER_3" ? pendingRequest : null
+      }
     };
   }
 
@@ -154,7 +199,6 @@ export class VerificationService {
     adminId: string,
     dto: ReviewVerificationDto,
   ) {
-    // 1. Get request
     const request = await this.prisma.verificationRequest.findUnique({
       where: { id: requestId },
       include: {
@@ -170,7 +214,6 @@ export class VerificationService {
 
     const merchantId = request.merchantId;
 
-    // 2. Handle REJECTION
     if (dto.decision === "REJECTED") {
       if (!dto.rejectionReason) {
         throw new BadRequestException(
@@ -188,13 +231,12 @@ export class VerificationService {
         },
       });
 
-      // Notify merchant (fire-and-forget — enqueue failure must not affect the response)
       this.notifications
         .addJob(
           request.merchant.userId,
           "VERIFICATION_REJECTED",
           "Verification Request Rejected",
-          `Your verification request was rejected. Reason: ${dto.rejectionReason}`,
+          `Your ${request.targetTier} verification request was rejected. Reason: ${dto.rejectionReason}`,
           { requestId },
         )
         .catch((err) =>
@@ -210,29 +252,8 @@ export class VerificationService {
       };
     }
 
-    // 3. Handle APPROVAL
-    // The documents are good. But does the merchant meet requirements for VERIFIED tier?
-    // Requirements: 10+ completed orders, 0 open disputes
-
-    const [completedOrdersCount, openDisputesCount] = await Promise.all([
-      this.prisma.order.count({
-        where: {
-          merchantId,
-          status: OrderStatus.COMPLETED,
-        },
-      }),
-      this.prisma.order.count({
-        where: {
-          merchantId,
-          disputeStatus: "PENDING", // assuming PENDING means open dispute
-        },
-      }),
-    ]);
-
-    const meetsRequirements =
-      completedOrdersCount >= 10 && openDisputesCount === 0;
-
-    const txResult = await this.prisma.$transaction(async (tx) => {
+    // Handle APPROVAL
+    await this.prisma.$transaction(async (tx) => {
       // Approve the request
       await tx.verificationRequest.update({
         where: { id: requestId },
@@ -243,156 +264,163 @@ export class VerificationService {
         },
       });
 
-      // Determine new tier
-      let newTier = request.merchant.verificationTier;
-      let message = "";
-
-      if (meetsRequirements) {
-        newTier = VerificationTier.VERIFIED;
-        message =
-          "Documents approved. You are now a Verified Merchant and can accept Direct Payments!";
-
+      // Update verification metadata based on target tier
+      if (request.targetTier === "TIER_2") {
         await tx.merchantProfile.update({
           where: { id: merchantId },
           data: {
-            verificationTier: newTier,
-            verifiedAt: new Date(),
+            ninVerified: true,
+            ninVerifiedAt: new Date(),
+            ninVerifiedVia: "MANUAL",
+            ninNumber: request.ninNumber || request.merchant.ninNumber
           },
         });
-      } else {
-        // Ensure they are at least BASIC if they were UNVERIFIED
-        if (newTier === VerificationTier.UNVERIFIED) {
-          newTier = VerificationTier.BASIC;
-          await tx.merchantProfile.update({
-            where: { id: merchantId },
-            data: { verificationTier: newTier },
-          });
-        }
-        message = `Documents approved. You are currently at ${newTier} tier. Complete 10 orders (currently ${completedOrdersCount}) with no disputes to reach VERIFIED status.`;
+      } else if (request.targetTier === "TIER_3") {
+        await tx.merchantProfile.update({
+          where: { id: merchantId },
+          data: {
+            cacVerified: true,
+            addressVerified: true, // Assuming proof of address document approval
+            cacVerifiedVia: "MANUAL",
+            addressVerifiedVia: "MANUAL"
+          },
+        });
       }
-
-      return { meetsRequirements, completedOrdersCount, newTier, message };
     });
 
-    // Notify merchant outside transaction (fire-and-forget)
-    this.notifications
-      .addJob(
-        request.merchant.userId,
-        "VERIFICATION_APPROVED",
-        "Verification Documents Approved",
-        txResult.message,
-        {
-          requestId,
-          newTier: txResult.newTier,
-          completedOrdersCount: txResult.completedOrdersCount,
-        },
-      )
-      .catch((err) =>
-        this.logger.error(
-          `Failed to enqueue approval notification for request ${requestId}`,
-          err,
-        ),
-      );
+    // Check for tier upgrade
+    const newTier = await this.checkAndUpgradeTier(merchantId);
 
     return {
       message: "Verification request approved",
       decision: "APPROVED",
-      meetsRequirementsForVerified: txResult.meetsRequirements,
-      completedOrdersCount: txResult.completedOrdersCount,
-      openDisputesCount,
+      newTier,
     };
   }
 
-  /**
-   * Called by OrderService when an order reaches COMPLETED.
-   * Auto-evaluates if merchant qualifies for a tier upgrade.
-   */
-  async checkAndUpgradeTier(merchantId: string) {
+  async checkAndUpgradeTier(merchantId: string): Promise<VerificationTier> {
+    const merchant = await this.prisma.merchantProfile.findUnique({
+      where: { id: merchantId },
+      include: { user: true }
+    });
+
+    if (!merchant) throw new NotFoundException('Merchant not found');
+
+    const currentTier = merchant.verificationTier;
+
+    // Check Tier 1 requirements
+    if (currentTier === VerificationTier.UNVERIFIED) {
+      const user = merchant.user;
+      const meetsT1 = (
+        user.emailVerified &&
+        user.phoneVerified &&
+        merchant.bankVerified &&
+        merchant.bankAccountNumber &&
+        (merchant.fullName || (user.firstName && user.lastName)) &&
+        merchant.businessAddress
+      );
+
+      if (meetsT1) {
+        await this.prisma.merchantProfile.update({
+          where: { id: merchantId },
+          data: { 
+            verificationTier: VerificationTier.TIER_1,
+            tierUpgradedAt: new Date()
+          }
+        });
+        await this.notifyTierUpgrade(merchantId, VerificationTier.TIER_1);
+        return VerificationTier.TIER_1;
+      }
+    }
+
+    // Check Tier 2 requirements
+    if (currentTier === VerificationTier.TIER_1) {
+      const completedOrders = await this.prisma.order.count({
+        where: { merchantId, status: OrderStatus.COMPLETED }
+      });
+      const openDisputes = await this.prisma.order.count({
+        where: { merchantId, disputeStatus: { not: null } }
+      });
+
+      const meetsT2 = (
+        merchant.ninVerified &&
+        completedOrders >= 5 &&
+        openDisputes === 0 &&
+        merchant.profilePhotoUrl
+      );
+
+      if (meetsT2) {
+        await this.prisma.merchantProfile.update({
+          where: { id: merchantId },
+          data: { 
+            verificationTier: VerificationTier.TIER_2,
+            tierUpgradedAt: new Date(),
+            verifiedAt: new Date()
+          }
+        });
+        await this.notifyTierUpgrade(merchantId, VerificationTier.TIER_2);
+        return VerificationTier.TIER_2;
+      }
+    }
+
+    // Check Tier 3 requirements
+    if (currentTier === VerificationTier.TIER_2) {
+      const completedOrders = await this.prisma.order.count({
+        where: { merchantId, status: OrderStatus.COMPLETED }
+      });
+      
+      const accountAge = merchant.createdAt;
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+      const meetsT3 = (
+        merchant.cacVerified &&
+        merchant.addressVerified &&
+        completedOrders >= 20 &&
+        (merchant.averageRating || 0) >= 4.0 &&
+        accountAge <= threeMonthsAgo
+      );
+
+      if (meetsT3) {
+        await this.prisma.merchantProfile.update({
+          where: { id: merchantId },
+          data: { 
+            verificationTier: VerificationTier.TIER_3,
+            tierUpgradedAt: new Date()
+          }
+        });
+        await this.notifyTierUpgrade(merchantId, VerificationTier.TIER_3);
+        return VerificationTier.TIER_3;
+      }
+    }
+
+    return currentTier;
+  }
+
+  private async notifyTierUpgrade(merchantId: string, tier: VerificationTier) {
+    const tierNames = {
+      [VerificationTier.TIER_1]: 'Basic Verified',
+      [VerificationTier.TIER_2]: 'Identity Verified', 
+      [VerificationTier.TIER_3]: 'Business Verified'
+    };
+    const tierBenefits = {
+      [VerificationTier.TIER_1]: 'You can now list products and receive orders with escrow protection.',
+      [VerificationTier.TIER_2]: 'You now have a verified badge, direct payment option (1.5% fee), and higher visibility.',
+      [VerificationTier.TIER_3]: 'You now have a blue business badge, lowest fees (1%), priority search placement, and premium features.'
+    };
+
     const merchant = await this.prisma.merchantProfile.findUnique({
       where: { id: merchantId },
     });
 
     if (!merchant) return;
 
-    // Skip if already TRUSTED rules are met (we're skipping TRUSTED auto-upgrade for now per spec)
-    if (merchant.verificationTier === VerificationTier.TRUSTED) return;
-
-    // 1. UNVERIFIED -> BASIC upgrade check
-    // Has email verified, phone verified, and bank details added
-    if (merchant.verificationTier === VerificationTier.UNVERIFIED) {
-      const user = await this.prisma.user.findUnique({
-        where: { id: merchant.userId },
-      });
-
-      const hasBankDetails = merchant.bankAccountNumber && merchant.bankCode;
-
-      if (user?.emailVerified && user?.phoneVerified && hasBankDetails) {
-        await this.prisma.merchantProfile.update({
-          where: { id: merchantId },
-          data: { verificationTier: VerificationTier.BASIC },
-        });
-
-        this.notifications
-          .addJob(
-            merchant.userId,
-            "TIER_UPGRADED",
-            "Verification Tier Upgraded",
-            "You have been upgraded to the BASIC verification tier! Submit your identity documents to unlock VERIFIED status and Direct Payments.",
-          )
-          .catch((err) =>
-            this.logger.error(
-              `Failed to enqueue BASIC tier upgrade notification for merchant ${merchantId}`,
-              err,
-            ),
-          );
-        return; // Upgraded to BASIC, return for now. Next order can trigger the verified check.
-      }
-    }
-
-    // 2. BASIC -> VERIFIED upgrade check
-    // Needs approved verification docs, 10+ completed orders, 0 disputes
-    if (merchant.verificationTier === VerificationTier.BASIC) {
-      // Check for approved docs
-      const hasApprovedDocs = await this.prisma.verificationRequest.findFirst({
-        where: { merchantId, status: "APPROVED" },
-      });
-
-      if (!hasApprovedDocs) return; // Can't auto-upgrade to VERIFIED without approved documents
-
-      // Check orders and disputes
-      const [completedOrdersCount, openDisputesCount] = await Promise.all([
-        this.prisma.order.count({
-          where: { merchantId, status: OrderStatus.COMPLETED },
-        }),
-        this.prisma.order.count({
-          where: { merchantId, disputeStatus: "PENDING" },
-        }),
-      ]);
-
-      if (completedOrdersCount >= 10 && openDisputesCount === 0) {
-        await this.prisma.merchantProfile.update({
-          where: { id: merchantId },
-          data: {
-            verificationTier: VerificationTier.VERIFIED,
-            verifiedAt: new Date(),
-          },
-        });
-
-        this.notifications
-          .addJob(
-            merchant.userId,
-            "TIER_UPGRADED",
-            "You are now a Verified Merchant! 🎉",
-            "Congratulations! Because you've maintained a perfect track record of 10+ completed orders, you have been upgraded to VERIFIED status. You can now offer Direct Payments to your buyers.",
-          )
-          .catch((err) =>
-            this.logger.error(
-              `Failed to enqueue VERIFIED tier upgrade notification for merchant ${merchantId}`,
-              err,
-            ),
-          );
-        this.logger.log(`Auto-upgraded merchant ${merchantId} to VERIFIED`);
-      }
-    }
+    await this.notifications.addJob(
+      merchant.userId,
+      "TIER_UPGRADED",
+      `Upgraded to ${tierNames[tier]}`,
+      tierBenefits[tier],
+      { tier }
+    ).catch(err => this.logger.error(`Failed to notify tier upgrade: ${err.message}`));
   }
 }

@@ -3,18 +3,18 @@
 import React, { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getVerificationRequests, reviewVerificationRequest } from "@/lib/api/admin.api";
+import { getVerificationRequests, reviewVerificationRequest, VerificationRequestData } from "@/lib/api/admin.api";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
-
+import { cn } from "@/lib/utils";
 
 export default function AdminVerificationQueuePage() {
   const [loading, setLoading] = useState(true);
-  const [requests, setRequests] = useState<any[]>([]);
+  const [requests, setRequests] = useState<VerificationRequestData[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   // Review Modal State
-  const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [selectedRequest, setSelectedRequest] = useState<VerificationRequestData | null>(null);
   const [decision, setDecision] = useState<"APPROVED" | "REJECTED" | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
 
@@ -116,7 +116,7 @@ export default function AdminVerificationQueuePage() {
                 <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
                   <th className="p-4 text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Merchant</th>
                   <th className="p-4 text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Submitted</th>
-                  <th className="p-4 text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Tier</th>
+                  <th className="p-4 text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Target Tier</th>
                   <th className="p-4 text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest text-right">Action</th>
                 </tr>
               </thead>
@@ -127,23 +127,25 @@ export default function AdminVerificationQueuePage() {
                       <div className="font-bold text-navy-dark dark:text-white capitalize">
                         {req.merchant?.businessName || req.merchantId}
                       </div>
-                      <div className="text-xs text-slate-500 mt-1 uppercase tracking-wider">
-                        CAC: {req.merchant?.cacNumber || "N/A"}
+                      <div className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-bold">
+                        Current: {req.merchant?.verificationTier}
                       </div>
                     </td>
-                    <td className="p-4 text-sm font-medium text-slate-600 dark:text-slate-400">
+                    <td className="p-4 text-sm font-medium text-slate-600 dark:text-slate-400 text-[11px] uppercase tracking-wider">
                       {new Intl.DateTimeFormat('en-US', {
                         month: 'short',
                         day: 'numeric',
-                        year: 'numeric',
                         hour: '2-digit',
                         minute: '2-digit',
                         hour12: false
                       }).format(new Date(req.createdAt))}
                     </td>
                     <td className="p-4">
-                      <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded text-[10px] font-black uppercase tracking-wider">
-                        {req.merchant?.verificationTier || "UNVERIFIED"}
+                      <span className={cn(
+                        "px-2 py-1 rounded text-[10px] font-black uppercase tracking-wider shadow-sm border",
+                        req.targetTier === "TIER_3" ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-100" : "bg-blue-50 dark:bg-blue-900/20 text-blue-600 border-blue-100"
+                      )}>
+                        {req.targetTier === "TIER_3" ? "Level 3: Business" : "Level 2: Identity"}
                       </span>
                     </td>
                     <td className="p-4 text-right">
@@ -173,7 +175,7 @@ export default function AdminVerificationQueuePage() {
           <div className="bg-white dark:bg-slate-900 rounded-[2rem] w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
               <h2 className="text-lg font-black text-navy-dark dark:text-white uppercase tracking-tight">
-                Review Verification Request
+                Review {selectedRequest.targetTier === "TIER_3" ? "Business" : "Identity"} Verification
               </h2>
               <button
                 onClick={() => {
@@ -187,9 +189,12 @@ export default function AdminVerificationQueuePage() {
               </button>
             </div>
             
-            <div className="p-6 space-y-8 max-h-[70vh] overflow-y-auto">
+            <div className="p-6 space-y-8 max-h-[75vh] overflow-y-auto">
               {/* Merchant Context */}
-              <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800/80">
+              <div className="grid grid-cols-2 gap-y-6 gap-x-4 p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800/80">
+                <div className="col-span-2 flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-700">
+                   <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Business Information</p>
+                </div>
                 <div>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Merchant Name</p>
                   <p className="text-sm font-bold text-slate-900 dark:text-white mt-1 capitalize">
@@ -197,21 +202,23 @@ export default function AdminVerificationQueuePage() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Current Tier</p>
-                   <p className="text-sm font-bold text-slate-900 dark:text-white mt-1">
-                    {selectedRequest.merchant?.verificationTier || "UNVERIFIED"}
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Identity Number (NIN)</p>
+                   <p className="text-sm font-bold text-primary mt-1">
+                    {selectedRequest.ninNumber || "Not Provided"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Deals Closed</p>
-                   <p className="text-sm font-bold text-slate-900 dark:text-white mt-1">
-                    {selectedRequest.merchant?.dealsClosed || 0}
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Target Upgrade</p>
+                   <p className="text-sm font-bold text-emerald-600 mt-1 uppercase tracking-tight">
+                    {selectedRequest.targetTier}
                   </p>
                 </div>
                  <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Dispute Rate</p>
-                   <p className="text-sm font-bold text-slate-900 dark:text-white mt-1">
-                    {selectedRequest.merchant?.disputeRate || 0}%
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Contact Information</p>
+                   <p className="text-[11px] font-medium text-slate-600 dark:text-slate-400 mt-1">
+                    {selectedRequest.merchant?.user?.email}
+                    <br/>
+                    {selectedRequest.merchant?.user?.phone}
                   </p>
                 </div>
               </div>
@@ -219,130 +226,80 @@ export default function AdminVerificationQueuePage() {
               {/* Documents */}
               <div className="space-y-4">
                 <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 pb-2">
-                  Submitted Documents
+                  Verification Documents
                 </h3>
                 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 border border-slate-200 dark:border-slate-700 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <span className="material-symbols-outlined text-slate-400">badge</span>
-                      <div>
-                        <p className="text-xs font-bold text-slate-900 dark:text-white uppercase">Government ID</p>
-                        <p className="text-[10px] text-slate-500 font-medium uppercase">{selectedRequest.idType}</p>
-                      </div>
-                    </div>
-                    {(() => {
-                      const isValidDocumentUrl = (url?: string): boolean => {
-                        if (!url) return false;
-                        try {
-                          const parsed = new URL(url);
-                          return (
-                            parsed.protocol === "https:" &&
-                            (parsed.hostname === "cloudinary.com" ||
-                              parsed.hostname.endsWith(".cloudinary.com"))
-                          );
-                        } catch {
-                          return false;
-                        }
-                      };
-                      return isValidDocumentUrl(selectedRequest.governmentIdUrl) ? (
-                      <a
-                        href={selectedRequest.governmentIdUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs font-black text-primary hover:underline uppercase tracking-widest"
-                      >
-                        View Document
-                      </a>
-                    ) : (
-                      <span className="text-[10px] text-red-500 font-bold uppercase tracking-widest">Invalid URL</span>
-                    );
-                    })()}
-                  </div>
-
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {selectedRequest.governmentIdUrl && (
+                    <DocumentLink 
+                      url={selectedRequest.governmentIdUrl} 
+                      label="Identity Document" 
+                      subLabel={selectedRequest.idType} 
+                      icon="badge"
+                    />
+                  )}
                   {selectedRequest.cacCertUrl && (
-                    <div className="flex items-center justify-between p-3 border border-slate-200 dark:border-slate-700 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <span className="material-symbols-outlined text-slate-400">description</span>
-                        <div>
-                          <p className="text-xs font-bold text-slate-900 dark:text-white uppercase">CAC Certificate</p>
-                           <p className="text-[10px] text-slate-500 font-medium uppercase">Optional but recommended</p>
-                        </div>
-                      </div>
-                      {(() => {
-                        const isValidDocumentUrl = (url?: string): boolean => {
-                          if (!url) return false;
-                          try {
-                            const parsed = new URL(url);
-                            return (
-                              parsed.protocol === "https:" &&
-                              (parsed.hostname === "cloudinary.com" ||
-                                parsed.hostname.endsWith(".cloudinary.com"))
-                            );
-                          } catch {
-                            return false;
-                          }
-                        };
-                        return isValidDocumentUrl(selectedRequest.cacCertUrl) ? (
-                        <a
-                          href={selectedRequest.cacCertUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs font-black text-primary hover:underline uppercase tracking-widest"
-                        >
-                          View Document
-                        </a>
-                      ) : (
-                        <span className="text-[10px] text-red-500 font-bold uppercase tracking-widest">Invalid URL</span>
-                      );
-                      })()}
-                    </div>
+                    <DocumentLink 
+                      url={selectedRequest.cacCertUrl} 
+                      label="CAC Certificate" 
+                      subLabel="Business Registration" 
+                      icon="description"
+                    />
+                  )}
+                  {selectedRequest.proofOfAddressUrl && (
+                    <DocumentLink 
+                      url={selectedRequest.proofOfAddressUrl} 
+                      label="Proof of Address" 
+                      subLabel="Utility Bill / Lease" 
+                      icon="location_on"
+                    />
                   )}
                 </div>
               </div>
 
               {/* Decision */}
-              <div className="space-y-4">
+              <div className="space-y-4 pt-4">
                  <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 pb-2">
-                  Admin Decision
+                  Final Decision
                 </h3>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <button
                     onClick={() => setDecision("APPROVED")}
-                    className={`p-4 rounded-xl border-2 text-center transition-all ${
+                    className={cn(
+                      "p-5 rounded-2xl border-2 text-center transition-all flex flex-col items-center gap-2",
                       decision === "APPROVED"
-                        ? "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400"
-                        : "border-slate-200 dark:border-slate-700 text-slate-500 hover:border-green-200"
-                    }`}
+                        ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 shadow-md"
+                        : "border-slate-200 dark:border-slate-700 text-slate-500 hover:border-emerald-200"
+                    )}
                   >
-                    <span className="material-symbols-outlined block text-3xl mb-2">check_circle</span>
-                    <span className="text-xs font-black uppercase tracking-widest">Approve</span>
+                    <span className="material-symbols-outlined text-3xl">check_circle</span>
+                    <span className="text-xs font-black uppercase tracking-widest">Approve Upgrade</span>
                   </button>
                    <button
                     onClick={() => setDecision("REJECTED")}
-                    className={`p-4 rounded-xl border-2 text-center transition-all ${
+                    className={cn(
+                      "p-5 rounded-2xl border-2 text-center transition-all flex flex-col items-center gap-2",
                       decision === "REJECTED"
-                        ? "border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400"
-                        : "border-slate-200 dark:border-slate-700 text-slate-500 hover:border-red-200"
-                    }`}
+                        ? "border-rose-500 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 shadow-md"
+                        : "border-slate-200 dark:border-slate-700 text-slate-500 hover:border-rose-200"
+                    )}
                   >
-                    <span className="material-symbols-outlined block text-3xl mb-2">cancel</span>
-                    <span className="text-xs font-black uppercase tracking-widest">Reject</span>
+                    <span className="material-symbols-outlined text-3xl">cancel</span>
+                    <span className="text-xs font-black uppercase tracking-widest">Reject Request</span>
                   </button>
                 </div>
 
                 {decision === "REJECTED" && (
-                  <div className="space-y-2 pt-4 animate-in slide-in-from-top-2 duration-300">
+                  <div className="space-y-2 pt-2 animate-in slide-in-from-top-2 duration-300">
                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                      Rejection Reason (Required)
+                      Reason for Rejection
                     </label>
                     <textarea
                       value={rejectionReason}
                       onChange={(e) => setRejectionReason(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-red-500 transition-all resize-none h-24"
-                      placeholder="e.g. ID document is blurry, please re-upload a clearer image."
-                      required
+                      className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm font-medium outline-none focus:border-rose-500 transition-all resize-none h-24"
+                      placeholder="Explain what's missing or incorrect..."
                     />
                   </div>
                 )}
@@ -357,21 +314,46 @@ export default function AdminVerificationQueuePage() {
                   setDecision(null);
                   setRejectionReason("");
                 }}
-                className="text-xs font-black uppercase tracking-widest"
+                className="text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-100"
               >
-                Cancel
+                Close
               </Button>
                <Button
                 onClick={handleReviewSubmit}
                 disabled={!decision || reviewMutation.isPending || (decision === "REJECTED" && !rejectionReason.trim())}
-                className="text-xs font-black uppercase tracking-widest bg-navy-dark text-white hover:bg-navy"
+                className="text-xs font-black uppercase tracking-widest bg-navy-dark text-white hover:bg-navy rounded-xl px-8"
               >
-                {reviewMutation.isPending ? "Submitting..." : "Submit Review"}
+                {reviewMutation.isPending ? "Processing..." : "Confirm Review"}
               </Button>
             </div>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function DocumentLink({ url, label, subLabel, icon }: { url: string, label: string, subLabel?: string, icon: string }) {
+  return (
+    <div className="flex items-center justify-between p-3.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-background-secondary/50">
+      <div className="flex items-center gap-3 overflow-hidden">
+        <div className="size-9 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center shrink-0">
+          <span className="material-symbols-outlined text-slate-400 text-lg">{icon}</span>
+        </div>
+        <div className="flex flex-col min-w-0">
+          <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-tight truncate">{label}</p>
+          {subLabel && <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest truncate">{subLabel}</p>}
+        </div>
+      </div>
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="size-9 rounded-lg hover:bg-primary/10 text-primary flex items-center justify-center transition-all group shrink-0 ml-2"
+        title="View Document"
+      >
+        <span className="material-symbols-outlined text-lg">open_in_new</span>
+      </a>
     </div>
   );
 }

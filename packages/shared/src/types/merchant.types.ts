@@ -30,6 +30,9 @@ export interface MerchantProfile {
   cacVerified: boolean;
   addressVerified: boolean;
   bankVerified: boolean;
+  ninVerified: boolean;
+  fullName?: string;
+  profilePhotoUrl?: string;
   contact?: {
     email: string;
     phone: string;

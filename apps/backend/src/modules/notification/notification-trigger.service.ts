@@ -535,7 +535,7 @@ export class NotificationTriggerService {
 
   async triggerNewMerchantSubmission(
     adminUserIds: string[],
-    metadata: { merchantId: string; merchantName: string },
+    metadata: { merchantId: string; merchantName: string; targetTier?: string },
   ) {
     await Promise.allSettled(
       adminUserIds.map((adminId) =>
@@ -543,7 +543,7 @@ export class NotificationTriggerService {
           adminId,
           "NEW_MERCHANT_SUBMISSION",
           "New Merchant Verification Pending",
-          `${metadata.merchantName} has submitted their account for verification.`,
+          `${metadata.merchantName} has submitted their account for verification${metadata.targetTier ? ` (${metadata.targetTier})` : ""}.`,
           { ...metadata },
         ),
       ),

@@ -115,13 +115,19 @@ export class OrderService {
 
     // Determine payment method based on merchant verification tier
     const merchantTier = product.merchantProfile?.verificationTier;
-    const isVerifiedMerchant =
-      merchantTier === "VERIFIED" || merchantTier === "TRUSTED";
+    const isTier2Or3 =
+      merchantTier === "TIER_2" || merchantTier === "TIER_3";
     const paymentMethod =
-      requestedMethod === "DIRECT" && isVerifiedMerchant ? "DIRECT" : "ESCROW";
+      requestedMethod === "DIRECT" && isTier2Or3 ? "DIRECT" : "ESCROW";
 
-    // Dynamic platform fee: 1% for DIRECT, 2% for ESCROW
-    const platformFeePercentage = paymentMethod === "DIRECT" ? 1 : 2;
+    // Dynamic platform fee based on tier
+    let platformFeePercentage = 2; // Default 2% (Tier 1 / Unverified)
+    if (merchantTier === "TIER_3") {
+      platformFeePercentage = 1; // Tier 3: 1%
+    } else if (merchantTier === "TIER_2") {
+      platformFeePercentage = 1.5; // Tier 2: 1.5%
+    }
+    
     const subtotalKobo = Number(resolvedPriceKobo) * quantity;
     const platformFeeKobo = Math.floor(
       subtotalKobo * (platformFeePercentage / 100),
@@ -391,11 +397,19 @@ export class OrderService {
 
     // Determine payment method and platform fee
     const merchantTier = merchantProfile.verificationTier;
-    const isVerifiedMerchant =
-      merchantTier === "VERIFIED" || merchantTier === "TRUSTED";
+    const isTier2Or3 =
+      merchantTier === "TIER_2" || merchantTier === "TIER_3";
     const paymentMethod =
-      requestedMethod === "DIRECT" && isVerifiedMerchant ? "DIRECT" : "ESCROW";
-    const platformFeePercentage = paymentMethod === "DIRECT" ? 1 : 2;
+      requestedMethod === "DIRECT" && isTier2Or3 ? "DIRECT" : "ESCROW";
+    
+    // Dynamic platform fee based on tier
+    let platformFeePercentage = 2; // Default 2% (Tier 1 / Unverified)
+    if (merchantTier === "TIER_3") {
+      platformFeePercentage = 1; // Tier 3: 1%
+    } else if (merchantTier === "TIER_2") {
+      platformFeePercentage = 1.5; // Tier 2: 1.5%
+    }
+
     const platformFeeKobo = BigInt(
       Math.floor(Number(subtotalKobo) * (platformFeePercentage / 100)),
     );

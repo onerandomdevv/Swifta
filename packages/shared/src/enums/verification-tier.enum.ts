@@ -1,6 +1,6 @@
 export enum VerificationTier {
   UNVERIFIED = "UNVERIFIED",
-  BASIC = "BASIC",
-  VERIFIED = "VERIFIED",
-  TRUSTED = "TRUSTED",
+  TIER_1 = "TIER_1",
+  TIER_2 = "TIER_2",
+  TIER_3 = "TIER_3",
 }
