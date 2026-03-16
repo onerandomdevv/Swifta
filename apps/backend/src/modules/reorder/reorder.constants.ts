@@ -1,13 +1,11 @@
 export const REORDER_WINDOW_DAYS: Record<string, number> = {
-  cement: 14,
-  blocks: 21,
-  iron_rod: 30,
-  sand: 14,
-  granite: 21,
-  roofing_sheets: 60,
-  paint: 30,
-  tiles: 45,
-  wood: 30,
+  electronics: 45,
+  fashion: 30,
+  "health & beauty": 21,
+  "home & kitchen": 14,
+  "auto parts": 60,
+  agriculture: 14,
+  "food & groceries": 7,
   default: 21,
 };
 

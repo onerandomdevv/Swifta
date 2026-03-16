@@ -86,13 +86,22 @@ export class AdminCronService {
           const meta = (order.meta as any) || {};
 
           // Decision logic based on hours since last update
-          if (hoursSinceUpdate >= 48) {
-            // Already past 48h (24h remaining), check if this specific warning was sent
+          const cutoff = PlatformConfig.timers.autoConfirmationHours;
+          const warningThreshold1 = cutoff / 3; // e.g. 24h if 72h total
+          const warningThreshold2 = (cutoff * 2) / 3; // e.g. 48h if 72h total
+
+          // Decision logic based on hours since last update
+          if (hoursSinceUpdate >= warningThreshold2) {
+            // Already past 2/3 of cutoff mark, check if this specific warning was sent
             if (!meta.autoConfirmationWarningSent48) {
+              const remaining = Math.max(
+                0,
+                cutoff - Math.floor(hoursSinceUpdate),
+              );
               await this.notifications.triggerAutoConfirmationWarning(
                 order.buyerId,
                 order.id.slice(0, 8).toUpperCase(),
-                24, // 24h remaining until 72h mark
+                remaining,
               );
 
               await this.prisma.order.update({
@@ -105,16 +114,20 @@ export class AdminCronService {
                 },
               });
               this.logger.log(
-                `Sent 24h remaining warning (at 48h mark) for order ${order.id}`,
+                `Sent warning (${remaining}h remaining) for order ${order.id}`,
               );
             }
-          } else if (hoursSinceUpdate >= 24) {
-            // Past 24h but less than 48h (48h remaining)
+          } else if (hoursSinceUpdate >= warningThreshold1) {
+            // Past 1/3 but less than 2/3 mark
             if (!meta.autoConfirmationWarningSent24) {
+              const remaining = Math.max(
+                0,
+                cutoff - Math.floor(hoursSinceUpdate),
+              );
               await this.notifications.triggerAutoConfirmationWarning(
                 order.buyerId,
                 order.id.slice(0, 8).toUpperCase(),
-                48, // 48h remaining until 72h mark
+                remaining,
               );
 
               await this.prisma.order.update({
@@ -127,7 +140,7 @@ export class AdminCronService {
                 },
               });
               this.logger.log(
-                `Sent 48h remaining warning (at 24h mark) for order ${order.id}`,
+                `Sent warning (${remaining}h remaining) for order ${order.id}`,
               );
             }
           }

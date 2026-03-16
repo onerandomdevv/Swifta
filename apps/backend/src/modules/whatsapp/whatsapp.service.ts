@@ -317,7 +317,7 @@ export class WhatsAppService {
       if (!product) {
         await this.interactiveService.sendTextMessage(
           phone,
-          "Inventory details not found. ✅",
+          "Inventory details not found. ❌",
         );
         return;
       }

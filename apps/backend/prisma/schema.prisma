@@ -37,69 +37,54 @@ model InventoryEvent {
 }
 
 model MerchantProfile {
-  id                    String                @id @default(uuid()) @db.Uuid
-  userId                String                @unique @map("user_id") @db.Uuid
-  slug                  String?
-  businessName          String                @map("business_name")
-  businessAddress       String?               @map("business_address")
-  cacNumber             String?               @map("cac_number")
-  bankCode              String?               @map("bank_code")
-  onboardingStep        Int                   @default(1) @map("onboarding_step")
-  createdAt             DateTime              @default(now()) @map("created_at")
-  updatedAt             DateTime              @default(now()) @updatedAt @map("updated_at")
-  businessType          String?               @map("business_type")
-  estYear               String?               @map("est_year")
-  category              String?
-  taxId                 String?               @map("tax_id")
-  warehouseLocation     String?               @map("warehouse_location")
-  distributionCenter    String?               @map("distribution_center")
-  warehouseCapacity     String?               @map("warehouse_capacity")
-  cacDocumentUrl        String?               @map("cac_document_url")
-  addressVerified       Boolean               @default(false) @map("address_verified")
-  bankAccountNumber     String?               @map("bank_account_number")
-  bankVerified          Boolean               @default(false) @map("bank_verified")
-  cacVerified           Boolean               @default(false) @map("cac_verified")
-  guarantorVerified     Boolean               @default(false) @map("guarantor_verified")
-  profileImage          String?               @map("profile_image")
-  coverImage            String?               @map("cover_image")
-  paystackRecipientCode String?               @map("paystack_recipient_code")
-  responseTimeTotal     BigInt                @default(0) @map("response_time_total")
-  settlementAccountName String?               @map("settlement_account_name")
-  verificationTier      VerificationTier      @default(UNVERIFIED) @map("verification_tier")
-  verifiedAt            DateTime?             @map("verified_at")
-  averageRating         Float?                @map("average_rating")
-  reviewCount           Int                   @default(0) @map("review_count")
-  description           String?
-  socialLinks           Json?                 @default("{}") @map("social_links")
-  lastSlugChangeAt      DateTime?             @map("last_slug_change_at")
-  notificationPreferences Json?               @default("{}") @map("notification_preferences")
-
-  // Tier 1 fields
-  fullName            String?   @map("full_name")
-  profilePhotoUrl     String?   @map("profile_photo_url")
-
-  // Tier 2 fields
-  ninNumber           String?   @map("nin_number")
-  ninVerified         Boolean   @default(false) @map("nin_verified")
-  ninVerifiedAt       DateTime? @map("nin_verified_at")
-  ninVerifiedVia      String?   @map("nin_verified_via") // "PREMBLY" or "MANUAL"
-
-  // Tier 3 fields
-  cacVerifiedVia      String?   @map("cac_verified_via") // "PREMBLY" or "MANUAL"
-  addressVerifiedVia  String?   @map("address_verified_via") // "PREMBLY" or "MANUAL"
-  tierUpgradedAt      DateTime? @map("tier_upgraded_at")
-  creditApplications    CreditApplication[]
-  followers             Follow[]              @relation("MerchantFollowers")
-  inventoryEvents       InventoryEvent[]
-  user                  User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  slugHistory           MerchantSlugHistory[]
-  orders                Order[]
-  payoutRequests        PayoutRequest[]
-  payouts               Payout[]
-  products              Product[]
-  reorderReminders      ReorderReminder[]
-  reviews               Review[]
-  verificationRequests  VerificationRequest[]
+  id                      String                @id @default(uuid()) @db.Uuid
+  userId                  String                @unique @map("user_id") @db.Uuid
+  slug                    String?
+  businessName            String                @map("business_name")
+  businessAddress         String?               @map("business_address")
+  cacNumber               String?               @map("cac_number")
+  bankCode                String?               @map("bank_code")
+  onboardingStep          Int                   @default(1) @map("onboarding_step")
+  createdAt               DateTime              @default(now()) @map("created_at")
+  updatedAt               DateTime              @default(now()) @updatedAt @map("updated_at")
+  businessType            String?               @map("business_type")
+  estYear                 String?               @map("est_year")
+  category                String?
+  taxId                   String?               @map("tax_id")
+  warehouseLocation       String?               @map("warehouse_location")
+  distributionCenter      String?               @map("distribution_center")
+  warehouseCapacity       String?               @map("warehouse_capacity")
+  cacDocumentUrl          String?               @map("cac_document_url")
+  addressVerified         Boolean               @default(false) @map("address_verified")
+  bankAccountNumber       String?               @map("bank_account_number")
+  bankVerified            Boolean               @default(false) @map("bank_verified")
+  cacVerified             Boolean               @default(false) @map("cac_verified")
+  guarantorVerified       Boolean               @default(false) @map("guarantor_verified")
+  profileImage            String?               @map("profile_image")
+  coverImage              String?               @map("cover_image")
+  paystackRecipientCode   String?               @map("paystack_recipient_code")
+  responseTimeTotal       BigInt                @default(0) @map("response_time_total")
+  settlementAccountName   String?               @map("settlement_account_name")
+  verifiedAt              DateTime?             @map("verified_at")
+  averageRating           Float?                @map("average_rating")
+  reviewCount             Int                   @default(0) @map("review_count")
+  description             String?
+  socialLinks             Json?                 @default("{}") @map("social_links")
+  lastSlugChangeAt        DateTime?             @map("last_slug_change_at")
+  notificationPreferences Json?                 @default("{}") @map("notification_preferences")
+  verificationTier        VerificationTier      @default(UNVERIFIED) @map("verification_tier")
+  creditApplications      CreditApplication[]
+  followers               Follow[]              @relation("MerchantFollowers")
+  inventoryEvents         InventoryEvent[]
+  user                    User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slugHistory             MerchantSlugHistory[]
+  orders                  Order[]
+  payoutRequests          PayoutRequest[]
+  payouts                 Payout[]
+  products                Product[]
+  reorderReminders        ReorderReminder[]
+  reviews                 Review[]
+  verificationRequests    VerificationRequest[]
 
   @@index([slug])
   @@map("merchant_profiles")
@@ -180,7 +165,6 @@ model Order {
   payout              Payout?
   reorderReminder     ReorderReminder?
   review              Review?
-  meta                Json?              @default("{}")
 
   @@index([buyerId])
   @@index([merchantId])
@@ -331,8 +315,8 @@ model Product {
   minOrderQuantityConsumer Int                @default(1) @map("min_order_quantity_consumer")
   attributes               Json?              @default("{}")
   warehouseLocation        String?            @map("warehouse_location")
-  weightKg                 Float?             @map("weight_kg")
   processingDays           Int?               @map("processing_days")
+  weightKg                 Float?             @map("weight_kg")
   cartItems                CartItem[]
   inventoryEvents          InventoryEvent[]
   orders                   Order[]
@@ -348,8 +332,6 @@ model Product {
   @@index([isActive, createdAt])
   @@map("products")
 }
-
-
 
 model StaffAccessToken {
   id        String   @id @default(uuid()) @db.Uuid
@@ -402,8 +384,6 @@ model User {
 
   @@map("users")
 }
-
-
 
 model ProductAssociation {
   id               String   @id @default(uuid()) @db.Uuid
@@ -461,8 +441,6 @@ model VerificationRequest {
   createdAt       DateTime                  @default(now()) @map("created_at")
   idType          VerificationIdType?       @map("id_type")
   status          VerificationRequestStatus @default(PENDING)
-  targetTier      String?                   @map("target_tier") // "TIER_2" or "TIER_3"
-  ninNumber       String?                   @map("nin_number")
   merchant        MerchantProfile           @relation(fields: [merchantId], references: [id])
   reviewer        User?                     @relation("VerificationRequestsReviewed", fields: [reviewedBy], references: [id])
 
@@ -744,8 +722,6 @@ enum PayoutStatus {
   FAILED
 }
 
-
-
 enum UserRole {
   BUYER
   MERCHANT
@@ -754,8 +730,6 @@ enum UserRole {
   SUPPORT
   SUPPLIER
 }
-
-
 
 enum ReorderReminderStatus {
   PENDING
@@ -772,6 +746,9 @@ enum OrderDisputeStatus {
 
 enum VerificationTier {
   UNVERIFIED
+  BASIC
+  VERIFIED
+  TRUSTED
   TIER_1
   TIER_2
   TIER_3

@@ -123,7 +123,7 @@ export class OrderService {
     const paymentMethod =
       requestedMethod === "DIRECT" && isTier2Or3 ? "DIRECT" : "ESCROW";
 
-    const subtotalKobo = Number(resolvedPriceKobo) * quantity;
+    const subtotalKobo = BigInt(resolvedPriceKobo) * BigInt(quantity);
     const platformFeePercent = PlatformConfig.getPlatformFeePercent(
       merchantTier,
       paymentMethod,
@@ -152,9 +152,7 @@ export class OrderService {
 
     // Add delivery fee logic
     const totalKobo =
-      BigInt(subtotalKobo) +
-      BigInt(platformFeeKobo) +
-      calculatedDeliveryFeeKobo;
+      subtotalKobo + platformFeeKobo + calculatedDeliveryFeeKobo;
 
     const idempotencyKey = `direct-order-${productId}-${buyerId}-${Date.now()}`;
 
@@ -200,6 +198,8 @@ export class OrderService {
           status: OrderStatus.PENDING_PAYMENT,
           paymentMethod,
           deliveryMethod,
+          platformFeeKobo,
+          platformFeePercent,
           quoteId: null,
           idempotencyKey,
           payoutStatus: "PENDING",
@@ -409,12 +409,10 @@ export class OrderService {
       merchantTier,
       paymentMethod,
     );
-    const platformFeeKobo = BigInt(
-      PlatformConfig.calculateFeeKobo(
-        Number(subtotalKobo),
-        merchantTier,
-        paymentMethod,
-      ),
+    const platformFeeKobo = PlatformConfig.calculateFeeKobo(
+      subtotalKobo,
+      merchantTier,
+      paymentMethod,
     );
 
     let calculatedDeliveryFeeKobo = 0n;
@@ -480,6 +478,8 @@ export class OrderService {
           status: OrderStatus.PENDING_PAYMENT,
           paymentMethod,
           deliveryMethod: deliveryMethod as any,
+          platformFeeKobo,
+          platformFeePercent: platformFeePercentage,
           items: jsonItems,
           quoteId: null,
           idempotencyKey,
