@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Resend } from "resend";
+import { PlatformConfig } from "../../config/platform.config";
 
 @Injectable()
 export class EmailService {
@@ -108,7 +109,7 @@ export class EmailService {
     const safeOtp = this.escapeHtml(otp);
     const content = `
       <h2 style="font-size: 20px; margin-bottom: 20px; text-align: center;">Your Verification Code</h2>
-      <p style="text-align: center;">Please use the following code to verify your account. It expires in 10 minutes.</p>
+      <p style="text-align: center;">Please use the following code to verify your account. It expires in ${PlatformConfig.timers.otpExpiryEmailMinutes} minutes.</p>
       <div style="background-color: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 12px; padding: 20px; margin: 30px auto; max-width: 200px; text-align: center;">
         <h1 style="font-size: 32px; letter-spacing: 8px; margin: 0; color: #0f172a;">${safeOtp}</h1>
       </div>
@@ -264,7 +265,7 @@ export class EmailService {
       <div style="margin-top: 30px; text-align: center;">
         <a href="${resetUrl}" style="background-color: #0F2B4C; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Reset Password</a>
       </div>
-      <p style="margin-top: 30px; font-size: 12px; color: #94a3b8;">This link will expire in 15 minutes.</p>
+      <p style="margin-top: 30px; font-size: 12px; color: #94a3b8;">This link will expire in ${PlatformConfig.timers.otpExpiryAuthMinutes} minutes.</p>
     `;
     await this.sendEmail(
       to,

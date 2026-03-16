@@ -145,6 +145,8 @@ model Order {
   merchantId          String?            @map("merchant_id") @db.Uuid
   totalAmountKobo     BigInt             @map("total_amount_kobo")
   deliveryFeeKobo     BigInt             @map("delivery_fee_kobo")
+  platformFeeKobo     BigInt?            @map("platform_fee_kobo")
+  platformFeePercent  Float?             @map("platform_fee_percent")
   currency            String             @default("NGN")
   status              OrderStatus        @default(PENDING_PAYMENT)
   deliveryOtp         String?            @map("delivery_otp")

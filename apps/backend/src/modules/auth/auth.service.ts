@@ -18,6 +18,7 @@ import { RedisService } from "../../redis/redis.service";
 import { EmailService } from "../email/email.service";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
 import { RegisterDto } from "./dto/register.dto";
+import { PlatformConfig } from "../../config/platform.config";
 import { LoginDto } from "./dto/login.dto";
 import { VerifyEmailDto } from "./dto/verify-email.dto";
 import { ResendVerificationDto } from "./dto/resend-verification.dto";
@@ -37,13 +38,13 @@ const REFRESH_TOKEN_PREFIX = "refresh_token:";
 const REFRESH_TOKEN_TTL = 7 * 24 * 60 * 60; // 7 days in seconds
 
 const EMAIL_OTP_PREFIX = "email_otp:";
-const EMAIL_OTP_TTL = 600; // 10 minutes in seconds
+const EMAIL_OTP_TTL = PlatformConfig.timers.otpExpiryEmailMinutes * 60; // Convert minutes to seconds
 const EMAIL_OTP_RATE_PREFIX = "email_otp_count:";
 const EMAIL_OTP_RATE_TTL = 600; // 10 minutes window
 const EMAIL_OTP_MAX_RESENDS = 3;
 
 const PHONE_OTP_PREFIX = "phone_otp:";
-const PHONE_OTP_TTL = 300; // 5 minutes in seconds
+const PHONE_OTP_TTL = PlatformConfig.timers.otpExpiryWhatsappMinutes * 60; // Convert minutes to seconds
 const PHONE_OTP_RATE_PREFIX = "phone_otp_count:";
 const PHONE_OTP_RATE_TTL = 600; // 10 minutes window
 const PHONE_OTP_MAX_RESENDS = 3;
@@ -779,8 +780,12 @@ export class AuthService {
     const otp = randomInt(100000, 999999).toString();
     const otpKey = `wa_login_otp:${normalizedPhone}`;
 
-    // Store in Redis for 5 minutes
-    await this.redis.set(otpKey, otp, 300);
+    // Store in Redis (dynamically using PlatformConfig)
+    await this.redis.set(
+      otpKey,
+      otp,
+      PlatformConfig.timers.otpExpiryWhatsappMinutes * 60,
+    );
 
     // Send via WhatsApp Template (bypass 24h window)
     await this.whatsappService.sendWhatsAppTemplateMessage(
@@ -832,7 +837,11 @@ export class AuthService {
     const otp = randomInt(100000, 999999).toString();
     const otpKey = `wa_link_otp:${userId}:${normalizedPhone}`;
 
-    await this.redis.set(otpKey, otp, 600); // 10 mins
+    await this.redis.set(
+      otpKey,
+      otp,
+      PlatformConfig.timers.otpExpiryWhatsappMinutes * 60,
+    ); // Use WhatsApp expiry for linking code too
 
     // Send via WhatsApp Template
     await this.whatsappService.sendWhatsAppTemplateMessage(

@@ -34,6 +34,7 @@ import { CreateTrackingDto } from "./dto/create-tracking.dto";
 import { CheckoutCartDto } from "./dto/checkout-cart.dto";
 
 import { PayoutService } from "../payout/payout.service";
+import { PlatformConfig } from "../../config/platform.config";
 
 @Injectable()
 export class OrderService {
@@ -122,17 +123,15 @@ export class OrderService {
     const paymentMethod =
       requestedMethod === "DIRECT" && isTier2Or3 ? "DIRECT" : "ESCROW";
 
-    // Dynamic platform fee based on tier
-    let platformFeePercentage = 2; // Default 2% (Tier 1 / Unverified)
-    if (merchantTier === "TIER_3") {
-      platformFeePercentage = 1; // Tier 3: 1%
-    } else if (merchantTier === "TIER_2") {
-      platformFeePercentage = 1.5; // Tier 2: 1.5%
-    }
-
     const subtotalKobo = Number(resolvedPriceKobo) * quantity;
-    const platformFeeKobo = Math.floor(
-      subtotalKobo * (platformFeePercentage / 100),
+    const platformFeePercent = PlatformConfig.getPlatformFeePercent(
+      merchantTier,
+      paymentMethod,
+    );
+    const platformFeeKobo = PlatformConfig.calculateFeeKobo(
+      subtotalKobo,
+      merchantTier,
+      paymentMethod,
     );
 
     let calculatedDeliveryFeeKobo = 0n;
@@ -152,8 +151,10 @@ export class OrderService {
     }
 
     // Add delivery fee logic
-    const totalAmountKobo =
-      BigInt(subtotalKobo + platformFeeKobo) + calculatedDeliveryFeeKobo;
+    const totalKobo =
+      BigInt(subtotalKobo) +
+      BigInt(platformFeeKobo) +
+      calculatedDeliveryFeeKobo;
 
     const idempotencyKey = `direct-order-${productId}-${buyerId}-${Date.now()}`;
 
@@ -193,7 +194,7 @@ export class OrderService {
           unitPriceKobo: resolvedPriceKobo,
           deliveryAddress,
           deliveryDetails: deliveryDetails ? (deliveryDetails as any) : null,
-          totalAmountKobo,
+          totalAmountKobo: totalKobo,
           deliveryFeeKobo: calculatedDeliveryFeeKobo,
           currency: "NGN",
           status: OrderStatus.PENDING_PAYMENT,
@@ -269,7 +270,7 @@ export class OrderService {
     return {
       orderId: order.id,
       authorizationUrl: paymentData.authorization_url,
-      totalAmountKobo: Number(totalAmountKobo),
+      totalAmountKobo: Number(totalKobo), // For notifications/events, cast back to number
       platformFeeKobo,
       paymentMethod,
     };
@@ -403,16 +404,17 @@ export class OrderService {
     const paymentMethod =
       requestedMethod === "DIRECT" && isTier2Or3 ? "DIRECT" : "ESCROW";
 
-    // Dynamic platform fee based on tier
-    let platformFeePercentage = 2; // Default 2% (Tier 1 / Unverified)
-    if (merchantTier === "TIER_3") {
-      platformFeePercentage = 1; // Tier 3: 1%
-    } else if (merchantTier === "TIER_2") {
-      platformFeePercentage = 1.5; // Tier 2: 1.5%
-    }
-
+    // Dynamic platform fee based on config/tier
+    const platformFeePercentage = PlatformConfig.getPlatformFeePercent(
+      merchantTier,
+      paymentMethod,
+    );
     const platformFeeKobo = BigInt(
-      Math.floor(Number(subtotalKobo) * (platformFeePercentage / 100)),
+      PlatformConfig.calculateFeeKobo(
+        Number(subtotalKobo),
+        merchantTier,
+        paymentMethod,
+      ),
     );
 
     let calculatedDeliveryFeeKobo = 0n;
@@ -431,7 +433,7 @@ export class OrderService {
       calculatedDeliveryFeeKobo = BigInt(quote.costKobo);
     }
 
-    const totalAmountKobo =
+    const totalKobo =
       subtotalKobo + platformFeeKobo + calculatedDeliveryFeeKobo;
     const idempotencyKey = `cart-checkout-${buyerId}-${Date.now()}`;
 
@@ -472,7 +474,7 @@ export class OrderService {
           merchantId,
           deliveryAddress,
           deliveryDetails: deliveryDetails ? (deliveryDetails as any) : null,
-          totalAmountKobo,
+          totalAmountKobo: totalKobo,
           deliveryFeeKobo: calculatedDeliveryFeeKobo,
           currency: "NGN",
           status: OrderStatus.PENDING_PAYMENT,
@@ -512,7 +514,7 @@ export class OrderService {
     return {
       orderId: order.id,
       authorizationUrl: paymentData.authorization_url,
-      totalAmountKobo: Number(totalAmountKobo),
+      totalAmountKobo: Number(totalKobo),
       platformFeeKobo: Number(platformFeeKobo),
       paymentMethod,
     };
