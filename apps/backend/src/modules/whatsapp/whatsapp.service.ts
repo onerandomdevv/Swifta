@@ -317,7 +317,7 @@ export class WhatsAppService {
       if (!product) {
         await this.interactiveService.sendTextMessage(
           phone,
-          "❌ Inventory details not found.",
+          "Inventory details not found. ✅",
         );
         return;
       }
@@ -348,7 +348,7 @@ export class WhatsAppService {
       if (!product) {
         await this.interactiveService.sendTextMessage(
           phone,
-          "❌ Product not found.",
+          "Product not found.",
         );
         return;
       }
@@ -370,7 +370,7 @@ export class WhatsAppService {
       if (!order) {
         await this.interactiveService.sendTextMessage(
           phone,
-          "❌ Order details not found.",
+          "Order details not found.",
         );
         return;
       }
@@ -454,7 +454,7 @@ export class WhatsAppService {
       if (!checkoutSessionRaw) {
         await this.interactiveService.sendTextMessage(
           phone,
-          "❌ Checkout session has expired. Please start over.",
+          "Checkout session expired. Please start over.",
         );
         return;
       }
@@ -490,7 +490,7 @@ export class WhatsAppService {
   private async sendMerchantMenu(phone: string): Promise<void> {
     await this.interactiveService.sendListMessage(
       phone,
-      "Welcome back to Swifta! 🤝\n\nManage your business efficiently through this menu or simply tell me what you need in plain English (or Pidgin).",
+      "Welcome back. What do you need?",
       "Main Menu",
       [
         {
@@ -669,15 +669,15 @@ export class WhatsAppService {
     const topSeller = Object.entries(productCounts).sort(
       (a, b) => b[1] - a[1],
     )[0];
-    let msg = `📊 *Business Performance Summary* (${timeframeLabel}):\n\n`;
+    let msg = `Performance Summary (${timeframeLabel}):\n\n`;
 
     if (orders.length === 0) {
-      msg += `There are no completed orders recorded ${timeframe === "today" ? "today" : "for this period"}.\n`;
+      msg += `No completed orders recorded ${timeframe === "today" ? "today" : "for this period"}.\n`;
     } else {
-      msg += `✅ Orders Completed: *${orders.length}*\n`;
-      msg += `💰 Total Revenue: *${this.formatNaira(totalRevenue)}*\n`;
+      msg += `Status: ${orders.length} orders completed\n`;
+      msg += `Revenue: ${this.formatNaira(totalRevenue)}\n`;
       if (topSeller) {
-        msg += `🏆 Top-selling Product: ${topSeller[0]} (${topSeller[1]} orders)\n`;
+        msg += `Top Product: ${topSeller[0]} (${topSeller[1]} orders)\n`;
       }
     }
 
@@ -707,7 +707,7 @@ export class WhatsAppService {
       if (products.length === 0) {
         await this.interactiveService.sendTextMessage(
           phone,
-          `📦 No products matching "${productName}" were found in your inventory.`,
+          `No products matching "${productName}" were found.`,
         );
         return;
       }
@@ -741,7 +741,7 @@ export class WhatsAppService {
     if (products.length === 0) {
       await this.interactiveService.sendTextMessage(
         phone,
-        "📦 You do not have any active product listings. Please add products via the Swifta web dashboard to begin selling. 🛒",
+        "No active product listings found.",
       );
       return;
     }
@@ -794,7 +794,7 @@ export class WhatsAppService {
     if (!product) {
       await this.interactiveService.sendTextMessage(
         phone,
-        `❌ No product matching "${productName}" was found in your inventory.`,
+        `No product matching "${productName}" found.`,
       );
       return;
     }
@@ -822,15 +822,15 @@ export class WhatsAppService {
     const currentStock = (product.productStockCache?.stock ?? 0) + adjustedQty;
     const symbol = isRemove ? "-" : "+";
 
-    let msg = `✅ *Stock Update Successful*\n\n`;
-    msg += `Product: *${product.name}*\n`;
-    msg += `Adjustment: ${symbol}${Math.abs(quantity)} ${product.unit}(s)\n`;
-    msg += `Updated Balance: *${currentStock} ${product.unit}(s)*`;
+    let msg = `Stock updated. ✅\n\n`;
+    msg += `Product: ${product.name}\n`;
+    msg += `Adjustment: ${symbol}${Math.abs(quantity)}\n`;
+    msg += `Balance: ${currentStock} units`;
 
     if (currentStock <= 20 && currentStock > 0) {
-      msg += `\n\n⚠️ *Low Stock Alert*: Your inventory for this product is low. Please consider restocking.`;
+      msg += `\n\n⚠️ Low stock: ${product.name} — ${currentStock} units remaining.`;
     } else if (currentStock <= 0) {
-      msg += `\n\n🚨 *Out of Stock*: This product is now out of stock and will be hidden from buyers.`;
+      msg += `\n\n⚠️ Out of stock: ${product.name}. Listings hidden.`;
     }
 
     await this.interactiveService.sendTextMessage(phone, msg);
@@ -1032,7 +1032,7 @@ export class WhatsAppService {
     if (!validStatuses.includes(mappedStatus)) {
       await this.interactiveService.sendTextMessage(
         phone,
-        `❌ Invalid status. Must be PREPARING, DISPATCHED, or IN_TRANSIT. Use the dashboard to mark an order as DELIVERED after OTP confirmation.`,
+        `Invalid status. Options: PREPARING, DISPATCHED, IN_TRANSIT.`,
       );
       return;
     }
@@ -1043,11 +1043,10 @@ export class WhatsAppService {
         note,
       });
 
-      let msg = `✅ *Tracking Updated Successfuly*\n`;
+      let msg = `Tracking updated. ✅\n`;
       msg += `Order #${orderReference.toUpperCase()}\n`;
-      msg += `New Status: *${mappedStatus.replace(/_/g, " ")}*\n`;
+      msg += `Status: ${mappedStatus.replace(/_/g, " ")}\n`;
       if (note) msg += `Note: "${note}"\n`;
-      msg += `\nThe buyer has been notified of this update. 🚀`;
       await this.interactiveService.sendTextMessage(phone, msg);
     } catch (error: any) {
       await this.interactiveService.sendTextMessage(
@@ -1073,7 +1072,7 @@ export class WhatsAppService {
       if (!merchant) {
         await this.interactiveService.sendTextMessage(
           phone,
-          `❌ I no fit find your merchant profile. Contact support abeg.`,
+          `Merchant profile not found.`,
         );
         return;
       }
@@ -1084,19 +1083,19 @@ export class WhatsAppService {
       let msg = "";
       switch (tier) {
         case VerificationTier.UNVERIFIED:
-          msg = `Hello ${name}! 👋\n\nYour account is currently *unverified*.\n\nPlease visit your dashboard settings to upload your ID and complete verification. Verified merchants benefit from lower fees and more direct customer trust. 🚀\n\n🔗 Dashboard: Settings → Verification`;
+          msg = `Unverified Account. ⚠️\n\nVisit your dashboard settings to complete verification. Verified merchants receive lower fees and higher customer trust.\n\nDashboard: swifta.store/settings`;
           break;
         case VerificationTier.TIER_1:
-          msg = `Hello ${name}! 👋\n\nYour account is currently in the *Tier 1* (Basic) tier.\n\nCompleting your identity verification will upgrade your status to *Tier 2* (Verified), offering:\n• Reduced platform fees (1%)\n• Direct customer payments\n• Enhanced profile trust ✅`;
+          msg = `Verification Tier: Basic.\n\nUpgrade your status to Verified to enjoy lower platform fees and direct customer payments.`;
           break;
         case VerificationTier.TIER_2:
-          msg = `✅ *Verified Merchant Status* — ${name}\n\nYou are currently enjoying:\n• Competitive 1% platform fees\n• Direct customer payments\n• Verified badge on your profile\n\nThank you for choosing Swifta! 💪`;
+          msg = `Account Verified. ✅\n\nYou currently enjoy 1% platform fees and direct customer payments. Thank you for using Swifta.`;
           break;
         case VerificationTier.TIER_3:
-          msg = `⭐ *Trusted Merchant Status* — ${name}\n\nYou have achieved the highest trust level! You benefit from minimal fees, featured listings, and a ⭐ Trusted merchant badge.\n\nExcellent work! 🎉`;
+          msg = `Trusted Merchant Account. ✅\n\nYou have achieved the highest trust level. You benefit from minimal fees and featured listings.`;
           break;
         default:
-          msg = `Your current verification tier is: *${tier}*. Please visit your dashboard for more detailed information.`;
+          msg = `Verification status: ${tier}. Please visit your dashboard for more details.`;
       }
       await this.interactiveService.sendTextMessage(phone, msg);
     } catch (error) {
@@ -1151,7 +1150,7 @@ export class WhatsAppService {
       });
       await this.interactiveService.sendTextMessage(
         phone,
-        `✅ *Price Updated Successfuly*\n\nThe price of *${target.name}* has been updated to *${this.formatNaira(priceNaira * 100)}* per ${target.unit}.`,
+        `Price updated. ✅\n\n${target.name} price is now ${this.formatNaira(priceNaira * 100)} per ${target.unit}.`,
       );
     } catch (error: any) {
       await this.interactiveService.sendTextMessage(
@@ -1229,11 +1228,11 @@ export class WhatsAppService {
 
       const shortId = orderData.orderId.substring(0, 8);
       const bodyText =
-        `📦 *New Customer Order!*\n\n` +
-        `Product: *${orderData.productName}*\n` +
-        `Quantity: *${orderData.quantity}*\n` +
-        `Total: *${this.formatNaira(Number(orderData.amountKobo))}*\n\n` +
-        `Please prepare this order for dispatch as soon as possible.`;
+        `New order received. 📦\n\n` +
+        `Product: ${orderData.productName}\n` +
+        `Quantity: ${orderData.quantity}\n` +
+        `Total: ${this.formatNaira(Number(orderData.amountKobo))}\n\n` +
+        `Please prepare this order for dispatch.`;
 
       await this.interactiveService.sendReplyButtons(link.phone, bodyText, [
         { id: `manage_order_${shortId}`, title: "Manage Order" },
@@ -1266,10 +1265,10 @@ export class WhatsAppService {
       });
       if (!link || !link.isActive) return;
 
-      let msg = `✅ *Delivery Confirmed!*\n\n`;
+      let msg = `Delivery confirmed. ✅\n\n`;
       msg += `Order #${payoutData.orderRef} — ${payoutData.quantity} ${payoutData.productName}\n`;
       msg += `Buyer has confirmed receipt.\n\n`;
-      msg += `💰 Payout of ${this.formatNaira(Number(payoutData.payoutAmountKobo))} is being processed to your ${payoutData.bankName} account.`;
+      msg += `Payout of ${this.formatNaira(Number(payoutData.payoutAmountKobo))} sent to your ${payoutData.bankName} account.`;
 
       await this.sendWhatsAppMessage(link.phone, msg);
       this.logger.log(
@@ -1298,9 +1297,8 @@ export class WhatsAppService {
       });
       if (!link || !link.isActive) return;
 
-      let msg = `💰 *Payout Received!*\n\n`;
-      msg += `${this.formatNaira(Number(payoutData.amountKobo))} has been sent to your ${payoutData.bankName} account for Order #${payoutData.orderRef}.\n`;
-      msg += `Transaction complete! 🎉`;
+      let msg = `Payout complete. ✅\n\n`;
+      msg += `₦${Number(payoutData.amountKobo) / 100} sent to your ${payoutData.bankName} account for Order #${payoutData.orderRef}.`;
 
       await this.sendWhatsAppMessage(link.phone, msg);
       this.logger.log(
@@ -1329,8 +1327,8 @@ export class WhatsAppService {
       });
       if (!link || !link.isActive) return;
 
-      let msg = `⚠️ *Payout Delayed*\n\n`;
-      msg += `Your payout of ${payoutData.amountKobo ? this.formatNaira(Number(payoutData.amountKobo)) : "funds"} for Order #${payoutData.orderRef} is being reviewed. Our team will resolve this shortly. No action needed from you.`;
+      let msg = `Payout delayed. ⚠️\n\n`;
+      msg += `Payout for Order #${payoutData.orderRef} is being reviewed. Our team will resolve this shortly.`;
 
       await this.sendWhatsAppMessage(link.phone, msg);
       this.logger.log(

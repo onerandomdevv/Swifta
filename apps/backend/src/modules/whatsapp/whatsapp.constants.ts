@@ -3,19 +3,19 @@
 // ---------------------------------------------------------------------------
 
 /** Professional English menu for linked merchants */
-export const MAIN_MENU = `Manage your business efficiently right here on WhatsApp. Select an option from the menu or type your request naturally.`;
+export const MAIN_MENU = `Manage your business efficiently on WhatsApp. Select an option from the menu or state your request.`;
 
 /** Supplier main menu */
 export const SUPPLIER_MAIN_MENU = `Supplier Dashboard. Use the menu below to manage your wholesale operations.`;
 
 /** Friendly fallback when AI can't determine intent */
-export const FRIENDLY_FALLBACK = `I'm not quite sure I understood that. 😅 Here is what I can help you with today:`;
+export const FRIENDLY_FALLBACK = `I did not understand that. Select an option from the menu:`;
 
 /** Main menu for buyers */
-export const BUYER_MAIN_MENU = `Welcome to your Swifta Buyer Assistant. Select an option from the menu to get started:`;
+export const BUYER_MAIN_MENU = `Welcome to the Swifta Buyer Assistant. Select an option to proceed.`;
 
 /** Friendly fallback for buyers */
-export const BUYER_FRIENDLY_FALLBACK = `I didn't quite catch that. Try using the menu or ask me questions like:
+export const BUYER_FRIENDLY_FALLBACK = `I did not understand that. You can ask:
 • "I need 50 bags of cement in Lekki"
 • "Where is my order?"
 • "Show my purchase history"`;
@@ -26,9 +26,9 @@ export const STOCK_UPDATE_FOLLOWUP = `Understood. Which product would you like t
 Example: "Add 50 bags of cement" or "Remove 10 iron rods"`;
 
 /** First message for an unlinked phone */
-export const WELCOME_MESSAGE = `Welcome to Swifta, Nigeria's digital marketplace for all your retail and wholesale needs. How would you like to use our platform?`;
+export const WELCOME_MESSAGE = `Welcome to Swifta. Nigeria's digital marketplace for retail and wholesale needs. How would you like to use our platform?`;
 
-export const ROLE_SELECTED_MESSAGE = `Great! To link your account, please reply with your registered email address.`;
+export const ROLE_SELECTED_MESSAGE = `To link your account, please reply with your registered email address.`;
 
 /** Sent after looking up the email */
 export const LINK_OTP_SENT = (email: string) =>
@@ -37,11 +37,11 @@ export const LINK_OTP_SENT = (email: string) =>
 /** Sent when linking succeeds */
 export const LINK_SUCCESS = (merchantName: string, role: string) => {
   if (role === "BUYER") {
-    return `You're all set, ${merchantName}! 🎉\n\nYou can now tell me what you want to buy, or say "track my order" if you have any active deliveries.`;
+    return `Account linked. ✅\n\nYou can search for products or track active deliveries.`;
   } else if (role === "SUPPLIER") {
-    return `You're all set, ${merchantName}! 🎉\n\n${SUPPLIER_MAIN_MENU}`;
+    return `Account linked. ✅\n\n${SUPPLIER_MAIN_MENU}`;
   }
-  return `You're all set, ${merchantName}! 🎉\n\n${MAIN_MENU}`;
+  return `Account linked. ✅\n\n${MAIN_MENU}`;
 };
 
 /** Sent when the phone is already linked */
