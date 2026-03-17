@@ -145,10 +145,10 @@ export class VerificationService {
           phoneVerified: user.phoneVerified,
           bankVerified: merchant.bankVerified,
           basicInfo: !!(
-            merchant.businessName?.trim().length > 0 ||
-            (user.firstName?.trim().length > 0 && user.lastName?.trim().length > 0)
+            merchant.businessName?.trim() ||
+            (user.firstName?.trim() && user.lastName?.trim())
           ),
-          businessAddress: !!merchant.businessAddress,
+          businessAddress: !!merchant.businessAddress?.trim(),
         },
       },
       tier2: {
