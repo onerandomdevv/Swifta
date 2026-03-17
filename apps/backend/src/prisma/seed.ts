@@ -24,14 +24,16 @@ async function main() {
       );
     } else {
       const passwordHash = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 10);
-      
+
       // Check if user with this email already exists
       const existingUser = await prisma.user.findUnique({
-        where: { email: BOOTSTRAP_ADMIN_EMAIL }
+        where: { email: BOOTSTRAP_ADMIN_EMAIL },
       });
 
       if (existingUser) {
-        console.log(`🔄 Promoting existing user to Admin: ${BOOTSTRAP_ADMIN_EMAIL}`);
+        console.log(
+          `🔄 Promoting existing user to Admin: ${BOOTSTRAP_ADMIN_EMAIL}`,
+        );
         await prisma.user.update({
           where: { id: existingUser.id },
           data: {
@@ -39,10 +41,10 @@ async function main() {
             adminProfile: {
               upsert: {
                 create: { approvalStatus: "APPROVED" },
-                update: { approvalStatus: "APPROVED" }
-              }
-            }
-          }
+                update: { approvalStatus: "APPROVED" },
+              },
+            },
+          },
         });
       } else {
         await prisma.user.create({
@@ -98,18 +100,18 @@ async function main() {
   // Get IDs of all seeded products
   const seededProducts = await prisma.product.findMany({
     where: { isSeeded: true },
-    select: { id: true }
+    select: { id: true },
   });
-  const seededProductIds = seededProducts.map(p => p.id);
+  const seededProductIds = seededProducts.map((p) => p.id);
 
   // Delete mock associations for seeded products only
   await prisma.productAssociation.deleteMany({
     where: {
       OR: [
         { productId: { in: seededProductIds } },
-        { isDemo: true } as any // Handle if schema has isDemo, if not OR handles IDs
-      ]
-    }
+        { isDemo: true } as any, // Handle if schema has isDemo, if not OR handles IDs
+      ],
+    },
   });
 
   // Delete all seeded products and their caches
@@ -122,13 +124,15 @@ async function main() {
   const DEMO_MERCHANT_EMAIL = "merchant@demo.swifta.store";
   const demoMerchant = await prisma.user.findUnique({
     where: { email: DEMO_MERCHANT_EMAIL },
-    include: { merchantProfile: true }
+    include: { merchantProfile: true },
   });
 
   if (demoMerchant && demoMerchant.merchantProfile) {
     const merchantId = demoMerchant.merchantProfile.id;
-    console.log(`🗑️ Removing Demo Merchant (${DEMO_MERCHANT_EMAIL}) and their associated data...`);
-    
+    console.log(
+      `🗑️ Removing Demo Merchant (${DEMO_MERCHANT_EMAIL}) and their associated data...`,
+    );
+
     // Reverse dependency deletion order
     await prisma.inventoryEvent.deleteMany({ where: { merchantId } });
     await prisma.order.deleteMany({ where: { merchantId } });
@@ -136,7 +140,7 @@ async function main() {
     await prisma.payoutRequest.deleteMany({ where: { merchantId } });
     await prisma.payout.deleteMany({ where: { merchantId } });
     // Add any other dependent models here
-    
+
     await prisma.merchantProfile.deleteMany({
       where: { userId: demoMerchant.id },
     });

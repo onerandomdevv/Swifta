@@ -1078,7 +1078,6 @@ export class WhatsAppService {
       }
 
       const tier = (merchant as any).verificationTier || "UNVERIFIED";
-      const name = merchant.businessName || "Boss";
 
       let msg = "";
       switch (tier) {

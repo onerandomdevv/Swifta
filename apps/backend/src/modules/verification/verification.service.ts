@@ -349,7 +349,8 @@ export class VerificationService {
         merchant.bankVerified &&
         merchant.bankAccountNumber &&
         (merchant.businessName?.trim().length > 0 ||
-          (user.firstName?.trim().length > 0 && user.lastName?.trim().length > 0)) &&
+          (user.firstName?.trim().length > 0 &&
+            user.lastName?.trim().length > 0)) &&
         merchant.businessAddress;
 
       if (meetsT1) {

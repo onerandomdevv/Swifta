@@ -12,8 +12,9 @@ interface AdminStats {
   totalBuyers: number;
   totalUsers: number;
   totalOrders: number;
-  totalRevenueKobo: number;
+  totalRevenueKobo: number | bigint;
 }
+
 
 interface SystemAlert {
   id: string;
@@ -173,7 +174,7 @@ export default function AdminDashboardPage() {
             </span>
           </div>
           <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-navy-dark dark:text-white mt-4 truncate">
-            ₦{((stats?.totalRevenueKobo || 0) / 100).toLocaleString()}
+            ₦{(Number(stats?.totalRevenueKobo || 0) / 100).toLocaleString()}
           </p>
         </div>
       </section>
