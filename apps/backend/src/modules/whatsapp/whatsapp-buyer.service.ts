@@ -146,7 +146,7 @@ export class WhatsAppBuyerService {
             await this.redisService.del(`review_pointer:${buyerId}`);
             await this.interactiveService.sendTextMessage(
               phone,
-              "✅ Comment added! Thank you for your feedback.",
+              "Comment added. ✅ Thank you for your feedback.",
             );
             return;
           }
@@ -174,7 +174,7 @@ export class WhatsAppBuyerService {
       );
       await this.interactiveService.sendTextMessage(
         phone,
-        "Sorry, I ran into a small issue processing that request. Try sending it again.",
+        "An error occurred while processing your request. Please try again.",
       );
     }
   }
@@ -196,7 +196,7 @@ export class WhatsAppBuyerService {
       if (!checkoutSessionRaw) {
         await this.interactiveService.sendTextMessage(
           phone,
-          "Your checkout session has expired. Please search for the product again.",
+          "Checkout session expired. Please search for the product again.",
         );
         return;
       }
@@ -213,7 +213,7 @@ export class WhatsAppBuyerService {
 
       await this.interactiveService.sendCTAUrlButton(
         phone,
-        `✅ *Logistics Protocol Confirmed: ${session.deliveryMethod === "MERCHANT_DELIVERY" ? "Direct Merchant Delivery" : "Swifta Tracked"}*\n\nPlease tap below to complete your secure payment.`,
+        `Logistics confirmed. ✅\n\nTap below to pay securely.`,
         "Secure Payment",
         checkoutLink,
       );
@@ -246,7 +246,7 @@ export class WhatsAppBuyerService {
       await this.redisService.set(`review_pointer:${buyerId}`, orderId, 600);
       await this.interactiveService.sendTextMessage(
         phone,
-        "Please type your comment below and send it to me. ✍️",
+        "Please type your comment below.",
       );
       return;
     }
@@ -259,7 +259,7 @@ export class WhatsAppBuyerService {
       await this.redisService.del(`review_pointer:${buyerId}`);
       await this.interactiveService.sendTextMessage(
         phone,
-        "Thank you! Your rating has been saved. ✅",
+        "Thank you. Your rating has been saved. ✅",
       );
       return;
     }
@@ -425,7 +425,7 @@ export class WhatsAppBuyerService {
 
       await this.interactiveService.sendCTAUrlButton(
         session.phone,
-        `✅ *Delivery confirmed.*\n\nTap below to pay securely.`,
+        `Delivery confirmed. ✅\n\nTap below to pay securely.`,
         "Pay Now",
         checkoutLink,
       );
@@ -481,7 +481,7 @@ export class WhatsAppBuyerService {
         case "contact_support":
           await this.interactiveService.sendTextMessage(
             phone,
-            "📞 You can contact Swifta Support directly at 0800-Swifta or email support@swifta.store for any disputes or assistance.",
+            "Contact Swifta Support at support@swifta.store for assistance.",
           );
           break;
         case "friendly_fallback":
@@ -501,7 +501,7 @@ export class WhatsAppBuyerService {
       );
       await this.interactiveService.sendTextMessage(
         phone,
-        "Something went wrong while fulfilling your request. Try again later.",
+        "An error occurred. Please try again later.",
       );
     }
   }
@@ -555,8 +555,8 @@ export class WhatsAppBuyerService {
     if (products.length === 0) {
       await this.interactiveService.sendListMessage(
         phone,
-        `❌ No results for *"${query}"*${location ? ` near ${location}` : ""}.`,
-        "More Options",
+        `No results for "${query}"${location ? ` near ${location}` : ""}.`,
+        "Options",
         [
           {
             title: "Try something else",
@@ -568,7 +568,7 @@ export class WhatsAppBuyerService {
               },
               {
                 id: "search_products",
-                title: "Try New Search",
+                title: "New Search",
                 description: "Search for a different item",
               },
               {
@@ -585,7 +585,7 @@ export class WhatsAppBuyerService {
 
     await this.interactiveService.sendListMessage(
       phone,
-      `🛒 Search results for *"${query}"*:`,
+      `Search results for "${query}":`,
       "View Results",
       [
         {
@@ -599,7 +599,7 @@ export class WhatsAppBuyerService {
             return {
               id: `buy_${p.id.substring(0, 8)}_${quantity}`,
               title: p.name,
-              description: `${p.category?.name || "General"} | ${this.formatNaira(Number(isConsumer && (p as any).retailPriceKobo ? (p as any).retailPriceKobo : (p as any).pricePerUnitKobo || 0))}${starStr} | Seller: ${p.merchantProfile?.businessName || "Verified Merchant"}`,
+              description: `${p.category?.name || "General"} | ${this.formatNaira(Number(isConsumer && (p as any).retailPriceKobo ? (p as any).retailPriceKobo : (p as any).pricePerUnitKobo || 0))}${starStr}`,
             };
           }),
         },
@@ -620,8 +620,8 @@ export class WhatsAppBuyerService {
     if (categories.length === 0) {
       await this.interactiveService.sendListMessage(
         phone,
-        "No categories found. What would you like to do?",
-        "More Options",
+        "No categories found.",
+        "Options",
         [
           {
             title: "Try something else",
@@ -696,7 +696,7 @@ export class WhatsAppBuyerService {
     if (!product) {
       await this.interactiveService.sendTextMessage(
         phone,
-        `❌ Product ID "${partialId}" not found.`,
+        `Product ID "${partialId}" not found.`,
       );
       return;
     }
@@ -727,7 +727,7 @@ export class WhatsAppBuyerService {
 
       await this.interactiveService.sendReplyButtons(
         phone,
-        `🛒 *${product.name}* (${quantity} units)\n\nHow would you like this delivered?`,
+        `${product.name} (${quantity} units)\n\nHow would you like this delivered?`,
         [
           { id: "delivery_merchant", title: "Direct Merchant" },
           { id: "delivery_track", title: "Swifta Tracked" },
@@ -805,7 +805,7 @@ export class WhatsAppBuyerService {
     if (orders.length === 0) {
       await this.interactiveService.sendTextMessage(
         phone,
-        "You haven't completed any orders yet!",
+        "No completed orders yet.",
       );
       return;
     }
@@ -857,7 +857,7 @@ export class WhatsAppBuyerService {
     if (orders.length === 0) {
       await this.interactiveService.sendTextMessage(
         phone,
-        `❌ No active orders found matching *"${orderRef}"*. Please check your order ID and try again.`,
+        `No active orders found matching "${orderRef}".`,
       );
       return;
     }
@@ -881,7 +881,7 @@ export class WhatsAppBuyerService {
 
     await this.interactiveService.sendTextMessage(
       phone,
-      `🚚 To confirm delivery for *Order #${order.id.substring(0, 8).toUpperCase()}*, please reply with your 6-digit Delivery OTP.`,
+      `To confirm delivery for Order #${order.id.substring(0, 8).toUpperCase()}, please reply with your 6-digit Delivery OTP.`,
     );
   }
 
@@ -897,13 +897,13 @@ export class WhatsAppBuyerService {
     try {
       await this.orderService.confirmDelivery(buyerId, orderId, otp);
       await this.redisService.del(pendingOtpKey);
-      return `✅ *Delivery Confirmed!* Your order has been marked as delivered. Payment will now be released to the merchant. Thank you! 🎉`;
+      return `Delivery confirmed. ✅ Your order has been marked as delivered. Payment will be released to the merchant.`;
     } catch (error: any) {
       this.logger.warn(
         `OTP confirmation failed for order ${orderId}: ${error.message}`,
       );
       await this.redisService.del(pendingOtpKey);
-      return `❌ Invalid or expired OTP. Please check your code and try again.`;
+      return `Invalid or expired OTP. Please check your code and try again.`;
     }
   }
 
@@ -992,7 +992,7 @@ export class WhatsAppBuyerService {
       // Send interactive prompt for comment
       await this.interactiveService.sendReplyButtons(
         phone,
-        "✅ Rating saved! Would you like to add a comment about your experience?",
+        "Rating saved. ✅ Would you like to add a comment about your experience?",
         [
           {
             id: `review_add_comment_${session.orderId}`,
@@ -1025,10 +1025,7 @@ export class WhatsAppBuyerService {
     const order = orders[0];
 
     if (!order) {
-      await this.interactiveService.sendTextMessage(
-        phone,
-        "❌ Order not found.",
-      );
+      await this.interactiveService.sendTextMessage(phone, "Order not found.");
       return;
     }
 
@@ -1067,7 +1064,7 @@ export class WhatsAppBuyerService {
     if (!order) {
       await this.interactiveService.sendTextMessage(
         phone,
-        "❌ Order detail not found.",
+        "Order details not found.",
       );
       return;
     }
@@ -1114,7 +1111,7 @@ export class WhatsAppBuyerService {
     if (!category) {
       await this.interactiveService.sendTextMessage(
         phone,
-        "❌ Category not found.",
+        "Category not found.",
       );
       return;
     }
@@ -1139,8 +1136,8 @@ export class WhatsAppBuyerService {
     if (products.length === 0) {
       await this.interactiveService.sendListMessage(
         phone,
-        `❌ No products found in the *${category.name}* category.`,
-        "Continue Options",
+        `No products found in ${category.name}.`,
+        "Options",
         [
           {
             title: "Other Actions",
@@ -1164,7 +1161,7 @@ export class WhatsAppBuyerService {
 
     await this.interactiveService.sendListMessage(
       phone,
-      `📂 Products in *${category.name}*:`,
+      `Products in ${category.name}:`,
       "View Products",
       [
         {

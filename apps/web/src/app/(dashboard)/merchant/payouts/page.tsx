@@ -332,8 +332,9 @@ export default function MerchantPayoutsPage() {
                               {order.id.slice(0, 8).toUpperCase()}
                             </td>
                             <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white text-right">
+                              {/* Payout is what the merchant receives (Total - Platform Fee) */}
                               {formatKobo(
-                                Number(order.totalAmountKobo) + Number(order.deliveryFeeKobo),
+                                Number(order.totalAmountKobo) - Number(order.platformFeeKobo || 0),
                               )}
                             </td>
                             <td className="px-6 py-4">

@@ -271,9 +271,9 @@ export default function RegisterPage() {
       </div>
 
       {/* ─── RIGHT: Registration Form ─── */}
-      <div className="w-full lg:w-[50%] bg-white flex flex-col min-h-screen lg:h-screen overflow-y-auto">
+      <div className="w-full lg:w-[50%] bg-surface flex flex-col min-h-screen lg:h-screen overflow-y-auto">
         {/* Mobile header */}
-        <div className="lg:hidden flex items-center justify-between p-6 border-b border-slate-100">
+        <div className="lg:hidden flex items-center justify-between p-6 border-b border-border bg-background">
           <Link href="/" className="flex items-center gap-2">
             <Logo variant="light" size="md" />
           </Link>

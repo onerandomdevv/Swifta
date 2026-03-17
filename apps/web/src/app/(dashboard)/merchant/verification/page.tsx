@@ -244,7 +244,7 @@ export default function MerchantVerificationPage() {
                 <StatusItem label="Phone Number" met={status.tier1.requirements.phoneVerified} />
                 <StatusItem label="Bank Account" met={status.tier1.requirements.bankVerified} />
                 <StatusItem label="Business Address" met={status.tier1.requirements.businessAddress} />
-                <StatusItem label="Full Legal Name" met={status.tier1.requirements.fullName} />
+                <StatusItem label="Basic Profile Info" met={status.tier1.requirements.basicInfo} />
               </div>
             </TierDetailView>
           )}

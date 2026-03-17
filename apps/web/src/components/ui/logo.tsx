@@ -61,7 +61,7 @@ export function Logo({
       {showWordmark && (
         <span className={cn(text, "font-bold tracking-[-0.03em] font-display")}>
           <span className="text-foreground">Swift</span>
-          <span style={{ color: accentColor }}>Trade</span>
+          <span style={{ color: accentColor }}>a</span>
         </span>
       )}
     </span>

@@ -177,8 +177,8 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
   return (
     <div className="min-h-full bg-background font-display text-foreground">
       {/* Cover Section */}
-      <div className="relative px-4 pt-4 md:px-8">
-        <div className="h-56 md:h-64 w-full relative rounded-xl overflow-hidden bg-background-secondary border border-border/50 shadow-sm">
+      <div className="relative pt-0 sm:pt-4 sm:px-4 md:px-8">
+        <div className="h-56 md:h-64 w-full relative rounded-none sm:rounded-xl overflow-hidden bg-background-secondary border-b sm:border border-border/50 shadow-sm">
           <img 
             src={coverImage || DEFAULT_COVER} 
             alt="Cover" 
@@ -200,7 +200,7 @@ export function MerchantProfileView({ initialMerchant, merchantId }: MerchantPro
         </div>
 
         {/* Avatar */}
-        <div className="absolute -bottom-12 left-8 md:left-16 size-24 md:size-32 border-4 border-surface bg-surface overflow-hidden shadow-md rounded-xl">
+        <div className="absolute -bottom-12 left-4 sm:left-8 md:left-16 size-24 md:size-32 border-4 border-surface bg-surface overflow-hidden shadow-md rounded-xl">
           {profile.profileImage ? (
             <img src={profile.profileImage} alt={profile.businessName} className="w-full h-full object-cover" />
           ) : (

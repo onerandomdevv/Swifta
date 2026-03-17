@@ -6,7 +6,7 @@ import {
 import { PrismaService } from "../../prisma/prisma.service";
 import { UpdateMerchantDto } from "./dto/update-merchant.dto";
 import { UpdateBankAccountDto } from "./dto/update-bank-account.dto";
-import { UserRole, VerificationTier } from "@swifta/shared";
+import { UserRole, VerificationTier, maskNin } from "@swifta/shared";
 import { PaystackClient } from "../payment/paystack.client";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
 import { UpdatePreferencesDto } from "./dto/update-preferences.dto";
@@ -76,8 +76,11 @@ export class MerchantService {
 
     if (!merchant) throw new NotFoundException("Merchant profile not found");
 
+    const { ninNumber, ...merchantWithoutNin } = merchant;
+
     return {
-      ...merchant,
+      ...merchantWithoutNin,
+      maskedNin: maskNin(ninNumber),
       contact: merchant.user
         ? {
             email: merchant.user.email,
@@ -158,7 +161,9 @@ export class MerchantService {
   async getAllMerchants() {
     return this.prisma.merchantProfile.findMany({
       where: {
-        verificationTier: { in: [VerificationTier.TIER_2, VerificationTier.TIER_3] },
+        verificationTier: {
+          in: [VerificationTier.TIER_2, VerificationTier.TIER_3],
+        },
       },
       select: {
         id: true,

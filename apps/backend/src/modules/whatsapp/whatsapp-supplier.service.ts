@@ -78,7 +78,7 @@ export class WhatsAppSupplierService {
       );
       await this.interactiveService.sendTextMessage(
         phone,
-        "Sorry, I ran into a small issue processing that request. Try sending it again.",
+        "An error occurred while processing your request. Please try again.",
       );
     }
   }
@@ -124,11 +124,7 @@ export class WhatsAppSupplierService {
 
     if (interactiveId.startsWith("view_wholesale_order_")) {
       const orderIdShort = interactiveId.replace("view_wholesale_order_", "");
-      // TODO: Implement wholesale order detail view
-      await this.interactiveService.sendTextMessage(
-        phone,
-        `Order details for #${orderIdShort.toUpperCase()} coming soon.`,
-      );
+      await this.handleViewWholesaleOrder(supplierId, phone, orderIdShort);
       return;
     }
 
@@ -149,24 +145,24 @@ export class WhatsAppSupplierService {
     phone: string,
     productIdShort: string,
   ): Promise<void> {
-    const products = await this.prisma.supplierProduct.findMany({
+    const allProducts = await this.prisma.supplierProduct.findMany({
       where: { supplierId },
     });
-    const product = products.find((p) => p.id.startsWith(productIdShort));
+    const product = allProducts.find((p) => p.id.startsWith(productIdShort));
 
     if (!product) {
       await this.interactiveService.sendTextMessage(
         phone,
-        "❌ Product details not found.",
+        "Product details not found.",
       );
       return;
     }
 
-    let msg = `🏭 *${product.name}*\n\n`;
-    msg += `Wholesale Price: *${this.formatNaira(Number(product.wholesalePriceKobo))}*\n`;
-    msg += `Min Order: *${product.minOrderQty} ${product.unit}*\n`;
+    let msg = `${product.name}\n\n`;
+    msg += `Wholesale Price: ${this.formatNaira(Number(product.wholesalePriceKobo))}\n`;
+    msg += `Min Order: ${product.minOrderQty} ${product.unit}\n`;
     msg += `Category: ${product.category}\n`;
-    msg += `Status: ${product.isActive ? "Active ✅" : "Inactive ⭕"}\n\n`;
+    msg += `Status: ${product.isActive ? "Active ✅" : "Inactive"}\n\n`;
     msg += `To update price, say: "update price of ${product.name} to [price]"`;
 
     await this.interactiveService.sendTextMessage(phone, msg);
@@ -175,7 +171,7 @@ export class WhatsAppSupplierService {
   private async sendSupplierMenu(phone: string): Promise<void> {
     await this.interactiveService.sendListMessage(
       phone,
-      "🏭 *Supplier Control Center*\n\nWelcome back! What would you like to manage today?",
+      "Supplier Menu. What would you like to manage?",
       "Open Menu",
       [
         {
@@ -183,17 +179,17 @@ export class WhatsAppSupplierService {
           rows: [
             {
               id: "get_supplier_sales",
-              title: "📊 Sales Summary",
+              title: "Sales Summary",
               description: "View your revenue and performance",
             },
             {
               id: "get_supplier_orders",
-              title: "📦 Active Orders",
+              title: "Active Orders",
               description: "Manage pending fulfillments",
             },
             {
               id: "get_supplier_products",
-              title: "🏪 Product List",
+              title: "Product List",
               description: "View and manage your catalogue",
             },
           ],
@@ -203,7 +199,7 @@ export class WhatsAppSupplierService {
           rows: [
             {
               id: "get_supplier_payouts",
-              title: "💰 Payout History",
+              title: "Payout History",
               description: "Track your earnings and status",
             },
           ],
@@ -259,7 +255,7 @@ export class WhatsAppSupplierService {
       this.logger.error(`Error executing supplier command: ${error}`);
       await this.interactiveService.sendTextMessage(
         phone,
-        "I ran into a problem fetching that information. Please try again.",
+        "An error occurred. Please try again later.",
       );
     }
   }
@@ -289,10 +285,10 @@ export class WhatsAppSupplierService {
       where: { supplierId, status: OrderStatus.PAID },
     });
 
-    let msg = `📊 *Supplier Performance Summary*\n\n`;
-    msg += `✅ Completed Orders: *${orders.length}*\n`;
-    msg += `💰 Total Revenue: *${this.formatNaira(totalRevenue)}*\n`;
-    msg += `📋 Pending Fulfillment: *${pendingOrders}*`;
+    let msg = `Performance Summary:\n\n`;
+    msg += `Completed Orders: ${orders.length}\n`;
+    msg += `Total Revenue: ${this.formatNaira(totalRevenue)}\n`;
+    msg += `Pending Fulfillment: ${pendingOrders}`;
 
     if (pendingOrders > 0) {
       msg += `\nYou have active orders awaiting dispatch.`;
@@ -315,14 +311,14 @@ export class WhatsAppSupplierService {
     if (orders.length === 0) {
       await this.interactiveService.sendTextMessage(
         phone,
-        "📦 You have no wholesale orders yet.",
+        "You have no wholesale orders yet.",
       );
       return;
     }
 
     await this.interactiveService.sendListMessage(
       phone,
-      "📦 *Wholesale Orders*",
+      "Wholesale Orders received. 📦",
       "View Orders",
       [
         {
@@ -330,7 +326,7 @@ export class WhatsAppSupplierService {
           rows: orders.map((o) => ({
             id: `view_wholesale_order_${o.id.substring(0, 8)}`,
             title: `#${o.id.slice(0, 8).toUpperCase()} - ${o.status}`,
-            description: `${o.product?.name || "Product"} | Qty: ${o.quantity} | ${this.formatNaira(Number(o.totalAmountKobo))}`,
+            description: `${o.product?.name || "Product"} | Qty: ${o.quantity || "N/A"} | ${this.formatNaira(Number(o.totalAmountKobo))}`,
           })),
         },
       ],
@@ -349,14 +345,14 @@ export class WhatsAppSupplierService {
     if (products.length === 0) {
       await this.interactiveService.sendTextMessage(
         phone,
-        "🏭 You have no active products listed in the manufacturer catalogue.",
+        "No active products listed in the manufacturer catalogue.",
       );
       return;
     }
 
     await this.interactiveService.sendListMessage(
       phone,
-      "🏬 *Your Manufacturer Catalogue*",
+      "Manufacturer Catalogue.",
       "View Products",
       [
         {
@@ -395,7 +391,7 @@ export class WhatsAppSupplierService {
     if (!product) {
       await this.interactiveService.sendTextMessage(
         phone,
-        `❌ Product "${productName}" not found in your catalogue.`,
+        `Product "${productName}" not found.`,
       );
       return;
     }
@@ -407,7 +403,7 @@ export class WhatsAppSupplierService {
       });
       await this.interactiveService.sendTextMessage(
         phone,
-        `✅ *Price Updated Successfuly*\n\n${product.name} is now ${this.formatNaira(newPriceNaira * 100)}.`,
+        `Price updated. ✅\n\n${product.name} is now ${this.formatNaira(newPriceNaira * 100)}.`,
       );
     } catch (error) {
       await this.interactiveService.sendTextMessage(
@@ -432,12 +428,12 @@ export class WhatsAppSupplierService {
     if (payouts.length === 0) {
       await this.interactiveService.sendTextMessage(
         phone,
-        "💰 No payout history found.",
+        "No payout history found.",
       );
       return;
     }
 
-    let msg = `💰 *Recent Payouts*\n\n`;
+    let msg = `Recent Payouts:\n\n`;
     payouts.forEach((p) => {
       msg += `• ${this.formatNaira(Number(p.amountKobo))} - ${p.status} (${p.createdAt.toLocaleDateString()})\n`;
     });
@@ -473,7 +469,7 @@ export class WhatsAppSupplierService {
     if (matches.length === 0) {
       await this.interactiveService.sendTextMessage(
         phone,
-        `❌ Order #${orderId} not found or is not ready for dispatch.`,
+        `Order #${orderId} not found or is not ready for dispatch.`,
       );
       return;
     }
@@ -495,7 +491,7 @@ export class WhatsAppSupplierService {
       });
       await this.interactiveService.sendTextMessage(
         phone,
-        `✅ Order #${orderId.toUpperCase()} marked as *Dispatched*. 🚚`,
+        `Order #${orderId.toUpperCase()} marked as dispatched. ✅`,
       );
     } catch (error) {
       await this.interactiveService.sendTextMessage(
@@ -508,6 +504,48 @@ export class WhatsAppSupplierService {
   private formatNaira(kobo: number): string {
     const naira = kobo / 100;
     return `₦${naira.toLocaleString("en-NG", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  }
+
+  private async handleViewWholesaleOrder(
+    supplierId: string,
+    phone: string,
+    orderIdShort: string,
+  ): Promise<void> {
+    const allOrders = await this.prisma.order.findMany({
+      where: { supplierId },
+      include: { product: true, supplierProduct: true },
+    });
+    const order = allOrders.find((o) => o.id.startsWith(orderIdShort));
+
+    if (!order) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "Order details not found.",
+      );
+      return;
+    }
+
+    const itemName =
+      (order as any).product?.name ??
+      (order as any).supplierProduct?.name ??
+      "Unknown Item";
+    let msg = `Order #${order.id.substring(0, 8).toUpperCase()}\n\n`;
+    msg += `Status: ${order.status.replace(/_/g, " ")}\n`;
+    msg += `Item: ${itemName}\n`;
+    msg += `Quantity: ${order.quantity || "Not specified"}\n`;
+    msg += `Amount: ${this.formatNaira(Number(order.totalAmountKobo))}\n`;
+    msg += `Address: ${order.deliveryAddress || "Not specified"}\n\n`;
+
+    const buttons = [];
+    if (order.status === OrderStatus.PAID) {
+      buttons.push({
+        id: `dispatch_order_${orderIdShort}`,
+        title: "Dispatch Order",
+      });
+    }
+    buttons.push({ id: "show_supplier_menu", title: "Main Menu" });
+
+    await this.interactiveService.sendReplyButtons(phone, msg, buttons);
   }
 
   // =======================================================================

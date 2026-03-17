@@ -20,9 +20,16 @@ export interface MerchantProfile {
   bankAccountNumber?: string;
   settlementAccountName?: string;
   verificationTier: VerificationTier;
+  tierUpgradedAt?: Date;
   verifiedAt?: Date;
   lastSlugChangeAt?: Date;
   onboardingStep: number;
+  ninNumber?: string;
+  maskedNin?: string;
+  ninVerifiedAt?: Date;
+  ninVerifiedVia?: string;
+  cacVerifiedVia?: string;
+  addressVerifiedVia?: string;
   createdAt: Date;
   dealsClosed?: number;
   responseTimeTotal?: number;

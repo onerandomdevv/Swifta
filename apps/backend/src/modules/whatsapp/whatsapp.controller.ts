@@ -88,7 +88,7 @@ export class WhatsAppController {
       }
 
       const message = value.messages[0];
-      const phone = message.from; // Sender's phone number (e.g. "2348012345678")
+      const phone = message.from; // Sender's phone number (e.g. "2348147846093")
       const messageId = message.id; // Unique Meta message ID
       const messageType = message.type; // "text", "interactive", "image", etc.
 

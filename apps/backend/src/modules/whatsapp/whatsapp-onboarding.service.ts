@@ -153,7 +153,7 @@ export class WhatsAppOnboardingService {
   private async sendWelcome(phone: string): Promise<void> {
     await this.interactiveService.sendReplyButtons(
       phone,
-      "Welcome to Swifta! 🔗\n\nNigeria's premium WhatsApp marketplace — buy and sell anything (Electronics, Fashion, Hardware, & more) with escrow protection.\n\n✅ Premium Identity Verification\n📦 Swifta Tracked Delivery\n💰 Instant Merchant Payouts\n\nHow would you like to proceed?",
+      "Welcome to Swifta.\n\nBuy and sell anything on WhatsApp with secure escrow payments. Your money is protected until delivery is confirmed.\n\nHow would you like to get started?",
       [
         { id: "onboard_buyer", title: "Buy Products" },
         { id: "onboard_merchant", title: "Sell Products" },
@@ -165,7 +165,7 @@ export class WhatsAppOnboardingService {
   private async handleLearnMore(phone: string): Promise<void> {
     await this.interactiveService.sendReplyButtons(
       phone,
-      "Swifta is a marketplace where you can buy and sell products securely through WhatsApp.\n\n🔒 Payments are protected — your money is held safely until you receive your goods\n🚚 Track your deliveries in real-time\n⭐ Buy from verified, rated merchants\n💰 Merchants get paid instantly to their bank\n\nReady to get started?",
+      "Swifta allows you to buy and sell products securely through WhatsApp.\n\nMoney is held safely until you receive your goods. You can track deliveries in real-time and buy from verified merchants. Merchants receive payments directly to their bank account.\n\nReady to get started?",
       [
         { id: "onboard_buyer", title: "Sign Up to Buy" },
         { id: "onboard_merchant", title: "Sign Up to Sell" },
@@ -203,7 +203,7 @@ export class WhatsAppOnboardingService {
     if (userType === "BUYER") {
       await this.interactiveService.sendReplyButtons(
         phone,
-        "Welcome to Swifta! 🔗 Let's set up your buyer account.\n\nAre you buying for a business or as an individual?",
+        "Let's set up your buyer account. Are you buying for a business or as an individual?",
         [
           { id: "buyer_type_business", title: "Business" },
           { id: "buyer_type_individual", title: "Individual" },
@@ -212,7 +212,7 @@ export class WhatsAppOnboardingService {
     } else {
       await this.interactiveService.sendTextMessage(
         phone,
-        "Great! Let's set up your merchant account.\n\nWhat's your business name?",
+        "Let's set up your merchant account. What is your business name?",
       );
     }
   }
@@ -325,7 +325,7 @@ export class WhatsAppOnboardingService {
 
     await this.interactiveService.sendTextMessage(
       phone,
-      "Thanks! And what's your full name?",
+      "What is your full name?",
     );
   }
 
@@ -357,7 +357,7 @@ export class WhatsAppOnboardingService {
 
     await this.interactiveService.sendTextMessage(
       phone,
-      `Thanks, ${firstName}! What's your email address? We'll send you a verification code.`,
+      "What is your email address? We will send a verification code.",
     );
   }
 
@@ -434,7 +434,7 @@ export class WhatsAppOnboardingService {
 
     await this.interactiveService.sendReplyButtons(
       phone,
-      `I've sent a 6-digit code to ${email}. Please reply with the code.`,
+      `A 6-digit code has been sent to ${email}. Please reply with the code.`,
       [{ id: "resend_otp", title: "Resend Code" }],
     );
   }
@@ -559,10 +559,9 @@ export class WhatsAppOnboardingService {
 
       // Send welcome with List Message
       const welcomeMsg =
-        `Account Active, ${data.firstName}! 🎉\n\n` +
-        `🔐 *Premium Identity Confirmation*: Your account is now linked to this phone number. ` +
-        `Access the marketplace instantly without passwords.\n\n` +
-        `You can now search for any product, buy with escrow protection, and protocol-tracked deliveries. What is your first objective?`;
+        `Account active. ✅\n\n` +
+        `Your account is now linked to this phone number. You can access the marketplace instantly without passwords.\n\n` +
+        `Search for products, buy with escrow protection, and track your deliveries. What would you like to do?`;
 
       await this.interactiveService.sendListMessage(
         phone,
@@ -814,7 +813,7 @@ export class WhatsAppOnboardingService {
 
     await this.interactiveService.sendReplyButtons(
       phone,
-      `I've sent a 6-digit code to ${email}. Please reply with the code.`,
+      `A 6-digit code has been sent to ${email}. Please reply with the code.`,
       [{ id: "resend_otp", title: "Resend Code" }],
     );
   }
@@ -865,7 +864,7 @@ export class WhatsAppOnboardingService {
         });
         await this.interactiveService.sendTextMessage(
           phone,
-          "Too many incorrect attempts. Please visit swifta.store to register instead, or try again later.",
+          "Too many incorrect attempts. Please visit swifta.store to register, or try again later.",
         );
         return;
       }
@@ -877,7 +876,7 @@ export class WhatsAppOnboardingService {
 
       await this.interactiveService.sendTextMessage(
         phone,
-        `That code doesn't match. You have ${3 - attempts} attempt(s) remaining. Please check your email and try again.`,
+        `Incorrect code. You have ${3 - attempts} attempt(s) remaining. Please check your email and try again.`,
       );
       return;
     }
@@ -891,7 +890,7 @@ export class WhatsAppOnboardingService {
 
     await this.interactiveService.sendListMessage(
       phone,
-      "Email verified! Now let's set up your payouts. Select your bank:",
+      "Email verified. Select your bank for payouts:",
       "Select Bank",
       [
         {
@@ -1108,7 +1107,7 @@ export class WhatsAppOnboardingService {
 
     await this.interactiveService.sendReplyButtons(
       phone,
-      `I found this account:\n\n🏦 ${data.bankName}\n👤 ${resolved.account_name}\n\nIs this correct?`,
+      `${data.bankName}\n${resolved.account_name}\n\nIs this correct?`,
       [
         { id: "bank_confirm", title: "Yes, that's correct" },
         { id: "bank_retry", title: "No, try again" },
@@ -1223,10 +1222,9 @@ export class WhatsAppOnboardingService {
 
       // Send welcome with List Message
       const welcomeMsg =
-        `Your merchant account is live, ${data.firstName}! 🎉\n\n` +
-        `🔐 *Identity Notice*: Your merchant account is linked to this phone number. ` +
-        `No password is needed for WhatsApp operations.\n\n` +
-        `Business: ${data.businessName}\nPayouts to: ${data.bankName} — ${data.accountName}\n\n` +
+        `Merchant account active. ✅\n\n` +
+        `Your account is linked to this phone number. No password is needed for WhatsApp operations.\n\n` +
+        `Business: ${data.businessName}\nBank: ${data.bankName} — ${data.accountName}\n\n` +
         `What would you like to do first?`;
 
       await this.interactiveService.sendListMessage(

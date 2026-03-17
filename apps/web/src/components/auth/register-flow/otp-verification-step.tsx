@@ -35,11 +35,11 @@ export function OtpVerificationStep({
           <span className="text-[10px] font-bold text-primary uppercase tracking-[0.1em]">
             Step 3 of 3
           </span>
-          <span className="text-[10px] font-medium text-slate-400">
+          <span className="text-[10px] font-medium text-foreground-secondary">
             Security Verification
           </span>
         </div>
-        <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+        <div className="h-1.5 w-full bg-surface border border-border rounded-full overflow-hidden">
           <div className="h-full bg-primary w-full rounded-full transition-all duration-1000 ease-out"></div>
         </div>
       </div>
@@ -50,12 +50,12 @@ export function OtpVerificationStep({
             verified_user
           </span>
         </div>
-        <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight mb-3">
+        <h1 className="text-3xl font-black text-foreground tracking-tight mb-3">
           Check your inbox
         </h1>
-        <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
+        <p className="text-foreground-secondary leading-relaxed">
           We&apos;ve sent a 6-digit verification code to{" "}
-          <span className="text-slate-900 dark:text-slate-100 font-bold">
+          <span className="text-foreground font-bold">
             {email}
           </span>
           . Enter it below to secure your business account.
@@ -70,7 +70,7 @@ export function OtpVerificationStep({
               ref={(el) => {
                 otpRefs.current[index] = el;
               }}
-              className="w-9 sm:w-12 h-14 sm:h-16 text-center text-lg sm:text-2xl font-black bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all text-slate-900 dark:text-white outline-none shadow-sm"
+              className="w-9 sm:w-12 h-14 sm:h-16 text-center text-lg sm:text-2xl font-black bg-surface border-2 border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all text-foreground outline-none shadow-sm"
               max={1}
               maxLength={1}
               placeholder="•"
@@ -107,7 +107,7 @@ export function OtpVerificationStep({
 
       <div className="mt-8 text-center space-y-6">
         <div>
-          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-2">
+          <p className="text-sm text-foreground-secondary font-medium mb-2">
             Didn&apos;t receive the code?
           </p>
           <button
@@ -125,10 +125,10 @@ export function OtpVerificationStep({
           </button>
         </div>
 
-        <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+        <div className="pt-6 border-t border-border">
           <button
             onClick={onBack}
-            className="flex items-center gap-2 text-slate-500 hover:text-primary transition-colors text-sm font-bold mx-auto"
+            className="flex items-center gap-2 text-foreground-secondary hover:text-primary transition-colors text-sm font-bold mx-auto"
           >
             <span className="material-symbols-outlined text-lg">
               arrow_back

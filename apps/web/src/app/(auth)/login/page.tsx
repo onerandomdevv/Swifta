@@ -263,9 +263,9 @@ export default function LoginPage() {
       </div>
 
       {/* ─── RIGHT: Login Form ─── */}
-      <div className="w-full lg:w-[50%] bg-white flex flex-col min-h-screen lg:h-screen overflow-y-auto">
+      <div className="w-full lg:w-[50%] bg-surface flex flex-col min-h-screen lg:h-screen overflow-y-auto">
         {/* Mobile header */}
-        <div className="lg:hidden flex items-center justify-between p-6 border-b border-slate-100">
+        <div className="lg:hidden flex items-center justify-between p-6 border-b border-border bg-background">
           <Link href="/" className="flex items-center gap-2">
             <Logo variant="light" size="md" />
           </Link>
@@ -274,10 +274,10 @@ export default function LoginPage() {
         <div className="flex-1 flex flex-col justify-center px-4 sm:px-8 py-12 md:px-12 lg:px-14 xl:px-20">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-black text-deep-blue tracking-tight mb-2">
+            <h1 className="text-3xl font-black text-foreground tracking-tight mb-2">
               Welcome back
             </h1>
-            <p className="text-slate-500 font-medium">
+            <p className="text-foreground-secondary font-medium">
               {loginMode === "password"
                 ? "Sign in to your marketplace"
                 : "Login securely with WhatsApp OTP"}
@@ -300,11 +300,11 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
               {/* Identifier (Email or Username) */}
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                <label className="block text-sm font-bold text-foreground mb-1.5">
                   Email or Username
                 </label>
                 <input
-                  className={`w-full px-4 py-3.5 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.identifier ? "border-red-400" : "border-slate-200"}`}
+                  className={`w-full px-4 py-3.5 bg-background-secondary border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-foreground text-sm ${errors.identifier ? "border-red-400" : "border-border"}`}
                   placeholder="your@email.com or username"
                   type="text"
                   {...register("identifier")}
@@ -319,7 +319,7 @@ export default function LoginPage() {
               {/* Password */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-sm font-bold text-slate-700">
+                  <label className="block text-sm font-bold text-foreground">
                     Password
                   </label>
                   <Link
@@ -331,7 +331,7 @@ export default function LoginPage() {
                 </div>
                 <div className="relative">
                   <input
-                    className={`w-full px-4 pr-12 py-3.5 bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm ${errors.password ? "border-red-400" : "border-slate-200"}`}
+                    className={`w-full px-4 pr-12 py-3.5 bg-background-secondary border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-foreground text-sm ${errors.password ? "border-red-400" : "border-border"}`}
                     placeholder="••••••••"
                     type={showPassword ? "text" : "password"}
                     {...register("password")}
@@ -339,7 +339,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-secondary hover:text-foreground transition-colors"
                   >
                     <span className="material-symbols-outlined text-xl">
                       {showPassword ? "visibility_off" : "visibility"}
@@ -372,18 +372,18 @@ export default function LoginPage() {
               {whatsappStep === "phone" ? (
                 <form onSubmit={handleWhatsAppInitiate} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                    <label className="block text-sm font-bold text-foreground mb-1.5">
                       WhatsApp Number
                     </label>
                     <input
-                      className="w-full px-4 py-3.5 bg-[#f6f6f8] border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 text-sm"
+                      className="w-full px-4 py-3.5 bg-background-secondary border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-foreground text-sm"
                       placeholder="e.g. 08100000000"
                       type="tel"
                       value={whatsappPhone}
                       onChange={(e) => setWhatsappPhone(e.target.value.replace(/\D/g, ""))}
                       required
                     />
-                    <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
+                    <p className="text-[11px] text-foreground-muted mt-2 leading-relaxed">
                       Enter your phone number (e.g. 081...). We&apos;ll send a
                       secure OTP to your WhatsApp account.
                     </p>
@@ -407,7 +407,7 @@ export default function LoginPage() {
                 <form onSubmit={handleWhatsAppVerify} className="space-y-4">
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-sm font-bold text-slate-700">
+                      <label className="block text-sm font-bold text-foreground">
                         Verification Code
                       </label>
                       <button
@@ -429,15 +429,15 @@ export default function LoginPage() {
                           value={digit}
                           onChange={(e) => handleOtpChange(index, e.target.value)}
                           onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                          className={`w-12 h-14 md:w-14 md:h-16 text-center text-2xl font-bold bg-[#f6f6f8] border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 ${
-                            digit ? "border-primary/50 shadow-sm" : "border-slate-200"
+                          className={`w-12 h-14 md:w-14 md:h-16 text-center text-2xl font-bold bg-background-secondary border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-foreground ${
+                            digit ? "border-primary/50 shadow-sm" : "border-border"
                           }`}
                           required
                         />
                       ))}
                     </div>
                     <div className="flex items-center justify-between mt-4">
-                      <p className="text-[11px] text-slate-400">
+                      <p className="text-[11px] text-foreground-muted">
                         Code sent to {whatsappPhone}
                       </p>
                       <button
@@ -446,7 +446,7 @@ export default function LoginPage() {
                         disabled={resendCountdown > 0 || isWhatsAppLoading}
                         className={`text-xs font-bold transition-colors ${
                           resendCountdown > 0 
-                            ? "text-slate-400 cursor-not-allowed" 
+                            ? "text-foreground-muted cursor-not-allowed" 
                             : "text-primary hover:text-primary-dark"
                         }`}
                       >
@@ -476,10 +476,10 @@ export default function LoginPage() {
           {/* Divider */}
           <div className="relative my-8">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-100"></div>
+              <div className="w-full border-t border-border"></div>
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-3 text-slate-400 font-bold tracking-wider">
+              <span className="bg-surface px-3 text-foreground-muted font-bold tracking-wider">
                 OR
               </span>
             </div>
@@ -491,10 +491,10 @@ export default function LoginPage() {
               setLoginMode(loginMode === "password" ? "whatsapp" : "password");
               setFormError(null);
             }}
-            className={`w-full flex items-center justify-center gap-3 py-3 px-4 border rounded-xl font-bold text-sm transition-all hover:bg-slate-50 ${
+            className={`w-full flex items-center justify-center gap-3 py-3 px-4 border rounded-xl font-bold text-sm transition-all hover:bg-background-secondary ${
               loginMode === "password"
                 ? "border-[#25D366] text-[#128C7E] bg-green-50/30"
-                : "border-slate-200 text-slate-700"
+                : "border-border text-foreground"
             }`}
           >
             {loginMode === "password" ? (
@@ -517,7 +517,7 @@ export default function LoginPage() {
           </button>
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-slate-600 font-medium">
+            <p className="text-sm text-foreground-secondary font-medium">
               Don&apos;t have an account?{" "}
               <Link
                 className="text-primary font-bold hover:underline"

@@ -5,6 +5,7 @@ import { OrderStatus } from "@swifta/shared";
 import { OrderService } from "../order/order.service";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
 import { RedisService } from "../../redis/redis.service";
+import { PlatformConfig } from "../../config/platform.config";
 
 @Injectable()
 export class AdminCronService {
@@ -34,8 +35,13 @@ export class AdminCronService {
         "Scanning for unconfirmed deliveries requiring action...",
       );
 
-      const seventyTwoHoursAgo = new Date(Date.now() - 72 * 60 * 60 * 1000);
-      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const seventyTwoHoursAgo = new Date(
+        Date.now() -
+          PlatformConfig.timers.autoConfirmationHours * 60 * 60 * 1000,
+      );
+      const twentyFourHoursAgo = new Date(
+        Date.now() - PlatformConfig.timers.escrowWindowHours * 60 * 60 * 1000,
+      );
 
       // 1. Auto-confirm orders older than 72h
       const overdueOrders = await this.prisma.order.findMany({
@@ -51,7 +57,7 @@ export class AdminCronService {
         try {
           await this.orderService.autoConfirmDelivery(order.id);
           this.logger.log(
-            `Auto-confirmed order ${order.id} (over 72h since update)`,
+            `Auto-confirmed order ${order.id} (over ${PlatformConfig.timers.autoConfirmationHours}h since update)`,
           );
         } catch (err: unknown) {
           this.logger.error(
@@ -69,56 +75,73 @@ export class AdminCronService {
             gt: seventyTwoHoursAgo,
           },
         },
-        select: { id: true, buyerId: true, updatedAt: true, meta: true },
+        select: { id: true, buyerId: true, updatedAt: true, metadata: true },
       });
 
       for (const order of warningCandidates) {
         try {
           const hoursSinceUpdate =
             (Date.now() - order.updatedAt.getTime()) / (1000 * 60 * 60);
-          
-          const meta = (order.meta as any) || {};
+
+          const metadata = (order.metadata as any) || {};
 
           // Decision logic based on hours since last update
-          if (hoursSinceUpdate >= 48) {
-            // Already past 48h (24h remaining), check if this specific warning was sent
-            if (!meta.autoConfirmationWarningSent48) {
+          const cutoff = PlatformConfig.timers.autoConfirmationHours;
+          const warningThreshold1 = cutoff / 3; // e.g. 24h if 72h total
+          const warningThreshold2 = (cutoff * 2) / 3; // e.g. 48h if 72h total
+
+          // Decision logic based on hours since last update
+          if (hoursSinceUpdate >= warningThreshold2) {
+            // Already past 2/3 of cutoff mark, check if this specific warning was sent
+            if (!metadata.autoConfirmationWarningSent48) {
+              const remaining = Math.max(
+                0,
+                cutoff - Math.floor(hoursSinceUpdate),
+              );
               await this.notifications.triggerAutoConfirmationWarning(
                 order.buyerId,
                 order.id.slice(0, 8).toUpperCase(),
-                24, // 24h remaining until 72h mark
+                remaining,
               );
-              
+
               await this.prisma.order.update({
                 where: { id: order.id },
                 data: {
-                  meta: {
-                    ...meta,
+                  metadata: {
+                    ...metadata,
                     autoConfirmationWarningSent48: true,
                   },
                 },
               });
-              this.logger.log(`Sent 24h remaining warning (at 48h mark) for order ${order.id}`);
+              this.logger.log(
+                `Sent warning (${remaining}h remaining) for order ${order.id}`,
+              );
             }
-          } else if (hoursSinceUpdate >= 24) {
-            // Past 24h but less than 48h (48h remaining)
-            if (!meta.autoConfirmationWarningSent24) {
+          } else if (hoursSinceUpdate >= warningThreshold1) {
+            // Past 1/3 but less than 2/3 mark
+            if (!metadata.autoConfirmationWarningSent24) {
+              const remaining = Math.max(
+                0,
+                cutoff - Math.floor(hoursSinceUpdate),
+              );
               await this.notifications.triggerAutoConfirmationWarning(
                 order.buyerId,
                 order.id.slice(0, 8).toUpperCase(),
-                48, // 48h remaining until 72h mark
+                remaining,
               );
-              
+
               await this.prisma.order.update({
                 where: { id: order.id },
                 data: {
-                  meta: {
-                    ...meta,
+                  metadata: {
+                    ...metadata,
                     autoConfirmationWarningSent24: true,
                   },
                 },
               });
-              this.logger.log(`Sent 48h remaining warning (at 24h mark) for order ${order.id}`);
+              this.logger.log(
+                `Sent warning (${remaining}h remaining) for order ${order.id}`,
+              );
             }
           }
         } catch (error) {

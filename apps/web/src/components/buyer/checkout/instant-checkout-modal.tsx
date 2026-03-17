@@ -44,9 +44,21 @@ export function InstantCheckoutModal({ isOpen, onClose, product, merchant }: Pro
   const deliveryFeeKobo = deliveryMethod === "PLATFORM_LOGISTICS" ? 250000 : 0; // ₦2,500 if platform, ₦0 if merchant
   const subtotalKobo = unitPriceKobo * quantity;
   
-  const isVerifiedMerchant = merchant?.verificationTier === VerificationTier.TIER_2 || merchant?.verificationTier === VerificationTier.TIER_3;
   const isDirect = paymentMethod !== "Escrow";
-  const feePercentage = (isVerifiedMerchant && isDirect) ? 0.01 : 0.02;
+  
+  // Platform Fee Calculation (Sync with backend PlatformConfig)
+  const FEE_ESCROW = Number(process.env.NEXT_PUBLIC_PLATFORM_FEE_ESCROW || 2);
+  const FEE_DIRECT_TIER2 = Number(process.env.NEXT_PUBLIC_PLATFORM_FEE_DIRECT_TIER2 || 1.5);
+  const FEE_DIRECT_TIER3 = Number(process.env.NEXT_PUBLIC_PLATFORM_FEE_DIRECT_TIER3 || 1);
+
+  const getFeePercent = () => {
+    if (!isDirect) return FEE_ESCROW;
+    if (merchant?.verificationTier === VerificationTier.TIER_3) return FEE_DIRECT_TIER3;
+    if (merchant?.verificationTier === VerificationTier.TIER_2) return FEE_DIRECT_TIER2;
+    return FEE_ESCROW;
+  };
+
+  const feePercentage = getFeePercent() / 100;
   const platformFeeKobo = Math.floor(subtotalKobo * feePercentage);
   const totalPayableKobo = subtotalKobo + deliveryFeeKobo + platformFeeKobo;
 

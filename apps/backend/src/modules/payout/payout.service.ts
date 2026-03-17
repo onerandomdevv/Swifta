@@ -30,24 +30,21 @@ export class PayoutService {
 
     const merchant = order.merchantProfile;
 
-    // Determine platform fee vs payout amount
-    let subtotalKobo = 0;
-    if (order.productId !== null && order.quantity !== null) {
-      subtotalKobo = Number(order.unitPriceKobo) * order.quantity;
+    // Determine gross amount and platform fee
+    const grossAmountKobo = BigInt(order.totalAmountKobo);
+    
+    // Use saved platform fee directly from the order with legacy fallback
+    let platformFeeKoboCount = 0n;
+    if (order.platformFeeKobo === null || order.platformFeeKobo === undefined) {
+      this.logger.warn(
+        `Missing platformFeeKobo on order ${orderId}. Defaulting to 0 for legacy order payout.`,
+      );
+      platformFeeKoboCount = 0n;
     } else {
-      subtotalKobo =
-        Number(order.totalAmountKobo) - Number(order.deliveryFeeKobo);
+      platformFeeKoboCount = BigInt(order.platformFeeKobo);
     }
 
-    // Dynamic fee: 1% for DIRECT payments, 2% for ESCROW
-    const platformFeePercentage = order.paymentMethod === "DIRECT" ? 1 : 2;
-    const platformFeeKobo = Math.floor(
-      subtotalKobo * (platformFeePercentage / 100),
-    );
-    const payoutAmountKobo =
-      BigInt(subtotalKobo) -
-      BigInt(platformFeeKobo) +
-      BigInt(order.deliveryFeeKobo);
+    const payoutAmountKobo = grossAmountKobo - platformFeeKoboCount;
 
     if (!merchant.paystackRecipientCode) {
       this.logger.error(
@@ -58,7 +55,7 @@ export class PayoutService {
           orderId,
           merchantId: merchant.id,
           amountKobo: payoutAmountKobo,
-          platformFeeKobo: BigInt(platformFeeKobo),
+          platformFeeKobo: platformFeeKoboCount,
           status: "FAILED",
           failureReason: "Merchant has no registered bank account",
         },
@@ -71,7 +68,7 @@ export class PayoutService {
         orderId,
         merchantId: merchant.id,
         amountKobo: payoutAmountKobo,
-        platformFeeKobo: BigInt(platformFeeKobo),
+        platformFeeKobo: platformFeeKoboCount,
         status: "PROCESSING",
         initiatedAt: new Date(),
       },
