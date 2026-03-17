@@ -374,7 +374,7 @@ export class NotificationTriggerService {
   ) {
     await this.addJob(
       userId,
-      "PASSWORD_RESET",
+      NotificationType.PASSWORD_RESET,
       "Reset your password",
       "Forgot your password?",
       { email, resetToken, frontendUrl },
@@ -391,7 +391,7 @@ export class NotificationTriggerService {
     // Notify buyer
     await this.addJob(
       buyerId,
-      "PAYMENT_CONFIRMED",
+      NotificationType.PAYMENT_CONFIRMED,
       "Payment Successful",
       "Your payment was successful.",
       { ...metadata, amountKobo: metadata.amountKobo.toString() },
@@ -399,7 +399,7 @@ export class NotificationTriggerService {
     // Notify merchant
     await this.addJob(
       merchantId,
-      "PAYMENT_CONFIRMED",
+      NotificationType.PAYMENT_CONFIRMED,
       "Payment Received",
       "Payment received for an order.",
       {
@@ -426,7 +426,7 @@ export class NotificationTriggerService {
     // Notify buyer via Email / In-App
     await this.addJob(
       buyerId,
-      "DIRECT_PURCHASE_CONFIRMED",
+      NotificationType.DIRECT_PURCHASE_CONFIRMED,
       "Payment confirmed!",
       "Your order is being prepared. You will receive a delivery code when the merchant dispatches.",
       { ...metadata, amountKobo: metadata.amountKobo.toString() },
@@ -436,7 +436,7 @@ export class NotificationTriggerService {
     // Notify merchant via Email / In-App
     await this.addJob(
       merchantId,
-      "DIRECT_PURCHASE_RECEIVED",
+      NotificationType.DIRECT_PURCHASE_RECEIVED,
       "New order received!",
       `${metadata.productName} × ${metadata.quantity} — ₦${Number(metadata.amountKobo) / 100}. Check your dashboard to dispatch.`,
       {
@@ -486,7 +486,7 @@ export class NotificationTriggerService {
   ) {
     await this.addJob(
       buyerId,
-      "REORDER_REMINDER",
+      NotificationType.REORDER_REMINDER,
       "Time to Reorder",
       `It's been ${metadata.daysSinceOrder} days since you ordered ${metadata.productName}. Need a restock?`,
       { ...metadata },
@@ -506,7 +506,7 @@ export class NotificationTriggerService {
   ) {
     await this.addJob(
       merchantId,
-      "MERCHANT_REORDER_PROMPT",
+      NotificationType.MERCHANT_REORDER_PROMPT,
       "Reorder Opportunity",
       `${metadata.buyerName} might need a restock of ${metadata.productName}. Send a quote?`,
       { ...metadata, isMerchantId: true },
@@ -516,7 +516,7 @@ export class NotificationTriggerService {
   async triggerMerchantVerified(userId: string) {
     await this.addJob(
       userId,
-      "MERCHANT_VERIFIED",
+      NotificationType.MERCHANT_VERIFIED,
       "Account Verified",
       "Your merchant account has been successfully verified. You can now list products and receive quotes.",
       {},
@@ -526,7 +526,7 @@ export class NotificationTriggerService {
   async triggerMerchantRejected(userId: string, reason?: string) {
     await this.addJob(
       userId,
-      "MERCHANT_REJECTED",
+      NotificationType.MERCHANT_REJECTED,
       "Account Verification Rejected",
       `Your merchant account verification was unsuccessful. ${reason ? "Reason: " + reason : "Please review your details and re-submit."}`,
       { reason },
@@ -541,7 +541,7 @@ export class NotificationTriggerService {
       adminUserIds.map((adminId) =>
         this.addJob(
           adminId,
-          "NEW_MERCHANT_SUBMISSION",
+          NotificationType.NEW_MERCHANT_SUBMISSION,
           "New Merchant Verification Pending",
           `${metadata.merchantName} has submitted their account for verification${metadata.targetTier ? ` (${metadata.targetTier})` : ""}.`,
           { ...metadata },
@@ -563,7 +563,7 @@ export class NotificationTriggerService {
       adminUserIds.map((adminId) =>
         this.addJob(
           adminId,
-          "PAYOUT_REQUESTED",
+          NotificationType.PAYOUT_REQUESTED,
           "New Payout Request",
           `${metadata.merchantName} has requested a payout.`,
           { ...metadata },
@@ -578,7 +578,7 @@ export class NotificationTriggerService {
   ) {
     await this.addJob(
       userId,
-      "PAYOUT_REQUEST_RECEIVED",
+      NotificationType.PAYOUT_REQUEST_RECEIVED,
       "Payout Request Received",
       `Your payout request has been received and is being processed.`,
       { ...metadata },
@@ -593,7 +593,7 @@ export class NotificationTriggerService {
     // Notify Merchant
     await this.addJob(
       merchantId,
-      "ORDER_DISPUTED",
+      NotificationType.ORDER_DISPUTED,
       "Order Dispute Raised",
       `A buyer has raised a dispute for Order #${orderId.slice(0, 8)}. Reason: ${reason}`,
       { orderId, reason, isMerchantId: true },

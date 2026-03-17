@@ -10,7 +10,7 @@ import {
   ReviewVerificationDto,
 } from "./verification.dto";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
-import { VerificationTier, OrderStatus } from "@swifta/shared";
+import { VerificationTier, OrderStatus, NotificationType } from "@swifta/shared";
 
 @Injectable()
 export class VerificationService {
@@ -266,7 +266,7 @@ export class VerificationService {
       this.notifications
         .addJob(
           request.merchant.userId,
-          "VERIFICATION_REJECTED",
+          NotificationType.VERIFICATION_REJECTED,
           "Verification Request Rejected",
           `Your ${request.targetTier} verification request was rejected. Reason: ${dto.rejectionReason}`,
           { requestId },
@@ -425,7 +425,7 @@ export class VerificationService {
       }
     }
 
-    return currentTier;
+    return currentTier as any;
   }
 
   private async notifyTierUpgrade(merchantId: string, tier: VerificationTier) {
@@ -452,7 +452,7 @@ export class VerificationService {
     await this.notifications
       .addJob(
         merchant.userId,
-        "TIER_UPGRADED",
+        NotificationType.TIER_UPGRADED,
         `Upgraded to ${tierNames[tier]}`,
         tierBenefits[tier],
         { tier },
