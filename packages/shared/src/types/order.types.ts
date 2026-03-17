@@ -7,6 +7,8 @@ export interface Order {
   merchantId: string;
   totalAmountKobo: bigint;
   deliveryFeeKobo: bigint;
+  platformFeeKobo?: bigint;
+  platformFeePercent?: number;
   currency: string;
   status: OrderStatus;
   deliveryAddress?: string;
@@ -25,6 +27,7 @@ export interface Order {
   idempotencyKey: string;
   createdAt: Date;
   updatedAt: Date;
+  metadata?: any;
   merchant?: any;
 
   product?: any;

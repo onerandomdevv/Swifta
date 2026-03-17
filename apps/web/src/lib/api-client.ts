@@ -1,4 +1,5 @@
 import type { ApiResponse, ApiError } from "@swifta/shared";
+import { bigIntReviver, bigIntReplacer } from "@swifta/shared";
 
 type RequestConfig = RequestInit & {
   params?: Record<string, string>;
@@ -99,7 +100,7 @@ class ApiClient {
     const text = await response.text();
     if (!text) return {} as T;
 
-    const result = JSON.parse(text) as ApiResponse<T>;
+    const result = JSON.parse(text, bigIntReviver) as ApiResponse<T>;
     return result.data;
   }
 
@@ -194,7 +195,7 @@ class ApiClient {
     const text = await response.text();
     if (!text) return { data: [], meta: { total: 0, page: 1, limit: 10 } };
 
-    return JSON.parse(text);
+    return JSON.parse(text, bigIntReviver);
   }
 
   get<T>(endpoint: string, config?: RequestConfig) {
@@ -212,9 +213,7 @@ class ApiClient {
       body:
         body instanceof FormData
           ? body
-          : JSON.stringify(body, (key, value) =>
-              typeof value === "bigint" ? Number(value) : value,
-            ),
+          : JSON.stringify(body, bigIntReplacer),
     });
   }
 
@@ -225,9 +224,7 @@ class ApiClient {
       body:
         body instanceof FormData
           ? body
-          : JSON.stringify(body, (key, value) =>
-              typeof value === "bigint" ? Number(value) : value,
-            ),
+          : JSON.stringify(body, bigIntReplacer),
     });
   }
 
@@ -238,9 +235,7 @@ class ApiClient {
       body:
         body instanceof FormData
           ? body
-          : JSON.stringify(body, (key, value) =>
-              typeof value === "bigint" ? Number(value) : value,
-            ),
+          : JSON.stringify(body, bigIntReplacer),
     });
   }
 

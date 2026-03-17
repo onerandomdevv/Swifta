@@ -41,11 +41,14 @@ export const PlatformConfig = {
     return this.fees.escrowPercent;
   },
   calculateFeeKobo(
-    subtotalKobo: number | bigint,
+    subtotalKobo: bigint,
     tier: string,
     paymentMethod: string,
   ): bigint {
     const percent = this.getPlatformFeePercent(tier, paymentMethod);
-    return BigInt(Math.floor(Number(subtotalKobo) * (percent / 100)));
+    // Convert percentage to basis points (e.g., 1.5% -> 150 basis points)
+    // 1.5% = 1.5 / 100 = 150 / 10000
+    const basisPoints = BigInt(Math.round(percent * 100));
+    return (subtotalKobo * basisPoints) / 10000n;
   },
 };

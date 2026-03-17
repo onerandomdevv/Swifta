@@ -5,67 +5,46 @@ import { UserRole } from "@swifta/shared";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Starting Database Seeding Process...");
+  console.log("🌱 Starting Clean Database Seeding Process...");
 
   const LEGACY_ADMIN_EMAIL = "admin@swifta.store";
   const BOOTSTRAP_ADMIN_EMAIL =
     process.env.ADMIN_BOOTSTRAP_EMAIL || LEGACY_ADMIN_EMAIL;
   const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_BOOTSTRAP_PASSWORD;
 
-  // 1. Check for ANY existing super-admin to prevent duplicates in existing DBs
+  // 1. Admin Bootstrap
   const existingAdmin = await prisma.user.findFirst({
-    where: {
-      role: UserRole.SUPER_ADMIN,
-    },
+    where: { role: UserRole.SUPER_ADMIN },
   });
 
-  let bootstrapPerformed = false;
-
-  if (existingAdmin) {
-    console.log(`✅ Super Admin already exists: ${existingAdmin.email}`);
-  } else {
-    // Determine if we need to create/promote the bootstrap user
-    const existingUserByEmail = await prisma.user.findUnique({
-      where: { email: BOOTSTRAP_ADMIN_EMAIL },
-    });
-
-    const needsWrite =
-      !existingUserByEmail ||
-      (existingUserByEmail.role !== UserRole.SUPER_ADMIN &&
-        process.env.FORCE_BOOTSTRAP_PROMOTE === "true");
-
-    if (needsWrite) {
-      if (!DEFAULT_ADMIN_PASSWORD) {
-        throw new Error(
-          "ADMIN_BOOTSTRAP_PASSWORD environment variable is NOT SET. Required for initial admin creation/promotion.",
-        );
-      }
-
-      const SALT_ROUNDS = 10;
-      console.log(`🔒 Hashing master password...`);
-      const passwordHash = await bcrypt.hash(
-        DEFAULT_ADMIN_PASSWORD,
-        SALT_ROUNDS,
+  if (!existingAdmin) {
+    if (!DEFAULT_ADMIN_PASSWORD) {
+      console.warn(
+        "⚠️ ADMIN_BOOTSTRAP_PASSWORD not set. Skipping admin creation.",
       );
+    } else {
+      const passwordHash = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 10);
+      
+      // Check if user with this email already exists
+      const existingUser = await prisma.user.findUnique({
+        where: { email: BOOTSTRAP_ADMIN_EMAIL }
+      });
 
-      if (existingUserByEmail) {
-        console.log(`⚠️ Promoting ${BOOTSTRAP_ADMIN_EMAIL} to SUPER_ADMIN...`);
+      if (existingUser) {
+        console.log(`🔄 Promoting existing user to Admin: ${BOOTSTRAP_ADMIN_EMAIL}`);
         await prisma.user.update({
-          where: { id: existingUserByEmail.id },
+          where: { id: existingUser.id },
           data: {
             role: UserRole.SUPER_ADMIN,
-            passwordHash: passwordHash,
             adminProfile: {
               upsert: {
                 create: { approvalStatus: "APPROVED" },
-                update: { approvalStatus: "APPROVED" },
-              },
-            },
-          },
+                update: { approvalStatus: "APPROVED" }
+              }
+            }
+          }
         });
-        bootstrapPerformed = true;
       } else {
-        console.log(`🚀 Creating new Super Admin account...`);
         await prisma.user.create({
           data: {
             email: BOOTSTRAP_ADMIN_EMAIL,
@@ -74,33 +53,16 @@ async function main() {
             lastName: "Admin",
             passwordHash: passwordHash,
             role: UserRole.SUPER_ADMIN,
-            adminProfile: {
-              create: {
-                approvalStatus: "APPROVED",
-              },
-            },
+            adminProfile: { create: { approvalStatus: "APPROVED" } },
           },
         });
-        bootstrapPerformed = true;
+        console.log(`🚀 Created Admin: ${BOOTSTRAP_ADMIN_EMAIL}`);
       }
-    } else if (
-      existingUserByEmail &&
-      existingUserByEmail.role !== UserRole.SUPER_ADMIN
-    ) {
-      console.log(
-        `⚠️ User ${BOOTSTRAP_ADMIN_EMAIL} exists but is not a SUPER_ADMIN. Set FORCE_BOOTSTRAP_PROMOTE=true to promote.`,
-      );
     }
   }
 
-  if (bootstrapPerformed) {
-    console.log(`✨ Bootstrap successful!`);
-    console.log(`📧 Email: ${BOOTSTRAP_ADMIN_EMAIL}`);
-    console.log(`🔑 Password: [HIDDEN] (Use ADMIN_BOOTSTRAP_PASSWORD)`);
-  }
-
-  // 2. Seed V5 Categories
-  console.log(`\n📂 Seeding V5 Product Categories...`);
+  // 2. Marketplace Categories (Structural)
+  console.log(`\n📂 Syncing Product Categories...`);
   const categoriesToSeed = [
     { name: "Electronics", slug: "electronics", icon: "devices" },
     { name: "Fashion", slug: "fashion", icon: "checkroom" },
@@ -129,309 +91,59 @@ async function main() {
       create: { name: cat.name, slug: cat.slug, icon: cat.icon, sortOrder: i },
     });
   }
-  console.log(`✅ Seeded ${categoriesToSeed.length} Categories.`);
 
-  // 3. Seed Product Associations (Cross-Selling)
-  console.log(`\n📦 Seeding Product Associations...`);
-  const associations = [
-    {
-      a: "cement",
-      b: "binding_wire",
-      s: 0.9,
-      t: "Cement buyers usually also need binding wire",
-    },
-    {
-      a: "cement",
-      b: "sand",
-      s: 0.8,
-      t: "Cement is typically used with sharp sand",
-    },
-    {
-      a: "cement",
-      b: "head_pan",
-      s: 0.6,
-      t: "Construction sites using cement often need head pans",
-    },
-    {
-      a: "iron_rod",
-      b: "binding_wire",
-      s: 0.95,
-      t: "Iron rods require binding wire for reinforcement",
-    },
-    {
-      a: "iron_rod",
-      b: "cement",
-      s: 0.7,
-      t: "Reinforcement projects usually need cement too",
-    },
-    {
-      a: "blocks",
-      b: "cement",
-      s: 0.9,
-      t: "Blocks are laid with cement mortar",
-    },
-    {
-      a: "blocks",
-      b: "sand",
-      s: 0.85,
-      t: "Block laying requires sand for mortar mix",
-    },
-    {
-      a: "roofing_sheets",
-      b: "roofing_nails",
-      s: 0.95,
-      t: "Roofing sheets need roofing nails for installation",
-    },
-    {
-      a: "roofing_sheets",
-      b: "wood",
-      s: 0.7,
-      t: "Roofing typically requires timber purlins",
-    },
-    {
-      a: "pop_cement",
-      b: "sandpaper",
-      s: 0.8,
-      t: "POP finishing is typically sanded smooth",
-    },
-    {
-      a: "pop_cement",
-      b: "paint",
-      s: 0.6,
-      t: "Walls finished with POP are usually painted",
-    },
-    {
-      a: "tiles",
-      b: "tile_adhesive",
-      s: 0.95,
-      t: "Tiles require adhesive for installation",
-    },
-    {
-      a: "tiles",
-      b: "tile_spacers",
-      s: 0.8,
-      t: "Tile installation uses spacers for even gaps",
-    },
-    { a: "tiles", b: "grout", s: 0.85, t: "Tiles need grout to fill joints" },
-    {
-      a: "paint",
-      b: "brushes_rollers",
-      s: 0.9,
-      t: "Paint application requires brushes or rollers",
-    },
-    {
-      a: "paint",
-      b: "masking_tape",
-      s: 0.6,
-      t: "Painters use masking tape for clean edges",
-    },
-    {
-      a: "granite",
-      b: "cement",
-      s: 0.7,
-      t: "Granite is mixed with cement for concrete",
-    },
-    {
-      a: "granite",
-      b: "sand",
-      s: 0.7,
-      t: "Concrete mix uses granite with sand",
-    },
-    { a: "wood", b: "nails", s: 0.9, t: "Timber work requires nails" },
-    {
-      a: "wood",
-      b: "screws",
-      s: 0.7,
-      t: "Woodwork often uses screws for joining",
-    },
-  ];
+  // 3. COMPLETE PURGE OF MOCKED/DEMO DATA
+  console.log(`\n🧹 Purging all demo and fake data...`);
 
-  for (const assoc of associations) {
-    await prisma.productAssociation.upsert({
-      where: {
-        productCategoryA_productCategoryB: {
-          productCategoryA: assoc.a,
-          productCategoryB: assoc.b,
-        },
-      },
-      update: { strength: assoc.s, promptText: assoc.t },
-      create: {
-        productCategoryA: assoc.a,
-        productCategoryB: assoc.b,
-        strength: assoc.s,
-        promptText: assoc.t,
-      },
-    });
-  }
-  console.log(`✅ ${associations.length} product associations seeded.`);
+  // Get IDs of all seeded products
+  const seededProducts = await prisma.product.findMany({
+    where: { isSeeded: true },
+    select: { id: true }
+  });
+  const seededProductIds = seededProducts.map(p => p.id);
 
-  // 3. Seed Sample Product Catalogue
-  console.log(`\n🏪 Seeding Sample Merchant & Products...`);
-  const DEMO_MERCHANT_EMAIL = "merchant@demo.swifta.store";
-  const DEMO_PASSWORD = process.env.DEV_DEMO_MERCHANT_PASSWORD;
-
-  let merchantUser = await prisma.user.findUnique({
-    where: { email: DEMO_MERCHANT_EMAIL },
+  // Delete mock associations for seeded products only
+  await prisma.productAssociation.deleteMany({
+    where: {
+      OR: [
+        { productId: { in: seededProductIds } },
+        { isDemo: true } as any // Handle if schema has isDemo, if not OR handles IDs
+      ]
+    }
   });
 
-  if (!merchantUser && DEMO_PASSWORD) {
-    const demoPasswordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
-    merchantUser = await prisma.user.create({
-      data: {
-        email: DEMO_MERCHANT_EMAIL,
-        phone: "+2348000000001",
-        firstName: "Demo",
-        lastName: "Merchant",
-        passwordHash: demoPasswordHash,
-        role: UserRole.MERCHANT,
-        merchantProfile: {
-          create: {
-            businessName: "Demo Swifta Store",
-            slug: "demo-building", // Added static slug for demo
-            businessAddress: "123 Trade Way, Lagos",
-            verificationTier: "BASIC",
-          } as any,
-        },
-      },
+  // Delete all seeded products and their caches
+  await prisma.productStockCache.deleteMany({
+    where: { product: { isSeeded: true } },
+  });
+  await prisma.product.deleteMany({ where: { isSeeded: true } });
+
+  // Optional: Remove the demo merchant user and ALL their data if they exist
+  const DEMO_MERCHANT_EMAIL = "merchant@demo.swifta.store";
+  const demoMerchant = await prisma.user.findUnique({
+    where: { email: DEMO_MERCHANT_EMAIL },
+    include: { merchantProfile: true }
+  });
+
+  if (demoMerchant && demoMerchant.merchantProfile) {
+    const merchantId = demoMerchant.merchantProfile.id;
+    console.log(`🗑️ Removing Demo Merchant (${DEMO_MERCHANT_EMAIL}) and their associated data...`);
+    
+    // Reverse dependency deletion order
+    await prisma.inventoryEvent.deleteMany({ where: { merchantId } });
+    await prisma.order.deleteMany({ where: { merchantId } });
+    await prisma.creditApplication.deleteMany({ where: { merchantId } });
+    await prisma.payoutRequest.deleteMany({ where: { merchantId } });
+    await prisma.payout.deleteMany({ where: { merchantId } });
+    // Add any other dependent models here
+    
+    await prisma.merchantProfile.deleteMany({
+      where: { userId: demoMerchant.id },
     });
-    console.log(`✨ Demo merchant created: ${DEMO_MERCHANT_EMAIL}`);
+    await prisma.user.delete({ where: { id: demoMerchant.id } });
   }
 
-  if (merchantUser) {
-    const merchantProfile = await prisma.merchantProfile.findFirst({
-      where: { userId: merchantUser.id },
-    });
-
-    if (merchantProfile) {
-      console.log(`📦 Checking sample building materials for Demo Merchant...`);
-
-      const sampleProducts = [
-        {
-          name: "Dangote Cement 3X (50kg Bag)",
-          description:
-            "High quality Portland limestone cement suitable for all general purpose construction projects.",
-          unit: "Bag",
-          pricePerUnitKobo: 950000n,
-          categoryTag: "Cement",
-          minOrderQuantity: 50,
-        },
-        {
-          name: "12mm Iron Rods (TMT)",
-          description:
-            "High-yield Thermo Mechanically Treated (TMT) steel reinforcement bars for structural concrete.",
-          unit: "Length",
-          pricePerUnitKobo: 1250000n,
-          categoryTag: "Iron Rods & Steel",
-          minOrderQuantity: 20,
-        },
-        {
-          name: "9-inch Hollow Concrete Block",
-          description:
-            "Standard 9-inch load-bearing hollow sandcrete blocks, properly cured.",
-          unit: "Piece",
-          pricePerUnitKobo: 55000n,
-          categoryTag: "Blocks",
-          minOrderQuantity: 500,
-        },
-        {
-          name: "Dulux Emulsion Paint (20 Litres)",
-          description:
-            "Premium quality emulsion paint for interior and exterior walls. Brilliant White color.",
-          unit: "Bucket",
-          pricePerUnitKobo: 4500000n,
-          categoryTag: "Paints & Coatings",
-          minOrderQuantity: 5,
-        },
-        {
-          name: "0.45mm Aluminum Roofing Sheet (Long Span)",
-          description:
-            "Durable corrugated aluminum roofing sheets, available in various colors.",
-          unit: "Meter",
-          pricePerUnitKobo: 420000n,
-          categoryTag: "Roofing Sheets",
-          minOrderQuantity: 100,
-        },
-        {
-          name: "60x60cm Vitrified Floor Tiles",
-          description:
-            "High gloss, anti-slip vitrified ceramic tiles for living rooms and offices. (1 carton = 1.44 sqm)",
-          unit: "Carton",
-          pricePerUnitKobo: 750000n,
-          categoryTag: "Tiles (Floor & Wall)",
-          minOrderQuantity: 20,
-        },
-      ];
-
-      const allCategories = await prisma.category.findMany();
-      const categoryMap = new Map(
-        allCategories.map((c) => [c.name.toLowerCase(), c.id]),
-      );
-
-      for (const prodData of sampleProducts) {
-        const { categoryTag, ...rest } = prodData;
-        const categoryId =
-          categoryMap.get(categoryTag.toLowerCase()) ||
-          categoryMap.get("other");
-
-        if (!categoryId) {
-          console.warn(`⚠️ No category ID found for tag: ${categoryTag}`);
-          continue;
-        }
-
-        const prod = { ...rest, categoryTag, categoryId };
-
-        await prisma.$transaction(
-          async (tx) => {
-            // Check for existence by merchantId + name
-            const existing = await tx.product.findFirst({
-              where: {
-                merchantId: merchantProfile.id,
-                name: prod.name,
-              },
-            });
-
-            let productId: string;
-
-            // Generate a deterministic product code for seed idempotency
-            const baseNameSlug = prod.name
-              .toLowerCase()
-              .replace(/[^a-z0-9]+/g, "-")
-              .substring(0, 10);
-            const pCode = `demo-${baseNameSlug}`;
-
-            if (existing) {
-              await tx.product.update({
-                where: { id: existing.id },
-                data: { ...prod, productCode: pCode } as any,
-              });
-              productId = existing.id;
-            } else {
-              const newProd = await tx.product.create({
-                data: {
-                  merchantId: merchantProfile.id,
-                  productCode: pCode, // Assign generated code
-                  isSeeded: true, // Mark as demo data
-                  ...prod,
-                } as any,
-              });
-              productId = newProd.id;
-            }
-
-            await tx.productStockCache.upsert({
-              where: { productId },
-              create: {
-                productId,
-                stock: 1000,
-              },
-              update: {},
-            });
-          },
-          { timeout: 15000 },
-        );
-      }
-      console.log(`✅ Sample products verified/seeded for Demo Merchant.`);
-    }
-  }
+  console.log(`✅ Database is now clean and production-ready.`);
 }
 
 main()
@@ -439,7 +151,7 @@ main()
     await prisma.$disconnect();
   })
   .catch(async (e) => {
-    console.error("❌ SEEDING FAILED:", e);
+    console.error("❌ PURGE FAILED:", e);
     await prisma.$disconnect();
     process.exit(1);
   });

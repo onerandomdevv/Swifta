@@ -145,10 +145,10 @@ export class WhatsAppSupplierService {
     phone: string,
     productIdShort: string,
   ): Promise<void> {
-    const products = await this.prisma.supplierProduct.findMany({
+    const allProducts = await this.prisma.supplierProduct.findMany({
       where: { supplierId },
     });
-    const product = products.find((p) => p.id.startsWith(productIdShort));
+    const product = allProducts.find((p) => p.id.startsWith(productIdShort));
 
     if (!product) {
       await this.interactiveService.sendTextMessage(
@@ -326,7 +326,7 @@ export class WhatsAppSupplierService {
           rows: orders.map((o) => ({
             id: `view_wholesale_order_${o.id.substring(0, 8)}`,
             title: `#${o.id.slice(0, 8).toUpperCase()} - ${o.status}`,
-            description: `${o.product?.name || "Product"} | Qty: ${o.quantity} | ${this.formatNaira(Number(o.totalAmountKobo))}`,
+            description: `${o.product?.name || "Product"} | Qty: ${o.quantity || "N/A"} | ${this.formatNaira(Number(o.totalAmountKobo))}`,
           })),
         },
       ],
@@ -511,11 +511,11 @@ export class WhatsAppSupplierService {
     phone: string,
     orderIdShort: string,
   ): Promise<void> {
-    const orders = await this.prisma.order.findMany({
+    const allOrders = await this.prisma.order.findMany({
       where: { supplierId },
       include: { product: true, supplierProduct: true },
     });
-    const order = orders.find((o) => o.id.startsWith(orderIdShort));
+    const order = allOrders.find((o) => o.id.startsWith(orderIdShort));
 
     if (!order) {
       await this.interactiveService.sendTextMessage(
@@ -526,11 +526,13 @@ export class WhatsAppSupplierService {
     }
 
     const itemName =
-      order.product?.name ?? order.supplierProduct?.name ?? "Unknown Item";
+      (order as any).product?.name ??
+      (order as any).supplierProduct?.name ??
+      "Unknown Item";
     let msg = `Order #${order.id.substring(0, 8).toUpperCase()}\n\n`;
     msg += `Status: ${order.status.replace(/_/g, " ")}\n`;
     msg += `Item: ${itemName}\n`;
-    msg += `Quantity: ${order.quantity}\n`;
+    msg += `Quantity: ${order.quantity || "Not specified"}\n`;
     msg += `Amount: ${this.formatNaira(Number(order.totalAmountKobo))}\n`;
     msg += `Address: ${order.deliveryAddress || "Not specified"}\n\n`;
 

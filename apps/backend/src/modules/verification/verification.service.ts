@@ -144,11 +144,9 @@ export class VerificationService {
           emailVerified: user.emailVerified,
           phoneVerified: user.phoneVerified,
           bankVerified: merchant.bankVerified,
-          fullName: !!(
-            merchant.fullName ||
-            (user.firstName && user.lastName
-              ? `${user.firstName} ${user.lastName}`
-              : null)
+          basicInfo: !!(
+            merchant.businessName?.trim().length > 0 ||
+            (user.firstName?.trim().length > 0 && user.lastName?.trim().length > 0)
           ),
           businessAddress: !!merchant.businessAddress,
         },
@@ -165,7 +163,7 @@ export class VerificationService {
           ninVerified: merchant.ninVerified,
           completedOrders: { current: completedOrdersCount, required: 5 },
           zeroDisputes: openDisputesCount === 0,
-          profilePhoto: !!merchant.profilePhotoUrl,
+          profilePhoto: !!merchant.profileImage,
         },
         pendingRequest:
           pendingRequest?.targetTier === "TIER_2" ? pendingRequest : null,
@@ -350,7 +348,8 @@ export class VerificationService {
         user.phoneVerified &&
         merchant.bankVerified &&
         merchant.bankAccountNumber &&
-        (merchant.fullName || (user.firstName && user.lastName)) &&
+        (merchant.businessName?.trim().length > 0 ||
+          (user.firstName?.trim().length > 0 && user.lastName?.trim().length > 0)) &&
         merchant.businessAddress;
 
       if (meetsT1) {
@@ -379,7 +378,7 @@ export class VerificationService {
         merchant.ninVerified &&
         completedOrders >= 5 &&
         openDisputes === 0 &&
-        merchant.profilePhotoUrl;
+        merchant.profileImage;
 
       if (meetsT2) {
         await this.prisma.merchantProfile.update({
