@@ -50,9 +50,9 @@ export class WhatsAppBuyerService {
     private interactiveService: WhatsAppInteractiveService,
   ) {
     this.accessToken =
-      this.configService.get<string>("WHATSAPP_ACCESS_TOKEN") || "";
+      this.configService.get<string>("whatsapp.accessToken") || "";
     this.phoneNumberId =
-      this.configService.get<string>("WHATSAPP_PHONE_NUMBER_ID") || "";
+      this.configService.get<string>("whatsapp.phoneNumberId") || "";
   }
 
   // =======================================================================

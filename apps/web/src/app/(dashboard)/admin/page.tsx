@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
+import { formatKobo } from "@/lib/utils";
 
 interface AdminStats {
   totalMerchants: number;
@@ -174,7 +175,7 @@ export default function AdminDashboardPage() {
             </span>
           </div>
           <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-navy-dark dark:text-white mt-4 truncate">
-            ₦{(Number(stats?.totalRevenueKobo || 0) / 100).toLocaleString()}
+            {formatKobo(stats?.totalRevenueKobo ?? 0)}
           </p>
         </div>
       </section>

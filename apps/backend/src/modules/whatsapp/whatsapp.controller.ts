@@ -48,7 +48,7 @@ export class WhatsAppController {
     @Query("hub.challenge") challenge: string,
     @Res() res: Response,
   ) {
-    const verifyToken = this.configService.get<string>("WHATSAPP_VERIFY_TOKEN");
+    const verifyToken = this.configService.get<string>("whatsapp.verifyToken");
 
     if (mode === "subscribe" && token === verifyToken) {
       this.logger.log("WhatsApp webhook verified successfully");
@@ -170,7 +170,7 @@ export class WhatsAppController {
   ): boolean {
     if (!rawBody || !signature) return false;
 
-    const appSecret = this.configService.get<string>("WHATSAPP_APP_SECRET");
+    const appSecret = this.configService.get<string>("whatsapp.appSecret");
     if (!appSecret) {
       this.logger.error("WHATSAPP_APP_SECRET not configured");
       return false;

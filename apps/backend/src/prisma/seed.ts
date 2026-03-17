@@ -97,23 +97,6 @@ async function main() {
   // 3. COMPLETE PURGE OF MOCKED/DEMO DATA
   console.log(`\n🧹 Purging all demo and fake data...`);
 
-  // Get IDs of all seeded products
-  const seededProducts = await prisma.product.findMany({
-    where: { isSeeded: true },
-    select: { id: true },
-  });
-  const seededProductIds = seededProducts.map((p) => p.id);
-
-  // Delete mock associations for seeded products only
-  await prisma.productAssociation.deleteMany({
-    where: {
-      OR: [
-        { productId: { in: seededProductIds } },
-        { isDemo: true } as any, // Handle if schema has isDemo, if not OR handles IDs
-      ],
-    },
-  });
-
   // Delete all seeded products and their caches
   await prisma.productStockCache.deleteMany({
     where: { product: { isSeeded: true } },

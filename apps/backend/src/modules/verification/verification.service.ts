@@ -145,8 +145,8 @@ export class VerificationService {
           phoneVerified: user.phoneVerified,
           bankVerified: merchant.bankVerified,
           basicInfo: !!(
-            merchant.businessName?.trim() ||
-            (user.firstName?.trim() && user.lastName?.trim())
+            (user.firstName?.trim() && user.lastName?.trim()) ||
+            merchant.businessName?.trim()
           ),
           businessAddress: !!merchant.businessAddress?.trim(),
         },
@@ -348,10 +348,10 @@ export class VerificationService {
         user.phoneVerified &&
         merchant.bankVerified &&
         merchant.bankAccountNumber &&
-        (merchant.businessName?.trim().length > 0 ||
-          (user.firstName?.trim().length > 0 &&
-            user.lastName?.trim().length > 0)) &&
-        merchant.businessAddress;
+        (((user.firstName?.trim()?.length ?? 0) > 0 &&
+          (user.lastName?.trim()?.length ?? 0) > 0) ||
+          (merchant.businessName?.trim()?.length ?? 0) > 0) &&
+        (merchant.businessAddress?.trim()?.length ?? 0) > 0;
 
       if (meetsT1) {
         await this.prisma.merchantProfile.update({

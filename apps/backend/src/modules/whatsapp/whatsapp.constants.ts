@@ -27,7 +27,6 @@ Example: "Add 50 bags of cement" or "Remove 10 iron rods"`;
 
 /** First message for an unlinked phone */
 export const WELCOME_MESSAGE =
-  process.env.WHATSAPP_WELCOME_MESSAGE ||
   `Welcome to Swifta. Nigeria's digital marketplace for retail and wholesale needs. How would you like to use our platform?`;
 
 export const ROLE_SELECTED_MESSAGE = `To link your account, please reply with your registered email address.`;
