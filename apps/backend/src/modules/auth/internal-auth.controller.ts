@@ -28,14 +28,14 @@ export class InternalAuthController {
     tokens: { accessToken: string; refreshToken: string },
   ) {
     const isProd = process.env.NODE_ENV === "production";
-    res.cookie("hwos_access_token", tokens.accessToken, {
+    res.cookie("swifta_access_token", tokens.accessToken, {
       httpOnly: true,
       secure: isProd,
       sameSite: isProd ? "none" : "lax",
       maxAge: 15 * 60 * 1000,
       path: "/",
     });
-    res.cookie("hwos_refresh_token", tokens.refreshToken, {
+    res.cookie("swifta_refresh_token", tokens.refreshToken, {
       httpOnly: true,
       secure: isProd,
       sameSite: isProd ? "none" : "lax",
