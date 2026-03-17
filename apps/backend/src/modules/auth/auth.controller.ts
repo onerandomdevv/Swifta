@@ -179,7 +179,8 @@ export class AuthController {
   ) {
     // Prefer HttpOnly cookie first, fallback to DTO body
     const refreshToken =
-      (req.cookies as Record<string, string>)?.["hwos_refresh_token"] || dto.refreshToken;
+      (req.cookies as Record<string, string>)?.["hwos_refresh_token"] ||
+      dto.refreshToken;
     const result = await this.authService.refreshTokens(user.sub, refreshToken);
     this.setCookies(res, result);
     return { success: true };

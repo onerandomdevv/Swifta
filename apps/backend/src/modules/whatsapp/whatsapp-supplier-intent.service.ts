@@ -50,14 +50,16 @@ export class WhatsAppSupplierIntentService {
   private readonly systemPrompt: string;
 
   constructor(private configService: ConfigService) {
-    const modelName = this.configService.get<string>("GEMINI_MODEL") || "gemini-1.5-flash";
+    const modelName =
+      this.configService.get<string>("GEMINI_MODEL") || "gemini-1.5-flash";
     this.apiKey = this.configService.get<string>("GEMINI_API_KEY") || "";
     this.systemPrompt =
       this.configService.get<string>("WHATSAPP_SUPPLIER_SYSTEM_PROMPT") || "";
   }
 
   private getGeminiUrl(): string {
-    const modelName = this.configService.get<string>("GEMINI_MODEL") || "gemini-1.5-flash";
+    const modelName =
+      this.configService.get<string>("GEMINI_MODEL") || "gemini-1.5-flash";
     return `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
   }
 
@@ -88,21 +90,24 @@ export class WhatsAppSupplierIntentService {
     }
 
     try {
-      const response = await fetch(`${this.getGeminiUrl()}?key=${this.apiKey}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          system_instruction: {
-            parts: { text: this.systemPrompt },
-          },
-          contents: [{ parts: [{ text }] }],
-          generationConfig: {
-            response_mime_type: "application/json",
-            response_schema: SUPPLIER_INTENT_SCHEMA,
-            temperature: 0.1,
-          },
-        }),
-      });
+      const response = await fetch(
+        `${this.getGeminiUrl()}?key=${this.apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            system_instruction: {
+              parts: { text: this.systemPrompt },
+            },
+            contents: [{ parts: [{ text }] }],
+            generationConfig: {
+              response_mime_type: "application/json",
+              response_schema: SUPPLIER_INTENT_SCHEMA,
+              temperature: 0.1,
+            },
+          }),
+        },
+      );
 
       if (!response.ok) {
         throw new Error(`Gemini API Error: ${response.status}`);

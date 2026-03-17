@@ -18,6 +18,6 @@ import { ConfigModule } from "@nestjs/config";
     NotificationProcessor,
     SmsService,
   ],
-  exports: [NotificationService, NotificationTriggerService],
+  exports: [NotificationService, NotificationTriggerService, SmsService],
 })
 export class NotificationModule {}

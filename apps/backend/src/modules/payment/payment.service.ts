@@ -13,6 +13,7 @@ import { Queue } from "bullmq";
 import { PrismaService } from "../../prisma/prisma.service";
 import { PaystackClient } from "./paystack.client";
 import { OrderService } from "../order/order.service";
+import { DvaService } from "../dva/dva.service";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
 import { InitializePaymentDto } from "./dto/initialize-payment.dto";
 import { RequestPayoutDto } from "./dto/request-payout.dto";
@@ -38,6 +39,8 @@ export class PaymentService {
     private config: ConfigService,
     @InjectQueue(PAYOUT_QUEUE) private payoutQueue: Queue,
     @InjectQueue(LOGISTICS_QUEUE) private logisticsQueue: Queue,
+    @Inject(forwardRef(() => DvaService))
+    private dvaService: DvaService,
   ) {}
 
   // ──────────────────────────────────────────────
@@ -180,6 +183,16 @@ export class PaymentService {
     // ── CHARGE SUCCESS (buyer payment) ──
     if (event === "charge.success") {
       return this.handleChargeSuccess(payload);
+    }
+
+    // ── DVA EVENTS ──
+    if (event === "dedicatedaccount.assign.success") {
+      await this.dvaService.handleDvaAssignSuccess(payload.data);
+      return { status: "received" };
+    }
+    if (event === "dedicatedaccount.assign.failed") {
+      await this.dvaService.handleDvaAssignFailed(payload.data);
+      return { status: "received" };
     }
 
     // ── TRANSFER EVENTS (merchant payout) ──
@@ -408,7 +421,9 @@ export class PaymentService {
         // Clear cart items for the products in this order
         const orderItems = payment.order.items as any[];
         if (Array.isArray(orderItems) && orderItems.length > 0) {
-          const productIds = orderItems.map((item: any) => item.productId).filter(Boolean);
+          const productIds = orderItems
+            .map((item: any) => item.productId)
+            .filter(Boolean);
           if (productIds.length > 0) {
             const deleted = await this.prisma.cartItem.deleteMany({
               where: {

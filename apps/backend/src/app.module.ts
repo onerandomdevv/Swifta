@@ -1,4 +1,9 @@
-import { Module, MiddlewareConsumer, RequestMethod, Logger } from "@nestjs/common";
+import {
+  Module,
+  MiddlewareConsumer,
+  RequestMethod,
+  Logger,
+} from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ServeStaticModule } from "@nestjs/serve-static";
 import { ScheduleModule } from "@nestjs/schedule";
@@ -40,6 +45,8 @@ import { ReviewModule } from "./modules/review/review.module";
 import { BuyerModule } from "./modules/buyer/buyer.module";
 import { CartModule } from "./modules/cart/cart.module";
 import { WishlistModule } from "./modules/wishlist/wishlist.module";
+import { UssdModule } from "./modules/ussd/ussd.module";
+import { DvaModule } from "./modules/dva/dva.module";
 
 import { LoggerModule } from "./common/logger/logger.module";
 
@@ -162,6 +169,8 @@ function sanitizeRedisUrl(url: string | undefined): string | undefined {
     BuyerModule,
     CartModule,
     WishlistModule,
+    UssdModule,
+    DvaModule,
   ],
   controllers: [],
   providers: [

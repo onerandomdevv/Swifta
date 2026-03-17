@@ -718,6 +718,15 @@ model BuyerProfile {
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   reviews         Review[]
 
+  // Paystack DVA fields
+  paystackCustomerId    String?   @map("paystack_customer_id")
+  paystackCustomerCode  String?   @map("paystack_customer_code")
+  dvaAccountNumber      String?   @map("dva_account_number")
+  dvaAccountName        String?   @map("dva_account_name")
+  dvaBankName           String?   @map("dva_bank_name")
+  dvaBankSlug           String?   @map("dva_bank_slug")
+  dvaActive             Boolean   @default(false) @map("dva_active")
+
   @@map("buyer_profiles")
 }
 

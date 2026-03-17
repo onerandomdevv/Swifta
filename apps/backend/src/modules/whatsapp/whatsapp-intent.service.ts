@@ -227,7 +227,8 @@ export class WhatsAppIntentService {
     const systemPrompt =
       this.configService.get<string>("WHATSAPP_MERCHANT_SYSTEM_PROMPT") || "";
 
-    const modelName = this.configService.get<string>("GEMINI_MODEL") || "gemini-2.0-flash";
+    const modelName =
+      this.configService.get<string>("GEMINI_MODEL") || "gemini-2.0-flash";
     const model = this.genAI!.getGenerativeModel({
       model: modelName,
       systemInstruction: systemPrompt,
