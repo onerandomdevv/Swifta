@@ -495,7 +495,7 @@ export class AdminService {
       // 1. Update the User role
       const updatedUser = await tx.user.update({
         where: { id: userId },
-        data: { role: targetRole },
+        data: { role: targetRole as any },
         select: {
           id: true,
           email: true,
@@ -630,14 +630,14 @@ export class AdminService {
 
     // Deactivate any existing active tokens for this role
     await this.prisma.staffAccessToken.updateMany({
-      where: { role, isActive: true },
+      where: { role: role as any, isActive: true },
       data: { isActive: false },
     });
 
     // Create the new active token
     const token = await this.prisma.staffAccessToken.create({
       data: {
-        role,
+        role: role as any,
         tokenHash,
         label: `${role} Token`,
         createdBy: adminUserId,
@@ -682,7 +682,7 @@ export class AdminService {
     plainToken: string,
   ) {
     const activeToken = await this.prisma.staffAccessToken.findFirst({
-      where: { role: userRole, isActive: true },
+      where: { role: userRole as any, isActive: true },
     });
 
     if (!activeToken) {

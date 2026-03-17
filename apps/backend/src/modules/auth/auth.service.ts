@@ -113,7 +113,7 @@ export class AuthService {
         middleName: dto.middleName,
         lastName: dto.lastName,
         passwordHash,
-        role: dto.role,
+        role: dto.role as any,
         ...(dto.role === "MERCHANT" && dto.businessName
           ? {
               merchantProfile: {

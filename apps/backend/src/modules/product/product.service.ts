@@ -111,7 +111,7 @@ export class ProductService {
       };
     });
 
-    return response;
+    return response as unknown as PaginatedResponse<Product>;
   }
 
   async listPublicByMerchant(
@@ -146,8 +146,9 @@ export class ProductService {
       wholesaleDiscountPercent: product.wholesaleDiscountPercent ?? null,
     }));
 
-    return response;
+    return response as unknown as PaginatedResponse<Product>;
   }
+
 
   async catalogue(
     search: string = "",
@@ -237,7 +238,7 @@ export class ProductService {
       this.mapProductForPublic(product, buyerType),
     );
 
-    return response;
+    return response as unknown as PaginatedResponse<Product>;
   }
 
   async getSocialFeed(
@@ -256,6 +257,7 @@ export class ProductService {
 
     if (followedMerchantIds.length === 0) {
       return {
+        success: true,
         data: [],
         meta: {
           total: 0,
@@ -303,7 +305,7 @@ export class ProductService {
       this.mapProductForPublic(product, buyerType),
     );
 
-    return response;
+    return response as unknown as PaginatedResponse<Product>;
   }
 
   async getById(id: string, buyerType?: string) {

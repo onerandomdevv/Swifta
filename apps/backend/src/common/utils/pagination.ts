@@ -22,6 +22,8 @@ export async function paginate<T>(
     model.count({ where: options.where }),
   ]);
 
+  const totalPages = Math.ceil(total / limit);
+
   return {
     success: true,
     data,
@@ -29,6 +31,7 @@ export async function paginate<T>(
       page,
       limit,
       total,
+      totalPages,
     },
   };
 }

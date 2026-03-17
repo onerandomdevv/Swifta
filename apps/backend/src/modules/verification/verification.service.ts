@@ -10,7 +10,7 @@ import {
   ReviewVerificationDto,
 } from "./verification.dto";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
-import { VerificationTier, OrderStatus } from "@hardware-os/shared";
+import { VerificationTier, OrderStatus, NotificationType } from "@hardware-os/shared";
 
 @Injectable()
 export class VerificationService {
@@ -192,7 +192,7 @@ export class VerificationService {
       this.notifications
         .addJob(
           request.merchant.userId,
-          "VERIFICATION_REJECTED",
+          NotificationType.VERIFICATION_REJECTED,
           "Verification Request Rejected",
           `Your verification request was rejected. Reason: ${dto.rejectionReason}`,
           { requestId },
@@ -278,7 +278,7 @@ export class VerificationService {
     this.notifications
       .addJob(
         request.merchant.userId,
-        "VERIFICATION_APPROVED",
+        NotificationType.VERIFICATION_APPROVED,
         "Verification Documents Approved",
         txResult.message,
         {
@@ -335,7 +335,7 @@ export class VerificationService {
         this.notifications
           .addJob(
             merchant.userId,
-            "TIER_UPGRADED",
+            NotificationType.TIER_UPGRADED,
             "Verification Tier Upgraded",
             "You have been upgraded to the BASIC verification tier! Submit your identity documents to unlock VERIFIED status and Direct Payments.",
           )
@@ -381,7 +381,7 @@ export class VerificationService {
         this.notifications
           .addJob(
             merchant.userId,
-            "TIER_UPGRADED",
+            NotificationType.TIER_UPGRADED,
             "You are now a Verified Merchant! 🎉",
             "Congratulations! Because you've maintained a perfect track record of 10+ completed orders, you have been upgraded to VERIFIED status. You can now offer Direct Payments to your buyers.",
           )
