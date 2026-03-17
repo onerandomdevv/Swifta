@@ -1,4 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../../prisma/prisma.service";
 import { RedisService } from "../../redis/redis.service";
 import { EmailService } from "../email/email.service";
@@ -51,6 +52,7 @@ export class WhatsAppAuthService {
   private readonly logger = new Logger(WhatsAppAuthService.name);
 
   constructor(
+    private configService: ConfigService,
     private prisma: PrismaService,
     private redisService: RedisService,
     private emailService: EmailService,
@@ -126,7 +128,7 @@ export class WhatsAppAuthService {
           JSON.stringify(session),
           SESSION_TTL,
         );
-        return WELCOME_MESSAGE;
+        return this.configService.get("whatsapp.welcomeMessage") || WELCOME_MESSAGE;
       }
 
       const session: SessionData = JSON.parse(sessionRaw);
@@ -144,14 +146,14 @@ export class WhatsAppAuthService {
         default:
           // Corrupt session — restart
           await this.redisService.del(sessionKey);
-          return WELCOME_MESSAGE;
+          return this.configService.get<string>("whatsapp.welcomeMessage") || WELCOME_MESSAGE;
       }
     } catch (error) {
       this.logger.error(
         `Error in linking flow for ${maskPhone(phone)}: ${error instanceof Error ? error.message : error}`,
       );
       await this.redisService.del(sessionKey);
-      return WELCOME_MESSAGE;
+      return this.configService.get("whatsapp.welcomeMessage") || WELCOME_MESSAGE;
     }
   }
 

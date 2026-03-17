@@ -67,7 +67,7 @@ export class WhatsAppBuyerIntentService {
     if (!this.genAI) throw new Error("Gemini AI is not initialized");
 
     const systemPrompt =
-      this.configService.get<string>("WHATSAPP_BUYER_SYSTEM_PROMPT") || "";
+      this.configService.get<string>("whatsapp.buyerSystemPrompt") || "";
 
     const modelName =
       this.configService.get<string>("GEMINI_MODEL") || "gemini-1.5-flash";

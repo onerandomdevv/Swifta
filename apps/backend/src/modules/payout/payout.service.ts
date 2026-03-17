@@ -32,7 +32,7 @@ export class PayoutService {
 
     // Determine gross amount and platform fee
     const grossAmountKobo = BigInt(order.totalAmountKobo);
-    
+
     // Use saved platform fee directly from the order with legacy fallback
     let platformFeeKoboCount = 0n;
     if (order.platformFeeKobo === null || order.platformFeeKobo === undefined) {

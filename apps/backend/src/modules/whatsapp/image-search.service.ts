@@ -25,7 +25,7 @@ export class ImageSearchService {
     this.fallbackSearchApi =
       this.configService.get<string>("IMAGE_SEARCH_FALLBACK") || "gemini";
     this.metaAccessToken =
-      this.configService.get<string>("WHATSAPP_ACCESS_TOKEN") || "";
+      this.configService.get<string>("whatsapp.accessToken") || "";
   }
 
   private maskIdentifier(identifier: string): string {
