@@ -369,7 +369,7 @@ export default function BuyerOrderDetailsPage() {
                         </tr>
                         {order.platformFeeKobo && (
                           <tr>
-                            <td className="px-6 py-2 text-right text-xs font-bold text-slate-400 uppercase tracking-widest" colSpan={3}>Platform Fee ({order.platformFeePercent}%)</td>
+                            <td className="px-6 py-2 text-right text-xs font-bold text-slate-400 uppercase tracking-widest" colSpan={3}>Platform Fee ({order.platformFeePercent || 0}%)</td>
                             <td className="px-6 py-2 text-right font-mono text-slate-900 dark:text-white">{formatKobo(order.platformFeeKobo)}</td>
                           </tr>
                         )}

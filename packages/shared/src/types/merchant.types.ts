@@ -25,6 +25,7 @@ export interface MerchantProfile {
   lastSlugChangeAt?: Date;
   onboardingStep: number;
   ninNumber?: string;
+  maskedNin?: string;
   ninVerifiedAt?: Date;
   ninVerifiedVia?: string;
   cacVerifiedVia?: string;

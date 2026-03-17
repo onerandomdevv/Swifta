@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 
-const WHATSAPP_NUMBER = (process.env.NEXT_PUBLIC_WHATSAPP_BOT_NUMBER || "2348147846093").replace(/\D/g, "");
+const WHATSAPP_NUMBER = String(process.env.NEXT_PUBLIC_WHATSAPP_BOT_NUMBER || "2348147846093").replace(/\D/g, "") || "2348147846093";
 const WHATSAPP_WELCOME = process.env.NEXT_PUBLIC_WHATSAPP_WELCOME_MESSAGE || "Hi, I'd like to shop on Swifta";
 const whatsappLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_WELCOME)}`;
 

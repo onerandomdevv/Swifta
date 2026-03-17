@@ -145,8 +145,8 @@ export class VerificationService {
           phoneVerified: user.phoneVerified,
           bankVerified: merchant.bankVerified,
           basicInfo: !!(
-            merchant.businessName ||
-            (user.firstName && user.lastName)
+            merchant.businessName?.trim().length > 0 ||
+            (user.firstName?.trim().length > 0 && user.lastName?.trim().length > 0)
           ),
           businessAddress: !!merchant.businessAddress,
         },
@@ -348,7 +348,8 @@ export class VerificationService {
         user.phoneVerified &&
         merchant.bankVerified &&
         merchant.bankAccountNumber &&
-        (merchant.businessName || (user.firstName && user.lastName)) &&
+        (merchant.businessName?.trim().length > 0 ||
+          (user.firstName?.trim().length > 0 && user.lastName?.trim().length > 0)) &&
         merchant.businessAddress;
 
       if (meetsT1) {

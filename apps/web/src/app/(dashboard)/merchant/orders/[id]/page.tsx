@@ -135,10 +135,10 @@ export default function MerchantOrderDetailsPage() {
 
   // totalAmountKobo already includes subtotal + platform fee + delivery fee
   // platformFeeKobo is already calculated and stored on the order
-  const platformFee = Number(order.platformFeeKobo || 0);
-  const deliveryFee = Number(order.deliveryFeeKobo || 0);
-  const subtotal = Number(order.totalAmountKobo) - platformFee - deliveryFee;
-  const totalPayable = Number(order.totalAmountKobo);
+  const platformFee = BigInt(order.platformFeeKobo || 0);
+  const deliveryFee = BigInt(order.deliveryFeeKobo || 0);
+  const totalPayable = BigInt(order.totalAmountKobo);
+  const subtotal = totalPayable - platformFee - deliveryFee;
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-background-dark font-display text-navy-dark dark:text-slate-100 transition-colors duration-300">

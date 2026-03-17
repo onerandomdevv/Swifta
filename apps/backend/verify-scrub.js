@@ -12,6 +12,7 @@ async function verify() {
     products.forEach(p => console.log(`- ${p.name} (${p.categoryTag})`));
   } catch (err) {
     console.error(err);
+    process.exitCode = 1;
   } finally {
     await prisma.$disconnect();
   }

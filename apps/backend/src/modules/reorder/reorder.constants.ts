@@ -6,6 +6,7 @@ export const REORDER_WINDOW_DAYS: Record<string, number> = {
   "auto parts": 60,
   agriculture: 14,
   "food & groceries": 7,
+  "building materials": 30,
   default: 21,
 };
 

@@ -30,26 +30,21 @@ export class PayoutService {
 
     const merchant = order.merchantProfile;
 
-    // Determine platform fee vs payout amount
-    let subtotalKobo = 0n;
-    if (order.productId !== null && order.quantity !== null) {
-      subtotalKobo = BigInt(order.unitPriceKobo || 0n) * BigInt(order.quantity);
-    } else {
-      subtotalKobo =
-        BigInt(order.totalAmountKobo) - BigInt(order.deliveryFeeKobo);
-    }
-
-    // Use saved platform fee directly from the order
+    // Determine gross amount and platform fee
+    const grossAmountKobo = BigInt(order.totalAmountKobo);
+    
+    // Use saved platform fee directly from the order with legacy fallback
+    let platformFeeKoboCount = 0n;
     if (order.platformFeeKobo === null || order.platformFeeKobo === undefined) {
-      this.logger.error(
-        `Missing platformFeeKobo on order ${orderId}. Payout aborted to prevent overpayment.`,
+      this.logger.warn(
+        `Missing platformFeeKobo on order ${orderId}. Defaulting to 0 for legacy order payout.`,
       );
-      throw new Error(`Missing platformFeeKobo on order ${orderId}`);
+      platformFeeKoboCount = 0n;
+    } else {
+      platformFeeKoboCount = BigInt(order.platformFeeKobo);
     }
 
-    const platformFeeKoboCount = BigInt(order.platformFeeKobo);
-    const payoutAmountKobo =
-      subtotalKobo - platformFeeKoboCount + BigInt(order.deliveryFeeKobo);
+    const payoutAmountKobo = grossAmountKobo - platformFeeKoboCount;
 
     if (!merchant.paystackRecipientCode) {
       this.logger.error(

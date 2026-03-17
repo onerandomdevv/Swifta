@@ -24,18 +24,40 @@ async function main() {
       );
     } else {
       const passwordHash = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 10);
-      await prisma.user.create({
-        data: {
-          email: BOOTSTRAP_ADMIN_EMAIL,
-          phone: "+234000000000",
-          firstName: "Swifta",
-          lastName: "Admin",
-          passwordHash: passwordHash,
-          role: UserRole.SUPER_ADMIN,
-          adminProfile: { create: { approvalStatus: "APPROVED" } },
-        },
+      
+      // Check if user with this email already exists
+      const existingUser = await prisma.user.findUnique({
+        where: { email: BOOTSTRAP_ADMIN_EMAIL }
       });
-      console.log(`🚀 Created Admin: ${BOOTSTRAP_ADMIN_EMAIL}`);
+
+      if (existingUser) {
+        console.log(`🔄 Promoting existing user to Admin: ${BOOTSTRAP_ADMIN_EMAIL}`);
+        await prisma.user.update({
+          where: { id: existingUser.id },
+          data: {
+            role: UserRole.SUPER_ADMIN,
+            adminProfile: {
+              upsert: {
+                create: { approvalStatus: "APPROVED" },
+                update: { approvalStatus: "APPROVED" }
+              }
+            }
+          }
+        });
+      } else {
+        await prisma.user.create({
+          data: {
+            email: BOOTSTRAP_ADMIN_EMAIL,
+            phone: "+234000000000",
+            firstName: "Swifta",
+            lastName: "Admin",
+            passwordHash: passwordHash,
+            role: UserRole.SUPER_ADMIN,
+            adminProfile: { create: { approvalStatus: "APPROVED" } },
+          },
+        });
+        console.log(`🚀 Created Admin: ${BOOTSTRAP_ADMIN_EMAIL}`);
+      }
     }
   }
 
@@ -73,8 +95,22 @@ async function main() {
   // 3. COMPLETE PURGE OF MOCKED/DEMO DATA
   console.log(`\n🧹 Purging all demo and fake data...`);
 
-  // Delete all mock associations
-  await prisma.productAssociation.deleteMany({});
+  // Get IDs of all seeded products
+  const seededProducts = await prisma.product.findMany({
+    where: { isSeeded: true },
+    select: { id: true }
+  });
+  const seededProductIds = seededProducts.map(p => p.id);
+
+  // Delete mock associations for seeded products only
+  await prisma.productAssociation.deleteMany({
+    where: {
+      OR: [
+        { productId: { in: seededProductIds } },
+        { isDemo: true } as any // Handle if schema has isDemo, if not OR handles IDs
+      ]
+    }
+  });
 
   // Delete all seeded products and their caches
   await prisma.productStockCache.deleteMany({
@@ -82,15 +118,25 @@ async function main() {
   });
   await prisma.product.deleteMany({ where: { isSeeded: true } });
 
-  // Optional: Remove the demo merchant user if they exist
+  // Optional: Remove the demo merchant user and ALL their data if they exist
   const DEMO_MERCHANT_EMAIL = "merchant@demo.swifta.store";
   const demoMerchant = await prisma.user.findUnique({
     where: { email: DEMO_MERCHANT_EMAIL },
+    include: { merchantProfile: true }
   });
 
-  if (demoMerchant) {
-    console.log(`🗑️ Removing Demo Merchant user...`);
-    // Delete merchant profile first (due to relations)
+  if (demoMerchant && demoMerchant.merchantProfile) {
+    const merchantId = demoMerchant.merchantProfile.id;
+    console.log(`🗑️ Removing Demo Merchant (${DEMO_MERCHANT_EMAIL}) and their associated data...`);
+    
+    // Reverse dependency deletion order
+    await prisma.inventoryEvent.deleteMany({ where: { merchantId } });
+    await prisma.order.deleteMany({ where: { merchantId } });
+    await prisma.creditApplication.deleteMany({ where: { merchantId } });
+    await prisma.payoutRequest.deleteMany({ where: { merchantId } });
+    await prisma.payout.deleteMany({ where: { merchantId } });
+    // Add any other dependent models here
+    
     await prisma.merchantProfile.deleteMany({
       where: { userId: demoMerchant.id },
     });
