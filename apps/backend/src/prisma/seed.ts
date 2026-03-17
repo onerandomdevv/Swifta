@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import { UserRole } from "@swifta/shared";
@@ -102,6 +103,7 @@ async function main() {
     where: { product: { isSeeded: true } },
   });
   await prisma.product.deleteMany({ where: { isSeeded: true } });
+  await prisma.productAssociation.deleteMany({});
 
   // Optional: Remove the demo merchant user and ALL their data if they exist
   const DEMO_MERCHANT_EMAIL = "merchant@demo.swifta.store";
