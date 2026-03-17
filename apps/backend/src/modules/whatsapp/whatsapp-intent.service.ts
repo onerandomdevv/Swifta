@@ -209,7 +209,7 @@ export class WhatsAppIntentService {
   // -----------------------------------------------------------------------
   private async parseWithGemini(messageText: string): Promise<ParsedIntent> {
     const systemPrompt =
-      this.configService.get<string>("WHATSAPP_MERCHANT_SYSTEM_PROMPT") || "";
+      this.configService.get<string>("whatsapp.merchantSystemPrompt") || "";
 
     const modelName =
       this.configService.get<string>("GEMINI_MODEL") || "gemini-2.0-flash";

@@ -52,7 +52,7 @@ export class WhatsAppSupplierIntentService {
   constructor(private configService: ConfigService) {
     this.apiKey = this.configService.get<string>("GEMINI_API_KEY") || "";
     this.systemPrompt =
-      this.configService.get<string>("WHATSAPP_SUPPLIER_SYSTEM_PROMPT") || "";
+      this.configService.get<string>("whatsapp.supplierSystemPrompt") || "";
   }
 
   private getGeminiUrl(): string {

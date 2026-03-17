@@ -17,6 +17,7 @@ import redisConfig from "./config/redis.config";
 import jwtConfig from "./config/jwt.config";
 import paystackConfig from "./config/paystack.config";
 import africastalkingConfig from "./config/africastalking.config";
+import whatsappConfig from "./config/whatsapp.config";
 
 import { PrismaModule } from "./prisma/prisma.module";
 import { RedisModule } from "./redis/redis.module";
@@ -76,6 +77,7 @@ function sanitizeRedisUrl(url: string | undefined): string | undefined {
         jwtConfig,
         paystackConfig,
         africastalkingConfig,
+        whatsappConfig,
       ],
     }),
     LoggerModule,
