@@ -301,7 +301,7 @@ export class WhatsAppService {
 
       await this.interactiveService.sendTextMessage(
         phone,
-        `🏪 *${product.name}*\n\nPrice: ${this.formatNaira(Number(product.pricePerUnitKobo))}\nCategory: ${product.category?.name || "General"}\nUnit: ${product.unit}\nStatus: ${product.isActive ? "Active ✅" : "Inactive ⭕"}\n\nTo update price, say: "update price of ${product.name} to [price]"`,
+        `🏪 *${product.name}*\n\nPrice: ${this.formatNaira(Number(product.pricePerUnitKobo))}\nCategory: ${(product as any).category?.name || "General"}\nUnit: ${product.unit}\nStatus: ${product.isActive ? "Active ✅" : "Inactive ⭕"}\n\nTo update price, say: "update price of ${product.name} to [price]"`,
       );
       return;
     }
@@ -322,7 +322,7 @@ export class WhatsAppService {
         return;
       }
 
-      const stock = product.productStockCache?.stock || 0;
+      const stock = (product as any).productStockCache?.stock || 0;
       await this.interactiveService.sendReplyButtons(
         phone,
         `📦 *Manage Stock: ${product.name}*\n\nCurrent Level: *${stock} ${product.unit}s*\n\nWould you like to add or remove stock?`,

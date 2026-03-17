@@ -75,7 +75,7 @@ export class AdminCronService {
             gt: seventyTwoHoursAgo,
           },
         },
-        select: { id: true, buyerId: true, updatedAt: true, meta: true },
+        select: { id: true, buyerId: true, updatedAt: true, metadata: true },
       });
 
       for (const order of warningCandidates) {
@@ -83,7 +83,7 @@ export class AdminCronService {
           const hoursSinceUpdate =
             (Date.now() - order.updatedAt.getTime()) / (1000 * 60 * 60);
 
-          const meta = (order.meta as any) || {};
+          const metadata = (order.metadata as any) || {};
 
           // Decision logic based on hours since last update
           const cutoff = PlatformConfig.timers.autoConfirmationHours;
@@ -93,7 +93,7 @@ export class AdminCronService {
           // Decision logic based on hours since last update
           if (hoursSinceUpdate >= warningThreshold2) {
             // Already past 2/3 of cutoff mark, check if this specific warning was sent
-            if (!meta.autoConfirmationWarningSent48) {
+            if (!metadata.autoConfirmationWarningSent48) {
               const remaining = Math.max(
                 0,
                 cutoff - Math.floor(hoursSinceUpdate),
@@ -107,8 +107,8 @@ export class AdminCronService {
               await this.prisma.order.update({
                 where: { id: order.id },
                 data: {
-                  meta: {
-                    ...meta,
+                  metadata: {
+                    ...metadata,
                     autoConfirmationWarningSent48: true,
                   },
                 },
@@ -119,7 +119,7 @@ export class AdminCronService {
             }
           } else if (hoursSinceUpdate >= warningThreshold1) {
             // Past 1/3 but less than 2/3 mark
-            if (!meta.autoConfirmationWarningSent24) {
+            if (!metadata.autoConfirmationWarningSent24) {
               const remaining = Math.max(
                 0,
                 cutoff - Math.floor(hoursSinceUpdate),
@@ -133,8 +133,8 @@ export class AdminCronService {
               await this.prisma.order.update({
                 where: { id: order.id },
                 data: {
-                  meta: {
-                    ...meta,
+                  metadata: {
+                    ...metadata,
                     autoConfirmationWarningSent24: true,
                   },
                 },

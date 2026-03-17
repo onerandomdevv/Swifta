@@ -73,6 +73,13 @@ model MerchantProfile {
   lastSlugChangeAt        DateTime?             @map("last_slug_change_at")
   notificationPreferences Json?                 @default("{}") @map("notification_preferences")
   verificationTier        VerificationTier      @default(UNVERIFIED) @map("verification_tier")
+  tierUpgradedAt          DateTime?             @map("tier_upgraded_at")
+  ninNumber               String?               @map("nin_number")
+  ninVerified             Boolean               @default(false) @map("nin_verified")
+  ninVerifiedAt           DateTime?             @map("nin_verified_at")
+  ninVerifiedVia          String?               @map("nin_verified_via")
+  cacVerifiedVia          String?               @map("cac_verified_via")
+  addressVerifiedVia      String?               @map("address_verified_via")
   creditApplications      CreditApplication[]
   followers               Follow[]              @relation("MerchantFollowers")
   inventoryEvents         InventoryEvent[]
@@ -156,6 +163,7 @@ model Order {
   deliveryBooking     DeliveryBooking?
   orderEvents         OrderEvent[]
   trackingEvents      OrderTracking[]
+  metadata            Json?              @map("metadata")
   user                User               @relation(fields: [buyerId], references: [id], onDelete: Cascade)
   merchantProfile     MerchantProfile?   @relation(fields: [merchantId], references: [id])
   product             Product?           @relation(fields: [productId], references: [id])
@@ -434,6 +442,7 @@ model VerificationRequest {
   id              String                    @id @default(uuid()) @db.Uuid
   merchantId      String                    @map("merchant_id") @db.Uuid
   governmentIdUrl String?                   @map("government_id_url")
+  ninNumber       String?                   @map("nin_number")
   cacCertUrl      String?                   @map("cac_cert_url")
   reviewedBy      String?                   @map("reviewed_by") @db.Uuid
   reviewedAt      DateTime?                 @map("reviewed_at")
@@ -441,6 +450,7 @@ model VerificationRequest {
   createdAt       DateTime                  @default(now()) @map("created_at")
   idType          VerificationIdType?       @map("id_type")
   status          VerificationRequestStatus @default(PENDING)
+  targetTier      VerificationTier          @default(TIER_2) @map("target_tier")
   merchant        MerchantProfile           @relation(fields: [merchantId], references: [id])
   reviewer        User?                     @relation("VerificationRequestsReviewed", fields: [reviewedBy], references: [id])
 
