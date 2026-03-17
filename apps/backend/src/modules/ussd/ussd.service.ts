@@ -3,7 +3,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { PaystackClient } from "../payment/paystack.client";
 import { SmsService } from "../notification/sms.service";
 import { UssdCallbackDto } from "./ussd.dto";
-import { PaymentStatus, PaymentDirection } from "@hardware-os/shared";
+import { PaymentStatus, PaymentDirection } from "@swifta/shared";
 
 @Injectable()
 export class UssdService {

@@ -174,12 +174,12 @@ export class ReviewService {
     const avgRating = merchant.averageRating || 0;
 
     if (completedOrders >= 10 && daysSinceCreation >= 30 && avgRating >= 4.5) {
-      if (merchant.verificationTier !== VerificationTier.TRUSTED) {
+      if (merchant.verificationTier !== VerificationTier.TIER_3) {
         await tx.merchantProfile.update({
           where: { id: merchantId },
-          data: { verificationTier: VerificationTier.TRUSTED },
+          data: { verificationTier: VerificationTier.TIER_3 },
         });
-        this.logger.log(`Merchant ${merchantId} upgraded to TRUSTED tier`);
+        this.logger.log(`Merchant ${merchantId} upgraded to TIER_3 tier`);
       }
     }
   }

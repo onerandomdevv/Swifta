@@ -425,7 +425,7 @@ export class VerificationService {
       }
     }
 
-    return currentTier;
+    return currentTier as any;
   }
 
   private async notifyTierUpgrade(merchantId: string, tier: VerificationTier) {
