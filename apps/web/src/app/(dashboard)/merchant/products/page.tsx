@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { productApi } from "@/lib/api/product.api";
 import { useToast } from "@/providers/toast-provider";
 import { useMerchantInventory } from "@/hooks/use-merchant-data";
-import { type Product } from "@hardware-os/shared";
+import { type Product } from "@swifta/shared";
 import { ProductModal } from "@/components/merchant/products/product-modal";
 import { DeleteConfirmationModal } from "@/components/merchant/products/delete-confirmation-modal";
 import { toast } from "sonner";
@@ -152,7 +152,7 @@ export default function MerchantProductsPage() {
           </div>
           <div className="flex items-center gap-4">
             {/* View Toggle */}
-            <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-xl">
+            <div className="hidden md:flex bg-slate-200 dark:bg-slate-800 p-1 rounded-xl">
               <button
                 onClick={() => setViewMode("grid")}
                 className={`px-4 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all ${
@@ -250,7 +250,7 @@ export default function MerchantProductsPage() {
 
         {/* Filter Bar */}
         <section className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm mb-8 flex flex-wrap gap-4 items-center">
-          <div className="relative flex-1 min-w-[300px]">
+          <div className="relative flex-1 min-w-[200px]">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
             <input
               type="text"
@@ -293,9 +293,9 @@ export default function MerchantProductsPage() {
 
         {/* Content */}
         {filteredProducts.length > 0 ? (
-          viewMode === "grid" ? (
-            /* Grid View */
-            <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <>
+          {/* Mobile always shows grid */}
+          <section className="md:hidden grid grid-cols-1 gap-4">
               {filteredProducts.map((product) => {
                 const stockInfo = getStockInfo(product);
                 const stock = product.stockCache?.stock || 0;
@@ -409,9 +409,78 @@ export default function MerchantProductsPage() {
                 );
               })}
             </section>
+          {/* Desktop uses viewMode toggle */}
+          {viewMode === "grid" ? (
+            <section className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredProducts.map((product) => {
+                const stockInfo = getStockInfo(product);
+                const stock = product.stockCache?.stock || 0;
+                const wholesalePrice = product.wholesaleDiscountPercent && product.retailPriceKobo
+                  ? Math.round(Number(product.retailPriceKobo) * (1 - (product.wholesaleDiscountPercent / 100)))
+                  : product.wholesalePriceKobo
+                    ? Number(product.wholesalePriceKobo)
+                    : null;
+
+                return (
+                  <div
+                    key={product.id}
+                    className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden group hover:shadow-xl transition-all duration-300"
+                  >
+                    <div className="h-[200px] overflow-hidden relative">
+                      {product.imageUrl ? (
+                        <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      ) : (
+                        <div className="w-full h-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-6xl text-slate-200">image</span>
+                        </div>
+                      )}
+                      <span className="absolute top-3 left-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                        {product.categoryTag || "General"}
+                      </span>
+                      <div className={`absolute top-3 right-3 ${product.isActive ? stockInfo.badgeColor : "bg-slate-500"} text-white px-2 py-1 rounded-lg text-[10px] font-bold`}>
+                        {!product.isActive ? "Inactive" : stockInfo.label === "Healthy" ? "Active" : stockInfo.label}
+                      </div>
+                    </div>
+                    <div className="p-5">
+                      <div className="mb-4">
+                        <h3 className="text-slate-900 dark:text-white font-bold text-lg mb-1 truncate">{product.name}</h3>
+                        <span className="text-slate-400 text-xs font-medium uppercase">SKU: {product.productCode || product.id.slice(0, 8).toUpperCase()}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 mb-5 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Retail Price</p>
+                          <p className="text-slate-900 dark:text-white font-bold">{formatPrice(product.retailPriceKobo || product.pricePerUnitKobo)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Wholesale</p>
+                          <p className="text-primary font-bold">{wholesalePrice ? formatPrice(wholesalePrice) : "—"}</p>
+                        </div>
+                      </div>
+                      <div className="mb-6">
+                        <div className="flex justify-between items-center mb-1.5">
+                          <span className="text-xs font-semibold text-slate-500">Stock: {stock.toLocaleString()}</span>
+                          <span className={`text-xs font-bold ${stockInfo.color}`}>{stockInfo.label}</span>
+                        </div>
+                        <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                          <div className={`${stockInfo.barColor} h-full transition-all`} style={{ width: stockInfo.barWidth }}></div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => handleRepost(product)} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold flex items-center justify-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                          <span className="material-symbols-outlined text-lg">edit</span> Edit
+                        </button>
+                        <button onClick={() => setDeletingId(product.id)} className="px-3 py-2.5 rounded-xl border border-rose-100 dark:border-rose-900/30 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors">
+                          <span className="material-symbols-outlined text-lg">delete</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </section>
           ) : (
-            /* Table View */
-            <section className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
+            /* Table View — desktop only */
+            <section className="hidden md:block bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm min-w-[900px]">
                   <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
@@ -454,7 +523,7 @@ export default function MerchantProductsPage() {
                               <span className={`text-xs ${stockInfo.color}`}>{stockInfo.label}</span>
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{product.unit}</td>
+                          <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{product.unit?.toLowerCase() || "pcs"}</td>
                           <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">
                             {formatPrice(product.retailPriceKobo || product.pricePerUnitKobo)}
                           </td>
@@ -492,7 +561,8 @@ export default function MerchantProductsPage() {
                 </table>
               </div>
             </section>
-          )
+          )}
+          </>
         ) : (
           /* Empty State */
           <div className="flex flex-col items-center justify-center py-24 text-center space-y-6">

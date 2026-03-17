@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { merchantApi } from "@/lib/api/merchant.api";
 import { MerchantProfileView } from "@/components/merchant/profile/merchant-profile-view";
-import type { MerchantProfile } from "@hardware-os/shared";
+import type { MerchantProfile } from "@swifta/shared";
 
 export default function SlugProfilePage() {
   const { slug } = useParams();

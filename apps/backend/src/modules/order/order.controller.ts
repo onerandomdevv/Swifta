@@ -19,7 +19,7 @@ import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { CurrentMerchant } from "../../common/decorators/current-merchant.decorator";
-import { UserRole, JwtPayload } from "@hardware-os/shared";
+import { UserRole, JwtPayload } from "@swifta/shared";
 import { CreateDirectOrderDto } from "./dto/create-direct-order.dto";
 import { CreateTrackingDto } from "./dto/create-tracking.dto";
 import { CheckoutCartDto } from "./dto/checkout-cart.dto";

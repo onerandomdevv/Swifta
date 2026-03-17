@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import type { Order } from "@hardware-os/shared";
+import type { Order } from "@swifta/shared";
 import { Money } from "@/components/ui/money";
 
 interface Props {

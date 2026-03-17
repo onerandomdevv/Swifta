@@ -1,5 +1,5 @@
 import { apiClient } from "../api-client";
-import type { Order, OrderStatus, PriceType } from "@hardware-os/shared";
+import type { Order, OrderStatus, PriceType } from "@swifta/shared";
 
 export interface OrderTrackingEvent {
   id: string;

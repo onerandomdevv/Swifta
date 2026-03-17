@@ -6,7 +6,11 @@ import {
 import { PrismaService } from "../../prisma/prisma.service";
 import PDFDocument from "pdfkit";
 import { Response } from "express";
+<<<<<<< HEAD
 import { JwtPayload } from "@hardware-os/shared";
+=======
+import { JwtPayload } from "@swifta/shared";
+>>>>>>> 5ec951065ed2b272419f246ae0a250c5751f8b19
 
 @Injectable()
 export class InvoiceService {
@@ -80,7 +84,6 @@ export class InvoiceService {
 
   private generateCustomerInformation(doc: PDFKit.PDFDocument, order: any) {
     const shipping = order.deliveryAddress || "Pick-up";
-
     doc
       .fillColor("#444444")
       .fontSize(12)
@@ -106,7 +109,6 @@ export class InvoiceService {
   }
 
   private generateInvoiceTable(doc: PDFKit.PDFDocument, order: any) {
-    let i;
     const invoiceTableTop = 230;
 
     doc.font("Helvetica-Bold");
@@ -125,7 +127,7 @@ export class InvoiceService {
     const items = (order.items as any[]) || [];
     let position = invoiceTableTop + 30;
 
-    items.forEach((item, index) => {
+    items.forEach((item) => {
       const lineTotal = (Number(item.unitPriceKobo) * item.quantity) / 100;
       this.generateTableRow(
         doc,

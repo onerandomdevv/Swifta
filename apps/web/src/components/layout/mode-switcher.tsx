@@ -29,10 +29,10 @@ export function ModeSwitcher({ onModeChange, className }: ModeSwitcherProps) {
   };
 
   return (
-    <div className={cn("bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl flex items-center relative", className)}>
+    <div className={cn("bg-background-secondary p-1 rounded-2xl flex items-center relative", className)}>
       <div 
         className={cn(
-          "absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white dark:bg-navy-dark rounded-xl shadow-sm transition-all duration-300 ease-out",
+          "absolute top-1 bottom-1 w-[calc(50%-4px)] bg-surface rounded-xl shadow-sm transition-all duration-300 ease-out",
           mode === "MERCHANT" ? "left-1" : "left-[calc(50%+1px)]"
         )}
       />
@@ -40,7 +40,7 @@ export function ModeSwitcher({ onModeChange, className }: ModeSwitcherProps) {
         onClick={() => mode !== "MERCHANT" && toggleMode()}
         className={cn(
           "flex-1 flex items-center justify-center gap-2 py-2 px-3 relative z-10 transition-colors duration-300",
-          mode === "MERCHANT" ? "text-navy-dark dark:text-white" : "text-slate-400 hover:text-slate-600"
+          mode === "MERCHANT" ? "text-foreground" : "text-foreground-muted hover:text-foreground-secondary"
         )}
       >
         <span className="material-symbols-outlined text-lg">storefront</span>
@@ -50,7 +50,7 @@ export function ModeSwitcher({ onModeChange, className }: ModeSwitcherProps) {
         onClick={() => mode !== "BUYER" && toggleMode()}
         className={cn(
           "flex-1 flex items-center justify-center gap-2 py-2 px-3 relative z-10 transition-colors duration-300",
-          mode === "BUYER" ? "text-navy-dark dark:text-white" : "text-slate-400 hover:text-slate-600"
+          mode === "BUYER" ? "text-foreground" : "text-foreground-muted hover:text-foreground-secondary"
         )}
       >
         <span className="material-symbols-outlined text-lg">shopping_bag</span>

@@ -5,7 +5,7 @@ import {
   NOTIFICATION_QUEUE,
   WHATSAPP_QUEUE,
 } from "../../queue/queue.constants";
-import { NotificationType, NotificationChannel } from "@hardware-os/shared";
+import { NotificationType, NotificationChannel } from "@swifta/shared";
 
 @Injectable()
 export class NotificationTriggerService {
@@ -50,7 +50,7 @@ export class NotificationTriggerService {
     await this.addJob(
       userId,
       NotificationType.WELCOME,
-      "Welcome to SwiftTrade",
+      "Welcome to Swifta",
       "Welcome to Africa's hardware trade network.",
     );
   }
@@ -535,7 +535,7 @@ export class NotificationTriggerService {
 
   async triggerNewMerchantSubmission(
     adminUserIds: string[],
-    metadata: { merchantId: string; merchantName: string },
+    metadata: { merchantId: string; merchantName: string; targetTier?: string },
   ) {
     await Promise.allSettled(
       adminUserIds.map((adminId) =>
@@ -543,7 +543,7 @@ export class NotificationTriggerService {
           adminId,
           NotificationType.NEW_MERCHANT_SUBMISSION,
           "New Merchant Verification Pending",
-          `${metadata.merchantName} has submitted their account for verification.`,
+          `${metadata.merchantName} has submitted their account for verification${metadata.targetTier ? ` (${metadata.targetTier})` : ""}.`,
           { ...metadata },
         ),
       ),
@@ -619,6 +619,54 @@ export class NotificationTriggerService {
       { orderId, resolution },
       [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
       { url: `/buyer/orders/${orderId}` },
+    );
+  }
+
+  async triggerAutoConfirmationWarning(
+    buyerId: string,
+    orderRef: string,
+    hoursRemaining: number,
+  ) {
+    await this.addJob(
+      buyerId,
+      NotificationType.ORDER_AUTO_CONFIRM_WARNING,
+      "Action Required: Order Confirmation",
+      `Your order #${orderRef} will be automatically confirmed in ${hoursRemaining} hours. Please confirm delivery or raise a dispute if there are issues.`,
+      { orderRef, hoursRemaining },
+      [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+    );
+  }
+
+  async triggerOrderAutoConfirmed(
+    buyerId: string,
+    merchantId: string,
+    metadata: { orderId: string; reference: string; amountKobo: bigint },
+  ) {
+    const serializedMetadata = {
+      ...metadata,
+      amountKobo: metadata.amountKobo.toString(),
+    };
+
+    // Notify buyer
+    await this.addJob(
+      buyerId,
+      NotificationType.ORDER_AUTO_CONFIRMED,
+      "Order Auto-Confirmed",
+      `Order #${metadata.reference.slice(0, 8)} has been automatically confirmed after 72 hours.`,
+      serializedMetadata,
+      [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+      { url: `/buyer/orders/${metadata.orderId}` },
+    );
+
+    // Notify merchant
+    await this.addJob(
+      merchantId,
+      NotificationType.ORDER_AUTO_CONFIRMED,
+      "Order Auto-Confirmed",
+      `Order #${metadata.reference.slice(0, 8)} has been automatically confirmed by the system. Payout will be processed shortly.`,
+      { ...serializedMetadata, isMerchantId: true },
+      [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+      { url: `/merchant/orders/${metadata.orderId}` },
     );
   }
 }

@@ -22,7 +22,7 @@ import {
   PaymentDirection,
   OrderStatus,
   UserRole,
-} from "@hardware-os/shared";
+} from "@swifta/shared";
 import * as crypto from "crypto";
 import { PAYOUT_QUEUE, LOGISTICS_QUEUE } from "../../queue/queue.constants";
 

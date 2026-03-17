@@ -1,5 +1,5 @@
-import { UserRole } from "@hardware-os/shared";
-import type { LoginDto, RegisterDto, TokenPair } from "@hardware-os/shared";
+import { UserRole } from "@swifta/shared";
+import type { LoginDto, RegisterDto, TokenPair } from "@swifta/shared";
 import { apiClient } from "../api-client";
 
 export interface AuthResponse {

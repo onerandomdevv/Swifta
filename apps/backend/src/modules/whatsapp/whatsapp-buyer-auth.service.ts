@@ -1,4 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../../prisma/prisma.service";
 import { RedisService } from "../../redis/redis.service";
 import { EmailService } from "../email/email.service";
@@ -13,14 +14,14 @@ import {
   OTP_EXPIRED,
 } from "./whatsapp.constants";
 
-const BUYER_WELCOME_MESSAGE = `Welcome to SwiftTrade Buyer Bot! 🛒
+const BUYER_WELCOME_MESSAGE = `Welcome to Swifta Buyer Bot! 🛒
 
 To start placing orders natively right here on WhatsApp, please reply with your registered email address to link your buyer profile.`;
 
 const BUYER_LINK_SUCCESS = (buyerName: string) =>
   `You're all set, ${buyerName}! 🎉\n\nYou can now tell me what you want to buy, or say "track my order" if you have any active deliveries.`;
 
-const BUYER_ALREADY_LINKED = `This phone number is already linked to a SwiftTrade buyer account.`;
+const BUYER_ALREADY_LINKED = `This phone number is already linked to a Swifta buyer account.`;
 
 interface SessionData {
   state: SessionState;
@@ -47,6 +48,7 @@ export class WhatsAppBuyerAuthService {
   private readonly logger = new Logger(WhatsAppBuyerAuthService.name);
 
   constructor(
+    private configService: ConfigService,
     private prisma: PrismaService,
     private redisService: RedisService,
     private emailService: EmailService,
@@ -90,7 +92,7 @@ export class WhatsAppBuyerAuthService {
           JSON.stringify(session),
           SESSION_TTL,
         );
-        return BUYER_WELCOME_MESSAGE;
+        return this.configService.get("whatsapp.welcomeMessage") || BUYER_WELCOME_MESSAGE;
       }
 
       const session: SessionData = JSON.parse(sessionRaw);
@@ -102,14 +104,14 @@ export class WhatsAppBuyerAuthService {
           return this.handleOtpStep(phone, messageText, sessionKey, session);
         default:
           await this.redisService.del(sessionKey);
-          return BUYER_WELCOME_MESSAGE;
+          return this.configService.get("whatsapp.welcomeMessage") || BUYER_WELCOME_MESSAGE;
       }
     } catch (error) {
       this.logger.error(
         `Error in linking flow for ${maskPhone(phone)}: ${error instanceof Error ? error.message : error}`,
       );
       await this.redisService.del(sessionKey);
-      return BUYER_WELCOME_MESSAGE;
+      return this.configService.get("whatsapp.welcomeMessage") || BUYER_WELCOME_MESSAGE;
     }
   }
 

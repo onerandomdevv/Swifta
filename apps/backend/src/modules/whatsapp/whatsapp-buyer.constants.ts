@@ -3,9 +3,9 @@
 // ---------------------------------------------------------------------------
 import { SchemaType, FunctionDeclaration } from "@google/generative-ai";
 
-export const BUYER_MAIN_MENU = `Command Center Active! 🛒 How can I assist your trade today?`;
+export const BUYER_MAIN_MENU = `Buyer Menu. How can I assist you today?`;
 
-export const BUYER_FRIENDLY_FALLBACK = `I didn't quite catch that protocol. 😅 I can assist with product search across all industries, tracking manifest deliveries, or connecting you with support.
+export const BUYER_FRIENDLY_FALLBACK = `I did not understand that. I can assist with product searches, tracking deliveries, or connecting you with support.
 
 What is your objective?`;
 
@@ -25,7 +25,7 @@ export const BUYER_GEMINI_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
   {
     name: "search_products",
     description:
-      "Search the global SwiftTrade catalogue for a product based on name and optionally location.",
+      "Search the global Swifta catalogue for a product based on name and optionally location.",
     parameters: {
       type: SchemaType.OBJECT,
       properties: {
@@ -92,7 +92,7 @@ export const BUYER_GEMINI_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
   {
     name: "browse_categories",
     description:
-      "Browse the available product categories in the SwiftTrade marketplace.",
+      "Browse the available product categories in the Swifta marketplace.",
   },
   {
     name: "contact_support",

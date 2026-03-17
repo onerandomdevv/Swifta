@@ -60,7 +60,7 @@ export function AddressAutocomplete({
   return (
     <div className="space-y-3 relative" ref={wrapperRef}>
       {label && (
-        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+        <label className="text-[10px] font-black text-foreground-muted uppercase tracking-widest ml-1">
           {label}
         </label>
       )}
@@ -75,18 +75,18 @@ export function AddressAutocomplete({
           onFocus={() => {
             if (results.length > 0) setIsOpen(true);
           }}
-          className="w-full px-8 py-5 text-sm font-bold border-2 border-slate-50 dark:border-slate-800 dark:bg-slate-950 rounded-[1.5rem] focus:border-navy-dark outline-none transition-all placeholder:text-slate-300 dark:text-white h-32 resize-none"
+          className="w-full px-8 py-5 text-sm font-bold border-2 border-border-light bg-surface rounded-[1.5rem] focus:border-primary outline-none transition-all placeholder:text-foreground-muted text-foreground h-32 resize-none"
           placeholder={placeholder}
         />
         {loading && (
-          <span className="material-symbols-outlined absolute right-6 top-6 text-slate-300 animate-spin">
+          <span className="material-symbols-outlined absolute right-6 top-6 text-foreground-muted animate-spin">
             progress_activity
           </span>
         )}
       </div>
 
       {isOpen && results.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border-2 border-slate-50 dark:border-slate-800 rounded-[1.5rem] shadow-xl z-50 overflow-hidden flex flex-col max-h-72 animate-in fade-in zoom-in-95 duration-200">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-surface border-2 border-border rounded-[1.5rem] shadow-xl z-50 overflow-hidden flex flex-col max-h-72 animate-in fade-in zoom-in-95 duration-200">
           <div className="overflow-y-auto p-2">
             {results.map((item) => (
               <button
@@ -97,9 +97,9 @@ export function AddressAutocomplete({
                   setQuery(item.display_name);
                   setIsOpen(false);
                 }}
-                className="w-full text-left px-6 py-4 text-sm font-bold rounded-xl transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-start gap-4"
+                className="w-full text-left px-6 py-4 text-sm font-bold rounded-xl transition-colors hover:bg-background-secondary text-foreground-secondary flex items-start gap-4"
               >
-                <span className="material-symbols-outlined text-slate-400 mt-0.5 text-xl shrink-0">
+                <span className="material-symbols-outlined text-foreground-muted mt-0.5 text-xl shrink-0">
                   location_on
                 </span>
                 <span className="leading-relaxed line-clamp-3">
@@ -109,7 +109,7 @@ export function AddressAutocomplete({
             ))}
           </div>
 
-          <div className="px-6 py-3 border-t border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 flex items-center justify-between text-[8px] font-black text-slate-400 uppercase tracking-widest">
+          <div className="px-6 py-3 border-t border-border bg-background-secondary flex items-center justify-between text-[8px] font-black text-foreground-muted uppercase tracking-widest">
             <span>Powered by OpenStreetMap</span>
             <span>Nigeria Only</span>
           </div>

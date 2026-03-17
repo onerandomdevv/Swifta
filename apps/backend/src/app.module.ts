@@ -17,6 +17,7 @@ import redisConfig from "./config/redis.config";
 import jwtConfig from "./config/jwt.config";
 import paystackConfig from "./config/paystack.config";
 import africastalkingConfig from "./config/africastalking.config";
+import whatsappConfig from "./config/whatsapp.config";
 
 import { PrismaModule } from "./prisma/prisma.module";
 import { RedisModule } from "./redis/redis.module";
@@ -26,9 +27,6 @@ import { HealthModule } from "./health/health.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { MerchantModule } from "./modules/merchant/merchant.module";
 import { ProductModule } from "./modules/product/product.module";
-import { RFQModule } from "./modules/rfq/rfq.module";
-import { QuoteModule } from "./modules/quote/quote.module";
-import { OrderModule } from "./modules/order/order.module";
 import { PaymentModule } from "./modules/payment/payment.module";
 import { InventoryModule } from "./modules/inventory/inventory.module";
 import { NotificationModule } from "./modules/notification/notification.module";
@@ -81,6 +79,7 @@ function sanitizeRedisUrl(url: string | undefined): string | undefined {
         jwtConfig,
         paystackConfig,
         africastalkingConfig,
+        whatsappConfig,
       ],
     }),
     LoggerModule,
@@ -150,9 +149,6 @@ function sanitizeRedisUrl(url: string | undefined): string | undefined {
     AuthModule,
     MerchantModule,
     ProductModule,
-    RFQModule,
-    QuoteModule,
-    OrderModule,
     PaymentModule,
     InventoryModule,
     NotificationModule,

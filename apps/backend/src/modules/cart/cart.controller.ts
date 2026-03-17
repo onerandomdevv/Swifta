@@ -13,7 +13,7 @@ import { AddToCartDto } from "./dto/add-to-cart.dto";
 import { UpdateCartItemDto } from "./dto/update-cart-item.dto";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
-import { JwtPayload } from "@hardware-os/shared";
+import { JwtPayload } from "@swifta/shared";
 
 @Controller("cart")
 @UseGuards(JwtAuthGuard)

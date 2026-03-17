@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef } from "react";
-import { type Category } from "@hardware-os/shared";
+import { type Category } from "@swifta/shared";
 
 interface Props {
   categories: Category[];
@@ -42,7 +42,8 @@ export function CategoryStoriesBar({
   };
 
   return (
-    <div className="flex items-center gap-6 sm:gap-8 overflow-x-auto pb-4 px-2 scroll-smooth no-scrollbar font-display">
+    <div className="relative">
+      <div className="flex items-center gap-6 sm:gap-8 overflow-x-auto pb-4 px-2 scroll-smooth no-scrollbar font-display">
       {allCategories.map((cat) => {
         const isActive =
           cat.slug === activeCategory ||
@@ -68,6 +69,7 @@ export function CategoryStoriesBar({
           </button>
         );
       })}
+      </div>
     </div>
   );
 }

@@ -1,132 +1,210 @@
-# SwiftTrade / HARDWARE OS
+# Swifta
 
-**The Operating System for Lagos Hardware Trade**
+**Nigeria's WhatsApp-Native E-Commerce Platform**
 
-How HARDWARE OS digitizes Africa's largest informal hardware trade network without breaking the trust, negotiation, and relationships that make it work.
+Buy and sell anything on WhatsApp with escrow payment protection. Discover products, follow merchants, and shop securely — all from the app you already use.
 
----
-
-## 🚀 The Vision: Beyond a Marketplace
-
-SwiftTrade is not your typical B2B e-commerce platform. It is a purpose-built trade infrastructure designed specifically for the realities of the Lagos hardware market (cement, iron rods, plumbing, electrical, etc.).
-
-Generic platforms fail because they don't understand how this billion-naira industry operates. We don't force generic e-commerce models onto a relationship-driven industry. Instead, we digitize the transaction lifecycle while empowering merchants to maintain their pricing strategies and customer relationships.
-
-**Why SwiftTrade Works:**
-
-- **Price Opacity by Design:** Prices are negotiated privately via an RFQ (Request for Quote) model.
-- **Embedded Trust:** Buyer's payment is held in escrow until delivery is confirmed via OTP. The merchant is guaranteed payment; the buyer is guaranteed delivery.
-- **Data Privacy:** Merchant inventory, pricing, and sales data are siloed and strictly confidential.
-- **Behavioral Trade History:** Every successful transaction builds a verifiable trade profile, laying the groundwork for future credit scoring and working capital (BNPL).
-
-## 💡 Core Features (V1)
-
-### 1. Unified Trade Lifecycle
-
-- **Merchant Onboarding & Verification:** Merchants register and undergo verification (CAC, Bank, Address) for a secure ecosystem.
-- **Private Product Catalogue:** Merchants list their products without prices. Buyers browse the unified platform catalogue to discover suppliers.
-- **RFQ Flow & Negotiation:** Buyers request quotes for specific volumes and locations. Merchants respond with private unit pricing and delivery fees. You can seamlessly transition to WhatsApp to close deals.
-- **Secure Escrow Payments:** Integrated with **Paystack** for seamless cards and bank transfers. Funds are securely held.
-- **OTP-Secured Delivery Confirmation:** The merchant generates a 6-digit OTP given to the driver. The buyer must provide this OTP to confirm receipt, releasing funds to the merchant automatically.
-
-### 2. Comprehensive Dashboards
-
-- **Merchant Portal:** A command center for managing product listings, responding to RFQs, tracking orders, managing inventory, and requesting payouts.
-- **Buyer Portal:** An intuitive interface to discover products, send RFQs, track order status, and view trusted merchant profiles.
-- **Super Admin Platform:** A robust backend for operational oversight. Features include:
-  - System-wide analytics and market intelligence (GMV, funnel metrics).
-  - Escrow and payout management.
-  - Merchant verification queues and manual flags (e.g., CAC, Address).
-  - Staff user management with secure **Access Token Generation** for `OPERATOR` and `SUPPORT` roles.
-
-### 4. WhatsApp AI Assistant
-
-- **Conversational RFQs:** Merchants interact with a natural language AI assistant on WhatsApp to seamlessly receive and respond to quotes without opening the app.
-- **Automated Alerts:** Stock alerts and order updates pushed directly to the merchant's WhatsApp.
-
-### 3. Trust Profiles & Issue Resolution
-
-- **Merchant Trust Profiles:** Buyers see delivery velocity, response rates, and verification status before initiating trade.
-- **Dispute & Issue Reporting:** Built-in safeguards allow buyers to flag issues, managed directly by the Admin Operations team.
+🌐 **Website:** [swifta.store](https://swifta.store)
+📱 **WhatsApp:** Message Swifta to start shopping
 
 ---
 
-## 🏗️ Technical Architecture
+## What is Swifta?
 
-SwiftTrade is a modular monolith/monorepo architecture optimized for scalability, security, and developer velocity.
+Swifta is a social commerce marketplace where buyers discover products through a scrollable feed, follow their favorite merchants, and purchase with escrow-protected payments. Merchants list products, manage orders, and get paid instantly to their bank account.
 
-```text
-hardware-os/
+The platform works on two channels:
+- **WhatsApp** — the primary channel for buyers. Search, buy, pay, track, and confirm delivery without leaving WhatsApp.
+- **Web** — a social media-style product feed for discovery, plus full dashboards for merchants to manage their business.
+
+Every transaction is protected by escrow. The buyer's money is held securely until they confirm delivery with an OTP code. No trust required — the system handles it.
+
+---
+
+## How It Works
+
+### For Buyers
+
+1. Browse the product feed or search for what you need
+2. Follow (star) merchants you like — their products appear in your personalized feed
+3. Tap **Buy Now** or add to cart
+4. Pay securely via Paystack — your money is held in escrow
+5. Track your delivery in real-time
+6. Enter your OTP code to confirm receipt
+7. Merchant gets paid. Rate your experience.
+
+### For Merchants
+
+1. Create your business page with a unique username
+2. List products with photos, prices, and descriptions
+3. Receive orders with instant WhatsApp notifications
+4. Pack and dispatch — buyer gets tracking updates
+5. Money lands in your bank account automatically after delivery confirmation
+
+### On WhatsApp
+
+Buyers can do everything through the Swifta WhatsApp AI assistant:
+- **Text search:** "I need a phone case" → get matching products
+- **Image search:** Send a photo of any product → AI identifies it and finds matches
+- **Purchase:** Select, pay, track, and confirm — all in the chat
+- **Merchant management:** Merchants check sales, update prices, and dispatch orders via WhatsApp
+
+---
+
+## Key Features
+
+**Social Commerce Feed** — Instagram-style scrollable product feed. Follow merchants. Discover products. Buy in one tap.
+
+**Escrow Payments** — Buyer's money is protected until delivery is confirmed via OTP. Powered by Paystack.
+
+**WhatsApp AI Assistant** — Three specialized bots (buyer, merchant, supplier) powered by Google Gemini with function-calling for intent parsing.
+
+**AI Image Search** — Send a product photo via WhatsApp. Google Cloud Vision identifies it, searches the catalogue, and returns matching products.
+
+**Instant Bank Payouts** — Delivery confirmed → merchant's money is automatically transferred to their bank account via Paystack Transfers.
+
+**Verified Merchants** — Tiered verification system (Unverified → Basic → Verified → Trusted) with document review and performance tracking.
+
+**Multi-Category Marketplace** — Electronics, Fashion, Building Materials, Home & Kitchen, Health & Beauty, Auto Parts, Agriculture, Food & Groceries, and more.
+
+**Ratings & Reviews** — Post-delivery review prompts via WhatsApp. Merchant ratings displayed on profiles and product cards.
+
+**Real-Time Tracking** — Order status updates pushed to buyer via WhatsApp and in-app notifications.
+
+**Business Pages** — Every merchant gets a shareable profile page with their products, ratings, and verification status.
+
+---
+
+## Tech Stack
+
+### Architecture
+
+```
+swifta/
 ├── apps/
-│   ├── backend/          → NestJS modular API server
-│   └── web/              → Next.js 14 App Router (Frontend)
+│   ├── backend/          → NestJS 10 modular API
+│   └── web/              → Next.js 14 App Router
 ├── packages/
-│   └── shared/           → Shared Typescript definitions, DTOs, Enums
-├── docker-compose.yml    → Local Postgres & Redis
+│   └── shared/           → Shared TypeScript types, DTOs, enums
+├── docker-compose.yml    → Local PostgreSQL & Redis
 └── pnpm-workspace.yaml   → Monorepo workspace config
 ```
 
-### Technology Stack
+### Core Technologies
 
-- **Frontend:** Next.js 14, React, Tailwind CSS, React Query, React Hook Form + Zod, Framer Motion.
-- **Backend:** NestJS, Prisma ORM, TypeScript.
-- **Database:** PostgreSQL 16 (Relational state, structured data - Supabase managed).
-- **Cache / Background Jobs:** Redis 7 (OTP limits, rate-limiting, session management, job queuing).
-- **Payments:** Paystack API & Webhooks.
-- **Notifications & Comm:** Resend (Email), Africa's Talking (SMS OTPs), Meta WhatsApp Business Cloud API.
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Next.js 14, React 18, Tailwind CSS, React Query, React Hook Form, Zod |
+| Backend | NestJS 10, TypeScript, Prisma ORM |
+| Database | PostgreSQL 16 (Supabase managed) |
+| Cache & Queues | Redis (Upstash) + BullMQ |
+| Payments | Paystack (Checkout, Transfers, Webhooks, Bank Resolution) |
+| Messaging | Meta WhatsApp Business Cloud API (Interactive Messages) |
+| AI | Google Gemini 2.0 Flash (intent parsing), Google Cloud Vision (image search) |
+| Email | Resend |
+| SMS | Africa's Talking |
+| Image CDN | Cloudinary (with auto-optimization transforms) |
+| Monitoring | Sentry (error tracking), Vercel Speed Insights |
+| Deployment | Vercel (frontend), Render (backend), Supabase (database), Upstash (Redis) |
+
+### Key Architecture Decisions
+
+- **Monorepo** with Turborepo and pnpm workspaces
+- **Append-only event tables** for inventory tracking (InventoryEvent → ProductStockCache)
+- **All money stored as BigInt** (kobo) — no floating-point currency math
+- **UUID primary keys** everywhere
+- **BullMQ** for async job processing (payouts, notifications, auto-confirmation timers)
+- **JWT authentication** with role-based access control (roles: Buyer, Merchant, Supplier)
+- **Paystack webhook signature verification** on all payment callbacks
+- **WhatsApp function-calling only** — AI can call predefined functions, never generates free-form responses to users
 
 ---
 
-## 🛠️ Quick Start Guide
+## User Roles
+
+| Role | Access |
+|------|--------|
+| **Buyer** | Browse catalogue, purchase products, track orders, rate merchants |
+| **Merchant** | List products, manage orders, receive payouts, manage business page. Can toggle to buyer mode to purchase from other merchants |
+| **Supplier** | Wholesale product management, merchant orders (B2B — coming soon) |
+
+---
+
+## Quick Start
 
 ### Prerequisites
 
 - Node.js >= 20
 - pnpm >= 8 (`npm install -g pnpm`)
-- Docker Desktop (for local DB/Redis)
+- Docker Desktop (for local PostgreSQL & Redis)
 
-### Setup & Run
+### Setup
 
 ```bash
-# 1. Clone the repository
+# Clone the repository
 git clone <repository_url>
-cd hardware-os
+cd swifta
 
-# 2. Install Dependencies
+# Install dependencies
 pnpm install
 
-# 3. Start Database & Cache
+# Start local database and Redis
 docker-compose up -d
 
-# 4. Environment Variables
-# Copy the `.env.example` file to `.env` in both `apps/web` and `apps/backend` and update the necessary keys (e.g., Paystack, DB URLs).
+# Set up environment variables
+# Copy .env.example to .env in apps/backend and apps/web
+# Fill in: Paystack keys, database URL, Redis URL, Gemini API key, etc.
 
-# 5. Database Schema & Seeding
+# Run database migrations and seed
 cd apps/backend
 npx prisma migrate dev
 npx prisma db seed
 cd ../..
 
-# 6. Run the Application
-pnpm --filter @hardware-os/backend dev    # Starts backend on http://localhost:4000
-pnpm --filter @hardware-os/web dev        # Starts frontend on http://localhost:3000
+# Start development servers
+pnpm --filter @swifta/backend dev    # Backend → http://localhost:4000
+pnpm --filter @swifta/web dev        # Frontend → http://localhost:3000
 ```
 
 ---
 
-## 🔒 Security & Access
+## Security
 
-- **Role-Based Access Control:** Distinct experiences for `BUYER`, `MERCHANT`, `SUPER_ADMIN`, `OPERATOR`, and `SUPPORT`.
-- **JWT Authentication:** Secure auth flow utilizing HttpOnly cookies for session persistence and refresh token rotation.
-- **Database Isolation:** Enforced data siloing where merchants can only access their individual inventory and sales records.
+- **Escrow payment protection** — buyer funds held until OTP-verified delivery
+- **JWT authentication** with HttpOnly cookies and refresh token rotation
+- **Role-based access control** with guard decorators on every endpoint
+- **Paystack webhook signature verification** on all payment callbacks
+- **WhatsApp AI guardrails** — function-calling only, no free-form AI responses
+- **Rate limiting** via @nestjs/throttler on API endpoints
+- **Input sanitization** against XSS on all user inputs
+- **Staff access token system** — operators onboarded via secure token-based workflow
+- **Audit logging** on admin actions
 
 ---
 
-## 🚀 The Future Roadmap
+## Roadmap
 
-V1 establishes the core transaction loop and foundational WhatsApp integrations. The data generated actively paves the way for advanced phases:
+**Current (V5):** Social commerce marketplace with WhatsApp AI, escrow payments, multi-category catalogue, ratings, and merchant business pages.
 
-- **Phase 2 (Credit):** Behavioral Credit Scoring (TradeScore) leading to embedded BNPL and Trade Credit financing.
-- **Phase 3 (Market Intelligence):** AI-driven demand forecasting and the creation of a Lagos Hardware Price Index.
+**Next (V6):** Security hardening (Prembly identity verification), Paystack Dedicated Virtual Accounts (eliminate payment link browser hop), dispute resolution center, admin dashboard upgrades, price intelligence, dark mode.
 
-Looking ahead, SwiftTrade isn't just about software; it's about providing the market infrastructure that scales Africa's largest informal trade network.
+**Future:** B2B supplier marketplace, trade financing, SwiftCoins loyalty program, group buying, Remotion video generation for merchant marketing.
+
+---
+
+## Team
+
+Built by **codedDevs** — a software development team based in Lagos, Nigeria.
+
+- **Kareem Aliameen** — CEO & Product & Engineering Lead
+- **Yusuf Saheed** — CTO & Engineering Lead
+- **Amoo Mustakheem** — CDO & Business Development
+
+📧 codeddevs.team@gmail.com
+🐙 [github.com/coded-devs](https://github.com/coded-devs)
+
+---
+
+## License
+
+Proprietary. All rights reserved.

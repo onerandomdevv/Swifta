@@ -7,6 +7,6 @@
     "^.+\\.(t|j)s$": "ts-jest"
   },
   "moduleNameMapper": {
-    "^@hardware-os/shared$": "<rootDir>/../../../packages/shared/src"
+    "^@swifta/shared$": "<rootDir>/../../../packages/shared/src"
   }
 }

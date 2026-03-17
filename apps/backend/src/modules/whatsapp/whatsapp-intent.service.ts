@@ -137,17 +137,6 @@ export class WhatsAppIntentService {
       return { functionName: "get_sales_summary", params: { timeframe } };
     }
 
-    // RFQ queries
-    if (
-      lower.includes("rfq") ||
-      lower.includes("order") ||
-      lower.includes("request") ||
-      lower.includes("buy") ||
-      lower.includes("pending")
-    ) {
-      return { functionName: "get_pending_rfqs", params: {} };
-    }
-
     // Inventory / stock check
     if (
       lower.includes("inventory") ||
@@ -176,11 +165,6 @@ export class WhatsAppIntentService {
       lower.includes("receive")
     ) {
       return { functionName: "update_stock", params: {} };
-    }
-
-    // Quote / price
-    if (lower.includes("quote") || lower.includes("price")) {
-      return { functionName: "respond_to_rfq", params: {} };
     }
 
     // Verification status
@@ -225,7 +209,7 @@ export class WhatsAppIntentService {
   // -----------------------------------------------------------------------
   private async parseWithGemini(messageText: string): Promise<ParsedIntent> {
     const systemPrompt =
-      this.configService.get<string>("WHATSAPP_MERCHANT_SYSTEM_PROMPT") || "";
+      this.configService.get<string>("whatsapp.merchantSystemPrompt") || "";
 
     const modelName =
       this.configService.get<string>("GEMINI_MODEL") || "gemini-2.0-flash";

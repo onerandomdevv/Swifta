@@ -1,3 +1,5 @@
+import { cn } from "@/lib/utils";
+
 interface LogoProps {
   variant?: "light" | "dark";
   size?: "xs" | "sm" | "md" | "lg";
@@ -6,13 +8,13 @@ interface LogoProps {
 }
 
 export function Logo({
-  variant = "light",
+  variant, // variant is now optional and can be ignored if we use classes
   size = "md",
   showWordmark = true,
   className = "",
 }: LogoProps) {
-  const leftRingColor = variant === "dark" ? "white" : "#0F2B4C";
-  const swiftColor = variant === "dark" ? "white" : "#0F2B4C";
+  // Use currentColor or CSS variables for the dark blue parts
+  const accentColor = "#00C853";
 
   const sizeMap = {
     xs: { svg: 22, text: "text-xs" },
@@ -25,13 +27,14 @@ export function Logo({
   const svgHeight = Math.round(svg * (30 / 44));
 
   return (
-    <span className={`inline-flex items-center gap-2 ${className}`}>
+    <span className={cn("inline-flex items-center gap-2", className)}>
       <svg
         width={svg}
         height={svgHeight}
         viewBox="0 0 66 44"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
+        className="shrink-0"
       >
         <rect
           x="3"
@@ -39,9 +42,10 @@ export function Logo({
           width="34"
           height="32"
           rx="16"
-          stroke={leftRingColor}
+          stroke="currentColor"
           strokeWidth="5.5"
           fill="none"
+          className="text-foreground"
         />
         <rect
           x="29"
@@ -49,15 +53,15 @@ export function Logo({
           width="34"
           height="32"
           rx="16"
-          stroke="#00C853"
+          stroke={accentColor}
           strokeWidth="5.5"
           fill="none"
         />
       </svg>
       {showWordmark && (
-        <span className={`${text} font-bold tracking-[-0.03em] font-display`}>
-          <span style={{ color: swiftColor }}>Swift</span>
-          <span style={{ color: "#00C853" }}>Trade</span>
+        <span className={cn(text, "font-bold tracking-[-0.03em] font-display")}>
+          <span className="text-foreground">Swift</span>
+          <span style={{ color: accentColor }}>a</span>
         </span>
       )}
     </span>

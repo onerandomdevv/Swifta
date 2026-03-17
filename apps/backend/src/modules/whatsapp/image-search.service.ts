@@ -25,7 +25,7 @@ export class ImageSearchService {
     this.fallbackSearchApi =
       this.configService.get<string>("IMAGE_SEARCH_FALLBACK") || "gemini";
     this.metaAccessToken =
-      this.configService.get<string>("WHATSAPP_ACCESS_TOKEN") || "";
+      this.configService.get<string>("whatsapp.accessToken") || "";
   }
 
   private maskIdentifier(identifier: string): string {
@@ -39,7 +39,7 @@ export class ImageSearchService {
     try {
       await this.interactiveService.sendTextMessage(
         phone,
-        "Analyzing your image, please wait... 🔍",
+        "Analyzing image. Please wait...",
       );
 
       // 1. Download image from Meta
@@ -74,7 +74,7 @@ export class ImageSearchService {
       if (!extractedTerms) {
         await this.interactiveService.sendTextMessage(
           phone,
-          "I couldn't identify any products in this image. Please ensure the product is clearly visible.",
+          "Identification failed. Please ensure the product is clearly visible.",
         );
         return;
       }
@@ -88,7 +88,7 @@ export class ImageSearchService {
       if (products.length === 0) {
         await this.interactiveService.sendTextMessage(
           phone,
-          `I detected "${extractedTerms.join(", ")}" but couldn't find any matching products on SwiftTrade right now.`,
+          `I detected "${extractedTerms.join(", ")}" but found no matching products on Swifta.`,
         );
         return;
       }
@@ -105,7 +105,7 @@ export class ImageSearchService {
 
       await this.interactiveService.sendListMessage(
         phone,
-        `I found these products that match your image (${extractedTerms[0]}):`,
+        `Matching products for "${extractedTerms[0]}":`,
         "View Products",
         [{ title: "Matches", rows }],
       );
@@ -116,7 +116,7 @@ export class ImageSearchService {
       );
       await this.interactiveService.sendTextMessage(
         phone,
-        "Something went wrong while searching. Please try again later.",
+        "An error occurred during image search. Please try again later.",
       );
     }
   }

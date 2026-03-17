@@ -12,7 +12,7 @@ import {
 import {
   Notification as BackendNotification,
   NotificationType,
-} from "@hardware-os/shared";
+} from "@swifta/shared";
 
 export interface NotificationUI {
   id: string;

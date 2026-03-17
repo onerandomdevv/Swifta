@@ -1,6 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { formatKobo } from "@hardware-os/shared";
+import { formatKobo } from "@swifta/shared";
 
 interface MoneyProps extends React.HTMLAttributes<HTMLSpanElement> {
   amount: bigint | number;

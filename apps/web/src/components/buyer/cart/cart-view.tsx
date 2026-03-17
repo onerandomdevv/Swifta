@@ -11,7 +11,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { toast } from "sonner";
 import Link from "next/link";
 import { cn, formatKobo, optimizeCloudinaryUrl } from "@/lib/utils";
-import { Product } from "@hardware-os/shared";
+import { Product, VerificationTier } from "@swifta/shared";
 import { StateLgaSelector } from "@/components/ui/state-lga-selector";
 
 type PaymentMethod = "ESCROW" | "DIRECT";
@@ -60,7 +60,7 @@ export function CartView({
   });
 
   // Group items by merchant
-  const cartItems = cart?.items || [];
+  const cartItems = React.useMemo(() => cart?.items || [], [cart?.items]);
   const groupedItems = React.useMemo(() => {
     const groups: Record<string, { merchantName: string; merchantTier: string; merchantAddress?: string; items: any[] }> = {};
     cartItems.forEach((item) => {
@@ -88,18 +88,18 @@ export function CartView({
   }, [merchantIds, selectedMerchantId]);
 
   // Derived states for SELECTED merchant
-  const activeGroup = selectedMerchantId ? groupedItems[selectedMerchantId] : null;
-  const activeItems = activeGroup?.items || [];
-  const activeSubtotalKobo = activeItems.reduce((sum, item) => sum + Number(item.itemTotalKobo), 0);
+  const activeGroup = React.useMemo(() => selectedMerchantId ? groupedItems[selectedMerchantId] : null, [selectedMerchantId, groupedItems]);
+  const activeItems = React.useMemo(() => activeGroup?.items || [], [activeGroup?.items]);
+  const activeSubtotalKobo = React.useMemo(() => activeItems.reduce((sum, item) => sum + Number(item.itemTotalKobo), 0), [activeItems]);
   const activeMerchantTier = activeGroup?.merchantTier;
-  const isVerifiedMerchant = activeMerchantTier === "VERIFIED" || activeMerchantTier === "TRUSTED";
+  const isVerifiedMerchant = activeMerchantTier === VerificationTier.TIER_2 || activeMerchantTier === VerificationTier.TIER_3;
 
   // Fetch Related Products
   useEffect(() => {
     async function fetchRelated() {
       try {
-        const data = await productApi.getCatalogue("", "All Categories", 1, 5);
-        setRelatedProducts(data);
+        const response = await productApi.getCatalogue("", "All Categories", 1, 5);
+        setRelatedProducts(response.data);
       } catch (err) {
         console.error("Failed to load related products", err);
       }
@@ -226,12 +226,25 @@ export function CartView({
     }
   };
 
+  // Platform Fee Calculation (Sync with backend PlatformConfig)
+  const FEE_ESCROW = Number(process.env.NEXT_PUBLIC_PLATFORM_FEE_ESCROW || 2);
+  const FEE_DIRECT_TIER2 = Number(process.env.NEXT_PUBLIC_PLATFORM_FEE_DIRECT_TIER2 || 1.5);
+  const FEE_DIRECT_TIER3 = Number(process.env.NEXT_PUBLIC_PLATFORM_FEE_DIRECT_TIER3 || 1);
+
+  const getFeePercent = () => {
+    if (paymentMethod === "ESCROW") return FEE_ESCROW;
+    if (activeMerchantTier === "TIER_3") return FEE_DIRECT_TIER3;
+    if (activeMerchantTier === "TIER_2") return FEE_DIRECT_TIER2;
+    return FEE_ESCROW;
+  };
+
   const isSubmitting = createOrderMutation.isPending;
-  const feePercentage = (isVerifiedMerchant && paymentMethod === "DIRECT") ? 0.01 : 0.02;
+  const isAddressComplete = !!(deliveryState && deliveryLga && deliveryStreet.trim() && primaryPhone.trim());
+
+  const feePercentage = getFeePercent() / 100;
   const platformFeeKobo = Math.floor(activeSubtotalKobo * feePercentage);
   const deliveryFeeKobo = deliveryMethod === "PLATFORM_LOGISTICS" ? deliveryQuoteKobo || 250000 : 0;
   const totalKobo = activeSubtotalKobo + platformFeeKobo + deliveryFeeKobo;
-  const isAddressComplete = !!(deliveryState && deliveryLga && deliveryStreet.trim() && primaryPhone.trim());
 
   if (isRedirecting) {
     return (
@@ -354,7 +367,7 @@ export function CartView({
 
                   <div className="px-6 py-2 divide-y divide-slate-50">
                     {group.items.map((item) => (
-                      <div key={item.id} className="py-5 flex gap-5">
+                      <div key={item.id} className="py-5 flex flex-col sm:flex-row gap-5">
                         <div className="size-16 rounded-xl bg-slate-100 overflow-hidden flex items-center justify-center shrink-0 border border-slate-50">
                           {item.product.imageUrl ? (
                             <img src={optimizeCloudinaryUrl(item.product.imageUrl, 200)} alt={item.product.name} className="w-full h-full object-cover" />
@@ -362,7 +375,7 @@ export function CartView({
                             <span className="material-symbols-outlined text-slate-300">inventory_2</span>
                           )}
                         </div>
-                        <div className="flex-1 flex justify-between gap-4">
+                        <div className="flex-1 flex flex-col sm:flex-row justify-between gap-4">
                           <div className="space-y-1">
                             <h4 className="font-bold text-sm text-slate-900">{item.product.name}</h4>
                             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">
@@ -377,7 +390,7 @@ export function CartView({
                               <button onClick={(e) => { e.stopPropagation(); handleRemoveItem(item.id); }} className="text-[9px] font-black text-slate-300 hover:text-rose-500 uppercase tracking-widest transition-colors">Remove</button>
                             </div>
                           </div>
-                          <div className="text-right">
+                          <div className="sm:text-right">
                             <p className="text-sm font-black text-slate-900 leading-none">{formatKobo(Number(item.itemTotalKobo))}</p>
                           </div>
                         </div>
@@ -440,7 +453,7 @@ export function CartView({
               disabled={isSubmitting || !selectedMerchantId || !isAddressComplete}
               className={cn(
                 "w-full py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all",
-                !selectedMerchantId || !isAddressComplete
+                isSubmitting || !selectedMerchantId || !isAddressComplete
                   ? "bg-white/10 text-white/30 cursor-not-allowed"
                   : "bg-emerald-500 hover:bg-emerald-400 text-white shadow-xl shadow-emerald-500/20"
               )}
@@ -453,6 +466,30 @@ export function CartView({
           </div>
         </aside>
       </div>
+
+      {/* ── Mobile Sticky Checkout Bar ── */}
+      {cartItems.length > 0 && (
+        <div className="fixed bottom-20 left-0 right-0 z-50 lg:hidden bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-3 shadow-lg">
+          <div className="flex items-center justify-between max-w-lg mx-auto">
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total</p>
+              <p className="text-lg font-black text-slate-900 tracking-tight">{formatKobo(totalKobo)}</p>
+            </div>
+            <button
+              onClick={handleCheckout}
+              disabled={isSubmitting || !selectedMerchantId || !isAddressComplete}
+              className={cn(
+                "px-8 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all",
+                isSubmitting || !selectedMerchantId || !isAddressComplete
+                  ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                  : "bg-primary text-white shadow-lg shadow-primary/20 active:scale-95"
+              )}
+            >
+              {isSubmitting ? "Processing..." : "Checkout"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

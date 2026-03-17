@@ -4,8 +4,8 @@ import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMerchantOrders } from "@/hooks/use-merchant-orders";
-import { OrderStatus } from "@hardware-os/shared";
-import type { Order } from "@hardware-os/shared";
+import { OrderStatus } from "@swifta/shared";
+import type { Order } from "@swifta/shared";
 import { formatKobo } from "@/lib/utils";
 import { OrderDrawer } from "@/components/merchant/orders/order-drawer";
 import { DispatchModal } from "@/components/merchant/orders/dispatch-modal";
@@ -195,8 +195,74 @@ export default function MerchantOrdersPage() {
           </div>
 
           {/* Data Table */}
+          {/* Data Display */}
           <div className="overflow-x-auto">
-            <table className="w-full text-left">
+            {/* Mobile Card View */}
+            <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+              {filteredOrders.length === 0 ? (
+                <div className="px-8 py-24 text-center">
+                  <div className="flex flex-col items-center justify-center space-y-4 opacity-20 grayscale">
+                    <span className="material-symbols-outlined text-6xl">inventory_2</span>
+                    <p className="text-xs font-black uppercase tracking-widest leading-loose">No orders found</p>
+                  </div>
+                </div>
+              ) : (
+                filteredOrders.map((order) => (
+                  <div
+                    key={order.id}
+                    className="p-6 bg-white dark:bg-navy-dark active:bg-slate-50 dark:active:bg-slate-800/50 transition-colors"
+                    onClick={() => setSelectedOrderId(order.id)}
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ORD-{order.id.slice(0, 6).toUpperCase()}</p>
+                        <h4 className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-tight">
+                          {order.buyer?.name || "Guest Procure"}
+                        </h4>
+                      </div>
+                      <StatusBadge status={order.status} className="scale-90 origin-right" />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Date</span>
+                        <span className="text-[10px] font-bold text-slate-900 dark:text-white">{formatDate(order.createdAt)}</span>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Settlement</span>
+                        <span className="text-xs font-black text-primary tabular-nums tracking-widest">
+                          {formatKobo(Number(order.totalAmountKobo) - Number(order.platformFeeKobo || 0))}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-800 flex justify-between items-center">
+                      <Link
+                        href={`/merchant/orders/${order.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1 hover:text-primary transition-colors"
+                      >
+                        Full Details <span className="material-symbols-outlined text-sm">open_in_new</span>
+                      </Link>
+                      {order.status === OrderStatus.PAID && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedOrderId(order.id);
+                          }}
+                          className="px-6 py-2 bg-primary text-navy-dark text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-primary/10 active:scale-95 transition-all"
+                        >
+                          Dispatch
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <table className="w-full text-left hidden md:table">
               <thead>
                 <tr className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-50 dark:border-slate-800">
                   <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Order ID</th>
@@ -249,7 +315,7 @@ export default function MerchantOrdersPage() {
                       </td>
                       <td className="px-8 py-6 text-right">
                         <span className="text-xs font-black text-navy-dark dark:text-white tabular-nums tracking-widest">
-                          {formatKobo(Number(order.totalAmountKobo) + Number(order.deliveryFeeKobo))}
+                          {formatKobo(Number(order.totalAmountKobo) - Number(order.platformFeeKobo || 0))}
                         </span>
                       </td>
                       <td className="px-8 py-6 text-right" onClick={(e) => e.stopPropagation()}>

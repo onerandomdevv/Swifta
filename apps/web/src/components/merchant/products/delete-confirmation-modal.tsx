@@ -23,7 +23,7 @@ export function DeleteConfirmationModal({ isOpen, onClose, onConfirm }: Props) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Confirm Deletion">
       <div className="p-6 space-y-6">
-        <p className="text-sm text-slate-600 dark:text-slate-300">
+        <p className="text-sm text-foreground-secondary">
           Are you sure you want to delete this product? It will be removed
           from the catalogue and inventory. This action cannot be undone.
         </p>
@@ -32,7 +32,7 @@ export function DeleteConfirmationModal({ isOpen, onClose, onConfirm }: Props) {
           <button
             onClick={onClose}
             disabled={loading}
-            className="px-6 py-3 border-2 border-slate-100 dark:border-slate-800 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:border-slate-300 transition-all disabled:opacity-50"
+            className="px-6 py-3 border-2 border-border rounded-xl text-[10px] font-black uppercase tracking-widest text-foreground-muted hover:border-foreground-muted transition-all disabled:opacity-50"
           >
             Cancel
           </button>

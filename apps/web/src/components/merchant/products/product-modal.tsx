@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { productApi } from "@/lib/api/product.api";
 import { getCategories } from "@/lib/api/category.api";
 import { merchantApi } from "@/lib/api/merchant.api";
-import { type Category, type Product } from "@hardware-os/shared";
+import { type Category, type Product } from "@swifta/shared";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -206,20 +206,20 @@ export function ProductModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-white dark:bg-[#111] sm:bg-slate-900/50 sm:backdrop-blur-sm animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/40 sm:bg-background/50 sm:backdrop-blur-sm animate-in fade-in duration-300">
       <div className="hidden sm:block fixed inset-0" onClick={onClose} />
       
       {/* Minimal Modal Container */}
-      <div className="relative bg-white dark:bg-[#151515] w-full max-w-xl rounded-none sm:rounded-3xl shadow-none sm:shadow-2xl overflow-hidden flex flex-col h-full sm:h-auto sm:max-h-[95vh] animate-in zoom-in-95 duration-300">
+      <div className="relative bg-surface w-full max-w-xl rounded-none sm:rounded-3xl shadow-none sm:shadow-2xl overflow-hidden flex flex-col h-full sm:h-auto sm:max-h-[95vh] animate-in zoom-in-95 duration-300">
         
         {/* Simplified Header */}
-        <div className="px-8 py-6 border-b border-slate-50 dark:border-slate-900 flex justify-between items-center">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+        <div className="px-8 py-6 border-b border-border flex justify-between items-center">
+          <h2 className="text-lg font-bold text-foreground">
             {product ? "Edit Listing" : "New Listing"}
           </h2>
           <button 
             onClick={onClose}
-            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors text-slate-400"
+            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-background-secondary transition-colors text-foreground-muted"
           >
             <span className="material-symbols-outlined text-xl">close</span>
           </button>
@@ -229,16 +229,16 @@ export function ProductModal({
         <div className="flex-1 overflow-y-auto custom-scrollbar px-8 py-8 space-y-10">
           
           {/* Subtle Status Bar */}
-          <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50/50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
+          <div className="flex items-center justify-between p-4 rounded-2xl bg-background-secondary/50 border border-border">
             <div className="flex flex-col">
-              <span className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Visibility</span>
-              <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
+              <span className="text-[11px] font-black uppercase tracking-widest text-foreground-muted mb-0.5">Visibility</span>
+              <span className="text-sm font-bold text-foreground-secondary">
                 {formData.isActive ? "Live on Storefront" : "Saved in Inventory"}
               </span>
             </div>
             <label className={cn(
               "relative flex h-6 w-11 cursor-pointer items-center rounded-full transition-all p-1",
-              formData.isActive ? "bg-primary shadow-inner" : "bg-slate-200 dark:bg-slate-800"
+              formData.isActive ? "bg-primary shadow-inner" : "bg-background-secondary"
             )}>
               <input 
                 type="checkbox" 
@@ -258,12 +258,12 @@ export function ProductModal({
             <div className="flex flex-col items-center gap-4">
               <div 
                 onClick={() => fileInputRef.current?.click()}
-                className="group relative size-32 rounded-3xl overflow-hidden bg-slate-50 dark:bg-white/5 border-2 border-dashed border-slate-200 dark:border-white/10 hover:border-primary/50 transition-all cursor-pointer flex items-center justify-center"
+                className="group relative size-32 rounded-3xl overflow-hidden bg-background-secondary/50 border-2 border-dashed border-border hover:border-primary/50 transition-all cursor-pointer flex items-center justify-center"
               >
                 {formData.imageUrl ? (
                   <img src={formData.imageUrl} className="w-full h-full object-cover" alt="Product" />
                 ) : (
-                  <span className="material-symbols-outlined text-slate-300 dark:text-slate-700 text-3xl transition-transform group-hover:scale-110">image</span>
+                  <span className="material-symbols-outlined text-foreground-muted/40 text-3xl transition-transform group-hover:scale-110">image</span>
                 )}
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <span className="material-symbols-outlined text-white text-xl">
@@ -272,15 +272,15 @@ export function ProductModal({
                 </div>
                 <input type="file" ref={fileInputRef} className="hidden" onChange={handleImageUpload} accept="image/*" />
               </div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Product Photo</p>
+              <p className="text-[10px] font-bold text-foreground-muted uppercase tracking-widest">Product Photo</p>
             </div>
 
             {/* Single Column Form */}
             <div className="space-y-6">
               <div className="space-y-1.5">
-                <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">Product Name</label>
+                <label className="text-[11px] font-black uppercase tracking-widest text-foreground-muted">Product Name</label>
                 <input 
-                  className="w-full bg-transparent border-b border-slate-200 dark:border-white/10 py-3 text-lg font-bold text-slate-900 dark:text-white focus:border-primary outline-none transition-all placeholder:text-slate-300" 
+                  className="w-full bg-transparent border-b border-border py-3 text-lg font-bold text-foreground focus:border-primary outline-none transition-all placeholder:text-foreground-muted/30" 
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
                   placeholder="e.g. Dangote Cement 50kg"
@@ -288,10 +288,10 @@ export function ProductModal({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">Category</label>
+                <label className="text-[11px] font-black uppercase tracking-widest text-foreground-muted">Category</label>
                 <select 
                   className={cn(
-                    "w-full bg-transparent border-b border-slate-200 dark:border-white/10 py-3 text-sm font-bold text-slate-900 dark:text-white focus:border-primary outline-none transition-all appearance-none",
+                    "w-full bg-transparent border-b border-border py-3 text-sm font-bold text-foreground focus:border-primary outline-none transition-all appearance-none",
                     categoriesError ? "border-red-500 text-red-500" : ""
                   )}
                   value={formData.categoryId}
@@ -301,11 +301,11 @@ export function ProductModal({
                     setFormData({...formData, categoryId: e.target.value, categoryTag: cat?.name || ""});
                   }}
                 >
-                  <option value="" className="dark:bg-slate-900">
+                  <option value="" className="bg-surface">
                     {categoriesLoading ? "Loading Categories..." : categoriesError ? "Error loading categories" : "Select Category"}
                   </option>
                   {categories.map(cat => (
-                    <option key={cat.id} value={cat.id} className="dark:bg-slate-900">{cat.name}</option>
+                    <option key={cat.id} value={cat.id} className="bg-surface">{cat.name}</option>
                   ))}
                 </select>
                 {categoriesError && (
@@ -315,18 +315,18 @@ export function ProductModal({
 
               <div className="grid grid-cols-2 gap-8">
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">Retail (₦)</label>
+                  <label className="text-[11px] font-black uppercase tracking-widest text-foreground-muted">Retail (₦)</label>
                   <input 
-                    className="w-full bg-transparent border-b border-slate-200 dark:border-white/10 py-3 text-lg font-bold text-slate-900 dark:text-white focus:border-primary outline-none transition-all" 
+                    className="w-full bg-transparent border-b border-border py-3 text-lg font-bold text-foreground focus:border-primary outline-none transition-all" 
                     value={formData.retailPrice}
                     onChange={e => setFormData({...formData, retailPrice: e.target.value})}
                     placeholder="0.00"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">Wholesale (₦)</label>
+                  <label className="text-[11px] font-black uppercase tracking-widest text-foreground-muted">Wholesale (₦)</label>
                   <input 
-                    className="w-full bg-transparent border-b border-slate-200 dark:border-white/10 py-3 text-lg font-bold text-slate-900 dark:text-white focus:border-primary outline-none transition-all" 
+                    className="w-full bg-transparent border-b border-border py-3 text-lg font-bold text-foreground focus:border-primary outline-none transition-all" 
                     value={formData.wholesalePrice}
                     onChange={e => setFormData({...formData, wholesalePrice: e.target.value})}
                     placeholder="Optional"
@@ -336,18 +336,18 @@ export function ProductModal({
 
               <div className="grid grid-cols-2 gap-8">
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">Stock Count</label>
+                  <label className="text-[11px] font-black uppercase tracking-widest text-foreground-muted">Stock Count</label>
                   <input 
-                    className="w-full bg-transparent border-b border-slate-200 dark:border-white/10 py-3 text-lg font-bold text-slate-900 dark:text-white focus:border-primary outline-none transition-all" 
+                    className="w-full bg-transparent border-b border-border py-3 text-lg font-bold text-foreground focus:border-primary outline-none transition-all" 
                     type="number"
                     value={formData.initialStock}
                     onChange={e => setFormData({...formData, initialStock: e.target.value})}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">Min. Bulk Qty</label>
+                  <label className="text-[11px] font-black uppercase tracking-widest text-foreground-muted">Min. Bulk Qty</label>
                   <input 
-                    className="w-full bg-transparent border-b border-slate-200 dark:border-white/10 py-3 text-lg font-bold text-slate-900 dark:text-white focus:border-primary outline-none transition-all" 
+                    className="w-full bg-transparent border-b border-border py-3 text-lg font-bold text-foreground focus:border-primary outline-none transition-all" 
                     type="number"
                     value={formData.minOrderQuantity}
                     onChange={e => setFormData({...formData, minOrderQuantity: e.target.value})}
@@ -356,32 +356,32 @@ export function ProductModal({
               </div>
 
               <div className="space-y-2">
-                <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">Warehouse Location</label>
+                <label className="text-[11px] font-black uppercase tracking-widest text-foreground-muted">Warehouse Location</label>
                 <div className="relative">
                   <input 
-                    className="w-full bg-slate-50 dark:bg-white/5 border-b border-slate-200 dark:border-white/10 py-3 pl-2 pr-10 text-sm font-bold text-slate-500 dark:text-slate-400 cursor-not-allowed outline-none transition-all" 
+                    className="w-full bg-background-secondary border-b border-border py-3 pl-2 pr-10 text-sm font-bold text-foreground-secondary cursor-not-allowed outline-none transition-all" 
                     value={formData.warehouseLocation}
                     readOnly
                     placeholder="Syncing from profile..."
                   />
-                  <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 text-lg">lock</span>
+                  <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-foreground-muted/40 text-lg">lock</span>
                 </div>
-                <p className="text-[10px] font-medium text-slate-400 italic">
+                <p className="text-[10px] font-medium text-foreground-muted italic">
                   Address is locked to your business profile. Update it in <span className="text-primary font-bold">Profile Settings</span>.
                 </p>
               </div>
 
               {/* Logistics Section */}
-              <div className="pt-6 border-t border-slate-50 dark:border-white/5 space-y-6">
+              <div className="pt-6 border-t border-border-light space-y-6">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="material-symbols-outlined text-slate-400 text-sm">local_shipping</span>
-                  <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">Logistics & Delivery</label>
+                  <span className="material-symbols-outlined text-foreground-muted text-sm">local_shipping</span>
+                  <label className="text-[11px] font-black uppercase tracking-widest text-foreground-muted">Logistics & Delivery</label>
                 </div>
                 <div className="grid grid-cols-2 gap-8">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-tight text-slate-400">Weight (kg)</label>
+                    <label className="text-[10px] font-bold uppercase tracking-tight text-foreground-muted">Weight (kg)</label>
                     <input 
-                      className="w-full bg-transparent border-b border-slate-200 dark:border-white/10 py-3 text-lg font-bold text-slate-900 dark:text-white focus:border-primary outline-none transition-all" 
+                      className="w-full bg-transparent border-b border-border py-3 text-lg font-bold text-foreground focus:border-primary outline-none transition-all" 
                       type="number"
                       step="0.01"
                       value={formData.weightKg}
@@ -390,17 +390,17 @@ export function ProductModal({
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-tight text-slate-400">Processing Time</label>
+                    <label className="text-[10px] font-bold uppercase tracking-tight text-foreground-muted">Processing Time</label>
                     <select 
-                      className="w-full bg-transparent border-b border-slate-200 dark:border-white/10 py-3 text-sm font-bold text-slate-900 dark:text-white focus:border-primary outline-none transition-all appearance-none"
+                      className="w-full bg-transparent border-b border-border py-3 text-sm font-bold text-foreground focus:border-primary outline-none transition-all appearance-none"
                       value={formData.processingDays}
                       onChange={e => setFormData({...formData, processingDays: e.target.value})}
                     >
-                      <option value="0" className="dark:bg-slate-900">Immediate (Same Day)</option>
-                      <option value="1" className="dark:bg-slate-900">1 Business Day</option>
-                      <option value="2" className="dark:bg-slate-900">2 Business Days</option>
-                      <option value="3" className="dark:bg-slate-900">3-5 Business Days</option>
-                      <option value="7" className="dark:bg-slate-900">1 Week+</option>
+                      <option value="0" className="bg-surface">Immediate (Same Day)</option>
+                      <option value="1" className="bg-surface">1 Business Day</option>
+                      <option value="2" className="bg-surface">2 Business Days</option>
+                      <option value="3" className="bg-surface">3-5 Business Days</option>
+                      <option value="7" className="bg-surface">1 Week+</option>
                     </select>
                   </div>
                 </div>
@@ -408,16 +408,16 @@ export function ProductModal({
 
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
-                  <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">Short Description</label>
+                  <label className="text-[11px] font-black uppercase tracking-widest text-foreground-muted">Short Description</label>
                   <span className={cn(
                     "text-[10px] font-bold tracking-widest",
-                    formData.shortDescription.length >= 90 ? "text-red-500" : "text-slate-400"
+                    formData.shortDescription.length >= 90 ? "text-red-500" : "text-foreground-muted"
                   )}>
                     {formData.shortDescription.length}/100
                   </span>
                 </div>
                 <input 
-                  className="w-full bg-transparent border-b border-slate-200 dark:border-white/10 py-3 text-sm font-bold text-slate-900 dark:text-white focus:border-primary outline-none transition-all placeholder:text-slate-300" 
+                  className="w-full bg-transparent border-b border-border py-3 text-sm font-bold text-foreground focus:border-primary outline-none transition-all placeholder:text-foreground-muted/30" 
                   value={formData.shortDescription}
                   onChange={e => setFormData({...formData, shortDescription: e.target.value})}
                   maxLength={100}
@@ -427,15 +427,15 @@ export function ProductModal({
 
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
-                  <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">More Description</label>
+                  <label className="text-[11px] font-black uppercase tracking-widest text-foreground-muted">More Description</label>
                   <span className={cn(
-                    "text-[10px] font-bold tracking-widest text-slate-400"
+                    "text-[10px] font-bold tracking-widest text-foreground-muted"
                   )}>
                     {formData.description.length}/2000
                   </span>
                 </div>
                 <textarea 
-                  className="w-full bg-transparent border-b border-slate-200 dark:border-white/10 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 focus:border-primary outline-none transition-all resize-none" 
+                  className="w-full bg-transparent border-b border-border py-3 text-sm font-medium text-foreground-secondary focus:border-primary outline-none transition-all resize-none" 
                   rows={3}
                   value={formData.description}
                   onChange={e => setFormData({...formData, description: e.target.value})}
@@ -448,7 +448,7 @@ export function ProductModal({
         </div>
 
         {/* Minimal Footer Actions */}
-        <div className="px-8 py-6 flex items-center justify-between bg-slate-50 dark:bg-white/5 border-t border-slate-50 dark:border-white/5">
+        <div className="px-8 py-6 flex items-center justify-between bg-background-secondary/50 border-t border-border">
           {product ? (
             <button 
               onClick={handleArchive}

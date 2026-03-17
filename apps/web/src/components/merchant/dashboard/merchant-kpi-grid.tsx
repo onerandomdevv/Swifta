@@ -25,43 +25,49 @@ export function MerchantKpiGrid({
         <CardWrapper
           href={stat.href || "#"}
           key={idx}
-          className="block bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 cursor-pointer"
+          className="block bg-surface rounded-[2.5rem] p-8 border border-border shadow-sm relative overflow-hidden group hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 cursor-pointer"
         >
           <div className="flex justify-between items-start mb-8 relative z-10">
-            <div className="size-12 rounded-2xl bg-blue-50 dark:bg-blue-900/10 flex items-center justify-center text-blue-600 dark:text-blue-400">
+            <div className="size-12 rounded-2xl bg-primary/5 dark:bg-primary/10 flex items-center justify-center text-primary">
               <span className="material-symbols-outlined font-black">
                 {stat.icon}
               </span>
             </div>
             {stat.trend && (
               <span
-                className={`px-3 py-1 rounded-full text-[9px] font-black tracking-widest uppercase border ${stat.trendType === "up" ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-slate-50 text-slate-500 border-slate-200"}`}
+                className={`px-3 py-1 rounded-full text-[9px] font-black tracking-widest uppercase border ${
+                  stat.trendType === "up" 
+                    ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" 
+                    : stat.trendType === "down"
+                    ? "bg-red-500/10 text-red-600 border-red-500/20"
+                    : "bg-background-secondary text-foreground-muted border-border"
+                }`}
               >
                 {stat.trend}
               </span>
             )}
             {stat.badge && (
-              <span className="px-3 py-1 bg-red-50 text-red-600 text-[9px] font-black uppercase tracking-widest border border-red-100 rounded-full animate-pulse">
+              <span className="px-3 py-1 bg-red-500/10 text-red-600 text-[9px] font-black uppercase tracking-widest border border-red-500/20 rounded-full animate-pulse">
                 {stat.badge}
               </span>
             )}
           </div>
 
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 relative z-10">
+          <p className="text-[10px] font-black text-foreground-muted uppercase tracking-[0.2em] mb-2 relative z-10">
             {stat.label}
           </p>
-          <h3 className="text-3xl font-black text-navy-dark dark:text-white tracking-tighter uppercase leading-none relative z-10">
+          <h3 className="text-3xl font-black text-foreground tracking-tighter uppercase leading-none relative z-10">
             {stat.isMoney ? (
               <Money amount={stat.value as bigint} />
             ) : (
               (stat.value as ReactNode)
             )}
           </h3>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-6 relative z-10">
+          <p className="text-[10px] font-bold text-foreground-muted uppercase tracking-widest mt-6 relative z-10">
             {stat.sub}
           </p>
 
-          <div className="absolute -right-6 -bottom-6 size-24 bg-slate-50 dark:bg-white/5 rounded-full blur-xl group-hover:scale-150 transition-transform duration-700"></div>
+          <div className="absolute -right-6 -bottom-6 size-24 bg-background-secondary/50 dark:bg-white/5 rounded-full blur-xl group-hover:scale-150 transition-transform duration-700"></div>
         </CardWrapper>
       )})}
     </div>

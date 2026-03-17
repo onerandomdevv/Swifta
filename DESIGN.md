@@ -1,4 +1,4 @@
-This SwiftTrade V1 Design System Specification serves as the technical blueprint for implementing the high-contrast, utilitarian B2B platform across mobile and desktop.
+This Swifta V1 Design System Specification serves as the technical blueprint for implementing the high-contrast, utilitarian B2B platform across mobile and desktop.
 
 1. Core Philosophy & Aesthetic Rules
 Mission: A "No-Nonsense" industrial tool for high-value commerce. The UI must feel as stable and heavy as the materials (cement, iron) being sold.
@@ -46,7 +46,7 @@ CTA Priority: The primary action is always 'Request Quote' or 'Send RFQ'. There 
 The Typography Scale & Text Hierarchy has been defined to ensure maximum legibility for merchants and contractors, even in high-glare outdoor environments:
 
 Typography Scale & Text Hierarchy: A technical documentation screen that specifies an industrial font system. It uses a clean, bold sans-serif for headings and a monospaced font for data-heavy fields (like SKUs and Naira amounts) to ensure tabular alignment and precision.
-SwiftTrade V1 Typography Scale
+Swifta V1 Typography Scale
 Role	Desktop Size	Mobile Size	Weight	Line Height	Usage
 H1 - Dashboard Title	32px	24px	700 (Bold)	1.2	Main Page Titles
 H2 - Section Header	24px	20px	600 (Semi)	1.3	Kanban Columns, Card Titles
@@ -64,4 +64,4 @@ Next.js Architecture:
 - Page views (like `page.tsx`) should act as data-fetching containers (`useMerchantDashboard`) and layout shells, passing data down to pure presentation components without injecting redundant old KPI grids unless explicitly designed.
 
 BigInt Serialization:
-Our NestJS backend and shared types use `BigInt` for high-precision financial data (Naira/Kobo). In API boundaries and testing containers, ensure `BigInt.prototype.toJSON` is properly patched or manually converted to strings, as `JSON.stringify` natively throws errors on BigInt values. When extracting values on the frontend, always parse `totalAmountKobo` into a formatting utility (like `formatKobo` from `@hardware-os/shared`) rather than displaying raw integers.
+Our NestJS backend and shared types use `BigInt` for high-precision financial data (Naira/Kobo). In API boundaries and testing containers, ensure `BigInt.prototype.toJSON` is properly patched or manually converted to strings, as `JSON.stringify` natively throws errors on BigInt values. When extracting values on the frontend, always parse `totalAmountKobo` into a formatting utility (like `formatKobo` from `@swifta/shared`) rather than displaying raw integers.

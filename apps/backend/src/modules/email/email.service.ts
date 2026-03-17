@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Resend } from "resend";
+import { PlatformConfig } from "../../config/platform.config";
 
 @Injectable()
 export class EmailService {
@@ -23,9 +24,9 @@ export class EmailService {
       this.logger.log(`Sending email to ${to}: ${subject}`);
 
       const { data, error } = await this.resend.emails.send({
-        from: `SwiftTrade <${this.fromEmail}>`,
+        from: `Swifta <${this.fromEmail}>`,
         to: [to],
-        subject: `SwiftTrade | ${subject}`,
+        subject: `Swifta | ${subject}`,
         html,
       });
 
@@ -74,7 +75,7 @@ export class EmailService {
         <div style="padding: 40px 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
           ${content}
           <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 14px; text-align: center;">
-            <p>&copy; ${new Date().getFullYear()} SwiftTrade. Built for Lagos trade.</p>
+            <p>&copy; ${new Date().getFullYear()} Swifta. Built for Lagos trade.</p>
           </div>
         </div>
       </div>
@@ -89,9 +90,9 @@ export class EmailService {
     const safeName = this.escapeHtml(name);
     const safeRole = this.escapeHtml(role);
     const content = `
-      <h2 style="font-size: 20px; margin-bottom: 20px;">Welcome to SwiftTrade, ${safeName}!</h2>
+      <h2 style="font-size: 20px; margin-bottom: 20px;">Welcome to Swifta, ${safeName}!</h2>
       <p>We're excited to have you on board as a <strong>${safeRole}</strong>.</p>
-      <p>SwiftTrade is digitizing Africa's hardware trade network, and you're now part of the movement.</p>
+      <p>Swifta is digitizing Africa's hardware trade network, and you're now part of the movement.</p>
       ${
         role === "MERCHANT"
           ? `<p>Next step: Complete your business profile and start listing your products to receive quote requests from buyers.</p>`
@@ -101,14 +102,14 @@ export class EmailService {
         <a href="${this.configService.get("FRONTEND_URL")}/dashboard" style="background-color: #0F2B4C; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Go to Dashboard</a>
       </div>
     `;
-    await this.sendEmail(to, "Welcome to SwiftTrade", this.getLayout(content));
+    await this.sendEmail(to, "Welcome to Swifta", this.getLayout(content));
   }
 
   async sendVerificationOTP(to: string, otp: string): Promise<void> {
     const safeOtp = this.escapeHtml(otp);
     const content = `
       <h2 style="font-size: 20px; margin-bottom: 20px; text-align: center;">Your Verification Code</h2>
-      <p style="text-align: center;">Please use the following code to verify your account. It expires in 10 minutes.</p>
+      <p style="text-align: center;">Please use the following code to verify your account. It expires in ${PlatformConfig.timers.otpExpiryEmailMinutes} minutes.</p>
       <div style="background-color: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 12px; padding: 20px; margin: 30px auto; max-width: 200px; text-align: center;">
         <h1 style="font-size: 32px; letter-spacing: 8px; margin: 0; color: #0f172a;">${safeOtp}</h1>
       </div>
@@ -243,7 +244,7 @@ export class EmailService {
       <h2 style="font-size: 20px; margin-bottom: 20px;">Delivery Confirmed Success!</h2>
       <p>Delivery of Order <strong>#${safeReference}</strong> has been confirmed.</p>
       <p>The transaction of <strong>${this.formatNaira(amountKobo)}</strong> is now complete.</p>
-      <p>Thank you for trading with SwiftTrade!</p>
+      <p>Thank you for trading with Swifta!</p>
     `;
     await this.sendEmail(
       to,
@@ -264,11 +265,11 @@ export class EmailService {
       <div style="margin-top: 30px; text-align: center;">
         <a href="${resetUrl}" style="background-color: #0F2B4C; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Reset Password</a>
       </div>
-      <p style="margin-top: 30px; font-size: 12px; color: #94a3b8;">This link will expire in 15 minutes.</p>
+      <p style="margin-top: 30px; font-size: 12px; color: #94a3b8;">This link will expire in ${PlatformConfig.timers.otpExpiryAuthMinutes} minutes.</p>
     `;
     await this.sendEmail(
       to,
-      "Reset your SwiftTrade Password",
+      "Reset your Swifta Password",
       this.getLayout(content),
     );
   }

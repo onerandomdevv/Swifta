@@ -4,7 +4,7 @@ import React, { useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatKobo } from "@/lib/utils";
-import type { Order } from "@hardware-os/shared";
+import type { Order } from "@swifta/shared";
 import { useOrder } from "@/hooks/use-order";
 import { OrderTimeline } from "@/components/ui/order-timeline";
 import { Modal } from "@/components/ui/modal";
@@ -363,9 +363,25 @@ export default function BuyerOrderDetailsPage() {
                         )}
                       </tbody>
                       <tfoot className="bg-slate-50 dark:bg-slate-800/50">
-                        <tr>
-                          <td className="px-6 py-4 text-right font-bold text-slate-500" colSpan={3}>Grand Total</td>
-                          <td className="px-6 py-4 text-right font-black text-xl text-primary">{formatKobo(order.totalAmountKobo)}</td>
+                        <tr className="border-t border-slate-100 dark:border-slate-800">
+                          <td className="px-6 py-2 text-right text-xs font-bold text-slate-400 uppercase tracking-widest" colSpan={3}>Subtotal</td>
+                          <td className="px-6 py-2 text-right font-mono text-slate-900 dark:text-white">{formatKobo(Number(order.totalAmountKobo) - Number(order.deliveryFeeKobo || 0) - Number(order.platformFeeKobo || 0))}</td>
+                        </tr>
+                        {order.platformFeeKobo && (
+                          <tr>
+                            <td className="px-6 py-2 text-right text-xs font-bold text-slate-400 uppercase tracking-widest" colSpan={3}>Platform Fee ({order.platformFeePercent || 0}%)</td>
+                            <td className="px-6 py-2 text-right font-mono text-slate-900 dark:text-white">{formatKobo(order.platformFeeKobo)}</td>
+                          </tr>
+                        )}
+                        {order.deliveryFeeKobo && (
+                          <tr>
+                            <td className="px-6 py-2 text-right text-xs font-bold text-slate-400 uppercase tracking-widest" colSpan={3}>Delivery Fee</td>
+                            <td className="px-6 py-2 text-right font-mono text-slate-900 dark:text-white">{formatKobo(order.deliveryFeeKobo)}</td>
+                          </tr>
+                        )}
+                        <tr className="border-t-2 border-slate-200 dark:border-slate-700 bg-slate-100/50 dark:bg-slate-800">
+                          <td className="px-6 py-4 text-right font-black text-slate-500 uppercase tracking-wider" colSpan={3}>Grand Total</td>
+                          <td className="px-6 py-4 text-right font-black text-2xl text-primary">{formatKobo(order.totalAmountKobo)}</td>
                         </tr>
                       </tfoot>
                     </table>
@@ -414,7 +430,7 @@ export default function BuyerOrderDetailsPage() {
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-slate-500">Carrier</span>
                     <span className="font-medium text-slate-900 dark:text-white">
-                      {order.deliveryMethod === "PLATFORM_LOGISTICS" ? "SwiftExpress" : "Merchant Delivery"}
+                      {order.deliveryMethod === "PLATFORM_LOGISTICS" ? "Swifta Express" : "Merchant Delivery"}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
@@ -517,7 +533,7 @@ export default function BuyerOrderDetailsPage() {
       >
         <div className="space-y-6">
           <p className="text-sm text-slate-500">
-            Describe the issue you encountered. The SwiftTrade mediation team will review your report within 24 hours.
+            Describe the issue you encountered. The Swifta mediation team will review your report within 24 hours.
           </p>
           <textarea
             value={disputeReason}

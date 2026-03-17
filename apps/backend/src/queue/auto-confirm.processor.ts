@@ -5,7 +5,7 @@ import { AUTO_CONFIRM_QUEUE } from "./queue.constants";
 import { PrismaService } from "../prisma/prisma.service";
 import { PayoutService } from "../modules/payout/payout.service";
 import { WhatsAppService } from "../modules/whatsapp/whatsapp.service";
-import { OrderStatus } from "@hardware-os/shared";
+import { OrderStatus } from "@swifta/shared";
 
 const AUTO_CONFIRM_HOURS = 168; // 7 days
 const REMINDER_3DAYS = 72;
@@ -79,7 +79,7 @@ export class AutoConfirmProcessor extends WorkerHost {
       try {
         await this.whatsappService.sendWhatsAppMessage(
           phone,
-          `⏰ *Delivery Reminder*\n\nYour order #${order.id.substring(0, 8)} for *${itemName}* was dispatched 72 hours ago. If it has arrived, please confirm delivery with your OTP code to complete the transaction.\n\nIf there's an issue with delivery, open a dispute via the SwiftTrade app before the payment is released.`,
+          `⏰ *Delivery Reminder*\n\nYour order #${order.id.substring(0, 8)} for *${itemName}* was dispatched 72 hours ago. If it has arrived, please confirm delivery with your OTP code to complete the transaction.\n\nIf there's an issue with delivery, open a dispute via the Swifta app before the payment is released.`,
         );
       } catch (err) {
         this.logger.warn(
@@ -123,7 +123,7 @@ export class AutoConfirmProcessor extends WorkerHost {
       try {
         await this.whatsappService.sendWhatsAppMessage(
           phone,
-          `⚠️ *Final Reminder — Action Required*\n\nYour order #${order.id.substring(0, 8)} for *${itemName}* has been dispatched for 5 days.\n\n*If you do not confirm or dispute within 48 hours, the order will be auto-confirmed and the merchant will be paid automatically.*\n\nPlease confirm delivery with your OTP or open a dispute on the SwiftTrade app.`,
+          `⚠️ *Final Reminder — Action Required*\n\nYour order #${order.id.substring(0, 8)} for *${itemName}* has been dispatched for 5 days.\n\n*If you do not confirm or dispute within 48 hours, the order will be auto-confirmed and the merchant will be paid automatically.*\n\nPlease confirm delivery with your OTP or open a dispute on the Swifta app.`,
         );
       } catch (err) {
         this.logger.warn(
@@ -201,7 +201,7 @@ export class AutoConfirmProcessor extends WorkerHost {
           try {
             await this.whatsappService.sendWhatsAppMessage(
               order.user.phone,
-              `✅ *Order Auto-Confirmed*\n\nYour order #${order.id.substring(0, 8)} for *${itemName}* has been automatically confirmed after ${AUTO_CONFIRM_HOURS} hours.\n\nIf you did not receive your goods, you can open a dispute within the next ${DISPUTE_WINDOW_HOURS} hours via the SwiftTrade app. After that, the payment will be released to the merchant.\n\nThank you for using SwiftTrade! 🙏`,
+              `✅ *Order Auto-Confirmed*\n\nYour order #${order.id.substring(0, 8)} for *${itemName}* has been automatically confirmed after ${AUTO_CONFIRM_HOURS} hours.\n\nIf you did not receive your goods, you can open a dispute within the next ${DISPUTE_WINDOW_HOURS} hours via the Swifta app. After that, the payment will be released to the merchant.\n\nThank you for using Swifta! 🙏`,
             );
 
             // Trigger V5 Review Prompt

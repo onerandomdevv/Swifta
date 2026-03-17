@@ -6,7 +6,7 @@ import {
   IsUrl,
   IsIn,
 } from "class-validator";
-import { VerificationIdType } from "@hardware-os/shared";
+import { VerificationIdType } from "@swifta/shared";
 
 export class SubmitVerificationDto {
   @IsUrl({ protocols: ["https"], require_protocol: true })
@@ -19,6 +19,18 @@ export class SubmitVerificationDto {
   @IsOptional()
   @IsUrl({ protocols: ["https"], require_protocol: true })
   cacCertUrl?: string;
+
+  @IsNotEmpty()
+  @IsIn(["TIER_2", "TIER_3"])
+  targetTier: "TIER_2" | "TIER_3";
+
+  @IsOptional()
+  @IsString()
+  ninNumber?: string;
+
+  @IsOptional()
+  @IsUrl({ protocols: ["https"], require_protocol: true })
+  proofOfAddressUrl?: string;
 }
 
 export class ReviewVerificationDto {

@@ -1,4 +1,4 @@
-import { PaginatedResponse } from "@hardware-os/shared";
+import { PaginatedResponse } from "@swifta/shared";
 
 export interface PaginationParams {
   page: number;

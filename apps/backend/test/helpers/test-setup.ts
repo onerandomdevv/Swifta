@@ -3,7 +3,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { AppModule } from "../../src/app.module";
 import { PrismaService } from "../../src/prisma/prisma.service";
 import { JwtService } from "@nestjs/jwt";
-import { UserRole } from "@hardware-os/shared";
+import { UserRole } from "@swifta/shared";
 
 export class TestSetup {
   public app: INestApplication;

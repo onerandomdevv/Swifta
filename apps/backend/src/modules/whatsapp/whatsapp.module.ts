@@ -4,8 +4,6 @@ import { PrismaModule } from "../../prisma/prisma.module";
 import { RedisModule } from "../../redis/redis.module";
 import { QueueModule } from "../../queue/queue.module";
 import { OrderModule } from "../order/order.module";
-import { RFQModule } from "../rfq/rfq.module";
-import { QuoteModule } from "../quote/quote.module";
 import { ProductModule } from "../product/product.module";
 import { TradeFinancingModule } from "../trade-financing/trade-financing.module";
 import { EmailModule } from "../email/email.module";
@@ -30,13 +28,13 @@ import { WhatsAppLoggerService } from "./whatsapp-logger.service";
  * WhatsApp Bot Module
  *
  * Integrates with Meta's WhatsApp Business Cloud API to provide
- * merchants with a conversational interface to SwiftTrade.
+ * merchants with a conversational interface to Swifta.
  *
  * Dependencies:
  *  - PrismaModule: database access (WhatsAppLink, products, orders, etc.)
  *  - RedisModule: session state for linking flow + message dedup
  *  - QueueModule: BullMQ for async message processing
- *  - OrderModule, RFQModule, QuoteModule, ProductModule: existing services
+ *  - OrderModule, ProductModule: existing services
  *  - EmailModule: OTP delivery for phone linking
  *  - ConfigModule: WhatsApp API credentials
  *
@@ -50,8 +48,6 @@ import { WhatsAppLoggerService } from "./whatsapp-logger.service";
     RedisModule,
     QueueModule,
     forwardRef(() => OrderModule),
-    RFQModule,
-    QuoteModule,
     ProductModule,
     TradeFinancingModule,
     EmailModule,

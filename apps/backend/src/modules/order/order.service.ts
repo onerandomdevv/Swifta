@@ -23,7 +23,7 @@ import {
   OrderStatus,
   PaginatedResponse,
   PriceType,
-} from "@hardware-os/shared";
+} from "@swifta/shared";
 
 import { paginate } from "../../common/utils/pagination";
 import { validateTransition, getNextStates } from "./order-state-machine";
@@ -32,6 +32,9 @@ import { VerificationService } from "../verification/verification.service";
 import { CreateDirectOrderDto } from "./dto/create-direct-order.dto";
 import { CreateTrackingDto } from "./dto/create-tracking.dto";
 import { CheckoutCartDto } from "./dto/checkout-cart.dto";
+
+import { PayoutService } from "../payout/payout.service";
+import { PlatformConfig } from "../../config/platform.config";
 
 @Injectable()
 export class OrderService {
@@ -51,78 +54,8 @@ export class OrderService {
     private logisticsService: LogisticsService,
     @Inject(forwardRef(() => WhatsAppService))
     private whatsappService: WhatsAppService,
+    private payoutService: PayoutService,
   ) {}
-
-  // ──────────────────────────────────────────────
-  //  CREATE ORDER FROM ACCEPTED QUOTE (transaction)
-  // ──────────────────────────────────────────────
-
-  async createFromQuote(quoteId: string, buyerId: string) {
-    const quote = await this.prisma.quote.findUnique({
-      where: { id: quoteId },
-      include: { rfq: true },
-    });
-    if (!quote) throw new NotFoundException("Quote not found");
-    if (!quote.rfq) throw new NotFoundException("RFQ not found for this quote");
-
-    const idempotencyKey = `order-create-${quoteId}`;
-
-    // Check idempotency — if order already exists for this quote, return it
-    const existing = await this.prisma.order.findUnique({
-      where: { quoteId },
-    });
-    if (existing) return existing;
-
-    // Atomic: create order + reserve inventory + log initial event
-    const order = await this.prisma.$transaction(async (tx) => {
-      const newOrder = await tx.order.create({
-        data: {
-          quoteId,
-          buyerId,
-          merchantId: quote.merchantId,
-          totalAmountKobo: quote.totalPriceKobo,
-          deliveryFeeKobo: quote.deliveryFeeKobo,
-          currency: quote.currency,
-          status: OrderStatus.PENDING_PAYMENT,
-          idempotencyKey,
-        },
-      });
-
-      // Log initial OrderEvent
-      await tx.orderEvent.create({
-        data: {
-          orderId: newOrder.id,
-          fromStatus: null,
-          toStatus: OrderStatus.PENDING_PAYMENT,
-          triggeredBy: buyerId,
-          metadata: { action: "order_created_from_quote", quoteId },
-        },
-      });
-
-      // Reserve inventory
-      await tx.inventoryEvent.create({
-        data: {
-          productId: quote.rfq.productId,
-          merchantId: quote.merchantId,
-          eventType: "ORDER_RESERVED",
-          quantity: -quote.rfq.quantity,
-          referenceId: newOrder.id,
-          notes: "Order reservation",
-        },
-      });
-
-      await tx.productStockCache.upsert({
-        where: { productId: quote.rfq.productId },
-        create: { productId: quote.rfq.productId, stock: -quote.rfq.quantity },
-        update: { stock: { decrement: quote.rfq.quantity } },
-      });
-
-      return newOrder;
-    });
-
-    this.logger.log(`Order ${order.id} created from quote ${quoteId}`);
-    return order;
-  }
 
   // ──────────────────────────────────────────────
   //  CREATE DIRECT ORDER
@@ -186,16 +119,19 @@ export class OrderService {
 
     // Determine payment method based on merchant verification tier
     const merchantTier = product.merchantProfile?.verificationTier;
-    const isVerifiedMerchant =
-      merchantTier === "VERIFIED" || merchantTier === "TRUSTED";
+    const isTier2Or3 = merchantTier === "TIER_2" || merchantTier === "TIER_3";
     const paymentMethod =
-      requestedMethod === "DIRECT" && isVerifiedMerchant ? "DIRECT" : "ESCROW";
+      requestedMethod === "DIRECT" && isTier2Or3 ? "DIRECT" : "ESCROW";
 
-    // Dynamic platform fee: 1% for DIRECT, 2% for ESCROW
-    const platformFeePercentage = paymentMethod === "DIRECT" ? 1 : 2;
-    const subtotalKobo = Number(resolvedPriceKobo) * quantity;
-    const platformFeeKobo = Math.floor(
-      subtotalKobo * (platformFeePercentage / 100),
+    const subtotalKobo = BigInt(resolvedPriceKobo) * BigInt(quantity);
+    const platformFeePercent = PlatformConfig.getPlatformFeePercent(
+      merchantTier,
+      paymentMethod,
+    );
+    const platformFeeKobo = PlatformConfig.calculateFeeKobo(
+      subtotalKobo,
+      merchantTier,
+      paymentMethod,
     );
 
     let calculatedDeliveryFeeKobo = 0n;
@@ -215,8 +151,8 @@ export class OrderService {
     }
 
     // Add delivery fee logic
-    const totalAmountKobo =
-      BigInt(subtotalKobo + platformFeeKobo) + calculatedDeliveryFeeKobo;
+    const totalKobo =
+      subtotalKobo + platformFeeKobo + calculatedDeliveryFeeKobo;
 
     const idempotencyKey = `direct-order-${productId}-${buyerId}-${Date.now()}`;
 
@@ -256,12 +192,14 @@ export class OrderService {
           unitPriceKobo: resolvedPriceKobo,
           deliveryAddress,
           deliveryDetails: deliveryDetails ? (deliveryDetails as any) : null,
-          totalAmountKobo,
+          totalAmountKobo: totalKobo,
           deliveryFeeKobo: calculatedDeliveryFeeKobo,
           currency: "NGN",
           status: OrderStatus.PENDING_PAYMENT,
           paymentMethod,
           deliveryMethod,
+          platformFeeKobo,
+          platformFeePercent,
           quoteId: null,
           idempotencyKey,
           payoutStatus: "PENDING",
@@ -332,7 +270,7 @@ export class OrderService {
     return {
       orderId: order.id,
       authorizationUrl: paymentData.authorization_url,
-      totalAmountKobo: Number(totalAmountKobo),
+      totalAmountKobo: Number(totalKobo), // For notifications/events, cast back to number
       platformFeeKobo,
       paymentMethod,
     };
@@ -462,13 +400,19 @@ export class OrderService {
 
     // Determine payment method and platform fee
     const merchantTier = merchantProfile.verificationTier;
-    const isVerifiedMerchant =
-      merchantTier === "VERIFIED" || merchantTier === "TRUSTED";
+    const isTier2Or3 = merchantTier === "TIER_2" || merchantTier === "TIER_3";
     const paymentMethod =
-      requestedMethod === "DIRECT" && isVerifiedMerchant ? "DIRECT" : "ESCROW";
-    const platformFeePercentage = paymentMethod === "DIRECT" ? 1 : 2;
-    const platformFeeKobo = BigInt(
-      Math.floor(Number(subtotalKobo) * (platformFeePercentage / 100)),
+      requestedMethod === "DIRECT" && isTier2Or3 ? "DIRECT" : "ESCROW";
+
+    // Dynamic platform fee based on config/tier
+    const platformFeePercentage = PlatformConfig.getPlatformFeePercent(
+      merchantTier,
+      paymentMethod,
+    );
+    const platformFeeKobo = PlatformConfig.calculateFeeKobo(
+      subtotalKobo,
+      merchantTier,
+      paymentMethod,
     );
 
     let calculatedDeliveryFeeKobo = 0n;
@@ -487,7 +431,7 @@ export class OrderService {
       calculatedDeliveryFeeKobo = BigInt(quote.costKobo);
     }
 
-    const totalAmountKobo =
+    const totalKobo =
       subtotalKobo + platformFeeKobo + calculatedDeliveryFeeKobo;
     const idempotencyKey = `cart-checkout-${buyerId}-${Date.now()}`;
 
@@ -528,12 +472,14 @@ export class OrderService {
           merchantId,
           deliveryAddress,
           deliveryDetails: deliveryDetails ? (deliveryDetails as any) : null,
-          totalAmountKobo,
+          totalAmountKobo: totalKobo,
           deliveryFeeKobo: calculatedDeliveryFeeKobo,
           currency: "NGN",
           status: OrderStatus.PENDING_PAYMENT,
           paymentMethod,
           deliveryMethod: deliveryMethod as any,
+          platformFeeKobo,
+          platformFeePercent: platformFeePercentage,
           items: jsonItems,
           quoteId: null,
           idempotencyKey,
@@ -568,7 +514,7 @@ export class OrderService {
     return {
       orderId: order.id,
       authorizationUrl: paymentData.authorization_url,
-      totalAmountKobo: Number(totalAmountKobo),
+      totalAmountKobo: Number(totalKobo),
       platformFeeKobo: Number(platformFeeKobo),
       paymentMethod,
     };
@@ -658,7 +604,6 @@ export class OrderService {
     const order = await this.prisma.order.findUnique({
       where: { id },
       include: {
-        quote: { include: { rfq: { include: { product: true } } } },
         orderEvents: { orderBy: { createdAt: "asc" } },
         review: true,
       },
@@ -1018,6 +963,110 @@ export class OrderService {
     return { message: "Delivery confirmed" };
   }
 
+  /**
+   * System-triggered delivery confirmation after 72 hours of inactivity.
+   */
+  async autoConfirmDelivery(orderId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        user: true, // buyer
+        merchantProfile: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order ${orderId} not found`);
+    }
+
+    if (
+      order.status !== OrderStatus.DISPATCHED &&
+      order.status !== OrderStatus.IN_TRANSIT
+    ) {
+      this.logger.warn(
+        `Order ${orderId} is in ${order.status} state, cannot auto-confirm.`,
+      );
+      return;
+    }
+
+    this.logger.log(`Auto-confirming delivery for order ${orderId}`);
+
+    // 1. Transition to DELIVERED (uses standard audit trail)
+    await this.transition(
+      orderId,
+      order.status as OrderStatus,
+      OrderStatus.DELIVERED,
+      order.buyerId, // System acting on behalf of buyer's silence
+      { action: "system_auto_confirm" },
+    );
+
+    // 2. Clear dispute window immediately for auto-confirmation
+    await this.prisma.order.update({
+      where: { id: orderId },
+      data: { disputeWindowEndsAt: new Date() },
+    });
+
+    // 3. Create tracking entry AFTER transition
+    await this.prisma.orderTracking.create({
+      data: {
+        orderId,
+        status: OrderStatus.DELIVERED,
+        note: "Delivery auto-confirmed after 72 hours of no response.",
+      },
+    });
+
+    // 4. Notify participants with strict isolation
+    try {
+      if (order.merchantId) {
+        await this.notifications.triggerOrderAutoConfirmed(
+          order.buyerId,
+          order.merchantId,
+          {
+            orderId: order.id,
+            reference: order.id.slice(0, 8).toUpperCase(),
+            amountKobo: order.totalAmountKobo,
+          },
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to notify for auto-confirmed order ${orderId}: ${error instanceof Error ? error.message : error}`,
+      );
+    }
+
+    // 5. Final transition to COMPLETED
+    await this.transition(
+      orderId,
+      OrderStatus.DELIVERED,
+      OrderStatus.COMPLETED,
+      order.buyerId,
+      { action: "auto_completion_payout" },
+    );
+
+    // 6. Post-completion processing (payouts and tier checks)
+    try {
+      if (order.merchantId) {
+        // Upgrade check
+        await this.verificationService.checkAndUpgradeTier(order.merchantId);
+
+        // Payout if ESCROW
+        if (order.paymentMethod === "ESCROW") {
+          await this.payoutQueue.add(
+            "process-payout",
+            { orderId },
+            { jobId: `payout-${orderId}` },
+          );
+        }
+      }
+    } catch (err: unknown) {
+      this.logger.error(
+        `Post-auto-confirm processing failed for ${orderId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+
+    return { success: true };
+  }
+
   // ──────────────────────────────────────────────
   //  CANCEL (role-based status rules)
   // ──────────────────────────────────────────────
@@ -1059,21 +1108,7 @@ export class OrderService {
     );
 
     // Release reserved stock for different order types
-    if (order.quoteId) {
-      // Legacy Quote Flow
-      const quote = await this.prisma.quote.findUnique({
-        where: { id: order.quoteId },
-        include: { rfq: true },
-      });
-      if (quote?.rfq) {
-        await this.inventoryService.releaseStock(
-          quote.rfq.productId,
-          order.merchantId as string,
-          quote.rfq.quantity,
-          orderId,
-        );
-      }
-    } else if (order.productId && order.quantity) {
+    if (order.productId && order.quantity) {
       // Direct Purchase
       await this.inventoryService.releaseStock(
         order.productId,
@@ -1183,13 +1218,6 @@ export class OrderService {
           },
         },
         user: { select: { email: true, phone: true } },
-        quote: {
-          include: {
-            rfq: {
-              include: { product: true },
-            },
-          },
-        },
         payments: {
           where: { status: "SUCCESS" },
           orderBy: { createdAt: "desc" },

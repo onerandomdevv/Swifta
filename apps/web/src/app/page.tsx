@@ -18,10 +18,9 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 
-const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_BOT_NUMBER || "";
-const whatsappLink = WHATSAPP_NUMBER
-  ? `https://wa.me/${WHATSAPP_NUMBER}?text=Hi%20Swifta!%20I%20want%20to%20start%20trading`
-  : "#";
+const WHATSAPP_NUMBER = String(process.env.NEXT_PUBLIC_WHATSAPP_BOT_NUMBER || "2348147846093").replace(/\D/g, "") || "2348147846093";
+const WHATSAPP_WELCOME = process.env.NEXT_PUBLIC_WHATSAPP_WELCOME_MESSAGE || "Hi, I'd like to shop on Swifta";
+const whatsappLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_WELCOME)}`;
 
 /* ── Reusable WhatsApp CTA Button ── */
 function WhatsAppCTA({
@@ -185,7 +184,7 @@ export default function LandingPage() {
               >
                 Sign In
               </Link>
-              <WhatsAppCTA label="Start Trading" size="md" />
+              <WhatsAppCTA label="Start Trading on WhatsApp" size="md" />
             </div>
 
             {/* Mobile Menu Toggle */}
@@ -227,7 +226,7 @@ export default function LandingPage() {
                 >
                   Sign In
                 </Link>
-                <WhatsAppCTA label="Start Trading" size="md" />
+                <WhatsAppCTA label="Start Trading on WhatsApp" size="md" />
               </div>
             </div>
           )}

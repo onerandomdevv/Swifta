@@ -1,4 +1,5 @@
-import type { ApiResponse, ApiError } from "@hardware-os/shared";
+import type { ApiResponse, ApiError } from "@swifta/shared";
+import { bigIntReviver, bigIntReplacer } from "@swifta/shared";
 
 type RequestConfig = RequestInit & {
   params?: Record<string, string>;
@@ -99,7 +100,7 @@ class ApiClient {
     const text = await response.text();
     if (!text) return {} as T;
 
-    const result = JSON.parse(text) as ApiResponse<T>;
+    const result = JSON.parse(text, bigIntReviver) as ApiResponse<T>;
     return result.data;
   }
 
@@ -130,8 +131,79 @@ class ApiClient {
     }
   }
 
+  async requestPaginated<T>(endpoint: string, config: RequestConfig = {}): Promise<any> {
+    const { params, ...options } = config;
+
+    let url = `${this.baseUrl}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+    if (params) {
+      const searchParams = new URLSearchParams(params);
+      url += `?${searchParams.toString()}`;
+    }
+
+    const headers = new Headers(options.headers);
+    if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
+      headers.set("Content-Type", "application/json");
+    }
+
+    const performRequest = async (): Promise<Response> => {
+      return fetch(url, { ...options, headers, credentials: "include" });
+    };
+
+    let response = await performRequest();
+
+    // Handle 401 Unauthorized - Attempt Token Refresh
+    if (
+      response.status === 401 &&
+      this.refreshToken &&
+      !endpoint.includes("/auth/login") &&
+      !endpoint.includes("/auth/refresh")
+    ) {
+      if (this.isRefreshing) {
+        const success = await new Promise<boolean>((resolve) => {
+          this.subscribeTokenRefresh((s) => resolve(s));
+        });
+
+        if (success) {
+          response = await performRequest();
+        }
+      } else {
+        this.isRefreshing = true;
+        try {
+          const success = await this.refreshToken();
+          this.isRefreshing = false;
+          this.onTokenRefreshed(success);
+
+          if (success) {
+            response = await performRequest();
+          } else {
+            this.onUnauthorized?.();
+            throw await this.handleError(response);
+          }
+        } catch (error) {
+          this.isRefreshing = false;
+          this.onTokenRefreshed(false);
+          this.onUnauthorized?.();
+          throw error;
+        }
+      }
+    }
+
+    if (!response.ok) {
+      throw await this.handleError(response);
+    }
+
+    const text = await response.text();
+    if (!text) return { data: [], meta: { total: 0, page: 1, limit: 10 } };
+
+    return JSON.parse(text, bigIntReviver);
+  }
+
   get<T>(endpoint: string, config?: RequestConfig) {
     return this.request<T>(endpoint, { ...config, method: "GET" });
+  }
+
+  getPaginated<T>(endpoint: string, config?: RequestConfig): Promise<ApiResponse<T[]> & { meta: any }> {
+    return this.requestPaginated<T>(endpoint, { ...config, method: "GET" });
   }
 
   post<T>(endpoint: string, body?: any, config?: RequestConfig) {
@@ -141,9 +213,7 @@ class ApiClient {
       body:
         body instanceof FormData
           ? body
-          : JSON.stringify(body, (key, value) =>
-              typeof value === "bigint" ? Number(value) : value,
-            ),
+          : JSON.stringify(body, bigIntReplacer),
     });
   }
 
@@ -154,9 +224,7 @@ class ApiClient {
       body:
         body instanceof FormData
           ? body
-          : JSON.stringify(body, (key, value) =>
-              typeof value === "bigint" ? Number(value) : value,
-            ),
+          : JSON.stringify(body, bigIntReplacer),
     });
   }
 
@@ -167,9 +235,7 @@ class ApiClient {
       body:
         body instanceof FormData
           ? body
-          : JSON.stringify(body, (key, value) =>
-              typeof value === "bigint" ? Number(value) : value,
-            ),
+          : JSON.stringify(body, bigIntReplacer),
     });
   }
 

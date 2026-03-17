@@ -9,7 +9,7 @@ import { merchantApi } from "@/lib/api/merchant.api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { StateLgaSelector } from "@/components/ui/state-lga-selector";
-import type { MerchantProfile, UpdateMerchantDto } from "@hardware-os/shared";
+import type { MerchantProfile, UpdateMerchantDto } from "@swifta/shared";
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -119,7 +119,7 @@ export function EditProfileModal({
       onClose={onClose}
       title="Edit Store Profile"
       description="Update your business identity and presence on Swifta."
-      className="relative bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] shadow-2xl w-full max-w-2xl mx-4 overflow-hidden"
+      className="relative bg-surface border border-border rounded-[2.5rem] shadow-2xl w-full max-w-2xl mx-4 overflow-hidden"
     >
       <form onSubmit={handleSubmit} className="p-8 space-y-8">
         {/* Images Selection */}
@@ -127,12 +127,12 @@ export function EditProfileModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Profile Image */}
             <div className="space-y-3">
-              <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest px-1">
+              <label className="text-[11px] font-black uppercase text-foreground-muted tracking-widest px-1">
                 Store Logo
               </label>
               <div 
                 onClick={() => profileInputRef.current?.click()}
-                className="group relative h-40 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-primary transition-all cursor-pointer overflow-hidden bg-slate-50 dark:bg-slate-950/50 flex flex-col items-center justify-center gap-2"
+                className="group relative h-40 rounded-3xl border-2 border-dashed border-border hover:border-primary transition-all cursor-pointer overflow-hidden bg-background-secondary/50 flex flex-col items-center justify-center gap-2"
               >
                 {formData.profileImage ? (
                   <>
@@ -143,12 +143,12 @@ export function EditProfileModal({
                   </>
                 ) : (
                   <>
-                    <span className="material-symbols-outlined text-3xl text-slate-400 group-hover:text-primary transition-colors">add_a_photo</span>
-                    <span className="text-[10px] font-bold text-slate-400">Upload Logo</span>
+                    <span className="material-symbols-outlined text-3xl text-foreground-muted group-hover:text-primary transition-colors">add_a_photo</span>
+                    <span className="text-[10px] font-bold text-foreground-muted">Upload Logo</span>
                   </>
                 )}
                 {uploadingImage === "profile" && (
-                   <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 flex items-center justify-center z-10">
+                   <div className="absolute inset-0 bg-surface/80 flex items-center justify-center z-10">
                      <span className="material-symbols-outlined animate-spin text-primary">progress_activity</span>
                    </div>
                 )}
@@ -164,12 +164,12 @@ export function EditProfileModal({
 
             {/* Cover Image */}
             <div className="space-y-3">
-              <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest px-1">
+              <label className="text-[11px] font-black uppercase text-foreground-muted tracking-widest px-1">
                 Store Banner
               </label>
               <div 
                 onClick={() => coverInputRef.current?.click()}
-                className="group relative h-40 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-primary transition-all cursor-pointer overflow-hidden bg-slate-50 dark:bg-slate-950/50 flex flex-col items-center justify-center gap-2"
+                className="group relative h-40 rounded-3xl border-2 border-dashed border-border hover:border-primary transition-all cursor-pointer overflow-hidden bg-background-secondary/50 flex flex-col items-center justify-center gap-2"
               >
                 {formData.coverImage ? (
                   <>
@@ -180,12 +180,12 @@ export function EditProfileModal({
                   </>
                 ) : (
                   <>
-                    <span className="material-symbols-outlined text-3xl text-slate-400 group-hover:text-primary transition-colors">add_photo_alternate</span>
-                    <span className="text-[10px] font-bold text-slate-400">Upload Banner</span>
+                    <span className="material-symbols-outlined text-3xl text-foreground-muted group-hover:text-primary transition-colors">add_photo_alternate</span>
+                    <span className="text-[10px] font-bold text-foreground-muted">Upload Banner</span>
                   </>
                 )}
                  {uploadingImage === "cover" && (
-                   <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 flex items-center justify-center z-10">
+                   <div className="absolute inset-0 bg-surface/80 flex items-center justify-center z-10">
                      <span className="material-symbols-outlined animate-spin text-primary">progress_activity</span>
                    </div>
                 )}
@@ -204,7 +204,7 @@ export function EditProfileModal({
         {/* Text Fields */}
         <div className="space-y-6">
           <div className="space-y-2">
-            <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest px-1">
+            <label className="text-[11px] font-black uppercase text-foreground-muted tracking-widest px-1">
               Business Name
             </label>
             <Input
@@ -212,19 +212,19 @@ export function EditProfileModal({
               value={formData.businessName}
               onChange={handleChange}
               placeholder="Your business name"
-              className="h-14 rounded-2xl border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 focus:ring-primary/20"
+              className="h-14 rounded-2xl border-border bg-background-secondary focus:ring-primary/20"
               required
             />
           </div>
 
           <div className="space-y-2">
             <div className="flex justify-between items-center px-1">
-              <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest">
+              <label className="text-[11px] font-black uppercase text-foreground-muted tracking-widest">
                 Store Description
               </label>
               <span className={cn(
                 "text-[10px] font-bold tracking-widest",
-                (formData.description?.length || 0) >= 150 ? "text-red-500" : "text-slate-400"
+                (formData.description?.length || 0) >= 150 ? "text-red-500" : "text-foreground-muted"
               )}>
                 {formData.description?.length || 0}/160
               </span>
@@ -235,12 +235,12 @@ export function EditProfileModal({
               onChange={handleChange}
               maxLength={160}
               placeholder="Tell customers what you sell..."
-              className="min-h-[100px] rounded-2xl border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 focus:ring-primary/20"
+              className="min-h-[100px] rounded-2xl border-border bg-background-secondary focus:ring-primary/20"
             />
           </div>
 
           <div className="space-y-4">
-            <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest px-1">
+            <label className="text-[11px] font-black uppercase text-foreground-muted tracking-widest px-1">
               Business Location
             </label>
             <Input
@@ -248,7 +248,7 @@ export function EditProfileModal({
               value={streetAddress}
               onChange={(e) => setStreetAddress(e.target.value)}
               placeholder="Full Street Address"
-              className="h-14 rounded-2xl border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 focus:ring-primary/20"
+              className="h-14 rounded-2xl border-border bg-background-secondary focus:ring-primary/20"
             />
             <StateLgaSelector 
               selectedState={state}
@@ -260,7 +260,7 @@ export function EditProfileModal({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
               <div className="space-y-2">
-                <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest px-1">
+                <label className="text-[11px] font-black uppercase text-foreground-muted tracking-widest px-1">
                   Website URL
                 </label>
                 <Input
@@ -268,7 +268,7 @@ export function EditProfileModal({
                   value={formData.websiteUrl}
                   onChange={handleChange}
                   placeholder="https://yourbusiness.com"
-                  className="h-12 rounded-xl border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50"
+                  className="h-12 rounded-xl border-border bg-background-secondary/50"
                 />
               </div>
           </div>
@@ -286,7 +286,7 @@ export function EditProfileModal({
           </Button>
           <Button
             type="submit"
-            className="flex-[2] h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 active:scale-95 transition-all"
+            className="flex-[2] h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] bg-primary hover:bg-primary/90 text-primary-foreground shadow-xl shadow-primary/20 active:scale-95 transition-all"
             disabled={isLoading}
           >
             {isLoading ? "Saving Changes..." : "Save Profile Details"}

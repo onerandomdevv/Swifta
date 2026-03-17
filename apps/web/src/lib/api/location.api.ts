@@ -17,7 +17,7 @@ export async function searchAddress(query: string): Promise<LocationResult[]> {
         headers: {
           'Accept-Language': 'en-US,en;q=0.9',
           // Nominatim requires a user agent or referrer for fair use, we provide a generic one
-          'User-Agent': 'HardwareOS/1.0',
+          'User-Agent': 'Swifta/1.0',
         },
       }
     );

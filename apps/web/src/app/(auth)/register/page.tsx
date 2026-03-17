@@ -9,8 +9,8 @@ import {
   baseRegistrationSchema,
   type RegistrationFormData,
 } from "@/lib/validations/auth";
-import { UserRole } from "@hardware-os/shared";
-import type { RegisterDto } from "@hardware-os/shared";
+import { UserRole } from "@swifta/shared";
+import type { RegisterDto } from "@swifta/shared";
 import { useAuth } from "@/providers/auth-provider";
 import { useToast } from "@/providers/toast-provider";
 import { authApi } from "@/lib/api/auth.api";
@@ -227,7 +227,7 @@ export default function RegisterPage() {
           >
             <img
               src={src}
-              alt="Construction materials"
+              alt="Swifta marketplace"
               className="w-full h-full object-cover"
             />
           </div>
@@ -271,9 +271,9 @@ export default function RegisterPage() {
       </div>
 
       {/* ─── RIGHT: Registration Form ─── */}
-      <div className="w-full lg:w-[50%] bg-white flex flex-col min-h-screen lg:h-screen overflow-y-auto">
+      <div className="w-full lg:w-[50%] bg-surface flex flex-col min-h-screen lg:h-screen overflow-y-auto">
         {/* Mobile header */}
-        <div className="lg:hidden flex items-center justify-between p-6 border-b border-slate-100">
+        <div className="lg:hidden flex items-center justify-between p-6 border-b border-border bg-background">
           <Link href="/" className="flex items-center gap-2">
             <Logo variant="light" size="md" />
           </Link>

@@ -1,5 +1,5 @@
 import { apiClient } from '../api-client';
-import type { CreateProductDto, UpdateProductDto, Product } from '@hardware-os/shared';
+import type { CreateProductDto, UpdateProductDto, Product, PaginatedResponse } from '@swifta/shared';
 
 export const productApi = {
   createProduct: (dto: CreateProductDto): Promise<Product> => {
@@ -22,11 +22,11 @@ export const productApi = {
     return apiClient.get(`/products?page=${page}&limit=${limit}`);
   },
 
-  getCatalogue: (search = '', category = '', page = 1, limit = 20): Promise<Product[]> => {
+  getCatalogue: (search = '', category = '', page = 1, limit = 20): Promise<PaginatedResponse<Product>> => {
     const query = new URLSearchParams({ page: String(page), limit: String(limit) });
     if (search) query.append('search', search);
     if (category && category !== 'All Categories') query.append('category', category);
-    return apiClient.get(`/products/catalogue?${query.toString()}`);
+    return apiClient.getPaginated<Product>(`/products/catalogue?${query.toString()}`);
   },
 
   getProduct: (id: string): Promise<Product> => {

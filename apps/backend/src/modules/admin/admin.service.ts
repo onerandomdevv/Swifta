@@ -5,7 +5,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
-import { OrderStatus, UserRole } from "@hardware-os/shared";
+import { OrderStatus, UserRole, VerificationTier } from "@swifta/shared";
 import * as bcrypt from "bcrypt";
 import { RedisService } from "../../redis/redis.service";
 import { AuditLogService } from "./audit-log.service";
@@ -37,7 +37,11 @@ export class AdminService {
     ] = await Promise.all([
       this.prisma.merchantProfile.count(),
       this.prisma.merchantProfile.count({
-        where: { verificationTier: { in: ["VERIFIED", "TRUSTED"] } },
+        where: {
+          verificationTier: {
+            in: [VerificationTier.TIER_2, VerificationTier.TIER_3],
+          },
+        },
       }),
       this.prisma.merchantProfile.count({
         where: {
@@ -86,7 +90,10 @@ export class AdminService {
       // Fallback: If no pending request, just update the tier directly (legacy/manual flow)
       return this.prisma.merchantProfile.update({
         where: { id: merchantId },
-        data: { verificationTier: "VERIFIED", verifiedAt: new Date() },
+        data: {
+          verificationTier: VerificationTier.TIER_2,
+          verifiedAt: new Date(),
+        },
       });
     }
 
@@ -170,16 +177,7 @@ export class AdminService {
         user: {
           select: { firstName: true, lastName: true, email: true },
         },
-        quote: {
-          include: {
-            rfq: {
-              select: {
-                quantity: true,
-                product: { select: { name: true, unit: true } },
-              },
-            },
-          },
-        },
+        product: { select: { name: true, unit: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -250,11 +248,7 @@ export class AdminService {
   }
 
   async getGlobalAnalytics() {
-    const [totalRfqs, totalQuotes, totalOrders] = await Promise.all([
-      this.prisma.rfq.count(),
-      this.prisma.quote.count(),
-      this.prisma.order.count(),
-    ]);
+    const [totalOrders] = await Promise.all([this.prisma.order.count()]);
 
     // Financial calculations
     const gmvAggregate = await this.prisma.order.aggregate({
@@ -271,8 +265,8 @@ export class AdminService {
       _sum: { totalAmountKobo: true },
     });
 
-    // Market Intelligence: Top Requested Categories via RFQs
-    const topCategoriesRaw = await this.prisma.rfq.findMany({
+    // Market Intelligence: Top Requested Categories via Orders
+    const topCategoriesRaw = await this.prisma.order.findMany({
       select: {
         product: {
           select: { categoryTag: true },
@@ -282,8 +276,8 @@ export class AdminService {
 
     // Reduce into category counts
     const categoryCounts: Record<string, number> = {};
-    topCategoriesRaw.forEach((rfq) => {
-      const tag = rfq.product?.categoryTag || "Unknown";
+    topCategoriesRaw.forEach((order) => {
+      const tag = order.product?.categoryTag || "Unknown";
       categoryCounts[tag] = (categoryCounts[tag] || 0) + 1;
     });
 
@@ -294,8 +288,6 @@ export class AdminService {
 
     return {
       funnel: {
-        totalRfqs,
-        totalQuotes,
         totalOrders,
       },
       financials: {
@@ -421,13 +413,17 @@ export class AdminService {
 
   async broadcastMessage(message: string) {
     const verifiedMerchants = await this.prisma.merchantProfile.findMany({
-      where: { verificationTier: { in: ["VERIFIED", "TRUSTED"] } },
+      where: {
+        verificationTier: {
+          in: [VerificationTier.TIER_2, VerificationTier.TIER_3],
+        },
+      },
       include: { user: true },
     });
 
     const phoneNumbers = verifiedMerchants
       .map((m) => m.user?.phone)
-      .filter(Boolean);
+      .filter((phone): phone is string => !!phone);
 
     // MOCK: Integration with Email / In-App Notification API
     this.logger.log(

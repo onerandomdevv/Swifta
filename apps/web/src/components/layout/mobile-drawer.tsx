@@ -43,16 +43,16 @@ export function MobileDrawer({ isOpen, onClose, children }: MobileDrawerProps) {
 
       {/* Drawer Content */}
       <div
-        className={`absolute top-0 left-0 h-full w-[280px] bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 shadow-2xl transition-transform duration-300 transform ${
+        className={`absolute top-0 left-0 h-full w-[280px] bg-surface border-r border-border shadow-2xl transition-transform duration-300 transform ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex flex-col h-full">
-          <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between">
-            <Logo variant="light" size="md" />
+          <div className="p-6 border-b border-border bg-background-secondary flex items-center justify-between">
+            <Logo size="md" />
             <button
               onClick={onClose}
-              className="p-2 -mr-2 text-slate-400 hover:text-navy-dark dark:hover:text-white transition-colors"
+              className="p-2 -mr-2 text-foreground-muted hover:text-foreground transition-colors"
             >
               <span className="material-symbols-outlined text-2xl">close</span>
             </button>
