@@ -134,8 +134,11 @@ export default function MerchantOrderDetailsPage() {
   if (!order) return null;
 
   // totalAmountKobo already includes subtotal + platform fee + delivery fee
-  const totalAmount = Number(order.totalAmountKobo);
-  const escrowFee = Math.round((Number(order.totalAmountKobo) - Number(order.deliveryFeeKobo)) * 0.012);
+  // platformFeeKobo is already calculated and stored on the order
+  const platformFee = Number(order.platformFeeKobo || 0);
+  const deliveryFee = Number(order.deliveryFeeKobo || 0);
+  const subtotal = Number(order.totalAmountKobo) - platformFee - deliveryFee;
+  const totalPayable = Number(order.totalAmountKobo);
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-background-dark font-display text-navy-dark dark:text-slate-100 transition-colors duration-300">
@@ -210,7 +213,7 @@ export default function MerchantOrderDetailsPage() {
                     <div>
                       <p className="text-[9px] text-slate-500 dark:text-slate-400 uppercase font-black tracking-widest">Sales Value</p>
                       <p className="text-navy-dark dark:text-white text-2xl font-black tabular-nums tracking-tighter">
-                        {formatKobo(totalAmount)}
+                        {formatKobo(totalPayable)}
                       </p>
                     </div>
                   </div>
@@ -494,20 +497,20 @@ export default function MerchantOrderDetailsPage() {
                     <tfoot>
                       <tr>
                         <td className="pt-10 pb-2 px-4 text-right text-slate-400 font-black text-[9px] uppercase tracking-widest" colSpan={3}>Subtotal</td>
-                        <td className="pt-10 pb-2 px-4 text-right font-black text-navy-dark dark:text-white tabular-nums">{formatKobo(order.totalAmountKobo)}</td>
+                        <td className="pt-10 pb-2 px-4 text-right font-black text-navy-dark dark:text-white tabular-nums">{formatKobo(subtotal)}</td>
                       </tr>
                       <tr>
                         <td className="py-1 px-4 text-right text-slate-400 font-black text-[9px] uppercase tracking-widest" colSpan={3}>Shipping Fee</td>
-                        <td className="py-1 px-4 text-right font-black text-navy-dark dark:text-white tabular-nums">{formatKobo(order.deliveryFeeKobo)}</td>
+                        <td className="py-1 px-4 text-right font-black text-navy-dark dark:text-white tabular-nums">{formatKobo(deliveryFee)}</td>
                       </tr>
                       <tr>
-                        <td className="py-1 px-4 text-right text-slate-400 font-black text-[9px] uppercase tracking-widest" colSpan={3}>Escrow Fee (1.2%)</td>
-                        <td className="py-1 px-4 text-right font-black text-navy-dark dark:text-white tabular-nums">{formatKobo(escrowFee)}</td>
+                        <td className="py-1 px-4 text-right text-slate-400 font-black text-[9px] uppercase tracking-widest" colSpan={3}>Platform Fee ({order.platformFeePercent || 0}%)</td>
+                        <td className="py-1 px-4 text-right font-black text-navy-dark dark:text-white tabular-nums">{formatKobo(platformFee)}</td>
                       </tr>
                       <tr>
                         <td className="pt-8 pb-4 px-4 text-right text-navy-dark dark:text-white font-black uppercase text-[11px] tracking-[0.2em]" colSpan={3}>Total Payment</td>
                         <td className="pt-8 pb-4 px-4 text-right font-black text-primary text-3xl tabular-nums tracking-tighter">
-                          {formatKobo(totalAmount + escrowFee)}
+                          {formatKobo(totalPayable)}
                         </td>
                       </tr>
                     </tfoot>

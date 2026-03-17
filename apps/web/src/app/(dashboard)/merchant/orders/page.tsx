@@ -231,7 +231,7 @@ export default function MerchantOrdersPage() {
                       <div className="flex flex-col items-end">
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Settlement</span>
                         <span className="text-xs font-black text-primary tabular-nums tracking-widest">
-                          {formatKobo(Number(order.totalAmountKobo) + Number(order.deliveryFeeKobo))}
+                          {formatKobo(Number(order.totalAmountKobo) - Number(order.platformFeeKobo || 0))}
                         </span>
                       </div>
                     </div>
@@ -315,7 +315,7 @@ export default function MerchantOrdersPage() {
                       </td>
                       <td className="px-8 py-6 text-right">
                         <span className="text-xs font-black text-navy-dark dark:text-white tabular-nums tracking-widest">
-                          {formatKobo(Number(order.totalAmountKobo) + Number(order.deliveryFeeKobo))}
+                          {formatKobo(Number(order.totalAmountKobo) - Number(order.platformFeeKobo || 0))}
                         </span>
                       </td>
                       <td className="px-8 py-6 text-right" onClick={(e) => e.stopPropagation()}>

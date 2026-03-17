@@ -363,9 +363,25 @@ export default function BuyerOrderDetailsPage() {
                         )}
                       </tbody>
                       <tfoot className="bg-slate-50 dark:bg-slate-800/50">
-                        <tr>
-                          <td className="px-6 py-4 text-right font-bold text-slate-500" colSpan={3}>Grand Total</td>
-                          <td className="px-6 py-4 text-right font-black text-xl text-primary">{formatKobo(order.totalAmountKobo)}</td>
+                        <tr className="border-t border-slate-100 dark:border-slate-800">
+                          <td className="px-6 py-2 text-right text-xs font-bold text-slate-400 uppercase tracking-widest" colSpan={3}>Subtotal</td>
+                          <td className="px-6 py-2 text-right font-mono text-slate-900 dark:text-white">{formatKobo(Number(order.totalAmountKobo) - Number(order.deliveryFeeKobo || 0) - Number(order.platformFeeKobo || 0))}</td>
+                        </tr>
+                        {order.platformFeeKobo && (
+                          <tr>
+                            <td className="px-6 py-2 text-right text-xs font-bold text-slate-400 uppercase tracking-widest" colSpan={3}>Platform Fee ({order.platformFeePercent}%)</td>
+                            <td className="px-6 py-2 text-right font-mono text-slate-900 dark:text-white">{formatKobo(order.platformFeeKobo)}</td>
+                          </tr>
+                        )}
+                        {order.deliveryFeeKobo && (
+                          <tr>
+                            <td className="px-6 py-2 text-right text-xs font-bold text-slate-400 uppercase tracking-widest" colSpan={3}>Delivery Fee</td>
+                            <td className="px-6 py-2 text-right font-mono text-slate-900 dark:text-white">{formatKobo(order.deliveryFeeKobo)}</td>
+                          </tr>
+                        )}
+                        <tr className="border-t-2 border-slate-200 dark:border-slate-700 bg-slate-100/50 dark:bg-slate-800">
+                          <td className="px-6 py-4 text-right font-black text-slate-500 uppercase tracking-wider" colSpan={3}>Grand Total</td>
+                          <td className="px-6 py-4 text-right font-black text-2xl text-primary">{formatKobo(order.totalAmountKobo)}</td>
                         </tr>
                       </tfoot>
                     </table>

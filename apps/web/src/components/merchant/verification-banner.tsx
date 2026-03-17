@@ -1,19 +1,61 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { merchantApi } from "@/lib/api/merchant.api";
 import { VerificationTier } from "@swifta/shared";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
+const DISMISS_KEY = "swifta-merchant-verification-banner-dismissed";
+
 export function VerificationBanner() {
+  const [isVisible, setIsVisible] = useState(true);
   const { data: status, isLoading } = useQuery({
     queryKey: ["merchant", "verification-status"],
     queryFn: () => merchantApi.getVerificationStatus(),
   });
 
-  if (isLoading || !status) return null;
+  // Smart Dismissal Logic
+  useEffect(() => {
+    if (status) {
+      const currentStatusFingerprint = JSON.stringify({
+        tier: status.currentTier,
+        t2: status.tier2.status,
+        t3: status.tier3.status,
+        isRejected: status.tier2.pendingRequest?.status === "REJECTED" || status.tier3.pendingRequest?.status === "REJECTED"
+      });
+
+      const saved = localStorage.getItem(DISMISS_KEY);
+      if (saved) {
+        try {
+          const { dismissed, fingerprint: savedFingerprint } = JSON.parse(saved);
+          // Only stay hidden if explicitly dismissed AND status hasn't changed
+          if (dismissed && savedFingerprint === currentStatusFingerprint) {
+            setIsVisible(false);
+          } else {
+            setIsVisible(true);
+          }
+        } catch (e) {
+          setIsVisible(true);
+        }
+      }
+    }
+  }, [status]);
+
+  const handleDismiss = () => {
+    if (!status) return;
+    setIsVisible(false);
+    const fingerprint = JSON.stringify({
+      tier: status.currentTier,
+      t2: status.tier2.status,
+      t3: status.tier3.status,
+      isRejected: status.tier2.pendingRequest?.status === "REJECTED" || status.tier3.pendingRequest?.status === "REJECTED"
+    });
+    localStorage.setItem(DISMISS_KEY, JSON.stringify({ dismissed: true, fingerprint }));
+  };
+
+  if (isLoading || !status || !isVisible) return null;
 
   const isVerified = status.currentTier === VerificationTier.TIER_2 || status.currentTier === VerificationTier.TIER_3;
   const hasPending = status.tier2.status === "IN_PROGRESS" || status.tier3.status === "IN_PROGRESS";
@@ -57,11 +99,11 @@ export function VerificationBanner() {
 
   return (
     <div className={cn(
-      "w-full px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-4 transition-all animate-in slide-in-from-top duration-500",
+      "w-full px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-4 transition-all animate-in slide-in-from-top duration-500 relative",
       bannerConfig.bg,
       bannerConfig.text
     )}>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 pr-8 md:pr-0">
         <span className="material-symbols-outlined text-xl shrink-0">
           {bannerConfig.icon}
         </span>
@@ -74,12 +116,22 @@ export function VerificationBanner() {
           </p>
         </div>
       </div>
-      <Link
-        href={bannerConfig.actionHref}
-        className="px-6 py-2 bg-background text-foreground rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-background-secondary transition-colors shadow-lg shadow-black/10 shrink-0"
-      >
-        {bannerConfig.actionLabel}
-      </Link>
+      
+      <div className="flex items-center gap-3">
+        <Link
+          href={bannerConfig.actionHref}
+          className="px-6 py-2 bg-background text-foreground rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-background-secondary transition-colors shadow-lg shadow-black/10 shrink-0"
+        >
+          {bannerConfig.actionLabel}
+        </Link>
+        <button 
+          onClick={handleDismiss}
+          className="p-1 hover:bg-white/10 rounded-lg transition-colors group"
+          title="Dismiss for now"
+        >
+          <span className="material-symbols-outlined text-lg opacity-60 group-hover:opacity-100 transition-opacity">close</span>
+        </button>
+      </div>
     </div>
   );
 }
