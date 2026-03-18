@@ -98,7 +98,8 @@ export default function MerchantVerificationPage() {
     const ext = file.name.toLowerCase().slice(file.name.lastIndexOf("."));
     const mimeValid = ALLOWED_MIME_TYPES.includes(file.type);
     const extValid = ALLOWED_EXTENSIONS.includes(ext);
-    if (!mimeValid && !extValid) {
+    // Extension must always be valid; MIME must also match when the browser provides one
+    if (!extValid || (file.type && !mimeValid)) {
       return toast.error(
         "Unsupported file type. Please upload a JPG, PNG, or PDF.",
       );

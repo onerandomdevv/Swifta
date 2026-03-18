@@ -190,29 +190,41 @@ export class OrderService {
         },
       });
 
-      // 3. Create order
-      const newOrder = await tx.order.create({
-        data: {
-          buyerId,
-          merchantId: product.merchantId,
-          productId: product.id,
-          quantity,
-          unitPriceKobo: resolvedPriceKobo,
-          deliveryAddress,
-          deliveryDetails: deliveryDetails ? (deliveryDetails as any) : null,
-          totalAmountKobo: totalKobo,
-          deliveryFeeKobo: calculatedDeliveryFeeKobo,
-          currency: "NGN",
-          status: OrderStatus.PENDING_PAYMENT,
-          paymentMethod,
-          deliveryMethod,
-          platformFeeKobo,
-          platformFeePercent,
-          quoteId: null,
-          idempotencyKey,
-          payoutStatus: "PENDING",
-        },
-      });
+      // 3. Create order (with P2002 idempotency guard)
+      let newOrder;
+      try {
+        newOrder = await tx.order.create({
+          data: {
+            buyerId,
+            merchantId: product.merchantId,
+            productId: product.id,
+            quantity,
+            unitPriceKobo: resolvedPriceKobo,
+            deliveryAddress,
+            deliveryDetails: deliveryDetails ? (deliveryDetails as any) : null,
+            totalAmountKobo: totalKobo,
+            deliveryFeeKobo: calculatedDeliveryFeeKobo,
+            currency: "NGN",
+            status: OrderStatus.PENDING_PAYMENT,
+            paymentMethod,
+            deliveryMethod,
+            platformFeeKobo,
+            platformFeePercent,
+            quoteId: null,
+            idempotencyKey,
+            payoutStatus: "PENDING",
+          },
+        });
+      } catch (err: any) {
+        // If idempotency key conflict (P2002), return existing order
+        if (err?.code === "P2002") {
+          const existing = await tx.order.findFirst({
+            where: { idempotencyKey },
+          });
+          if (existing) return existing;
+        }
+        throw err;
+      }
 
       // Log initial OrderEvent
       await tx.orderEvent.create({
@@ -444,7 +456,7 @@ export class OrderService {
     const idempotencyKey =
       dto.idempotencyKey ||
       this.generateDeterministicKey("cart", buyerId, {
-        cartItemIds,
+        cartItemIds: [...cartItemIds].sort(),
         deliveryAddress,
         paymentMethod,
         deliveryMethod,
@@ -480,27 +492,39 @@ export class OrderService {
         });
       }
 
-      // 2. Create the order
-      const newOrder = await tx.order.create({
-        data: {
-          buyerId,
-          merchantId,
-          deliveryAddress,
-          deliveryDetails: deliveryDetails ? (deliveryDetails as any) : null,
-          totalAmountKobo: totalKobo,
-          deliveryFeeKobo: calculatedDeliveryFeeKobo,
-          currency: "NGN",
-          status: OrderStatus.PENDING_PAYMENT,
-          paymentMethod,
-          deliveryMethod: deliveryMethod as any,
-          platformFeeKobo,
-          platformFeePercent: platformFeePercentage,
-          items: jsonItems,
-          quoteId: null,
-          idempotencyKey,
-          payoutStatus: "PENDING",
-        },
-      });
+      // 2. Create the order (with P2002 idempotency guard)
+      let newOrder;
+      try {
+        newOrder = await tx.order.create({
+          data: {
+            buyerId,
+            merchantId,
+            deliveryAddress,
+            deliveryDetails: deliveryDetails ? (deliveryDetails as any) : null,
+            totalAmountKobo: totalKobo,
+            deliveryFeeKobo: calculatedDeliveryFeeKobo,
+            currency: "NGN",
+            status: OrderStatus.PENDING_PAYMENT,
+            paymentMethod,
+            deliveryMethod: deliveryMethod as any,
+            platformFeeKobo,
+            platformFeePercent: platformFeePercentage,
+            items: jsonItems,
+            quoteId: null,
+            idempotencyKey,
+            payoutStatus: "PENDING",
+          },
+        });
+      } catch (err: any) {
+        // If idempotency key conflict (P2002), return existing order
+        if (err?.code === "P2002") {
+          const existing = await tx.order.findFirst({
+            where: { idempotencyKey },
+          });
+          if (existing) return existing;
+        }
+        throw err;
+      }
 
       // 3. Create initial order event (audit trail)
       await tx.orderEvent.create({
@@ -1311,10 +1335,41 @@ export class OrderService {
   private generateDeterministicKey(
     prefix: string,
     buyerId: string,
-    payload: any,
+    payload: Record<string, any>,
   ): string {
-    const body = JSON.stringify({ buyerId, ...payload });
-    const hash = crypto.createHash("sha256").update(body).digest("hex");
+    // Canonicalize: sort arrays and use stable key ordering
+    const canonical = this.canonicalize({ buyerId, ...payload });
+    const hash = crypto.createHash("sha256").update(canonical).digest("hex");
     return `${prefix}-${hash.substring(0, 16)}`;
+  }
+
+  /**
+   * Stable JSON serialization: sort object keys recursively and sort arrays
+   * so that the same logical payload always produces the same hash.
+   */
+  private canonicalize(obj: any): string {
+    return JSON.stringify(obj, (_, value) => {
+      if (Array.isArray(value)) {
+        // Sort primitive arrays for stable ordering
+        return [...value].sort();
+      }
+      if (
+        value !== null &&
+        typeof value === "object" &&
+        !Array.isArray(value)
+      ) {
+        // Sort object keys
+        return Object.keys(value)
+          .sort()
+          .reduce(
+            (sorted, key) => {
+              sorted[key] = value[key];
+              return sorted;
+            },
+            {} as Record<string, any>,
+          );
+      }
+      return value;
+    });
   }
 }
