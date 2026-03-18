@@ -438,7 +438,7 @@ export default function MerchantOrderDetailsPage() {
                         // Case 1: Cart Checkout (Array in order.items)
                         if (Array.isArray((order as any).items)) {
                           items.push(...(order as any).items.map((item: any) => ({
-                            name: item.name || "Hardware Item",
+                            name: item.name || "Swifta Product",
                             sku: `ST-${item.productId?.slice(0, 5) || "GEN"}-X`,
                             quantity: item.quantity,
                             unitPrice: item.unitPriceKobo,

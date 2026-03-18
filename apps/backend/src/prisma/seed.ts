@@ -74,15 +74,16 @@ async function main() {
     { name: "Auto Parts", slug: "auto-parts", icon: "directions_car" },
     { name: "Agriculture", slug: "agriculture", icon: "agriculture" },
     {
-      name: "Building Materials",
-      slug: "building-materials",
-      icon: "hardware",
+      name: "Office & Stationery",
+      slug: "office-stationery",
+      icon: "print",
     },
     {
       name: "Food & Groceries",
       slug: "food-groceries",
       icon: "local_grocery_store",
     },
+    { name: "Books & Media", slug: "books-media", icon: "menu_book" },
     { name: "Other", slug: "other", icon: "category" },
   ];
 

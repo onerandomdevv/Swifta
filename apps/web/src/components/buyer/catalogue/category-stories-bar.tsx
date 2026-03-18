@@ -32,7 +32,7 @@ export function CategoryStoriesBar({
     const name = cat.name.toLowerCase();
     if (name.includes("electronic") || name.includes("tech")) return "rebase_edit";
     if (name.includes("fashion") || name.includes("apparel") || name.includes("cloth")) return "apparel";
-    if (name.includes("hardware") || name.includes("tool") || name.includes("construction")) return "home_repair_service";
+    if (name.includes("hardware") || name.includes("tool") || name.includes("construction")) return "grid_view";
     if (name.includes("auto") || name.includes("vehicle")) return "minor_crash";
     if (name.includes("food") || name.includes("grocery")) return "shopping_basket";
     if (name.includes("home") || name.includes("furniture")) return "inventory_2";

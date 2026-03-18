@@ -136,7 +136,7 @@ export function AccountDetailsStep({
                 </span>
                 <input
                   className={`w-full pl-10 pr-4 py-3 bg-surface border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-foreground text-sm ${errors.businessName ? "border-red-400" : "border-border"}`}
-                  placeholder="Adamu Cement Supplies"
+                  placeholder="Zaza Fashion Hub"
                   type="text"
                   {...register("businessName")}
                 />
@@ -158,7 +158,7 @@ export function AccountDetailsStep({
                 </span>
                 <input
                   className={`w-full pl-10 pr-4 py-3 bg-surface border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-foreground text-sm ${errors.slug ? "border-red-400" : "border-border"}`}
-                  placeholder="e.g. adamu-cement"
+                  placeholder="e.g. zaza-fashion"
                   type="text"
                   {...register("slug", {
                     onChange: (e) => {
@@ -197,7 +197,7 @@ export function AccountDetailsStep({
                 </span>
                 <input
                   className={`w-full pl-10 pr-4 py-3 bg-surface border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-foreground text-sm ${errors.companyName ? "border-red-400" : "border-border"}`}
-                  placeholder="Dangote Cement PLC"
+                  placeholder="Global Electronics Ltd"
                   type="text"
                   {...register("companyName")}
                 />

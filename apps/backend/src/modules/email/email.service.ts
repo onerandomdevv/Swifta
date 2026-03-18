@@ -95,8 +95,8 @@ export class EmailService {
       <p>Swifta is digitizing Africa's digital trade network, and you're now part of the movement.</p>
       ${
         role === "MERCHANT"
-          ? `<p>Next step: Complete your business profile and start listing your products to receive quote requests from buyers.</p>`
-          : `<p>Next step: Browse our merchant catalogues and start requesting quotes for your construction projects.</p>`
+          ? `<p>Next step: Complete your business profile and start listing your products to receive orders from buyers.</p>`
+          : `<p>Next step: Browse our merchant catalogues and start shopping for your favorite products.</p>`
       }
       <div style="margin-top: 30px; text-align: center;">
         <a href="${this.configService.get("FRONTEND_URL")}/dashboard" style="background-color: #0F2B4C; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Go to Dashboard</a>

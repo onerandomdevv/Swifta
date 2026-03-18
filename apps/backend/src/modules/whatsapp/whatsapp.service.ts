@@ -82,12 +82,17 @@ export class WhatsAppService {
 
       // 2. Check for Mode Override (Merchant in Buyer Mode)
       const mode = await this.redisService.get(`wa_mode_${phone}`);
-      if (mode === 'buyer' && (!interactiveReply || interactiveReply.id !== MENU_MERCHANT_MODE)) {
-        this.logger.log(`Routing message to Buyer Bot via Mode Override (Phone: ${phone})`);
+      if (
+        mode === "buyer" &&
+        (!interactiveReply || interactiveReply.id !== MENU_MERCHANT_MODE)
+      ) {
+        this.logger.log(
+          `Routing message to Buyer Bot via Mode Override (Phone: ${phone})`,
+        );
         await this.buyerService.processMessage(
           phone,
-          messageText || '',
-          messageId || '',
+          messageText || "",
+          messageId || "",
           interactiveReply,
         );
         return;
@@ -168,8 +173,8 @@ export class WhatsAppService {
         this.logger.log(`Routing message to Buyer Bot (Phone: ${phone})`);
         await this.buyerService.processMessage(
           phone,
-          messageText || '',
-          messageId || '',
+          messageText || "",
+          messageId || "",
           interactiveReply,
         );
         return;
@@ -264,7 +269,7 @@ export class WhatsAppService {
     if (id === "add_product") {
       await this.redisService.set(
         `wa_product_creation_${merchantId}`,
-        JSON.stringify({ step: "NAME", data: {} }), 
+        JSON.stringify({ step: "NAME", data: {} }),
         30 * 60, // 30 minutes
       );
       await this.interactiveService.sendTextMessage(
@@ -279,7 +284,7 @@ export class WhatsAppService {
       await this.interactiveService.sendReplyButtons(
         phone,
         "Switching to *Buyer Mode*. ✅\n\nYou can now browse products and place orders. To switch back to Merchant Mode, use the menu button below.",
-        [{ id: "menu_merchant_mode", title: "Merchant Mode" }]
+        [{ id: "menu_merchant_mode", title: "Merchant Mode" }],
       );
       return;
     }
@@ -312,7 +317,7 @@ export class WhatsAppService {
 
       await this.interactiveService.sendTextMessage(
         phone,
-        `🏪 *${product.name}*\n\nPrice: ${this.formatNaira(Number(product.pricePerUnitKobo))}\nCategory: ${(product as any).category?.name || "General"}\nUnit: ${product.unit}\nStatus: ${product.isActive ? "Active ✅" : "Inactive ⭕"}\n\nTo update price, say: "update price of ${product.name} to [price]"`,
+        `🏪 *${product.name}*\n\nRetail Price: ${this.formatNaira(Number(product.retailPriceKobo || product.pricePerUnitKobo))}\nCategory: ${(product as any).category?.name || "General"}\nUnit: ${product.unit}\nStatus: ${product.isActive ? "Active ✅" : "Inactive ⭕"}\n\nTo update price, say: "update price of ${product.name} to [price]"`,
       );
       return;
     }
@@ -2020,7 +2025,8 @@ export class WhatsAppService {
           );
           return;
         }
-        data.shortDescription = messageText.toLowerCase() === 'skip' ? null : messageText;
+        data.shortDescription =
+          messageText.toLowerCase() === "skip" ? null : messageText;
         session.step = "IMAGE";
 
         await this.redisService.set(

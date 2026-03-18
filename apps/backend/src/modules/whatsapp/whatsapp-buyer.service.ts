@@ -21,7 +21,6 @@ import { OrderStatus } from "@swifta/shared";
 import { ReviewService } from "../review/review.service";
 import { WhatsAppInteractiveService } from "./whatsapp-interactive.service";
 import { DvaService } from "../dva/dva.service";
-import { MENU_MERCHANT_MODE } from "./whatsapp.constants";
 
 const PENDING_OTP_PREFIX = "wa_pending_otp_";
 const PENDING_REVIEW_PREFIX = "wa_pending_review_";
@@ -163,7 +162,7 @@ export class WhatsAppBuyerService {
         await this.handleCheckoutStep(
           buyerId,
           checkoutSession,
-          messageText || '',
+          messageText || "",
           checkoutKey,
         );
         return;
@@ -204,7 +203,7 @@ export class WhatsAppBuyerService {
         return;
       }
 
-      const intent = await this.intentService.parseIntent(messageText || '');
+      const intent = await this.intentService.parseIntent(messageText || "");
 
       // B1: Scrubbed log — mask phone, only log intent function name + param keys (not values)
       this.logger.debug(
@@ -769,7 +768,9 @@ export class WhatsAppBuyerService {
               ? ` | 📍${p.warehouseLocation}`
               : "";
 
-            const shortDesc = p.shortDescription ? `${p.shortDescription} | ` : "";
+            const shortDesc = p.shortDescription
+              ? `${p.shortDescription} | `
+              : "";
 
             return {
               id: `buy_${p.id.substring(0, 8)}_${quantity}`,

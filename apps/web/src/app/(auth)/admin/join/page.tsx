@@ -91,7 +91,7 @@ export default function StaffJoinPage() {
           >
             <img
               src={src}
-              alt="Construction materials logistics"
+              alt="E-commerce logistics"
               className="w-full h-full object-cover"
             />
           </div>
