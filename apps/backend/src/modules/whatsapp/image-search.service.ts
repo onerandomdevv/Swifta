@@ -74,7 +74,7 @@ export class ImageSearchService {
       if (!extractedTerms) {
         await this.interactiveService.sendTextMessage(
           phone,
-          "Identification failed. Please ensure the product is clearly visible.",
+          "I couldn't identify the product in this photo. ⚠️ Please make sure the item is clearly visible and try sending it again.",
         );
         return;
       }
@@ -86,18 +86,19 @@ export class ImageSearchService {
 
       // 4. Send response
       if (products.length === 0) {
-        await this.interactiveService.sendTextMessage(
-          phone,
-          `I detected "${extractedTerms.join(", ")}" but found no matching products on Swifta.`,
-        );
+        const bodyText = `I identified the item as *${extractedTerms[0]}*, but I couldn't find a direct match on Swifta right now. 📦\n\nWould you like to browse our top categories or search for a different product?`;
+        await this.interactiveService.sendReplyButtons(phone, bodyText, [
+          { id: "browse_categories", title: "Browse Categories" },
+          { id: "search_products", title: "Try Text Search" },
+        ]);
         return;
       }
 
       const rows = products.slice(0, 10).map((p) => ({
-        id: `view_product_${p.id}`,
+        id: `view_product_${p.id.substring(0, 8)}`,
         title: p.name.substring(0, 24),
         description:
-          `₦${Number(p.pricePerUnitKobo || 0) / 100} / ${p.unit}`.substring(
+          `Retail Price: ₦${(Number(p.retailPriceKobo || p.pricePerUnitKobo || 0) / 100).toLocaleString("en-NG")} / ${p.unit}`.substring(
             0,
             72,
           ),

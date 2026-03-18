@@ -68,7 +68,7 @@ export class InvoiceService {
       .fontSize(20)
       .text("Swifta", 50, 45, { align: "left" })
       .fontSize(10)
-      .text("Hardware & Industrial Procurement", 50, 70, { align: "left" })
+      .text("Digital Marketplace & Escrow Payments", 50, 70, { align: "left" })
       .fillColor("#000000")
       .fontSize(10)
       .text("Invoice", 200, 50, { align: "right" })

@@ -60,7 +60,7 @@ export function ProductCard({
     setAddingToCart(true);
     try {
       const { addToCart } = await import("@/lib/api/cart.api");
-      const priceType = retailPrice > 0 ? PriceType.RETAIL : PriceType.WHOLESALE;
+      const priceType = PriceType.RETAIL;
       const qty = priceType === PriceType.RETAIL
         ? (p.minOrderQuantityConsumer || 1)
         : (p.minOrderQuantity || 1);
@@ -162,7 +162,7 @@ export function ProductCard({
         
         {getStockBadge()}
 
-        {p.wholesaleDiscountPercent && p.wholesaleDiscountPercent > 0 && (
+        {p.wholesaleDiscountPercent && p.wholesaleDiscountPercent > 0 && isOwner && (
           <div className="absolute top-3 right-3 px-2 py-1 bg-primary text-white text-[9px] font-bold rounded-md shadow-sm z-10">
             -{p.wholesaleDiscountPercent}%
           </div>
@@ -216,7 +216,7 @@ export function ProductCard({
                 {p.unit && <span className="text-foreground-muted text-[10px] font-bold">/ {p.unit}</span>}
               </div>
             </div>
-            {wholesalePrice && (
+            {wholesalePrice && isOwner && (
               <div className="flex flex-col items-end text-right">
                 <span className="text-[9px] text-primary font-bold uppercase tracking-widest">Wholesale</span>
                 <span className="text-sm font-bold text-primary">

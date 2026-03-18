@@ -343,7 +343,7 @@ export default function AdminCategoriesPage() {
                       })
                     }
                     className="w-full px-6 py-4 text-sm font-bold border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 rounded-2xl focus:border-primary outline-none transition-all text-center placeholder:text-slate-300 dark:text-white"
-                    placeholder="e.g. construction"
+                    placeholder="e.g. electronics"
                   />
                 </div>
                 <div className="space-y-2 text-center">

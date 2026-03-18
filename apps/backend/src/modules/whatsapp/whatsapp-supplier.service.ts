@@ -376,7 +376,7 @@ export class WhatsAppSupplierService {
     if (!productName || !newPriceNaira) {
       await this.interactiveService.sendTextMessage(
         phone,
-        "To update a price, tell me the product and the new price, e.g. 'Update cement to 8500'.",
+        "To update a price, tell me the product and the new price, e.g. 'Update phone to 90000'.",
       );
       return;
     }

@@ -139,7 +139,7 @@ export class OrderService {
       deliveryMethod === "PLATFORM_LOGISTICS" &&
       product.merchantProfile?.businessAddress
     ) {
-      // Estimate weight roughly, e.g., 50kg per unit if Cement, or fallback to 1kg
+      // Estimate weight roughly, e.g., 50kg per unit if bulky, or fallback to 1kg
       const estimatedWeightKg =
         product.unit.toLowerCase() === "bag" ? 50 * quantity : 1 * quantity;
       const quote = await this.logisticsService.getQuote(

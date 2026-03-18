@@ -284,7 +284,7 @@ export function ProductModal({
                   className="w-full bg-transparent border-b border-border py-3 text-lg font-bold text-foreground focus:border-primary outline-none transition-all placeholder:text-foreground-muted/30" 
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
-                  placeholder="e.g. Dangote Cement 50kg"
+                  placeholder="e.g. iPhone 15 Pro Max"
                 />
               </div>
 
