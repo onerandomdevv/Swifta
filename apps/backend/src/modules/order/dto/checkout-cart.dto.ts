@@ -33,4 +33,8 @@ export class CheckoutCartDto {
   @IsIn(["MERCHANT_DELIVERY", "PLATFORM_LOGISTICS"])
   @IsOptional()
   deliveryMethod?: "MERCHANT_DELIVERY" | "PLATFORM_LOGISTICS";
+
+  @IsOptional()
+  @IsString()
+  idempotencyKey?: string;
 }
