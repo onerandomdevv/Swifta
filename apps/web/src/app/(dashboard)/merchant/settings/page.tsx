@@ -9,6 +9,7 @@ import {
 import { useToast } from "@/providers/toast-provider";
 import { authApi } from "@/lib/api/auth.api";
 import { MerchantProfile } from "@swifta/shared";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 type SettingsTab = "account" | "notifications" | "security";
 
@@ -468,21 +469,13 @@ export default function MerchantSettingsPage() {
               <Card>
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-1.5">
-                      <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">
-                        Bank Name
-                      </label>
-                      <select
-                        value={bankCode}
-                        onChange={(e) => setBankCode(e.target.value)}
-                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-3 text-sm font-bold text-navy-dark dark:text-white outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                      >
-                        <option value="">Select a Bank</option>
-                        {banksList.map((b) => (
-                          <option key={b.code} value={b.code}>{b.name}</option>
-                        ))}
-                      </select>
-                    </div>
+                    <SearchableSelect
+                      label="Bank Name"
+                      value={bankCode}
+                      options={banksList.map(b => ({ label: b.name, value: b.code }))}
+                      onChange={(value) => setBankCode(value)}
+                      placeholder="Select a Bank"
+                    />
                     <Input
                       label="Account Number"
                       value={bankAccountNo}

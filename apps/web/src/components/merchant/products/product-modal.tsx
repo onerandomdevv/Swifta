@@ -169,6 +169,7 @@ export function ProductModal({
         isActive: formData.isActive,
         weightKg: formData.weightKg ? Number(formData.weightKg) : undefined,
         processingDays: formData.processingDays ? Number(formData.processingDays) : undefined,
+        initialStock: parseInt(formData.initialStock) || 0,
       };
 
       if (product) {

@@ -30,13 +30,13 @@ export class VerificationController {
   @Roles(UserRole.MERCHANT)
   submitRequest(@Body() dto: SubmitVerificationDto, @Req() req: any) {
     // req.user.merchantId is attached by MerchantContextMiddleware
-    return this.verificationService.submitRequest(req.user.merchantId, dto);
+    return this.verificationService.submitRequest(req.merchantId, dto);
   }
 
   @Get("verification/status")
   @Roles(UserRole.MERCHANT)
   getStatus(@Req() req: any) {
-    return this.verificationService.getStatus(req.user.merchantId);
+    return this.verificationService.getStatus(req.merchantId);
   }
 
   // ─── ADMIN ENDPOINTS ─────────────────────────────────────────────────────

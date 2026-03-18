@@ -56,6 +56,14 @@ export class WhatsAppBuyerIntentService {
     ) {
       return { functionName: "browse_categories", params: {} };
     }
+    if (
+      lower.includes("merchant") ||
+      lower.includes("seller") ||
+      lower.includes("shop") ||
+      lower.includes("store")
+    ) {
+      return { functionName: "search_merchants", params: { query: text } };
+    }
     if (lower.includes("where") || lower.includes("track")) {
       return { functionName: "get_active_orders", params: {} };
     }
@@ -70,7 +78,7 @@ export class WhatsAppBuyerIntentService {
       this.configService.get<string>("whatsapp.buyerSystemPrompt") || "";
 
     const modelName =
-      this.configService.get<string>("GEMINI_MODEL") || "gemini-1.5-flash";
+      this.configService.get<string>("GEMINI_MODEL") || "gemini-2.0-flash";
     const model = this.genAI.getGenerativeModel({
       model: modelName,
       systemInstruction: systemPrompt,

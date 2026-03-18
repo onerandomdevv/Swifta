@@ -92,7 +92,10 @@ export class WhatsAppBuyerAuthService {
           JSON.stringify(session),
           SESSION_TTL,
         );
-        return this.configService.get("whatsapp.welcomeMessage") || BUYER_WELCOME_MESSAGE;
+        return (
+          this.configService.get("whatsapp.welcomeMessage") ||
+          BUYER_WELCOME_MESSAGE
+        );
       }
 
       const session: SessionData = JSON.parse(sessionRaw);
@@ -104,14 +107,20 @@ export class WhatsAppBuyerAuthService {
           return this.handleOtpStep(phone, messageText, sessionKey, session);
         default:
           await this.redisService.del(sessionKey);
-          return this.configService.get("whatsapp.welcomeMessage") || BUYER_WELCOME_MESSAGE;
+          return (
+            this.configService.get("whatsapp.welcomeMessage") ||
+            BUYER_WELCOME_MESSAGE
+          );
       }
     } catch (error) {
       this.logger.error(
         `Error in linking flow for ${maskPhone(phone)}: ${error instanceof Error ? error.message : error}`,
       );
       await this.redisService.del(sessionKey);
-      return this.configService.get("whatsapp.welcomeMessage") || BUYER_WELCOME_MESSAGE;
+      return (
+        this.configService.get("whatsapp.welcomeMessage") ||
+        BUYER_WELCOME_MESSAGE
+      );
     }
   }
 

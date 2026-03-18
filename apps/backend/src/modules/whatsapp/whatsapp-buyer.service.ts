@@ -14,6 +14,7 @@ import {
 import { OrderStatus } from "@swifta/shared";
 import { ReviewService } from "../review/review.service";
 import { WhatsAppInteractiveService } from "./whatsapp-interactive.service";
+import { DvaService } from "../dva/dva.service";
 
 const PENDING_OTP_PREFIX = "wa_pending_otp_";
 const PENDING_REVIEW_PREFIX = "wa_pending_review_";
@@ -25,9 +26,41 @@ function maskPhone(phone: string): string {
   return `****${phone.slice(-4)}`;
 }
 
-// Helper to get order item name from either product or supplierProduct
+// Helper to get order item name from product
 function getOrderItemName(order: any): string {
-  return order.product?.name ?? order.supplierProduct?.name ?? "Unknown Item";
+  return order.product?.name ?? "Unknown Item";
+}
+
+/**
+ * Helper to resolve price based on quantity and buyer type
+ */
+function resolvePrice(
+  product: any,
+  quantity: number,
+  isConsumer: boolean,
+): number {
+  const retail = product.retailPriceKobo
+    ? Number(product.retailPriceKobo)
+    : null;
+  const wholesale = product.wholesalePriceKobo
+    ? Number(product.wholesalePriceKobo)
+    : null;
+  const legacy = product.pricePerUnitKobo
+    ? Number(product.pricePerUnitKobo)
+    : 0;
+
+  if (!isConsumer) {
+    return wholesale ?? legacy;
+  }
+
+  // Consumer (B2C) can buy retail OR wholesale
+  // Use wholesale if quantity meets threshold (default 10) OR if retail is missing
+  const threshold = product.minOrderQuantity || 10;
+  if (quantity >= threshold && wholesale) {
+    return wholesale;
+  }
+
+  return retail ?? wholesale ?? legacy;
 }
 
 @Injectable()
@@ -48,6 +81,7 @@ export class WhatsAppBuyerService {
     @Inject(forwardRef(() => ReviewService))
     private reviewService: ReviewService,
     private interactiveService: WhatsAppInteractiveService,
+    private dvaService: DvaService,
   ) {
     this.accessToken =
       this.configService.get<string>("whatsapp.accessToken") || "";
@@ -211,9 +245,20 @@ export class WhatsAppBuyerService {
         this.configService.get("FRONTEND_URL") || "https://swifta.store";
       const checkoutLink = `${appUrl}/buyer/checkout/${session.productId}?qty=${session.quantity}&delivery=${session.deliveryMethod}`;
 
+      const dva = await this.dvaService.getDva(buyerId);
+      if (dva && dva.active && dva.accountNumber) {
+        const dvaMsg =
+          `💳 *Pay via Bank Transfer (Fastest)*\n\n` +
+          `Bank: *${dva.bankName}*\n` +
+          `Account: *${dva.accountNumber}*\n` +
+          `Name: *${dva.accountName}*\n\n` +
+          `Transfer the exact amount to this account. your order will be processed automatically. ✅`;
+        await this.interactiveService.sendTextMessage(phone, dvaMsg);
+      }
+
       await this.interactiveService.sendCTAUrlButton(
         phone,
-        `Logistics confirmed. ✅\n\nTap below to pay securely.`,
+        `Logistics confirmed. ✅\n\n${dva?.active ? "Alternatively, you can " : ""}Tap below to pay securely via card or bank.`,
         "Secure Payment",
         checkoutLink,
       );
@@ -265,10 +310,18 @@ export class WhatsAppBuyerService {
     }
 
     // Menu actions
+    if (id === "search_merchants") {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "Who or what kind of shop are you looking for? (e.g., 'Groceries in Lekki' or 'Fashion stores')",
+      );
+      return;
+    }
+
     if (id === "search_products") {
       await this.interactiveService.sendTextMessage(
         phone,
-        "What are you looking for? (e.g., '50 bags of cement')",
+        "What are you looking for? (e.g., 'iPhone 15' or 'Nike sneakers')",
       );
       return;
     }
@@ -341,6 +394,18 @@ export class WhatsAppBuyerService {
       await this.sendBuyerMenu(phone);
       return;
     }
+
+    if (id.startsWith("merchant_")) {
+      const merchantId = id.replace("merchant_", "");
+      await this.handleShowMerchant(phone, merchantId);
+      return;
+    }
+
+    if (id.startsWith("shop_products_")) {
+      const merchantId = id.replace("shop_products_", "");
+      await this.handleSearchProducts(phone, "", undefined, 1, merchantId);
+      return;
+    }
   }
 
   private async sendBuyerMenu(phone: string): Promise<void> {
@@ -355,7 +420,12 @@ export class WhatsAppBuyerService {
             {
               id: "search_products",
               title: "Search Products",
-              description: "Find materials and items",
+              description: "Find the best deals and items",
+            },
+            {
+              id: "search_merchants",
+              title: "Find Merchants",
+              description: "Discover local shops and merchants",
             },
             {
               id: "browse_categories",
@@ -423,9 +493,20 @@ export class WhatsAppBuyerService {
         this.configService.get("FRONTEND_URL") || "https://swifta.store";
       const checkoutLink = `${appUrl}/buyer/checkout/${session.productId}?qty=${session.quantity}&delivery=${session.deliveryMethod}`;
 
+      const dva = await this.dvaService.getDva(buyerId);
+      if (dva && dva.active && dva.accountNumber) {
+        const dvaMsg =
+          `💳 *Pay via Bank Transfer (Fastest)*\n\n` +
+          `Bank: *${dva.bankName}*\n` +
+          `Account: *${dva.accountNumber}*\n` +
+          `Name: *${dva.accountName}*\n\n` +
+          `Transfer the exact amount to this account. Your order will be processed automatically. ✅`;
+        await this.interactiveService.sendTextMessage(session.phone, dvaMsg);
+      }
+
       await this.interactiveService.sendCTAUrlButton(
         session.phone,
-        `Delivery confirmed. ✅\n\nTap below to pay securely.`,
+        `Delivery confirmed. ✅\n\n${dva?.active ? "Alternatively, you can " : ""}Tap below to pay securely.`,
         "Pay Now",
         checkoutLink,
       );
@@ -452,6 +533,13 @@ export class WhatsAppBuyerService {
             intent.params.query,
             intent.params.location,
             intent.params.quantity,
+          );
+          break;
+        case "search_merchants":
+          await this.handleSearchMerchants(
+            phone,
+            intent.params.query,
+            intent.params.location,
           );
           break;
         case "browse_categories":
@@ -518,17 +606,21 @@ export class WhatsAppBuyerService {
     query: string,
     location?: string,
     rawQuantity?: number,
+    merchantId?: string,
   ): Promise<void> {
     const buyerId = await this.authService.resolvePhone(phone);
-    const profile = await this.prisma.buyerProfile.findUnique({
-      where: { userId: buyerId || "" },
-    });
-    const isConsumer = profile?.buyerType === "CONSUMER";
+    const profile = buyerId
+      ? await this.prisma.buyerProfile.findUnique({
+          where: { userId: buyerId },
+        })
+      : null;
+    // For WhatsApp, treat ALL as consumers by default unless explicitly a BUSINESS buyer
+    const isConsumer = profile ? profile.buyerType !== "BUSINESS" : true;
 
     if (!query) {
       await this.interactiveService.sendTextMessage(
         phone,
-        "What kind of product are you looking for? e.g. 'I need 50 bags of cement'",
+        "What kind of product are you looking for? e.g. 'I need a new laptop' or 'iPhone 15'",
       );
       return;
     }
@@ -538,12 +630,40 @@ export class WhatsAppBuyerService {
     const products = await this.prisma.product.findMany({
       where: {
         isActive: true,
-        name: { contains: query, mode: "insensitive" },
-        ...(location && {
-          merchantProfile: {
-            businessAddress: { contains: location, mode: "insensitive" },
-          },
-        }),
+        merchantId,
+        AND: [
+          query
+            ? {
+                OR: [
+                  { name: { contains: query, mode: "insensitive" } },
+                  { description: { contains: query, mode: "insensitive" } },
+                  {
+                    shortDescription: { contains: query, mode: "insensitive" },
+                  },
+                ],
+              }
+            : {},
+          location
+            ? {
+                merchantProfile: {
+                  OR: [
+                    {
+                      businessAddress: {
+                        contains: location,
+                        mode: "insensitive",
+                      },
+                    },
+                    {
+                      warehouseLocation: {
+                        contains: location,
+                        mode: "insensitive",
+                      },
+                    },
+                  ],
+                },
+              }
+            : {},
+        ],
       },
       include: {
         merchantProfile: true,
@@ -553,39 +673,40 @@ export class WhatsAppBuyerService {
     });
 
     if (products.length === 0) {
-      await this.interactiveService.sendListMessage(
-        phone,
-        `No results for "${query}"${location ? ` near ${location}` : ""}.`,
-        "Options",
-        [
-          {
-            title: "Try something else",
-            rows: [
-              {
-                id: "browse_categories",
-                title: "Browse Categories",
-                description: "Explore by product type",
-              },
-              {
-                id: "search_products",
-                title: "New Search",
-                description: "Search for a different item",
-              },
-              {
-                id: "show_buyer_menu",
-                title: "Main Menu",
-                description: "Return to home",
-              },
-            ],
-          },
-        ],
-      );
+      const msg = query
+        ? `No results for "${query}"${location ? ` near ${location}` : ""}. 🛍️`
+        : "This merchant currently has no active products. 🏪";
+
+      await this.interactiveService.sendListMessage(phone, msg, "Options", [
+        {
+          title: "Try something else",
+          rows: [
+            {
+              id: "browse_categories",
+              title: "Browse Categories",
+              description: "Explore by product type",
+            },
+            {
+              id: "search_products",
+              title: "New Search",
+              description: "Search for a different item",
+            },
+            {
+              id: "show_buyer_menu",
+              title: "Main Menu",
+              description: "Return to home",
+            },
+          ],
+        },
+      ]);
       return;
     }
 
     await this.interactiveService.sendListMessage(
       phone,
-      `Search results for "${query}":`,
+      query
+        ? `Search results for "${query}":`
+        : `Products from ${products[0].merchantProfile?.businessName || "this merchant"}:`,
       "View Results",
       [
         {
@@ -596,10 +717,20 @@ export class WhatsAppBuyerService {
               rating > 0
                 ? ` ⭐${rating.toFixed(1)} (${p.merchantProfile?.reviewCount || 0})`
                 : "";
+            const resolvedPriceKobo = resolvePrice(p, quantity, isConsumer);
+            const isWholesale =
+              p.wholesalePriceKobo &&
+              resolvedPriceKobo === Number(p.wholesalePriceKobo);
+            const wholesaleBadge = isWholesale ? " [Wholesale! ✅]" : "";
+            const weightStr = p.weightKg ? ` | ${p.weightKg}kg` : "";
+            const locationStr = p.warehouseLocation
+              ? ` | 📍${p.warehouseLocation}`
+              : "";
+
             return {
               id: `buy_${p.id.substring(0, 8)}_${quantity}`,
-              title: p.name,
-              description: `${p.category?.name || "General"} | ${this.formatNaira(Number(isConsumer && (p as any).retailPriceKobo ? (p as any).retailPriceKobo : (p as any).pricePerUnitKobo || 0))}${starStr}`,
+              title: `${p.name}${wholesaleBadge}`,
+              description: `${this.formatNaira(resolvedPriceKobo)}${weightStr}${locationStr}${starStr}`,
             };
           }),
         },
@@ -702,17 +833,14 @@ export class WhatsAppBuyerService {
     }
 
     // Resolve buyer type to determine price
-    const profile = await this.prisma.buyerProfile.findUnique({
-      where: { userId: buyerId || "" },
-    });
-    const isConsumer = profile?.buyerType === "CONSUMER";
-    const unitPriceKobo = isConsumer
-      ? ((product as any).retailPriceKobo ??
-        (product as any).wholesalePriceKobo ??
-        (product as any).pricePerUnitKobo)
-      : ((product as any).wholesalePriceKobo ??
-        (product as any).pricePerUnitKobo ??
-        0);
+    const profile = buyerId
+      ? await this.prisma.buyerProfile.findUnique({
+          where: { userId: buyerId },
+        })
+      : null;
+    const isConsumer = profile ? profile.buyerType !== "BUSINESS" : true;
+
+    const unitPriceKobo = resolvePrice(product, quantity, isConsumer);
 
     try {
       const checkoutKey = `wa_pending_checkout_${buyerId}`;
@@ -760,7 +888,7 @@ export class WhatsAppBuyerService {
           ],
         },
       },
-      include: { product: true, supplierProduct: true },
+      include: { product: true },
     });
 
     if (orders.length === 0) {
@@ -797,7 +925,7 @@ export class WhatsAppBuyerService {
         buyerId,
         status: { in: [OrderStatus.DELIVERED, OrderStatus.COMPLETED] },
       },
-      include: { product: true, supplierProduct: true },
+      include: { product: true },
       take: 5,
       orderBy: { createdAt: "desc" },
     });
@@ -1032,7 +1160,7 @@ export class WhatsAppBuyerService {
     // Refresh with includes
     const fullOrder = await this.prisma.order.findUnique({
       where: { id: order.id },
-      include: { product: true, supplierProduct: true, merchantProfile: true },
+      include: { product: true, merchantProfile: true },
     });
 
     if (!fullOrder) return;
@@ -1072,7 +1200,7 @@ export class WhatsAppBuyerService {
     // Refresh with includes
     const fullOrder = await this.prisma.order.findUnique({
       where: { id: order.id },
-      include: { product: true, supplierProduct: true, review: true },
+      include: { product: true, review: true },
     });
 
     if (!fullOrder) return;
@@ -1103,7 +1231,18 @@ export class WhatsAppBuyerService {
       where: {
         OR: [
           { id: categoryId.length === 36 ? categoryId : undefined },
-          { name: categoryId.replace(/_/g, " ") },
+          {
+            name: {
+              equals: categoryId.replace(/_/g, " "),
+              mode: "insensitive",
+            },
+          },
+          {
+            slug: {
+              equals: categoryId.toLowerCase().replace(/_/g, "-"),
+              mode: "insensitive",
+            },
+          },
         ],
       },
     });
@@ -1116,10 +1255,12 @@ export class WhatsAppBuyerService {
       return;
     }
 
-    const profile = await this.prisma.buyerProfile.findUnique({
-      where: { userId: buyerId || "" },
-    });
-    const isConsumer = profile?.buyerType === "CONSUMER";
+    const profile = buyerId
+      ? await this.prisma.buyerProfile.findUnique({
+          where: { userId: buyerId },
+        })
+      : null;
+    const isConsumer = profile ? profile.buyerType !== "BUSINESS" : true;
 
     const products = await this.prisma.product.findMany({
       where: {
@@ -1168,18 +1309,134 @@ export class WhatsAppBuyerService {
           title: "Available Items",
           rows: products.map((p) => {
             const rating = p.merchantProfile?.averageRating || 0;
-            const starStr =
-              rating > 0
-                ? ` ⭐${rating.toFixed(1)} (${p.merchantProfile?.reviewCount || 0})`
-                : "";
+            const stars = rating > 0 ? ` ⭐${rating.toFixed(1)}` : "";
+
+            const resolvedPriceKobo = resolvePrice(p, 1, isConsumer);
+            const isWholesale =
+              p.wholesalePriceKobo &&
+              resolvedPriceKobo === Number(p.wholesalePriceKobo);
+            const wholesaleBadge = isWholesale ? " [Wholesale! ✅]" : "";
+            const weightStr = p.weightKg ? ` | ${p.weightKg}kg` : "";
+            const locationStr = p.warehouseLocation
+              ? ` | 📍${p.warehouseLocation}`
+              : "";
+
             return {
               id: `buy_${p.id.substring(0, 8)}_1`,
-              title: p.name,
-              description: `${this.formatNaira(Number(isConsumer && (p as any).retailPriceKobo ? (p as any).retailPriceKobo : (p as any).pricePerUnitKobo || 0))}${starStr} | ${p.merchantProfile?.businessName || "Seller"}`,
+              title: `${p.name}${wholesaleBadge}`,
+              description: `${this.formatNaira(resolvedPriceKobo)}${weightStr}${locationStr}${stars} | ${p.merchantProfile?.businessName || "Seller"}`,
             };
           }),
         },
       ],
     );
+  }
+
+  private async handleSearchMerchants(
+    phone: string,
+    query?: string,
+    location?: string,
+  ): Promise<void> {
+    if (!query && !location) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "Please specify a merchant name or category (e.g., 'Electronics') to search.",
+      );
+      return;
+    }
+
+    const merchants = await this.prisma.merchantProfile.findMany({
+      where: {
+        AND: [
+          { verificationTier: { not: "UNVERIFIED" } },
+          query
+            ? {
+                OR: [
+                  { businessName: { contains: query, mode: "insensitive" } },
+                  { description: { contains: query, mode: "insensitive" } },
+                  { slug: { contains: query, mode: "insensitive" } },
+                ],
+              }
+            : {},
+          location
+            ? {
+                OR: [
+                  {
+                    businessAddress: {
+                      contains: location,
+                      mode: "insensitive",
+                    },
+                  },
+                  {
+                    warehouseLocation: {
+                      contains: location,
+                      mode: "insensitive",
+                    },
+                  },
+                ],
+              }
+            : {},
+        ],
+      },
+      take: 10,
+    });
+
+    if (merchants.length === 0) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `No merchants found matching "${query || location}". 🏪`,
+      );
+      return;
+    }
+
+    await this.interactiveService.sendListMessage(
+      phone,
+      `Verified Merchants:`,
+      "View Shops",
+      [
+        {
+          title: "Top Matches",
+          rows: merchants.map((m) => ({
+            id: `merchant_${m.id}`,
+            title: m.businessName || "Untitled Shop",
+            description: `${m.averageRating > 0 ? `⭐${m.averageRating.toFixed(1)} | ` : ""}${m.description?.substring(0, 50) || "Verified Swifta Merchant"}`,
+          })),
+        },
+      ],
+    );
+  }
+
+  private async handleShowMerchant(
+    phone: string,
+    merchantId: string,
+  ): Promise<void> {
+    const merchant = await this.prisma.merchantProfile.findUnique({
+      where: { id: merchantId },
+    });
+
+    if (!merchant) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "Merchant not found.",
+      );
+      return;
+    }
+
+    const ratingStr =
+      merchant.averageRating > 0
+        ? `⭐ ${merchant.averageRating.toFixed(1)} (${merchant.reviewCount} reviews)`
+        : "No reviews yet";
+
+    const msg =
+      `🏪 *${merchant.businessName}*\n\n` +
+      `${merchant.description || "A verified partner on Swifta."}\n\n` +
+      `📍 *Location:* ${merchant.businessAddress || "Abuja, Nigeria"}\n` +
+      `✨ *Rating:* ${ratingStr}\n\n` +
+      `What would you like to do?`;
+
+    await this.interactiveService.sendReplyButtons(phone, msg, [
+      { id: `shop_products_${merchantId}`, title: "Browse Their Shop" },
+      { id: "show_buyer_menu", title: "Main Menu" },
+    ]);
   }
 }
