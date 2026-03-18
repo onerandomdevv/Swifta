@@ -15,7 +15,7 @@ import { useAuth } from "@/providers/auth-provider";
 
 interface ProductDetailViewProps {
   productId: string;
-  isOwner: boolean;
+  isOwner?: boolean;
 }
 
 export function ProductDetailView({ productId, isOwner: initialIsOwner }: ProductDetailViewProps) {
@@ -24,7 +24,9 @@ export function ProductDetailView({ productId, isOwner: initialIsOwner }: Produc
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState<Product | null>(null);
   
-  const effectiveIsOwner = initialIsOwner || (!!user?.merchantId && !!product?.merchantId && user.merchantId === product.merchantId);
+  const effectiveIsOwner = initialIsOwner !== undefined 
+    ? initialIsOwner 
+    : (!!user?.merchantId && !!product?.merchantId && user.merchantId === product.merchantId);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [merchantProducts, setMerchantProducts] = useState<Product[]>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'specs' | 'reviews' | 'shipping'>('overview');

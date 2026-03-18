@@ -76,6 +76,7 @@ export const BUYER_GEMINI_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
             "The location to search in (e.g. 'Lekki', 'Victoria Island')",
         },
       },
+      required: ["query"],
     },
   },
   {

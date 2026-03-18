@@ -29,7 +29,7 @@ export class VerificationController {
   @Post("verification/request")
   @Roles(UserRole.MERCHANT)
   submitRequest(@Body() dto: SubmitVerificationDto, @Req() req: any) {
-    // req.user.merchantId is attached by MerchantContextMiddleware
+    // req.merchantId is attached by MerchantContextMiddleware
     return this.verificationService.submitRequest(req.merchantId, dto);
   }
 
