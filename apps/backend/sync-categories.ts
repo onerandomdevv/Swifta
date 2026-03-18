@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+// @ts-expect-error - standalone script doesn't need full pg types
 import { Pool } from "pg";
 
 async function main() {
