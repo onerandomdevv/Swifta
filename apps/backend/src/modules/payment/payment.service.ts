@@ -452,33 +452,10 @@ export class PaymentService {
         // DIRECT PURCHASE LOGIC
         const deliveryOtp = crypto.randomInt(100000, 999999).toString();
 
-        await this.prisma.$transaction(async (tx) => {
-          // Reserve inventory
-          await tx.inventoryEvent.create({
-            data: {
-              productId: orderData.productId!,
-              merchantId: orderData.merchantId,
-              eventType: "ORDER_RESERVED",
-              quantity: -orderData.quantity!,
-              referenceId: orderData.id,
-              notes: "Direct order reservation",
-            },
-          });
-
-          await tx.productStockCache.upsert({
-            where: { productId: orderData.productId! },
-            create: {
-              productId: orderData.productId!,
-              stock: -orderData.quantity!,
-            },
-            update: { stock: { decrement: orderData.quantity! } },
-          });
-
-          // Save OTP on the Order
-          await tx.order.update({
-            where: { id: orderData.id },
-            data: { deliveryOtp },
-          });
+        // Save OTP on the Order
+        await this.prisma.order.update({
+          where: { id: orderData.id },
+          data: { deliveryOtp },
         });
 
         // Notifications

@@ -523,6 +523,14 @@ export class AdminService {
         },
       });
 
+      await this.auditLog.log(
+        requestingAdminId,
+        "PROMOTE_ADMIN",
+        "User",
+        userId,
+        { targetRole },
+      );
+
       this.logger.log(
         `User ${updatedUser.email} granted role ${targetRole} by admin ${requestingAdminId}`,
       );
@@ -548,6 +556,8 @@ export class AdminService {
       where: { id: userId },
       data: { deletedAt: new Date() },
     });
+
+    await this.auditLog.log(requestingAdminId, "DELETE_USER", "User", userId);
 
     this.logger.warn(
       `User ${user.email} (${userId}) soft-deleted by admin ${requestingAdminId}`,
@@ -662,6 +672,14 @@ export class AdminService {
       where: { id: tokenId },
       data: { isActive: false },
     });
+
+    await this.auditLog.log(
+      adminUserId,
+      "REVOKE_STAFF_TOKEN",
+      "StaffAccessToken",
+      tokenId,
+      { role: token.role },
+    );
 
     this.logger.warn(
       `Access token ${tokenId} (${token.role}) revoked by admin ${adminUserId}`,

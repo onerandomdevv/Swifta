@@ -154,7 +154,15 @@ export class OrderService {
     const totalKobo =
       subtotalKobo + platformFeeKobo + calculatedDeliveryFeeKobo;
 
-    const idempotencyKey = `direct-order-${productId}-${buyerId}-${Date.now()}`;
+    const idempotencyKey =
+      dto.idempotencyKey ||
+      this.generateDeterministicKey("direct", buyerId, {
+        productId,
+        quantity,
+        deliveryAddress,
+        paymentMethod,
+        deliveryMethod,
+      });
 
     // Create the order with reservation
     const order = await this.prisma.$transaction(async (tx) => {
@@ -433,7 +441,14 @@ export class OrderService {
 
     const totalKobo =
       subtotalKobo + platformFeeKobo + calculatedDeliveryFeeKobo;
-    const idempotencyKey = `cart-checkout-${buyerId}-${Date.now()}`;
+    const idempotencyKey =
+      dto.idempotencyKey ||
+      this.generateDeterministicKey("cart", buyerId, {
+        cartItemIds,
+        deliveryAddress,
+        paymentMethod,
+        deliveryMethod,
+      });
 
     // Create the order atomically with inventory reservation
     const order = await this.prisma.$transaction(async (tx) => {
@@ -1291,5 +1306,15 @@ export class OrderService {
     });
     if (!merchant) throw new NotFoundException("Merchant not found");
     return merchant.userId;
+  }
+
+  private generateDeterministicKey(
+    prefix: string,
+    buyerId: string,
+    payload: any,
+  ): string {
+    const body = JSON.stringify({ buyerId, ...payload });
+    const hash = crypto.createHash("sha256").update(body).digest("hex");
+    return `${prefix}-${hash.substring(0, 16)}`;
   }
 }

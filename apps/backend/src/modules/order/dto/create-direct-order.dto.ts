@@ -44,4 +44,8 @@ export class CreateDirectOrderDto {
     message: "deliveryMethod must be MERCHANT_DELIVERY or PLATFORM_LOGISTICS",
   })
   deliveryMethod?: DeliveryMethod;
+
+  @IsOptional()
+  @IsString()
+  idempotencyKey?: string;
 }
