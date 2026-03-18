@@ -302,6 +302,7 @@ export const NIGERIAN_BANKS = [
 
 export enum ProductCreationStep {
   NAME = "NAME",
+  SHORT_DESCRIPTION = "SHORT_DESCRIPTION",
   CATEGORY = "CATEGORY",
   ATTRIBUTES = "ATTRIBUTES",
   UNIT = "UNIT",
@@ -310,6 +311,10 @@ export enum ProductCreationStep {
   IMAGE = "IMAGE",
   CONFIRMATION = "CONFIRMATION",
 }
+
+/** Toggle button for Merchant-as-Buyer mode */
+export const MENU_BUYER_MODE = "menu_buyer_mode";
+export const MENU_MERCHANT_MODE = "menu_merchant_mode";
 
 /** Product creation session TTL (30 minutes) */
 export const PRODUCT_CREATION_SESSION_TTL = 30 * 60;

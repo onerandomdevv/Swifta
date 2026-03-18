@@ -17,6 +17,10 @@ export class CreateProductDto {
   @IsString()
   description?: string;
 
+  @IsOptional()
+  @IsString()
+  shortDescription?: string;
+
   @IsString()
   @IsNotEmpty()
   unit: string;

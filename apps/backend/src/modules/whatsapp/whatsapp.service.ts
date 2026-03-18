@@ -20,6 +20,8 @@ import {
   FRIENDLY_FALLBACK,
   STOCK_UPDATE_FOLLOWUP,
   META_API_VERSION,
+  MENU_BUYER_MODE,
+  MENU_MERCHANT_MODE,
 } from "./whatsapp.constants";
 import { OrderStatus, VerificationTier } from "@swifta/shared";
 
@@ -64,8 +66,6 @@ export class WhatsAppService {
   }
 
   // =======================================================================
-  // Main entry point — called by the BullMQ processor
-  // =======================================================================
   async processMessage(
     phone: string,
     messageText?: string,
@@ -80,7 +80,20 @@ export class WhatsAppService {
         return;
       }
 
-      // 1. Check if phone is linked to a Merchant
+      // 2. Check for Mode Override (Merchant in Buyer Mode)
+      const mode = await this.redisService.get(`wa_mode_${phone}`);
+      if (mode === 'buyer' && (!interactiveReply || interactiveReply.id !== MENU_MERCHANT_MODE)) {
+        this.logger.log(`Routing message to Buyer Bot via Mode Override (Phone: ${phone})`);
+        await this.buyerService.processMessage(
+          phone,
+          messageText || '',
+          messageId || '',
+          interactiveReply,
+        );
+        return;
+      }
+
+      // 2. Check if phone is linked to a Merchant
       const merchantId = await this.authService.resolvePhone(phone);
       if (merchantId) {
         // Merchant path
@@ -103,7 +116,7 @@ export class WhatsAppService {
         if (checkoutSessionRaw) {
           try {
             const session = JSON.parse(checkoutSessionRaw);
-            await this.handleWholesaleCheckoutStep(
+            await (this as any).handleWholesaleCheckoutStep(
               merchantId,
               session,
               messageText,
@@ -145,46 +158,24 @@ export class WhatsAppService {
         }
 
         const intent = await this.intentService.parseIntent(messageText);
-        await this.executeCommand(merchantId, intent, phone);
+        await (this as any).executeCommand(merchantId, intent, phone);
         return;
       }
 
-      // 2. Check if phone is linked to a Buyer
+      // 3. Check if phone is linked to a Buyer
       const buyerId = await this.buyerAuthService.resolvePhone(phone);
       if (buyerId) {
         this.logger.log(`Routing message to Buyer Bot (Phone: ${phone})`);
         await this.buyerService.processMessage(
           phone,
-          messageText,
-          messageId,
+          messageText || '',
+          messageId || '',
           interactiveReply,
         );
         return;
       }
 
-      // 3. Check if phone is linked to a Supplier
-      const supplierId = await this.authService.resolveSupplierPhone(phone);
-      if (supplierId) {
-        this.logger.log(`Routing message to Supplier Bot (Phone: ${phone})`);
-        try {
-          await this.supplierService.processMessage(
-            phone,
-            messageText,
-            messageId,
-          );
-        } catch (error) {
-          this.logger.error(
-            `Error processing supplier message from ${phone}: ${error instanceof Error ? error.message : error}`,
-          );
-          await this.sendWhatsAppMessage(
-            phone,
-            "Supplier bot features are currently experiencing an issue. Please try again later.",
-          );
-        }
-        return;
-      }
-
-      // 4. Unknown number — Route to V5 WhatsApp-Only Onboarding
+      // 4. Unknown number — Route to Onboarding
       this.logger.log(`Routing to WhatsApp Onboarding (Phone: ${phone})`);
       await this.onboardingService.handleOnboarding(
         phone,
@@ -273,13 +264,33 @@ export class WhatsAppService {
     if (id === "add_product") {
       await this.redisService.set(
         `wa_product_creation_${merchantId}`,
-        JSON.stringify({ step: "NAME", data: {} }), // Use string for enum if needed or import
+        JSON.stringify({ step: "NAME", data: {} }), 
         30 * 60, // 30 minutes
       );
       await this.interactiveService.sendTextMessage(
         phone,
         "Great! Let's add a new product. 🛒\n\nWhat is the *Name* of the product?",
       );
+      return;
+    }
+
+    if (id === "menu_buyer_mode") {
+      await this.redisService.set(`wa_mode_${phone}`, "buyer", 24 * 3600); // 24 hours
+      await this.interactiveService.sendReplyButtons(
+        phone,
+        "Switching to *Buyer Mode*. ✅\n\nYou can now browse products and place orders. To switch back to Merchant Mode, use the menu button below.",
+        [{ id: "menu_merchant_mode", title: "Merchant Mode" }]
+      );
+      return;
+    }
+
+    if (id === "menu_merchant_mode") {
+      await this.redisService.del(`wa_mode_${phone}`);
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "Switching back to *Merchant Mode*. ✅\n\nHow can I help you today?",
+      );
+      await this.sendMerchantMenu(phone);
       return;
     }
 
@@ -502,9 +513,9 @@ export class WhatsAppService {
               description: "View today's performance",
             },
             {
-              id: "menu_rfqs",
-              title: "Pending RFQs",
-              description: "Check new requests",
+              id: "menu_inventory",
+              title: "Inventory Check",
+              description: "Monitor stock levels",
             },
           ],
         },
@@ -512,19 +523,19 @@ export class WhatsAppService {
           title: "Operations",
           rows: [
             {
-              id: "menu_inventory",
-              title: "Inventory Check",
-              description: "Monitor stock levels",
-            },
-            {
               id: "menu_orders",
-              title: "My Orders",
-              description: "Manage customer orders",
+              title: "Recent Orders",
+              description: "Manage your active sales",
             },
             {
               id: "menu_products",
-              title: "My Products",
-              description: "Portfolio overview",
+              title: "Listings",
+              description: "Manage your product portfolio",
+            },
+            {
+              id: MENU_BUYER_MODE,
+              title: "Switch to Buyer Mode",
+              description: "Search and buy products",
             },
           ],
         },
@@ -539,7 +550,7 @@ export class WhatsAppService {
             {
               id: "menu_help",
               title: "Help & Support",
-              description: "How to use the bot",
+              description: "How to use the Swifta",
             },
           ],
         },
@@ -1987,6 +1998,29 @@ export class WhatsAppService {
           return;
         }
         data.retailPriceNaira = price;
+        session.step = "SHORT_DESCRIPTION";
+
+        await this.redisService.set(
+          sessionKey,
+          JSON.stringify(session),
+          30 * 60,
+        );
+        await this.interactiveService.sendTextMessage(
+          phone,
+          "Please provide a *Short Description* for consumers (approx. 60-100 characters).",
+        );
+        return;
+      }
+
+      if (step === "SHORT_DESCRIPTION") {
+        if (!messageText) {
+          await this.interactiveService.sendTextMessage(
+            phone,
+            "Please provide a *Short Description* description. (or reply 'skip')",
+          );
+          return;
+        }
+        data.shortDescription = messageText.toLowerCase() === 'skip' ? null : messageText;
         session.step = "IMAGE";
 
         await this.redisService.set(
@@ -2028,6 +2062,9 @@ export class WhatsAppService {
         summary += `Unit: *${data.unit}*\n`;
         summary += `Wholesale Price: *₦${data.wholesalePriceNaira}*\n`;
         summary += `Retail Price: *₦${data.retailPriceNaira}*\n`;
+        if (data.shortDescription) {
+          summary += `Description: _${data.shortDescription}_\n`;
+        }
 
         if (data.attributes && Object.keys(data.attributes).length > 0) {
           summary += `\n*Specs:*\n`;
@@ -2068,6 +2105,7 @@ export class WhatsAppService {
                 Math.round(data.wholesalePriceNaira * 100),
               ),
               retailPriceKobo: BigInt(Math.round(data.retailPriceNaira * 100)),
+              shortDescription: data.shortDescription,
               imageUrl: data.imageUrl,
               attributes: data.attributes || {},
               isActive: true,
