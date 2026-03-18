@@ -95,7 +95,7 @@ export class ImageSearchService {
       }
 
       const rows = products.slice(0, 10).map((p) => ({
-        id: `view_product_${p.id.substring(0, 8)}`,
+        id: `view_product_${p.id}`,
         title: p.name.substring(0, 24),
         description:
           `Retail Price: ₦${(Number(p.retailPriceKobo || p.pricePerUnitKobo || 0) / 100).toLocaleString("en-NG")} / ${p.unit}`.substring(
@@ -205,8 +205,9 @@ export class ImageSearchService {
               {
                 image: { content: base64Data },
                 features: [
-                  { type: "LABEL_DETECTION", maxResults: 5 },
+                  { type: "TEXT_DETECTION", maxResults: 1 },
                   { type: "OBJECT_LOCALIZATION", maxResults: 3 },
+                  { type: "LABEL_DETECTION", maxResults: 5 },
                 ],
               },
             ],
@@ -220,15 +221,27 @@ export class ImageSearchService {
       if (!response.ok) return null;
       const data = await response.json();
 
-      const labels =
-        data.responses[0]?.labelAnnotations?.map((l: any) => l.description) ||
-        [];
+      const textBlock =
+        data.responses[0]?.textAnnotations?.[0]?.description || "";
+      let textTerms: string[] = [];
+      if (textBlock) {
+        textTerms = textBlock
+          .split(/\s+/)
+          .filter((w: string) => w.length > 3 && !w.match(/^[0-9]+$/))
+          .slice(0, 5); // Take top 5 meaningful words from OCR
+      }
+
       const objects =
         data.responses[0]?.localizedObjectAnnotations?.map(
           (o: any) => o.name,
         ) || [];
 
-      const terms = Array.from(new Set([...objects, ...labels]));
+      const labels =
+        data.responses[0]?.labelAnnotations?.map((l: any) => l.description) ||
+        [];
+
+      // Prioritize Text OCR -> Objects -> General Labels
+      const terms = Array.from(new Set([...textTerms, ...objects, ...labels]));
       return terms.length > 0 ? terms : null;
     } catch (error) {
       this.logger.error("Cloud Vision error:", error);
