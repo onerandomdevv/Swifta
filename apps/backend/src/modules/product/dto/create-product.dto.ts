@@ -68,4 +68,13 @@ export class CreateProductDto {
   @IsOptional()
   @IsInt()
   processingDays?: number;
+
+  @IsOptional()
+  @IsString()
+  productCode?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  initialStock?: number;
 }

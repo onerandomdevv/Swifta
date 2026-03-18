@@ -9,8 +9,8 @@ import { Request } from "express";
 
 const cookieExtractor = (req: Request): string | null => {
   let token = null;
-  if (req && req.cookies && req.cookies["hwos_access_token"]) {
-    token = req.cookies["hwos_access_token"];
+  if (req && req.cookies && req.cookies["swifta_access_token"]) {
+    token = req.cookies["swifta_access_token"];
   }
   // Fallback to Bearer token
   if (!token && req.headers.authorization) {

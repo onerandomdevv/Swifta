@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
 import { getDisplayName } from "@swifta/shared";
 import { Logo } from "@/components/ui/logo";
@@ -18,6 +18,7 @@ export function MerchantSidebar({
   variant?: "desktop" | "mobile";
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { logout, user } = useAuth();
   const { unreadCount } = useNotifications();
   const [activeMode, setActiveMode] = useState<"MERCHANT" | "BUYER">("MERCHANT");
@@ -111,7 +112,14 @@ export function MerchantSidebar({
           </Link>
         )}
         
-        <ModeSwitcher onModeChange={setActiveMode} />
+        <ModeSwitcher 
+          onModeChange={(mode) => {
+            setActiveMode(mode);
+            if (mode === "BUYER") {
+              router.push("/buyer/catalogue");
+            }
+          }} 
+        />
       </div>
 
       {/* Navigation Area */}

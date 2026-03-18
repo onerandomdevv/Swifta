@@ -10,7 +10,7 @@ import { VerificationBadge } from "@/components/shared/verification-badge";
 
 interface ProductCardProps {
   product: Product;
-  isOwner: boolean;
+  isOwner?: boolean;
   showMerchant?: boolean;
   onQuickBuy?: (product: Product) => void;
   isSaved?: boolean;
@@ -35,7 +35,7 @@ function timeAgo(dateStr: string | Date): string {
 
 export function ProductCard({
   product: p,
-  isOwner,
+  isOwner = false,
   showMerchant = true,
   onQuickBuy,
   isSaved = false,

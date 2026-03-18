@@ -7,8 +7,8 @@ import { Request } from "express";
 
 const cookieExtractor = (req: Request): string | null => {
   let token = null;
-  if (req && req.cookies && req.cookies["hwos_refresh_token"]) {
-    token = req.cookies["hwos_refresh_token"];
+  if (req && req.cookies && req.cookies["swifta_refresh_token"]) {
+    token = req.cookies["swifta_refresh_token"];
   }
 
   // Non-production fallback to support easy Postman/Swagger testing without

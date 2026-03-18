@@ -596,17 +596,6 @@ export class WhatsAppService {
         case "get_verification_status":
           await this.handleGetVerificationStatus(merchantId, phone);
           break;
-        case "browse_wholesale":
-          await this.handleBrowseWholesale(phone, intent.params.query);
-          break;
-        case "buy_wholesale":
-          await this.handleBuyWholesale(
-            merchantId,
-            phone,
-            intent.params.productId,
-            intent.params.quantity,
-          );
-          break;
         case "friendly_fallback":
           await this.interactiveService.sendTextMessage(
             phone,
@@ -1121,7 +1110,7 @@ export class WhatsAppService {
     if (!productName || !priceNaira) {
       await this.interactiveService.sendTextMessage(
         phone,
-        `To update a product's price, please provide the name and the new amount.\n\nExample: *"update price of cement to 9000"*`,
+        `To update a product's price, please provide the name and the new amount.\n\nExample: *"update price of iPhone to 900000"*`,
       );
       return;
     }
@@ -1155,56 +1144,6 @@ export class WhatsAppService {
       await this.interactiveService.sendTextMessage(
         phone,
         `❌ Price update failed: ${error.message}`,
-      );
-    }
-  }
-
-  // =======================================================================
-  // RFQ Push Notification — called via BullMQ job
-  // =======================================================================
-  async sendRfqPushNotification(
-    merchantId: string,
-    rfqData: {
-      rfqId: string;
-      buyerName: string;
-      productName: string;
-      quantity: number;
-      deliveryAddress: string;
-    },
-  ): Promise<void> {
-    try {
-      const link = await this.prisma.whatsAppLink.findFirst({
-        where: {
-          OR: [
-            { userId: merchantId },
-            { user: { merchantProfile: { id: merchantId } } },
-          ],
-        },
-        select: { phone: true, isActive: true },
-      });
-
-      if (!link || !link.isActive) return;
-
-      const shortId = rfqData.rfqId.substring(0, 8);
-
-      const bodyText =
-        `🚨 *New Request for Quote*\n\n` +
-        `Product: *${rfqData.productName}*\n` +
-        `Quantity: *${rfqData.quantity}*\n` +
-        `Delivery: ${rfqData.deliveryAddress}\n\n` +
-        `Please provide your best price to secure this order.`;
-
-      await this.interactiveService.sendReplyButtons(link.phone, bodyText, [
-        { id: `view_rfq_${shortId}`, title: "View & Quote" },
-        { id: "show_merchant_menu", title: "Main Menu" },
-      ]);
-
-      this.logger.log(
-        `RFQ push notification sent to merchant ${merchantId} (phone: ${link.phone})`,
-      );
-    } catch (error) {
-      this.logger.error(
-        `Failed to send RFQ push notification to merchant ${merchantId}: ${error instanceof Error ? error.message : error}`,
       );
     }
   }
@@ -1425,75 +1364,6 @@ export class WhatsAppService {
     }
   }
 
-  async sendSupplierLogisticsUpdate(
-    supplierId: string,
-    orderId: string,
-    status: string,
-  ): Promise<void> {
-    try {
-      const link = await (this.prisma as any).whatsAppSupplierLink.findFirst({
-        where: { supplierId, isActive: true },
-        select: { phone: true },
-      });
-      if (!link) return;
-
-      const shortId = orderId.slice(0, 6).toUpperCase();
-      let msg = "";
-
-      switch (status) {
-        case "PICKUP_SCHEDULED":
-          msg = `🚚 *Wholesale Order: Rider coming!*\n\nA rider is coming to pick up Wholesale Order #${shortId}. Please have it ready for collection.`;
-          break;
-        case "PICKED_UP":
-          msg = `✅ *Wholesale Order Picked Up!*\n\nWholesale Order #${shortId} has been collected and is in transit.`;
-          break;
-        case "DELIVERED":
-          msg = `🏢 *Wholesale Order Delivered!*\n\nWholesale Order #${shortId} has been delivered to the merchant.`;
-          break;
-      }
-
-      if (msg) await this.sendWhatsAppMessage(link.phone, msg);
-    } catch (error) {
-      this.logger.error(
-        `Failed to send supplier logistics update for ${orderId}`,
-      );
-    }
-  }
-
-  async sendSupplierNewOrder(
-    supplierId: string,
-    orderData: {
-      orderId: string;
-      buyerName: string;
-      productName: string;
-      quantity: number;
-      amountKobo: bigint;
-      deliveryAddress: string;
-    },
-  ): Promise<void> {
-    try {
-      const link = await (this.prisma as any).whatsAppSupplierLink.findFirst({
-        where: { supplierId, isActive: true },
-        select: { phone: true },
-      });
-      if (!link) return;
-
-      const shortId = orderData.orderId.substring(0, 8).toUpperCase();
-      let msg = `🏭 *New Wholesale Order!*\n\n`;
-      msg += `Merchant: ${orderData.buyerName}\n`;
-      msg += `Product: ${orderData.quantity} x ${orderData.productName}\n`;
-      msg += `Total: ${this.formatNaira(Number(orderData.amountKobo))}\n`;
-      msg += `Ship to: ${orderData.deliveryAddress}\n\n`;
-      msg += `Order #${shortId} is pending fulfillment.`;
-
-      await this.sendWhatsAppMessage(link.phone, msg);
-    } catch (error) {
-      this.logger.error(
-        `Failed to send supplier order notification for supplier ${supplierId}`,
-      );
-    }
-  }
-
   // =======================================================================
   // Meta Cloud API — Send message
   // =======================================================================
@@ -1653,45 +1523,6 @@ export class WhatsAppService {
   // Wholesale & Trade Financing Handlers (V4)
   // =======================================================================
 
-  private async handleBrowseWholesale(
-    phone: string,
-    query?: string,
-  ): Promise<void> {
-    const products = await this.prisma.supplierProduct.findMany({
-      where: {
-        isActive: true,
-        supplier: { isVerified: true },
-        ...(query && { name: { contains: query, mode: "insensitive" } }),
-      },
-      include: { supplier: true },
-      take: 5,
-    });
-
-    if (products.length === 0) {
-      await this.interactiveService.sendTextMessage(
-        phone,
-        `❌ No wholesale products found${query ? ` matching "${query}"` : ""}. Manufacturer listings will appear here soon.`,
-      );
-      return;
-    }
-
-    await this.interactiveService.sendListMessage(
-      phone,
-      `🏭 *Manufacturer Catalogue*${query ? ` for "${query}"` : ""}\n\nSelect a product to initiate a wholesale purchase.`,
-      "View Products",
-      [
-        {
-          title: "Available Stock",
-          rows: products.map((p) => ({
-            id: `buy_wholesale_${p.id.substring(0, 8)}`,
-            title: p.name,
-            description: `${this.formatNaira(Number(p.wholesalePriceKobo))} | Min: ${p.minOrderQty} ${p.unit} | ${p.supplier.companyName}`,
-          })),
-        },
-      ],
-    );
-  }
-
   private async handleBuyWholesale(
     merchantId: string,
     phone: string,
@@ -1781,9 +1612,9 @@ export class WhatsAppService {
 
     if (session.step === "SELECT_PAYMENT") {
       let paymentMethod = "";
-      if (input === "1") {
+      if (input === "confirm_wholesale_pay_now") {
         paymentMethod = "PAY_NOW";
-      } else if (input === "2") {
+      } else if (input === "confirm_wholesale_trade_finance") {
         const merchant = await this.prisma.merchantProfile.findUnique({
           where: { id: merchantId },
           select: { userId: true },
@@ -1794,7 +1625,7 @@ export class WhatsAppService {
         if (!eligibility.eligible) {
           await this.interactiveService.sendTextMessage(
             phone,
-            "Sorry, Trade Financing is not available for your account yet. Please reply 1️⃣ to Pay Now.",
+            "Sorry, Trade Financing is not available for your account yet. Please select Pay Now.",
           );
           return;
         }
@@ -1802,7 +1633,7 @@ export class WhatsAppService {
       } else {
         await this.interactiveService.sendTextMessage(
           phone,
-          "Please reply with 1️⃣ or 2️⃣ (if eligible) to select your payment method.",
+          "Please select your payment method using the buttons provided.",
         );
         return;
       }
@@ -1886,66 +1717,6 @@ export class WhatsAppService {
   // =======================================================================
   // Supplier Push Notifications
   // =======================================================================
-
-  async sendSupplierOrderNotification(
-    supplierId: string,
-    orderId: string,
-    merchantName: string,
-    productsSummary: string,
-    totalNaira: number,
-  ): Promise<void> {
-    try {
-      const link = await (this.prisma as any).whatsAppSupplierLink.findFirst({
-        where: { supplierId, isActive: true },
-        select: { phone: true },
-      });
-
-      if (!link) return; // Supplier not linked or inactive
-
-      let msg = `🔔 *New Wholesale Order!*\n\n`;
-      msg += `Merchant *${merchantName}* just placed a new order (#${orderId}).\n\n`;
-      msg += `📦 *Items*: ${productsSummary}\n`;
-      msg += `💰 *Total*: ₦${totalNaira.toLocaleString()}\n\n`;
-      msg += `Please prepare the items for dispatch. Check your dashboard for full details.`;
-
-      await this.sendWhatsAppMessage(link.phone, msg);
-    } catch (error) {
-      this.logger.error(`Failed to send supplier order notification: ${error}`);
-    }
-  }
-
-  async sendSupplierPayoutNotification(
-    supplierId: string,
-    status: "PROCESSED" | "FAILED",
-    amountNaira: number,
-    reference: string,
-  ): Promise<void> {
-    try {
-      const link = await (this.prisma as any).whatsAppSupplierLink.findFirst({
-        where: { supplierId, isActive: true },
-        select: { phone: true },
-      });
-
-      if (!link) return;
-
-      let msg = "";
-      if (status === "PROCESSED") {
-        msg = `✅ *Payout Successful*\n\n`;
-        msg += `A settlement of ₦${amountNaira.toLocaleString()} has been sent to your bank account for recent wholesale orders (Ref: ${reference}).\n\n`;
-        msg += `Have a great day!`;
-      } else {
-        msg = `❌ *Payout Failed*\n\n`;
-        msg += `We encountered an issue processing your payout of ₦${amountNaira.toLocaleString()} (Ref: ${reference}).\n\n`;
-        msg += `Our team is looking into this. You can also check your dashboard for updates.`;
-      }
-
-      await this.sendWhatsAppMessage(link.phone, msg);
-    } catch (error) {
-      this.logger.error(
-        `Failed to send supplier payout notification: ${error}`,
-      );
-    }
-  }
 
   /**
    * ⭐️ Review Prompt (Interactive) — called via BullMQ

@@ -51,7 +51,7 @@ export class NotificationTriggerService {
       userId,
       NotificationType.WELCOME,
       "Welcome to Swifta",
-      "Welcome to Africa's hardware trade network.",
+      "Welcome to Africa's digital trade network.",
     );
   }
 

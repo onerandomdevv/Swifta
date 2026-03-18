@@ -3,18 +3,29 @@
 // ---------------------------------------------------------------------------
 import { SchemaType, FunctionDeclaration } from "@google/generative-ai";
 
-export const BUYER_MAIN_MENU = `Buyer Menu. How can I assist you today?`;
+export const BUYER_MAIN_MENU = `Welcome to the Swifta Marketplace! 🛒✨
 
-export const BUYER_FRIENDLY_FALLBACK = `I did not understand that. I can assist with product searches, tracking deliveries, or connecting you with support.
+I'm your personal shopping assistant. I can help you find products, discover local merchants, and track your deliveries in real-time.
 
-What is your objective?`;
+How can I assist you today?`;
+
+export const BUYER_FRIENDLY_FALLBACK = `I'm sorry, I didn't quite catch that. 
+
+I can help you:
+🔍 *Search for products* (e.g., "iPhone 15" or "Nike sneakers")
+🏪 *Find merchants* (e.g., "Supermarkets", "Fashion stores" or "Gadgets & Devices stores")
+📦 *Track your orders*
+🤝 *Connect with support*
+
+What would you like to do?`;
 
 export const BUYER_NUMBER_INTENT_MAP: Record<string, string> = {
   "1": "search_products",
-  "2": "get_active_orders",
-  "3": "confirm_delivery",
-  "4": "get_order_history",
-  "5": "contact_support",
+  "2": "search_merchants",
+  "3": "get_active_orders",
+  "4": "confirm_delivery",
+  "5": "get_order_history",
+  "6": "contact_support",
 };
 
 // ---------------------------------------------------------------------------
@@ -32,7 +43,7 @@ export const BUYER_GEMINI_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
         query: {
           type: SchemaType.STRING,
           description:
-            "The name of the item they want to buy (e.g. 'cement', 'iron rod', 'paint')",
+            "The name of the item they want to buy (e.g. 'phone', 'shoes', 'groceries')",
         },
         location: {
           type: SchemaType.STRING,
@@ -42,6 +53,27 @@ export const BUYER_GEMINI_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
         quantity: {
           type: SchemaType.NUMBER,
           description: "How many items they want to buy",
+        },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "search_merchants",
+    description:
+      "Search for verified merchants and shops on Swifta by name or specific location.",
+    parameters: {
+      type: SchemaType.OBJECT,
+      properties: {
+        query: {
+          type: SchemaType.STRING,
+          description:
+            "The name of the shop or type of merchant (e.g. 'Aliko Store', 'Electronics shops')",
+        },
+        location: {
+          type: SchemaType.STRING,
+          description:
+            "The location to search in (e.g. 'Lekki', 'Victoria Island')",
         },
       },
       required: ["query"],

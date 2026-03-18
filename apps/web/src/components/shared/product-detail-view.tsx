@@ -11,16 +11,22 @@ import { PriceType } from "@swifta/shared";
 import { toast } from "sonner";
 import { cn, formatKobo, optimizeCloudinaryUrl } from "@/lib/utils";
 import { StarRating } from "@/components/ui/star-rating";
+import { useAuth } from "@/providers/auth-provider";
 
 interface ProductDetailViewProps {
   productId: string;
-  isOwner: boolean;
+  isOwner?: boolean;
 }
 
-export function ProductDetailView({ productId, isOwner }: ProductDetailViewProps) {
+export function ProductDetailView({ productId, isOwner: initialIsOwner }: ProductDetailViewProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState<Product | null>(null);
+  
+  const effectiveIsOwner = initialIsOwner !== undefined 
+    ? initialIsOwner 
+    : (!!user?.merchantId && !!product?.merchantId && user.merchantId === product.merchantId);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [merchantProducts, setMerchantProducts] = useState<Product[]>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'specs' | 'reviews' | 'shipping'>('overview');
@@ -39,7 +45,7 @@ export function ProductDetailView({ productId, isOwner }: ProductDetailViewProps
         if (prod.merchantId) {
           const [revs, mProducts] = await Promise.all([
             getMerchantReviews(prod.merchantId, 1, 10).catch(() => []),
-            isOwner 
+            effectiveIsOwner 
               ? Promise.resolve([]) // Don't need recommendations for owner
               : productApi.getPublicProductsByMerchant(prod.merchantId, 1, 6).catch(() => []),
           ]);
@@ -54,7 +60,7 @@ export function ProductDetailView({ productId, isOwner }: ProductDetailViewProps
     };
 
     if (productId) fetchAll();
-  }, [productId, isOwner]);
+  }, [productId, effectiveIsOwner]);
 
   const handleAddToCart = async (priceType: PriceType = PriceType.RETAIL) => {
     if (!product) return;
@@ -141,7 +147,7 @@ export function ProductDetailView({ productId, isOwner }: ProductDetailViewProps
   return (
     <div className={cn(
         "flex flex-col gap-8 font-display min-h-[120vh]",
-        isOwner ? "p-8 bg-[#f8f6f6] dark:bg-[#221610]" : "-mx-4 lg:-mx-8 -mt-4 lg:-mt-8 p-4 lg:p-8 pb-32 lg:pb-8 bg-background-light dark:bg-background-dark"
+        effectiveIsOwner ? "p-8 bg-[#f8f6f6] dark:bg-[#221610]" : "-mx-4 lg:-mx-8 -mt-4 lg:-mt-8 p-4 lg:p-8 pb-32 lg:pb-8 bg-background-light dark:bg-background-dark"
     )}>
       {/* Header / Breadcrumbs */}
       <div className="flex items-center justify-between">
@@ -149,16 +155,16 @@ export function ProductDetailView({ productId, isOwner }: ProductDetailViewProps
             <Link href="/" className="hover:text-primary transition-colors">Home</Link>
             <span className="material-symbols-outlined text-[14px]">chevron_right</span>
             <Link 
-                href={isOwner ? "/merchant/products" : "/buyer/catalogue"} 
+                href={effectiveIsOwner ? "/merchant/products" : "/buyer/catalogue"} 
                 className="hover:text-primary transition-colors"
             >
-                {isOwner ? "Inventory" : (product.categoryTag || "Catalogue")}
+                {effectiveIsOwner ? "Inventory" : (product.categoryTag || "Catalogue")}
             </Link>
             <span className="material-symbols-outlined text-[14px]">chevron_right</span>
             <span className="text-slate-900 dark:text-white truncate max-w-[200px] font-bold">{product.name}</span>
         </nav>
 
-        {isOwner && (
+        {effectiveIsOwner && (
             <div className="flex items-center gap-3">
                 <button 
                     onClick={handleDelete}
@@ -195,7 +201,7 @@ export function ProductDetailView({ productId, isOwner }: ProductDetailViewProps
                 <span className="material-symbols-outlined text-[80px] text-slate-200 dark:text-slate-800">inventory_2</span>
               </div>
             )}
-            {!isOwner && (
+            {!effectiveIsOwner && (
                 <button 
                     onClick={() => setIsFavorite(!isFavorite)}
                     className={cn(
@@ -206,7 +212,7 @@ export function ProductDetailView({ productId, isOwner }: ProductDetailViewProps
                     <span className={cn("material-symbols-outlined text-xl", isFavorite && "font-variation-fill")}>favorite</span>
                 </button>
             )}
-            {isOwner && (
+            {effectiveIsOwner && (
                  <div className="absolute top-5 right-5 flex flex-col gap-2">
                     <button 
                         onClick={() => {
@@ -229,7 +235,7 @@ export function ProductDetailView({ productId, isOwner }: ProductDetailViewProps
                 <span className="px-3 py-1 bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider rounded-full border border-primary/20">
                   {product.categoryTag || "General"}
                 </span>
-                {isOwner && (
+                {effectiveIsOwner && (
                     <div className="flex items-center gap-2">
                         <span className="text-[10px] font-bold text-slate-400 uppercase">Status</span>
                         <div 
@@ -271,7 +277,7 @@ export function ProductDetailView({ productId, isOwner }: ProductDetailViewProps
             </div>
 
             {/* Merchant Card (For Buyer) */}
-            {!isOwner && merchant && (
+            {!effectiveIsOwner && merchant && (
               <Link href={`/buyer/merchants/${merchant.id}`}>
                 <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl shadow-sm hover:border-primary/30 transition-all group">
                   <div className="flex items-center gap-3">
@@ -333,7 +339,7 @@ export function ProductDetailView({ productId, isOwner }: ProductDetailViewProps
           </div>
 
           {/* Business Stats (Owner Only) */}
-          {isOwner && (
+          {effectiveIsOwner && (
             <div className="grid grid-cols-3 gap-4 py-6 border-y border-slate-100 dark:border-slate-800">
                 <div className="text-center">
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Sales</p>
@@ -354,7 +360,7 @@ export function ProductDetailView({ productId, isOwner }: ProductDetailViewProps
 
           {/* Actions */}
           <div className="space-y-4">
-            {!isOwner && (
+            {!effectiveIsOwner && (
                 <>
                     <div className="flex items-center gap-3">
                         <div className="flex items-center bg-slate-100/50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700/50 p-1 rounded-lg w-32 justify-between h-12">
@@ -399,7 +405,7 @@ export function ProductDetailView({ productId, isOwner }: ProductDetailViewProps
                 </>
             )}
             
-            {isOwner && (
+            {effectiveIsOwner && (
                 <button 
                     onClick={() => router.push(`/merchant/products/${product.id}/edit`)}
                     className="w-full bg-primary text-white h-14 rounded-xl font-black text-xs uppercase tracking-[0.2em] shadow-lg shadow-primary/10 hover:translate-y-[-1px] transition-all flex items-center justify-center gap-3 active:scale-95"
@@ -549,7 +555,7 @@ export function ProductDetailView({ productId, isOwner }: ProductDetailViewProps
       </section>
 
       {/* Recommendations (Buyer Only) */}
-      {!isOwner && merchantProducts.length > 0 && (
+      {!effectiveIsOwner && merchantProducts.length > 0 && (
         <section className="mt-20">
           <div className="flex items-center justify-between mb-8 border-b border-slate-100 dark:border-slate-800 pb-4">
             <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-[0.2em]">More from this Merchant</h2>
@@ -582,7 +588,7 @@ export function ProductDetailView({ productId, isOwner }: ProductDetailViewProps
       )}
 
       {/* Sticky Mobile Footer (Buyer Only) */}
-      {!isOwner && (
+      {!effectiveIsOwner && (
         <div className="lg:hidden fixed bottom-16 left-0 right-0 z-[60] p-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] flex items-center justify-between animate-in slide-in-from-bottom-full duration-500">
           <div className="flex flex-col">
             <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none mb-1">Retail Price</p>

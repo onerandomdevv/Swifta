@@ -92,7 +92,7 @@ export class EmailService {
     const content = `
       <h2 style="font-size: 20px; margin-bottom: 20px;">Welcome to Swifta, ${safeName}!</h2>
       <p>We're excited to have you on board as a <strong>${safeRole}</strong>.</p>
-      <p>Swifta is digitizing Africa's hardware trade network, and you're now part of the movement.</p>
+      <p>Swifta is digitizing Africa's digital trade network, and you're now part of the movement.</p>
       ${
         role === "MERCHANT"
           ? `<p>Next step: Complete your business profile and start listing your products to receive quote requests from buyers.</p>`

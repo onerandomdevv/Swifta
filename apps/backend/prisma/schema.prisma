@@ -305,6 +305,7 @@ model Product {
   merchantId               String             @map("merchant_id") @db.Uuid
   productCode              String?            @map("product_code")
   name                     String
+  shortDescription         String?            @map("short_description")
   description              String?
   unit                     String
   categoryTag              String             @map("category_tag")
