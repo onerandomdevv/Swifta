@@ -16,6 +16,7 @@ interface SearchableSelectProps {
   label?: string;
   className?: string;
   disabled?: boolean;
+  emptyMessage?: string;
 }
 
 export function SearchableSelect({
@@ -25,7 +26,8 @@ export function SearchableSelect({
   placeholder = "Select an option",
   label,
   className,
-  disabled
+  disabled,
+  emptyMessage = "No results found"
 }: SearchableSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -118,8 +120,8 @@ export function SearchableSelect({
             ) : (
               <div className="p-8 text-center flex flex-col items-center gap-2">
                 <span className="material-symbols-outlined text-slate-300 text-3xl">search_off</span>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  No matching banks
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center px-4">
+                  {emptyMessage}
                 </p>
               </div>
             )}

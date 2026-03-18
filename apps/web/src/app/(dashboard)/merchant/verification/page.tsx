@@ -399,8 +399,17 @@ export default function MerchantVerificationPage() {
                         onClick={() =>
                           !uploading && idInputRef.current?.click()
                         }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            !uploading && idInputRef.current?.click();
+                          }
+                        }}
+                        tabIndex={0}
+                        role="button"
+                        aria-label="Upload Identity Document"
                         className={cn(
-                          "h-32 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-all",
+                          "h-32 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-all focus:ring-2 ring-primary/20 outline-none",
                           idUrl
                             ? "border-emerald-500 bg-emerald-500/5"
                             : "border-border hover:border-primary hover:bg-primary/5",
@@ -434,6 +443,7 @@ export default function MerchantVerificationPage() {
                         type="file"
                         ref={idInputRef}
                         className="hidden"
+                        accept=".jpg,.jpeg,.png,.pdf"
                         onChange={(e) =>
                           e.target.files?.[0] &&
                           handleFileUpload(e.target.files[0], "id")
@@ -537,8 +547,17 @@ export default function MerchantVerificationPage() {
                             onClick={() =>
                               !uploading && cacInputRef.current?.click()
                             }
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                !uploading && cacInputRef.current?.click();
+                              }
+                            }}
+                            tabIndex={0}
+                            role="button"
+                            aria-label="Upload CAC Certificate"
                             className={cn(
-                              "h-24 border border-dashed rounded-xl flex flex-col items-center justify-center gap-1 cursor-pointer transition-all",
+                              "h-24 border border-dashed rounded-xl flex flex-col items-center justify-center gap-1 cursor-pointer transition-all focus:ring-2 ring-primary/20 outline-none",
                               cacUrl
                                 ? "border-emerald-500 bg-emerald-500/5"
                                 : "border-border hover:border-primary",
@@ -562,6 +581,7 @@ export default function MerchantVerificationPage() {
                             type="file"
                             ref={cacInputRef}
                             className="hidden"
+                            accept=".jpg,.jpeg,.png,.pdf"
                             onChange={(e) =>
                               e.target.files?.[0] &&
                               handleFileUpload(e.target.files[0], "cac")
@@ -577,8 +597,17 @@ export default function MerchantVerificationPage() {
                             onClick={() =>
                               !uploading && addressInputRef.current?.click()
                             }
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                !uploading && addressInputRef.current?.click();
+                              }
+                            }}
+                            tabIndex={0}
+                            role="button"
+                            aria-label="Upload Proof of Address"
                             className={cn(
-                              "h-24 border border-dashed rounded-xl flex flex-col items-center justify-center gap-1 cursor-pointer transition-all",
+                              "h-24 border border-dashed rounded-xl flex flex-col items-center justify-center gap-1 cursor-pointer transition-all focus:ring-2 ring-primary/20 outline-none",
                               addressUrl
                                 ? "border-emerald-500 bg-emerald-500/5"
                                 : "border-border hover:border-primary",
@@ -602,6 +631,7 @@ export default function MerchantVerificationPage() {
                             type="file"
                             ref={addressInputRef}
                             className="hidden"
+                            accept=".jpg,.jpeg,.png,.pdf"
                             onChange={(e) =>
                               e.target.files?.[0] &&
                               handleFileUpload(e.target.files[0], "address")
@@ -779,7 +809,7 @@ function StatusItem({ label, met, value }: RequirementStatus) {
           >
             {label}
           </span>
-          {value && (
+          {value !== null && value !== undefined && (
             <span className="text-[9px] font-black text-foreground-muted/60">
               {value}
             </span>

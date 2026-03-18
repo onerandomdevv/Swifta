@@ -1,4 +1,10 @@
-import { Injectable, Logger, Inject, forwardRef } from "@nestjs/common";
+import {
+  Injectable,
+  Logger,
+  Inject,
+  forwardRef,
+  NotFoundException,
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../../prisma/prisma.service";
 import { OrderService } from "../order/order.service";
@@ -38,7 +44,7 @@ function resolvePrice(
   product: any,
   quantity: number,
   isConsumer: boolean,
-): number {
+): number | null {
   const retail = product.retailPriceKobo
     ? Number(product.retailPriceKobo)
     : null;
@@ -49,18 +55,22 @@ function resolvePrice(
     ? Number(product.pricePerUnitKobo)
     : 0;
 
+  let price: number | null = null;
   if (!isConsumer) {
-    return wholesale ?? legacy;
+    price = wholesale ?? legacy;
+  } else {
+    // Consumer (B2C) can buy retail OR wholesale
+    // Use wholesale if quantity meets threshold (default 10) OR if retail is missing
+    const threshold = product.minOrderQuantity || 10;
+    if (quantity >= threshold && wholesale) {
+      price = wholesale;
+    } else {
+      price = retail ?? wholesale ?? legacy;
+    }
   }
 
-  // Consumer (B2C) can buy retail OR wholesale
-  // Use wholesale if quantity meets threshold (default 10) OR if retail is missing
-  const threshold = product.minOrderQuantity || 10;
-  if (quantity >= threshold && wholesale) {
-    return wholesale;
-  }
-
-  return retail ?? wholesale ?? legacy;
+  // Final safeguard: Avoid 0 or null prices
+  return price && price > 0 ? price : null;
 }
 
 @Injectable()
@@ -245,7 +255,7 @@ export class WhatsAppBuyerService {
         this.configService.get("FRONTEND_URL") || "https://swifta.store";
       const checkoutLink = `${appUrl}/buyer/checkout/${session.productId}?qty=${session.quantity}&delivery=${session.deliveryMethod}`;
 
-      const dva = await this.dvaService.getDva(buyerId);
+      const dva = await this.getSafeDva(buyerId);
       if (dva && dva.active && dva.accountNumber) {
         const dvaMsg =
           `💳 *Pay via Bank Transfer (Fastest)*\n\n` +
@@ -493,7 +503,7 @@ export class WhatsAppBuyerService {
         this.configService.get("FRONTEND_URL") || "https://swifta.store";
       const checkoutLink = `${appUrl}/buyer/checkout/${session.productId}?qty=${session.quantity}&delivery=${session.deliveryMethod}`;
 
-      const dva = await this.dvaService.getDva(buyerId);
+      const dva = await this.getSafeDva(buyerId);
       if (dva && dva.active && dva.accountNumber) {
         const dvaMsg =
           `💳 *Pay via Bank Transfer (Fastest)*\n\n` +
@@ -702,6 +712,18 @@ export class WhatsAppBuyerService {
       return;
     }
 
+    const validResults = products.filter(
+      (p) => resolvePrice(p, quantity, isConsumer) !== null,
+    );
+
+    if (validResults.length === 0) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `No products with valid pricing found matching "${query || "this search"}".`,
+      );
+      return;
+    }
+
     await this.interactiveService.sendListMessage(
       phone,
       query
@@ -711,13 +733,13 @@ export class WhatsAppBuyerService {
       [
         {
           title: "Top Matches",
-          rows: products.map((p) => {
+          rows: validResults.map((p) => {
             const rating = p.merchantProfile?.averageRating || 0;
             const starStr =
               rating > 0
                 ? ` ⭐${rating.toFixed(1)} (${p.merchantProfile?.reviewCount || 0})`
                 : "";
-            const resolvedPriceKobo = resolvePrice(p, quantity, isConsumer);
+            const resolvedPriceKobo = resolvePrice(p, quantity, isConsumer)!;
             const isWholesale =
               p.wholesalePriceKobo &&
               resolvedPriceKobo === Number(p.wholesalePriceKobo);
@@ -841,6 +863,14 @@ export class WhatsAppBuyerService {
     const isConsumer = profile ? profile.buyerType !== "BUSINESS" : true;
 
     const unitPriceKobo = resolvePrice(product, quantity, isConsumer);
+
+    if (unitPriceKobo === null) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "This product does not have a valid price listed. Please contact the merchant for pricing.",
+      );
+      return;
+    }
 
     try {
       const checkoutKey = `wa_pending_checkout_${buyerId}`;
@@ -1300,6 +1330,18 @@ export class WhatsAppBuyerService {
       return;
     }
 
+    const validCategorized = products.filter(
+      (p) => resolvePrice(p, 1, isConsumer) !== null,
+    );
+
+    if (validCategorized.length === 0) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `No products with valid pricing found in ${category.name}.`,
+      );
+      return;
+    }
+
     await this.interactiveService.sendListMessage(
       phone,
       `Products in ${category.name}:`,
@@ -1307,11 +1349,11 @@ export class WhatsAppBuyerService {
       [
         {
           title: "Available Items",
-          rows: products.map((p) => {
+          rows: validCategorized.map((p) => {
             const rating = p.merchantProfile?.averageRating || 0;
             const stars = rating > 0 ? ` ⭐${rating.toFixed(1)}` : "";
 
-            const resolvedPriceKobo = resolvePrice(p, 1, isConsumer);
+            const resolvedPriceKobo = resolvePrice(p, 1, isConsumer)!;
             const isWholesale =
               p.wholesalePriceKobo &&
               resolvedPriceKobo === Number(p.wholesalePriceKobo);
@@ -1438,5 +1480,17 @@ export class WhatsAppBuyerService {
       { id: `shop_products_${merchantId}`, title: "Browse Their Shop" },
       { id: "show_buyer_menu", title: "Main Menu" },
     ]);
+  }
+
+  private async getSafeDva(buyerId: string): Promise<any | null> {
+    try {
+      return await this.dvaService.getDva(buyerId);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        return null;
+      }
+      this.logger.error(`DVA lookup error for buyer ${buyerId}`, error);
+      return null;
+    }
   }
 }
