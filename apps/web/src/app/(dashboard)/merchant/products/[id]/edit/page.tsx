@@ -21,17 +21,22 @@ export default function EditProductPage() {
   // Product state
   const [formData, setFormData] = useState({
     name: "",
+    shortDescription: "",
     description: "",
-    unit: "",
+    unit: "PIECES",
     categoryTag: "",
-    minOrderQuantity: 1,
+    minOrderQuantity: 10,
     minOrderQuantityConsumer: 1,
     isActive: true,
     categoryId: "",
     warehouseLocation: "",
     imageUrl: "",
     retailPrice: "",
+    wholesalePrice: "",
     wholesaleDiscountPercent: 15,
+    productCode: "",
+    weightKg: "",
+    processingDays: "3",
   });
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -73,11 +78,12 @@ export default function EditProductPage() {
 
         setFormData({
           name: product.name,
+          shortDescription: product.shortDescription || "",
           description: product.description || "",
-          unit: product.unit,
+          unit: product.unit || "PIECES",
           categoryTag: product.categoryTag,
           categoryId: product.categoryId || "",
-          minOrderQuantity: product.minOrderQuantity,
+          minOrderQuantity: product.minOrderQuantity || 10,
           minOrderQuantityConsumer: product.minOrderQuantityConsumer || 1,
           isActive: product.isActive,
           warehouseLocation: product.warehouseLocation || "",
@@ -85,7 +91,13 @@ export default function EditProductPage() {
           retailPrice: product.retailPriceKobo
             ? (Number(product.retailPriceKobo) / 100).toString()
             : "",
+          wholesalePrice: product.wholesalePriceKobo
+            ? (Number(product.wholesalePriceKobo) / 100).toString()
+            : "",
           wholesaleDiscountPercent: discountPercent,
+          productCode: product.productCode || "",
+          weightKg: product.weightKg?.toString() || "",
+          processingDays: product.processingDays?.toString() || "3",
         });
 
         setInitialStock(stockData.stock);
@@ -132,22 +144,28 @@ export default function EditProductPage() {
     setSaving(true);
 
     try {
-      // 1. Update basic product info & status
+      // 1. Update product info
       await productApi.updateProduct(productId, {
         name: formData.name,
+        shortDescription: formData.shortDescription || undefined,
         description: formData.description || undefined,
         unit: formData.unit,
         categoryTag: formData.categoryTag,
         categoryId: formData.categoryId,
-        minOrderQuantity: wholesaleEnabled ? formData.minOrderQuantity : 1,
+        minOrderQuantity: wholesaleEnabled ? formData.minOrderQuantity : 10,
         minOrderQuantityConsumer: formData.minOrderQuantityConsumer,
         isActive: formData.isActive,
         warehouseLocation: formData.warehouseLocation || undefined,
         imageUrl: formData.imageUrl || undefined,
+        productCode: formData.productCode || undefined,
+        weightKg: formData.weightKg ? Number(formData.weightKg) : undefined,
+        processingDays: formData.processingDays ? Number(formData.processingDays) : undefined,
         retailPriceKobo: formData.retailPrice
-          ? (Number(formData.retailPrice) * 100).toString()
+          ? (Number(formData.retailPrice.replace(/,/g, "")) * 100).toString()
           : undefined,
-        wholesaleEnabled,
+        wholesalePriceKobo: (wholesaleEnabled && formData.wholesalePrice)
+          ? (Number(formData.wholesalePrice.replace(/,/g, "")) * 100).toString()
+          : undefined,
         wholesaleDiscountPercent: wholesaleEnabled
           ? formData.wholesaleDiscountPercent
           : undefined,
@@ -162,7 +180,7 @@ export default function EditProductPage() {
         });
       }
 
-      router.push("/merchant/inventory");
+      router.push("/merchant/products");
     } catch (err: any) {
       setError(err?.message || "Failed to save changes");
     } finally {
@@ -292,8 +310,28 @@ export default function EditProductPage() {
             </div>
 
             <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                  Short Description
+                </label>
+                <span className={`text-[10px] font-bold tracking-widest ${formData.shortDescription.length >= 90 ? "text-red-500" : "text-slate-400"}`}>
+                  {formData.shortDescription.length}/100
+                </span>
+              </div>
+              <input
+                value={formData.shortDescription}
+                onChange={(e) =>
+                  setFormData({ ...formData, shortDescription: e.target.value.substring(0, 100) })
+                }
+                maxLength={100}
+                className="w-full px-5 py-4 text-sm font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-slate-300 dark:text-white"
+                placeholder="Brief summary (max 100 chars)..."
+              />
+            </div>
+
+            <div className="space-y-3">
               <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                Description
+                Full Description
               </label>
               <textarea
                 value={formData.description}
@@ -378,22 +416,42 @@ export default function EditProductPage() {
               </div>
             </div>
 
-            <div className="space-y-3">
-              <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                Warehouse Location (Optional)
-              </label>
-              <input
-                type="text"
-                value={formData.warehouseLocation}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    warehouseLocation: e.target.value,
-                  })
-                }
-                className="w-full px-5 py-4 text-sm font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-slate-300 dark:text-white"
-                placeholder="e.g. Zone B, Row 4"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                  Product SKU / Code
+                </label>
+                <input
+                  type="text"
+                  value={formData.productCode}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      productCode: e.target.value,
+                    })
+                  }
+                  className="w-full px-5 py-4 text-sm font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-slate-300 dark:text-white"
+                  placeholder="e.g. DG-CEM-50KG"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                  Warehouse Location
+                </label>
+                <input
+                  type="text"
+                  value={formData.warehouseLocation}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      warehouseLocation: e.target.value,
+                    })
+                  }
+                  className="w-full px-5 py-4 text-sm font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-slate-300 dark:text-white"
+                  placeholder="e.g. Zone B, Row 4"
+                />
+              </div>
             </div>
           </div>
 
@@ -426,6 +484,51 @@ export default function EditProductPage() {
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 ml-1">
                   Total {formData.unit.toLowerCase()}s currently available.
                 </p>
+              </div>
+
+              <div className="space-y-3">
+                <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                  Weight (kg)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.weightKg}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      weightKg: e.target.value,
+                    })
+                  }
+                  className="w-full px-5 py-4 text-sm font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-slate-300 dark:text-white"
+                  placeholder="e.g. 50"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                  Processing Time
+                </label>
+                <div className="relative">
+                  <select
+                    value={formData.processingDays}
+                    onChange={(e) =>
+                      setFormData({ ...formData, processingDays: e.target.value })
+                    }
+                    className="w-full px-5 py-4 text-sm font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-slate-700 dark:text-slate-300 appearance-none"
+                  >
+                    <option value="0">Immediate (Same Day)</option>
+                    <option value="1">1 Business Day</option>
+                    <option value="2">2 Business Days</option>
+                    <option value="3">3-5 Business Days</option>
+                    <option value="7">1 Week+</option>
+                  </select>
+                  <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                    expand_more
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -519,6 +622,33 @@ export default function EditProductPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest ml-1">
+                        Wholesale Price (₦)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min={1}
+                          value={formData.wholesalePrice}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setFormData(prev => {
+                              const retail = Number(prev.retailPrice) || 0;
+                              const wholesale = Number(val) || 0;
+                              let discount = prev.wholesaleDiscountPercent;
+                              if (retail > 0 && wholesale > 0) {
+                                discount = Math.round((1 - wholesale / retail) * 100);
+                              }
+                              return { ...prev, wholesalePrice: val, wholesaleDiscountPercent: discount };
+                            });
+                          }}
+                          className="w-full px-5 py-4 text-sm font-bold border-2 border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-xl focus:border-emerald-500 transition-all outline-none tabular-nums text-emerald-700 dark:text-emerald-400"
+                          placeholder="e.g. 7500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest ml-1">
                         Discount %
                       </label>
                       <div className="relative">
@@ -527,7 +657,14 @@ export default function EditProductPage() {
                           min={1}
                           max={99}
                           value={formData.wholesaleDiscountPercent}
-                          onChange={(e) => setFormData({ ...formData, wholesaleDiscountPercent: Math.min(99, Math.max(1, parseInt(e.target.value) || 1)) })}
+                          onChange={(e) => {
+                            const discount = Math.min(99, Math.max(1, parseInt(e.target.value) || 1));
+                            setFormData(prev => {
+                              const retail = Number(prev.retailPrice) || 0;
+                              const wholesale = retail > 0 ? Math.round(retail * (1 - discount / 100)) : 0;
+                              return { ...prev, wholesaleDiscountPercent: discount, wholesalePrice: wholesale.toString() };
+                            });
+                          }}
                           className="w-full px-5 py-4 pr-10 text-sm font-bold border-2 border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-xl focus:border-emerald-500 transition-all outline-none tabular-nums text-emerald-700 dark:text-emerald-400"
                         />
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-400 font-black text-sm">%</span>

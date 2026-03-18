@@ -217,7 +217,7 @@ export default function BuyerCataloguePage() {
                 <ProductCard
                   key={product.id}
                   product={product}
-                  isOwner={false}
+                  isOwner={user?.merchantId === product.merchantId}
                   onQuickBuy={handleQuickBuy}
                   isSaved={savedIds.has(product.id)}
                   onToggleSave={handleToggleSave}

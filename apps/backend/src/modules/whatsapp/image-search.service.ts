@@ -256,7 +256,7 @@ export class ImageSearchService {
               {
                 parts: [
                   {
-                    text: "Identify the main product naturally in this image. Output a comma separated list of up to 5 concise search keywords (e.g., Cement, Porcelain Tile, Iron Rod). Just the keywords, no other text.",
+                    text: "Identify the main product naturally in this image. Output a comma separated list of up to 5 concise search keywords (e.g., iPhone, Sneakers, Laptop). Just the keywords, no other text.",
                   },
                   {
                     inlineData: {

@@ -74,6 +74,18 @@ export class UpdateProductDto {
   weightKg?: number;
 
   @IsOptional()
+  @IsString()
+  shortDescription?: string;
+
+  @IsOptional()
+  @IsString()
+  productCode?: string;
+
+  @IsOptional()
+  @IsString()
+  wholesalePriceKobo?: string;
+
+  @IsOptional()
   @IsInt()
   processingDays?: number;
 }

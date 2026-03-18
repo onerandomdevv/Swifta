@@ -79,7 +79,6 @@ export class InvoiceService {
   }
 
   private generateCustomerInformation(doc: PDFKit.PDFDocument, order: any) {
-    const shipping = order.deliveryAddress || "Pick-up";
     doc
       .fillColor("#444444")
       .fontSize(12)

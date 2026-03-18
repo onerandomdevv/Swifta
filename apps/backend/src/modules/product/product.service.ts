@@ -13,11 +13,13 @@ import { CreateProductDto } from "./dto/create-product.dto";
 import { UpdateProductDto } from "./dto/update-product.dto";
 import { PaginatedResponse, Product } from "@swifta/shared";
 import { paginate } from "../../common/utils/pagination";
+import { InventoryService } from "../inventory/inventory.service";
 
 @Injectable()
 export class ProductService {
   constructor(
     private prisma: PrismaService,
+    private inventoryService: InventoryService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
@@ -26,6 +28,7 @@ export class ProductService {
       pricePerUnitKobo,
       retailPriceKobo,
       wholesaleDiscountPercent,
+      initialStock,
       ...rest
     } = dto;
 
@@ -72,6 +75,16 @@ export class ProductService {
         ...rest,
       },
     });
+
+    if (initialStock && initialStock > 0) {
+      await this.inventoryService.manualAdjustment(
+        merchantId,
+        product.id,
+        initialStock,
+        "Initial stock configuration",
+      );
+    }
+
     await this.invalidateCatalogueCache();
     return product;
   }
@@ -129,26 +142,16 @@ export class ProductService {
           deletedAt: null,
         },
         orderBy: { createdAt: "desc" },
+        include: { productStockCache: true },
       },
     );
 
-    response.data = response.data.map((product: any) => ({
-      ...product,
-      pricePerUnitKobo: product.pricePerUnitKobo
-        ? product.pricePerUnitKobo.toString()
-        : null,
-      wholesalePriceKobo: product.wholesalePriceKobo
-        ? product.wholesalePriceKobo.toString()
-        : null,
-      retailPriceKobo: product.retailPriceKobo
-        ? product.retailPriceKobo.toString()
-        : null,
-      wholesaleDiscountPercent: product.wholesaleDiscountPercent ?? null,
-    }));
+    response.data = response.data.map((product: any) =>
+      this.mapProductForPublic(product),
+    );
 
     return response as unknown as PaginatedResponse<Product>;
   }
-
 
   async catalogue(
     search: string = "",
@@ -326,34 +329,14 @@ export class ProductService {
             bankVerified: true,
           },
         },
+        productStockCache: true,
       },
     });
     if (!product || product.deletedAt) {
       throw new NotFoundException("Product not found");
     }
 
-    // Resolve price for single product view
-    let resolvedPrice = product.retailPriceKobo;
-    if (buyerType === "BUSINESS") {
-      resolvedPrice = product.wholesalePriceKobo || product.pricePerUnitKobo;
-    } else {
-      resolvedPrice =
-        product.retailPriceKobo ||
-        product.wholesalePriceKobo ||
-        product.pricePerUnitKobo;
-    }
-
-    return {
-      ...product,
-      pricePerUnitKobo: resolvedPrice ? resolvedPrice.toString() : null,
-      wholesalePriceKobo: product.wholesalePriceKobo
-        ? product.wholesalePriceKobo.toString()
-        : null,
-      retailPriceKobo: product.retailPriceKobo
-        ? product.retailPriceKobo.toString()
-        : null,
-      wholesaleDiscountPercent: product.wholesaleDiscountPercent ?? null,
-    };
+    return this.mapProductForPublic(product, buyerType) as unknown as Product;
   }
 
   async update(merchantId: string, productId: string, dto: UpdateProductDto) {
@@ -361,6 +344,7 @@ export class ProductService {
     const {
       pricePerUnitKobo,
       retailPriceKobo,
+      wholesalePriceKobo,
       wholesaleDiscountPercent,
       wholesaleEnabled,
       ...rest
@@ -376,17 +360,21 @@ export class ProductService {
         retailPriceKobo === null ? null : BigInt(retailPriceKobo);
     }
 
-    // Handle wholesale toggle
+    // Handle wholesale toggle and pricing
     if (wholesaleEnabled === false) {
       // Wholesale toggled OFF — clear all wholesale data
       updateData.wholesalePriceKobo = null;
       updateData.wholesaleDiscountPercent = null;
+    } else if (wholesalePriceKobo !== undefined) {
+      // Explicit wholesale price provided
+      updateData.wholesalePriceKobo =
+        wholesalePriceKobo === null ? null : BigInt(wholesalePriceKobo);
+      updateData.wholesaleDiscountPercent = wholesaleDiscountPercent ?? null;
     } else if (
       wholesaleDiscountPercent !== undefined &&
       wholesaleDiscountPercent > 0
     ) {
       // Wholesale ON with a discount — compute wholesale price
-      // Use the new retail price if provided, otherwise fetch the existing one
       let retailValue: bigint;
       if (retailPriceKobo) {
         retailValue = BigInt(retailPriceKobo);
@@ -507,12 +495,11 @@ export class ProductService {
     }
 
     let stockAvailability = "OUT_OF_STOCK";
-    if (productStockCache?.currentStock > 10) {
+    const stockQuantity = productStockCache?.stock ?? 0;
+
+    if (stockQuantity > 10) {
       stockAvailability = "IN_STOCK";
-    } else if (
-      productStockCache?.currentStock > 0 &&
-      productStockCache?.currentStock <= 10
-    ) {
+    } else if (stockQuantity > 0) {
       stockAvailability = "LOW_STOCK";
     }
 
@@ -525,6 +512,7 @@ export class ProductService {
       retailPriceKobo: product.retailPriceKobo
         ? product.retailPriceKobo.toString()
         : null,
+      stockCache: productStockCache ? { stock: productStockCache.stock } : null,
       stockAvailability,
     };
   }

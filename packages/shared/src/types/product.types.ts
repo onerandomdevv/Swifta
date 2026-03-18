@@ -57,16 +57,21 @@ export interface CreateProductDto {
   warehouseLocation?: string;
   pricePerUnitKobo?: string;
   retailPriceKobo?: string;
+  wholesalePriceKobo?: string;
   wholesaleDiscountPercent?: number;
   weightKg?: number;
   processingDays?: number;
+  productCode?: string;
+  initialStock?: number;
 }
 
 export type UpdateProductDto = Partial<CreateProductDto> & {
   isActive?: boolean;
   categoryId?: string;
   retailPriceKobo?: string;
+  wholesalePriceKobo?: string;
   wholesaleEnabled?: boolean;
+  productCode?: string;
 };
 
 export interface SupplierProduct {
