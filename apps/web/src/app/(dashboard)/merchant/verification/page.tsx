@@ -76,7 +76,12 @@ export default function MerchantVerificationPage() {
       }
     } catch (err: any) {
       console.error("Verification status fetch error:", err);
-      toast.error("Failed to load verification status");
+      // For Admins or users without a profile, show a more descriptive error or state
+      if (err.status === 404) {
+        setStatus({ error: "NOT_A_MERCHANT" });
+      } else {
+        toast.error("Failed to load verification status");
+      }
     } finally {
       setLoading(false);
     }
@@ -167,7 +172,7 @@ export default function MerchantVerificationPage() {
     }
   };
 
-  if (loading || !status)
+  if (loading)
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4">
         <span className="material-symbols-outlined animate-spin text-4xl text-primary">
@@ -178,6 +183,35 @@ export default function MerchantVerificationPage() {
         </p>
       </div>
     );
+
+  if (status?.error === "NOT_A_MERCHANT") {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[70vh] gap-6 text-center px-4">
+        <div className="size-20 bg-primary/10 rounded-3xl flex items-center justify-center">
+          <span className="material-symbols-outlined text-4xl text-primary">
+            storefront
+          </span>
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-black uppercase tracking-tight">
+            No Merchant Profile
+          </h2>
+          <p className="text-sm text-foreground-muted max-w-sm mx-auto">
+            You are currently logged in as an <strong>Admin/Super Admin</strong>.
+            The verification dashboard is currently limited to merchant accounts.
+          </p>
+        </div>
+        <Link
+          href="/merchant/dashboard"
+          className="h-12 px-8 bg-foreground text-background rounded-full font-bold uppercase tracking-widest text-xs flex items-center hover:opacity-90 transition-all"
+        >
+          Back to Dashboard
+        </Link>
+      </div>
+    );
+  }
+
+  if (!status) return null;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 md:py-12 bg-background min-h-screen">
