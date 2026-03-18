@@ -21,6 +21,7 @@ import { OrderStatus } from "@swifta/shared";
 import { ReviewService } from "../review/review.service";
 import { WhatsAppInteractiveService } from "./whatsapp-interactive.service";
 import { DvaService } from "../dva/dva.service";
+import { MENU_MERCHANT_MODE } from "./whatsapp.constants";
 
 const PENDING_OTP_PREFIX = "wa_pending_otp_";
 const PENDING_REVIEW_PREFIX = "wa_pending_review_";
@@ -162,7 +163,7 @@ export class WhatsAppBuyerService {
         await this.handleCheckoutStep(
           buyerId,
           checkoutSession,
-          messageText,
+          messageText || '',
           checkoutKey,
         );
         return;
@@ -203,7 +204,7 @@ export class WhatsAppBuyerService {
         return;
       }
 
-      const intent = await this.intentService.parseIntent(messageText);
+      const intent = await this.intentService.parseIntent(messageText || '');
 
       // B1: Scrubbed log — mask phone, only log intent function name + param keys (not values)
       this.logger.debug(
@@ -419,52 +420,71 @@ export class WhatsAppBuyerService {
   }
 
   private async sendBuyerMenu(phone: string): Promise<void> {
+    const isMerchant = await this.prisma.user.findFirst({
+      where: { phone, role: "MERCHANT" },
+    });
+
+    const sections = [
+      {
+        title: "Shopping",
+        rows: [
+          {
+            id: "search_products",
+            title: "Search Products",
+            description: "Find the best deals and items",
+          },
+          {
+            id: "search_merchants",
+            title: "Find Merchants",
+            description: "Discover local shops and merchants",
+          },
+          {
+            id: "browse_categories",
+            title: "Browse Categories",
+            description: "View by product type",
+          },
+        ],
+      },
+      {
+        title: "My Orders",
+        rows: [
+          {
+            id: "get_active_orders",
+            title: "Active Orders",
+            description: "Track your current deliveries",
+          },
+          {
+            id: "confirm_delivery_prompt",
+            title: "Confirm Delivery",
+            description: "Mark order as received",
+          },
+          {
+            id: "get_order_history",
+            title: "Order History",
+            description: "Review past purchases",
+          },
+        ],
+      },
+    ];
+
+    if (isMerchant) {
+      sections.push({
+        title: "Account",
+        rows: [
+          {
+            id: "menu_merchant_mode",
+            title: "Return to Merchant Mode",
+            description: "Manage your own shop",
+          },
+        ],
+      });
+    }
+
     await this.interactiveService.sendListMessage(
       phone,
       BUYER_MAIN_MENU,
       "Select Action",
-      [
-        {
-          title: "Shopping",
-          rows: [
-            {
-              id: "search_products",
-              title: "Search Products",
-              description: "Find the best deals and items",
-            },
-            {
-              id: "search_merchants",
-              title: "Find Merchants",
-              description: "Discover local shops and merchants",
-            },
-            {
-              id: "browse_categories",
-              title: "Browse Categories",
-              description: "View by product type",
-            },
-          ],
-        },
-        {
-          title: "My Orders",
-          rows: [
-            {
-              id: "get_active_orders",
-              title: "Active Orders",
-              description: "Track your current deliveries",
-            },
-            {
-              id: "confirm_delivery_prompt",
-              title: "Confirm Delivery",
-              description: "Mark order as received",
-            },
-            {
-              id: "get_order_history",
-              title: "Order History",
-              description: "Review past purchases",
-            },
-          ],
-        },
-      ],
+      sections,
     );
   }
 
@@ -749,10 +769,12 @@ export class WhatsAppBuyerService {
               ? ` | 📍${p.warehouseLocation}`
               : "";
 
+            const shortDesc = p.shortDescription ? `${p.shortDescription} | ` : "";
+
             return {
               id: `buy_${p.id.substring(0, 8)}_${quantity}`,
               title: `${p.name}${wholesaleBadge}`,
-              description: `${this.formatNaira(resolvedPriceKobo)}${weightStr}${locationStr}${starStr}`,
+              description: `${shortDesc}${this.formatNaira(resolvedPriceKobo)}${weightStr}${locationStr}${starStr}`,
             };
           }),
         },

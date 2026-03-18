@@ -120,7 +120,7 @@ importers:
         specifier: ^0.18.0
         version: 0.18.0
       pg:
-        specifier: ^8.11.3
+        specifier: ^8.20.0
         version: 8.20.0
       pino-http:
         specifier: ^11.0.0
