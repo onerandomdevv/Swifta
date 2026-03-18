@@ -180,7 +180,7 @@ export class WhatsAppOnboardingService {
     const userType = roleId === "onboard_buyer" ? "BUYER" : "MERCHANT";
     const firstStep =
       userType === "BUYER"
-        ? OnboardingStep.BUYER_TYPE
+        ? OnboardingStep.BUYER_NAME
         : OnboardingStep.MERCHANT_BUSINESS_NAME;
 
     await this.prisma.onboardingSession.upsert({
@@ -201,13 +201,9 @@ export class WhatsAppOnboardingService {
     });
 
     if (userType === "BUYER") {
-      await this.interactiveService.sendReplyButtons(
+      await this.interactiveService.sendTextMessage(
         phone,
-        "Let's set up your buyer account. Are you buying for a business or as an individual?",
-        [
-          { id: "buyer_type_business", title: "Business" },
-          { id: "buyer_type_individual", title: "Individual" },
-        ],
+        "Let's set up your buyer account. What is your full name?",
       );
     } else {
       await this.interactiveService.sendTextMessage(
@@ -230,7 +226,15 @@ export class WhatsAppOnboardingService {
   ): Promise<void> {
     switch (step) {
       case OnboardingStep.BUYER_TYPE:
-        await this.handleBuyerType(phone, sessionId, data, interactiveReply);
+        // Handle legacy sessions by defaulting to CONSUMER and asking for name
+        await this.updateSession(sessionId, OnboardingStep.BUYER_NAME, {
+          ...data,
+          buyerType: "CONSUMER",
+        });
+        await this.interactiveService.sendTextMessage(
+          phone,
+          "Great! What's your full name?",
+        );
         break;
       case OnboardingStep.BUYER_BUSINESS_NAME:
         await this.handleBuyerBusinessName(phone, sessionId, data, messageText);
