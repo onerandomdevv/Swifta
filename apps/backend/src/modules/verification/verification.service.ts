@@ -13,6 +13,7 @@ import { NotificationTriggerService } from "../notification/notification-trigger
 import {
   VerificationTier,
   OrderStatus,
+  OrderDisputeStatus,
   NotificationType,
 } from "@swifta/shared";
 
@@ -118,7 +119,7 @@ export class VerificationService {
           where: { merchantId, status: OrderStatus.COMPLETED },
         }),
         this.prisma.order.count({
-          where: { merchantId, disputeStatus: { not: null } },
+          where: { merchantId, disputeStatus: { not: OrderDisputeStatus.NONE } },
         }),
         this.prisma.verificationRequest.findFirst({
           where: { merchantId, status: "PENDING" },

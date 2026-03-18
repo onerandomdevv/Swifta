@@ -8,6 +8,8 @@ import {
 } from "@nestjs/common";
 import { Response } from "express";
 import { ApiError } from "@swifta/shared";
+import * as fs from "fs";
+import * as path from "path";
 
 // Prisma error types — imported by name to avoid hard dependency on @prisma/client at filter level
 const PRISMA_UNIQUE_CONSTRAINT = "P2002";
@@ -112,12 +114,26 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           message: exception.meta?.cause || "Record not found",
           code: "NOT_FOUND",
         };
-      default:
+      default: {
+        // Log the full error to a debug file for capture
+        try {
+          const logPath = path.join(process.cwd(), "error_debug.log");
+          const logContent = `\n[${new Date().toISOString()}] PRISMA ERROR: ${exception.code}\n` +
+            `Message: ${exception.message}\n` +
+            `Meta: ${JSON.stringify(exception.meta, null, 2)}\n` +
+            `Stack: ${exception.stack}\n` +
+            `------------------------------------------\n`;
+          fs.appendFileSync(logPath, logContent);
+        } catch (e) {
+          this.logger.error("Failed to write to error_debug.log", e);
+        }
+
         return {
           status: HttpStatus.BAD_REQUEST,
           message: "Database operation failed",
           code: `PRISMA_${exception.code}`,
         };
+      }
     }
   }
 }
