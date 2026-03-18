@@ -1,9 +1,8 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
-import { PaystackClient } from "../payment/paystack.client";
 import { SmsService } from "../notification/sms.service";
 import { UssdCallbackDto } from "./ussd.dto";
-import { PaymentStatus, PaymentDirection } from "@swifta/shared";
+import { PaymentService } from "../payment/payment.service";
 
 @Injectable()
 export class UssdService {
@@ -11,7 +10,7 @@ export class UssdService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly paystackClient: PaystackClient,
+    private readonly paymentService: PaymentService,
     private readonly smsService: SmsService,
   ) {}
 
@@ -30,7 +29,7 @@ export class UssdService {
 
       const mainChoice = inputs[0];
 
-      if (mainChoice === "1") return this.paymentFlow(inputs);
+      if (mainChoice === "1") return this.paymentFlow(inputs, sessionId);
       if (mainChoice === "2") return this.statusFlow(inputs);
 
       return "END Invalid selection. Please try again.";
@@ -45,7 +44,10 @@ export class UssdService {
 
   // ═══ PAYMENT FLOW ═══
 
-  private async paymentFlow(inputs: string[]): Promise<string> {
+  private async paymentFlow(
+    inputs: string[],
+    sessionId: string,
+  ): Promise<string> {
     const level = inputs.length;
 
     // Level 1: Ask for phone
@@ -123,47 +125,18 @@ export class UssdService {
         const order = orders[idx];
         if (!order) return "END Order not found. Please try again.";
 
-        // Initialize Paystack transaction — follows existing pattern
-        const reference = `ussd_${order.id.slice(-8)}_${Date.now()}`;
-        const callbackUrl = "https://swifta.store/payment/callback";
-        const result = await this.paystackClient.initializeTransaction(
-          user.email,
-          order.totalAmountKobo,
-          reference,
-          callbackUrl,
+        // Use central PaymentService to initialize (ensures consistent idempotency/events)
+        const paymentData = await this.paymentService.initialize(
+          user.id,
+          { orderId: order.id },
+          `ussd-pay-${order.id}-${sessionId}`, // Stable idempotency key for the USSD session
         );
-
-        // Create Payment record — matches existing payment creation pattern
-        await this.prisma.$transaction(async (tx) => {
-          const newPayment = await tx.payment.create({
-            data: {
-              orderId: order.id,
-              paystackReference: reference,
-              amountKobo: order.totalAmountKobo,
-              currency: "NGN",
-              status: PaymentStatus.INITIALIZED,
-              direction: PaymentDirection.INFLOW,
-              idempotencyKey: `ussd_pay_${order.id}_${Date.now()}`,
-            },
-          });
-
-          await tx.paymentEvent.create({
-            data: {
-              paymentId: newPayment.id,
-              eventType: "INITIALIZED",
-              payload: {
-                channel: "ussd",
-                reference,
-              },
-            },
-          });
-        });
 
         // Send payment link via SMS using existing SmsService
         try {
           await this.smsService.sendSms(
             phone,
-            `Swifta: Complete your payment of N${this.koboToNaira(order.totalAmountKobo)} here: ${result.authorization_url}`,
+            `Swifta: Complete your payment of N${this.koboToNaira(order.totalAmountKobo)} here: ${paymentData.authorization_url}`,
           );
         } catch (smsErr) {
           this.logger.warn(

@@ -86,7 +86,23 @@ export default function MerchantVerificationPage() {
     fetchStatus();
   }, []);
 
+  const ALLOWED_MIME_TYPES = [
+    "image/jpeg",
+    "image/png",
+    "application/pdf",
+  ];
+  const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".pdf"];
+
   const handleFileUpload = async (file: File, field: string) => {
+    // Runtime file-type validation (accept attribute alone is insufficient)
+    const ext = file.name.toLowerCase().slice(file.name.lastIndexOf("."));
+    const mimeValid = ALLOWED_MIME_TYPES.includes(file.type);
+    const extValid = ALLOWED_EXTENSIONS.includes(ext);
+    if (!mimeValid && !extValid) {
+      return toast.error(
+        "Unsupported file type. Please upload a JPG, PNG, or PDF.",
+      );
+    }
     if (file.size > 5 * 1024 * 1024)
       return toast.error("File exceeds 5MB limit");
     setUploading(field);
@@ -396,17 +412,20 @@ export default function MerchantVerificationPage() {
                         Upload Document
                       </label>
                       <div
-                        onClick={() =>
-                          !uploading && idInputRef.current?.click()
-                        }
+                        onClick={() => {
+                          if (uploading) return;
+                          idInputRef.current?.click();
+                        }}
                         onKeyDown={(e) => {
+                          if (uploading) return;
                           if (e.key === "Enter" || e.key === " ") {
                             e.preventDefault();
-                            !uploading && idInputRef.current?.click();
+                            idInputRef.current?.click();
                           }
                         }}
-                        tabIndex={0}
+                        tabIndex={uploading ? -1 : 0}
                         role="button"
+                        aria-disabled={!!uploading}
                         aria-label="Upload Identity Document"
                         className={cn(
                           "h-32 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-all focus:ring-2 ring-primary/20 outline-none",
@@ -544,17 +563,20 @@ export default function MerchantVerificationPage() {
                             CAC Certificate
                           </label>
                           <div
-                            onClick={() =>
-                              !uploading && cacInputRef.current?.click()
-                            }
+                            onClick={() => {
+                              if (uploading) return;
+                              cacInputRef.current?.click();
+                            }}
                             onKeyDown={(e) => {
+                              if (uploading) return;
                               if (e.key === "Enter" || e.key === " ") {
                                 e.preventDefault();
-                                !uploading && cacInputRef.current?.click();
+                                cacInputRef.current?.click();
                               }
                             }}
-                            tabIndex={0}
+                            tabIndex={uploading ? -1 : 0}
                             role="button"
+                            aria-disabled={!!uploading}
                             aria-label="Upload CAC Certificate"
                             className={cn(
                               "h-24 border border-dashed rounded-xl flex flex-col items-center justify-center gap-1 cursor-pointer transition-all focus:ring-2 ring-primary/20 outline-none",
@@ -594,17 +616,20 @@ export default function MerchantVerificationPage() {
                             Proof of Address
                           </label>
                           <div
-                            onClick={() =>
-                              !uploading && addressInputRef.current?.click()
-                            }
+                            onClick={() => {
+                              if (uploading) return;
+                              addressInputRef.current?.click();
+                            }}
                             onKeyDown={(e) => {
+                              if (uploading) return;
                               if (e.key === "Enter" || e.key === " ") {
                                 e.preventDefault();
-                                !uploading && addressInputRef.current?.click();
+                                addressInputRef.current?.click();
                               }
                             }}
-                            tabIndex={0}
+                            tabIndex={uploading ? -1 : 0}
                             role="button"
+                            aria-disabled={!!uploading}
                             aria-label="Upload Proof of Address"
                             className={cn(
                               "h-24 border border-dashed rounded-xl flex flex-col items-center justify-center gap-1 cursor-pointer transition-all focus:ring-2 ring-primary/20 outline-none",

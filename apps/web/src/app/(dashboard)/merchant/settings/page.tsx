@@ -475,6 +475,7 @@ export default function MerchantSettingsPage() {
                       options={banksList.map(b => ({ label: b.name, value: b.code }))}
                       onChange={(value) => setBankCode(value)}
                       placeholder="Select a Bank"
+                      emptyMessage="No matching banks"
                     />
                     <Input
                       label="Account Number"
