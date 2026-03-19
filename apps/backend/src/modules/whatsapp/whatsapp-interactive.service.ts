@@ -141,6 +141,49 @@ export class WhatsAppInteractiveService {
   }
 
   // -----------------------------------------------------------------------
+  // Send Template Message (Pre-approved Meta Templates like auth_otp)
+  // -----------------------------------------------------------------------
+  async sendTemplateMessage(
+    phone: string,
+    templateName: string,
+    otpCode: string,
+  ): Promise<void> {
+    await this.callMetaApi(phone, {
+      messaging_product: "whatsapp",
+      to: phone,
+      type: "template",
+      template: {
+        name: templateName,
+        language: {
+          code: "en",
+        },
+        components: [
+          {
+            type: "body",
+            parameters: [
+              {
+                type: "text",
+                text: otpCode,
+              },
+            ],
+          },
+          {
+            type: "button",
+            sub_type: "url",
+            index: 0,
+            parameters: [
+              {
+                type: "text",
+                text: otpCode,
+              },
+            ],
+          },
+        ],
+      },
+    });
+  }
+
+  // -----------------------------------------------------------------------
   // Internal: Call Meta Cloud API
   // -----------------------------------------------------------------------
   private async callMetaApi(phone: string, payload: any): Promise<void> {

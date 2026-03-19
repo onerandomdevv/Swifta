@@ -218,6 +218,8 @@ export class WhatsAppService {
     }
   }
 
+
+
   // =======================================================================
   // Command router
   // =======================================================================
@@ -1421,50 +1423,13 @@ export class WhatsAppService {
     templateName: string,
     parameters: { type: "text"; text: string }[] = [],
   ): Promise<void> {
-    const url = `https://graph.facebook.com/${META_API_VERSION}/${this.phoneNumberId}/messages`;
-
-    try {
-      const payload = {
-        messaging_product: "whatsapp",
-        to: phone,
-        type: "template",
-        template: {
-          name: templateName,
-          language: { code: "en_US" },
-          components:
-            parameters.length > 0
-              ? [
-                  {
-                    type: "body",
-                    parameters,
-                  },
-                ]
-              : [],
-        },
-      };
-
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorBody = await response.text();
-        this.logger.error(
-          `Meta Template API error (${response.status}): ${errorBody}`,
-        );
-      } else {
-        this.logger.log(`WhatsApp Template (${templateName}) sent to ${phone}`);
-      }
-    } catch (error) {
-      this.logger.error(
-        `Failed to send WhatsApp template ${templateName} to ${phone}: ${error instanceof Error ? error.message : error}`,
-      );
-    }
+    const otpCode = parameters.length > 0 ? parameters[0].text : "";
+    this.logger.log(`Dispatching template '${templateName}' to ${phone}`);
+    await this.interactiveService.sendTemplateMessage(
+      phone,
+      templateName,
+      otpCode,
+    );
   }
 
   // =======================================================================
