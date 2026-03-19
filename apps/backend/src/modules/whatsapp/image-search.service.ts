@@ -290,8 +290,8 @@ export class ImageSearchService {
         data.responses[0]?.labelAnnotations?.map((l: any) => l.description) ||
         [];
 
-      // Prioritize Text OCR -> Objects -> General Labels
-      const terms = Array.from(new Set([...textTerms, ...objects, ...labels]));
+      // Prioritize Objects -> General Labels -> Text OCR (to prevent arbitrary text like 'CELEBRATING' from outranking objects)
+      const terms = Array.from(new Set([...objects, ...labels, ...textTerms]));
       return terms.length > 0 ? terms : null;
     } catch (error) {
       this.logger.error("Cloud Vision error:", error);
