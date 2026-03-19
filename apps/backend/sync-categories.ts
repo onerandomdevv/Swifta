@@ -7,6 +7,11 @@ import { Pool } from "pg";
 async function main() {
   console.log(`\n📂 Syncing Product Categories Safely...`);
   
+  if (!process.env.DATABASE_URL) {
+    console.error("DATABASE_URL environment variable is not set");
+    process.exit(1);
+  }
+
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     max: 2,

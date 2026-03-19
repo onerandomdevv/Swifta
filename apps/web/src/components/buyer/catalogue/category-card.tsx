@@ -13,7 +13,7 @@ export function CategoryCard({ category: cat, isSelected, onClick }: Props) {
     const name = cat.name.toLowerCase();
     if (name.includes("electronic")) return "devices";
     if (name.includes("fashion") || name.includes("cloth")) return "apparel";
-    if (name.includes("hardware") || name.includes("tool")) return "shopping_bag";
+    if (name.includes("hardware") || name.includes("tool")) return "grid_view";
     if (name.includes("auto")) return "minor_crash";
     if (name.includes("food") || name.includes("grocery")) return "fastfood";
     if (name.includes("home")) return "home_appliance";

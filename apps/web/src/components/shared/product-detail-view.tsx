@@ -455,12 +455,12 @@ export function ProductDetailView({ productId, isOwner: initialIsOwner }: Produc
                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Unit Specification</span>
                  <span className="font-bold text-slate-900 dark:text-white text-xs uppercase">{product?.unit || "Unit"}</span>
                </div>
-                {effectiveIsOwner && (
-                  <div className="flex justify-between py-3 border-b border-slate-50 dark:border-white/5">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Wholesale Threshold</span>
-                    <span className="font-bold text-slate-900 dark:text-white text-xs">{product?.minOrderQuantity} Units</span>
-                  </div>
-                )}
+                 {effectiveIsOwner && product?.wholesalePriceKobo && (
+                   <div className="flex justify-between py-3 border-b border-slate-50 dark:border-white/5">
+                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Wholesale Threshold</span>
+                     <span className="font-bold text-slate-900 dark:text-white text-xs">{product?.minOrderQuantity} Units</span>
+                   </div>
+                 )}
                 <div className="flex justify-between py-3 border-b border-slate-50 dark:border-white/5">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Weight (Approx)</span>
                   <span className="font-bold text-slate-900 dark:text-white text-xs">{product?.weightKg ? `${product.weightKg}kg` : "N/A"}</span>

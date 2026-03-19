@@ -246,6 +246,11 @@ export class WhatsAppBuyerService {
   ): Promise<void> {
     const { id } = reply;
 
+    if (id === "support_handoff") {
+      await this.handleSupportHandoff(phone);
+      return;
+    }
+
     // Delivery selection
     if (id === "delivery_merchant" || id === "delivery_track") {
       const checkoutKey = `wa_pending_checkout_${buyerId}`;
@@ -682,7 +687,7 @@ export class WhatsAppBuyerService {
       phone,
       "You are being transferred to a human agent. They will reply to you on this number shortly.\n\nType *'resume'* at any time to reactivate the AI assistant.",
     );
-    this.logger.log(`Support Handoff initiated for ${phone}`);
+    this.logger.log(`Support Handoff initiated for ${maskPhone(phone)}`);
     // In a real app we would fire an event to the notification queue for admins
   }
 
@@ -1369,7 +1374,7 @@ export class WhatsAppBuyerService {
             orderId,
             buyerId: order.buyerId,
             merchantId: order.merchantId,
-            rating: 5, // Default rating if photo is sent before star rating
+            rating: 0, // Pending actual star rating
             imageUrl,
           },
         });
