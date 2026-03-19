@@ -18,7 +18,7 @@ import { PayoutModule } from "../payout/payout.module";
     forwardRef(() => NotificationModule),
     InventoryModule,
     forwardRef(() => PaymentModule),
-    ReorderModule,
+    forwardRef(() => ReorderModule),
     VerificationModule,
     forwardRef(() => LogisticsModule),
     forwardRef(() => WhatsAppModule),
