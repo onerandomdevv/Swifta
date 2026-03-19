@@ -259,8 +259,6 @@ export class WhatsAppService {
     }
   }
 
-
-
   // =======================================================================
   // Command router
   // =======================================================================
@@ -1486,11 +1484,19 @@ export class WhatsAppService {
   ): Promise<void> {
     const otpCode = parameters.length > 0 ? parameters[0].text : "";
     this.logger.log(`Dispatching template '${templateName}' to ${phone}`);
-    await this.interactiveService.sendTemplateMessage(
-      phone,
-      templateName,
-      otpCode,
-    );
+    try {
+      await this.interactiveService.sendTemplateMessage(
+        phone,
+        templateName,
+        otpCode,
+      );
+    } catch (error) {
+      this.logger.warn(`Template failed, falling back to text for ${phone}`);
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `Your Swifta OTP is: ${otpCode}. Please use this to confirm your action.`,
+      );
+    }
   }
 
   // =======================================================================
