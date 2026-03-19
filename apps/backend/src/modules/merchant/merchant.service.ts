@@ -6,9 +6,10 @@ import {
 import { PrismaService } from "../../prisma/prisma.service";
 import { UpdateMerchantDto } from "./dto/update-merchant.dto";
 import { UpdateBankAccountDto } from "./dto/update-bank-account.dto";
-import { UserRole } from "@hardware-os/shared";
+import { UserRole, VerificationTier, maskNin } from "@swifta/shared";
 import { PaystackClient } from "../payment/paystack.client";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
+import { UpdatePreferencesDto } from "./dto/update-preferences.dto";
 
 @Injectable()
 export class MerchantService {
@@ -49,23 +50,50 @@ export class MerchantService {
   }
 
   async getProfile(merchantId: string) {
-    const merchant = await this.prisma.merchantProfile.findUnique({
-      where: { id: merchantId },
-      include: {
-        user: {
-          select: {
-            email: true,
-            phone: true,
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const [merchant, slugChangesCount] = await Promise.all([
+      this.prisma.merchantProfile.findUnique({
+        where: { id: merchantId },
+        include: {
+          user: {
+            select: {
+              email: true,
+              phone: true,
+              emailVerified: true,
+            },
           },
         },
-      },
-    });
+      }),
+      (this.prisma as any).merchantSlugHistory.count({
+        where: {
+          merchantProfileId: merchantId,
+          changedAt: { gte: thirtyDaysAgo },
+        },
+      }),
+    ]);
+
     if (!merchant) throw new NotFoundException("Merchant profile not found");
-    return merchant;
+
+    const { ninNumber, ...merchantWithoutNin } = merchant;
+
+    return {
+      ...merchantWithoutNin,
+      maskedNin: maskNin(ninNumber),
+      contact: merchant.user
+        ? {
+            email: merchant.user.email,
+            phone: merchant.user.phone,
+            emailVerified: merchant.user.emailVerified,
+          }
+        : null,
+      slugChangesCount,
+    };
   }
 
   async getPublicProfile(merchantId: string) {
-    const merchant = await this.prisma.merchantProfile.findUnique({
+    const merchant = await (this.prisma.merchantProfile.findUnique({
       where: { id: merchantId },
       include: {
         user: {
@@ -81,18 +109,22 @@ export class MerchantService {
                 status: "COMPLETED",
               },
             },
-          },
+            followers: true,
+          } as any,
         },
       },
-    });
+    }) as any);
 
     if (!merchant) throw new NotFoundException("Merchant not found");
 
-    // We only expose contact info if the merchant is VERIFIED
-    const isVerified = merchant.verificationTier === "VERIFIED";
+    // We only expose contact info if the merchant is TIER_2 or higher
+    const isVerified =
+      merchant.verificationTier === VerificationTier.TIER_2 ||
+      merchant.verificationTier === VerificationTier.TIER_3;
 
     return {
       id: merchant.id,
+      slug: merchant.slug,
       businessName: merchant.businessName,
       businessAddress: merchant.businessAddress,
       businessType: merchant.businessType,
@@ -102,21 +134,36 @@ export class MerchantService {
       distributionCenter: merchant.distributionCenter,
       warehouseCapacity: merchant.warehouseCapacity,
       verificationTier: merchant.verificationTier,
+      verifiedAt: merchant.verifiedAt,
       createdAt: merchant.createdAt,
-      dealsClosed: merchant._count.orders,
+      lastSlugChangeAt: merchant.lastSlugChangeAt,
+      profileImage: merchant.profileImage,
+      coverImage: merchant.coverImage,
+      cacVerified: merchant.cacVerified,
+      addressVerified: merchant.addressVerified,
+      guarantorVerified: merchant.guarantorVerified,
+      bankVerified: merchant.bankVerified,
+      averageRating: merchant.averageRating || 0,
+      reviewCount: merchant.reviewCount || 0,
+      description: merchant.description,
+      socialLinks: merchant.socialLinks as any,
       contact: isVerified
         ? {
             email: merchant.user.email,
             phone: merchant.user.phone,
           }
         : null,
+      dealsClosed: Number(merchant._count.orders),
+      followersCount: merchant._count.followers,
     };
   }
 
   async getAllMerchants() {
     return this.prisma.merchantProfile.findMany({
       where: {
-        verificationTier: "VERIFIED",
+        verificationTier: {
+          in: [VerificationTier.TIER_2, VerificationTier.TIER_3],
+        },
       },
       select: {
         id: true,
@@ -182,7 +229,6 @@ export class MerchantService {
 
     // Step 5 reached: Set verification = PENDING (review & submit step)
 
-
     if (newStep !== existing.onboardingStep) {
       updateData.onboardingStep = newStep;
     }
@@ -233,7 +279,6 @@ export class MerchantService {
     // Auto-advance step 4->5 if other fields are complete and we are at step 4
     if (existing.onboardingStep === 4) {
       updateData.onboardingStep = 5;
-
     }
 
     return this.prisma.merchantProfile.update({
@@ -280,5 +325,258 @@ export class MerchantService {
     }
 
     return updated;
+  }
+
+  async findBySlug(slug: string) {
+    // Attempt direct match first
+    const directMatch = await (this.prisma.merchantProfile as any).findUnique({
+      where: { slug: slug.toLowerCase() },
+      include: {
+        user: {
+          select: {
+            email: true,
+            phone: true,
+          },
+        },
+      },
+    });
+
+    if (directMatch) return directMatch;
+
+    // Check history for redirection
+    const historyMatch = await (
+      this.prisma as any
+    ).merchantSlugHistory.findFirst({
+      where: { oldSlug: slug.toLowerCase() },
+      include: {
+        merchantProfile: {
+          include: {
+            user: {
+              select: {
+                email: true,
+                phone: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (historyMatch) return historyMatch.merchantProfile;
+
+    throw new NotFoundException(`Merchant with username "${slug}" not found`);
+  }
+
+  async updateUsername(merchantId: string, newSlugInput: string) {
+    const newSlug = newSlugInput.toLowerCase().trim();
+
+    // 1. Format validation
+    const slugRegex = /^[a-z0-9](-?[a-z0-9])*$/;
+    if (!slugRegex.test(newSlug) || newSlug.length < 3 || newSlug.length > 30) {
+      throw new BadRequestException(
+        "Username must be 3-30 characters, lowercase alphanumeric, and can contain hyphens (but not at the start/end).",
+      );
+    }
+
+    const merchant = await this.prisma.merchantProfile.findUnique({
+      where: { id: merchantId },
+      include: { user: { select: { emailVerified: true } } },
+    });
+    if (!merchant) throw new NotFoundException("Merchant profile not found");
+
+    if (!merchant.user.emailVerified) {
+      throw new BadRequestException(
+        "You must verify your email address before you can change your business username.",
+      );
+    }
+
+    if ((merchant as any).slug === newSlug) {
+      throw new BadRequestException(
+        "New username must be different from current one.",
+      );
+    }
+
+    // 2. Uniqueness check (Current + History)
+    const isTaken = await (this.prisma.merchantProfile as any).findUnique({
+      where: { slug: newSlug },
+    });
+    if (isTaken) throw new BadRequestException("Username is already in use.");
+
+    const isReserved = await (this.prisma as any).merchantSlugHistory.findFirst(
+      {
+        where: { oldSlug: newSlug },
+      },
+    );
+    if (isReserved)
+      throw new BadRequestException(
+        "Username is reserved by another merchant.",
+      );
+
+    // 3. Cooldown check (7 days)
+    if ((merchant as any).lastSlugChangeAt) {
+      const msSinceLastChange =
+        Date.now() - (merchant as any).lastSlugChangeAt.getTime();
+      const coolingDays = msSinceLastChange / (1000 * 60 * 60 * 24);
+      if (coolingDays < 7) {
+        const remaining = Math.ceil(7 - coolingDays);
+        throw new BadRequestException(
+          `Please wait ${remaining} more day(s) before changing your username again.`,
+        );
+      }
+    }
+
+    // 3. Rate Limit Check (max 3 changes in 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const recentChanges = await (this.prisma as any).merchantSlugHistory.count({
+      where: {
+        merchantProfileId: merchantId,
+        changedAt: { gte: thirtyDaysAgo },
+      },
+    });
+
+    if (recentChanges >= 3) {
+      throw new BadRequestException(
+        "You have reached the limit of 3 username changes per month.",
+      );
+    }
+
+    // 4. Cooldown Check (e.g., 24 hours between changes)
+    if (
+      (merchant as any).lastSlugChangeAt &&
+      new Date().getTime() -
+        new Date((merchant as any).lastSlugChangeAt).getTime() <
+        24 * 60 * 60 * 1000
+    ) {
+      throw new BadRequestException(
+        "Please wait 24 hours between username changes.",
+      );
+    }
+
+    // 5. Execute Update Transaction
+    return this.prisma.$transaction(async (tx) => {
+      // Record historical slug
+      await (tx as any).merchantSlugHistory.create({
+        data: {
+          merchantProfileId: merchantId,
+          oldSlug: (merchant as any).slug,
+          newSlug: newSlug,
+        },
+      });
+
+      // Update current profile
+      return tx.merchantProfile.update({
+        where: { id: merchantId },
+        data: {
+          slug: newSlug,
+          lastSlugChangeAt: new Date(),
+        },
+      } as any);
+    });
+  }
+
+  async followMerchant(userId: string, merchantId: string) {
+    const merchant = await this.prisma.merchantProfile.findUnique({
+      where: { id: merchantId },
+    });
+    if (!merchant) throw new NotFoundException("Merchant not found");
+
+    if (merchant.userId === userId) {
+      throw new BadRequestException("You cannot follow your own business");
+    }
+
+    try {
+      return await (this.prisma as any).follow.create({
+        data: {
+          followerId: userId,
+          merchantId: merchantId,
+        },
+      });
+    } catch (error: any) {
+      if (error.code === "P2002") {
+        throw new BadRequestException(
+          "You are already following this merchant",
+        );
+      }
+      throw error;
+    }
+  }
+
+  async unfollowMerchant(userId: string, merchantId: string) {
+    try {
+      await (this.prisma as any).follow.delete({
+        where: {
+          followerId_merchantId: {
+            followerId: userId,
+            merchantId: merchantId,
+          },
+        },
+      });
+      return { success: true };
+    } catch (error: any) {
+      if (error.code === "P2025") {
+        throw new BadRequestException("You are not following this merchant");
+      }
+      throw error;
+    }
+  }
+
+  async isFollowing(userId: string, merchantId: string) {
+    const follow = await (this.prisma as any).follow.findUnique({
+      where: {
+        followerId_merchantId: {
+          followerId: userId,
+          merchantId: merchantId,
+        },
+      },
+    });
+    return !!follow;
+  }
+
+  async updatePreferences(merchantId: string, dto: UpdatePreferencesDto) {
+    const merchant = await this.prisma.merchantProfile.findUnique({
+      where: { id: merchantId },
+    });
+    if (!merchant) throw new NotFoundException("Merchant profile not found");
+
+    return this.prisma.merchantProfile.update({
+      where: { id: merchantId },
+      data: {
+        notificationPreferences: dto.notificationPreferences as any,
+      },
+    });
+  }
+
+  async getBalanceSummary(merchantId: string) {
+    // Fire concurrent fast aggregates offloaded to DB (leveraging the composite indexes)
+    const [escrowResult, availableResult, revenueResult, pendingResult] =
+      await Promise.all([
+        this.prisma.order.aggregate({
+          where: { merchantId, status: { in: ["PAID", "DISPATCHED"] } },
+          _sum: { totalAmountKobo: true },
+        }),
+        this.prisma.order.aggregate({
+          where: { merchantId, payoutStatus: "COMPLETED" },
+          _sum: { totalAmountKobo: true },
+        }),
+        this.prisma.order.aggregate({
+          where: { merchantId, status: "COMPLETED" },
+          _sum: { totalAmountKobo: true },
+        }),
+        this.prisma.order.aggregate({
+          where: { merchantId, payoutStatus: "PENDING", status: "COMPLETED" },
+          _sum: { totalAmountKobo: true },
+        }),
+      ]);
+
+    return {
+      escrowBalanceKobo: (escrowResult._sum.totalAmountKobo || 0n).toString(),
+      availableBalanceKobo: (
+        availableResult._sum.totalAmountKobo || 0n
+      ).toString(),
+      totalRevenueKobo: (revenueResult._sum.totalAmountKobo || 0n).toString(),
+      pendingPayoutsKobo: (pendingResult._sum.totalAmountKobo || 0n).toString(),
+    };
   }
 }

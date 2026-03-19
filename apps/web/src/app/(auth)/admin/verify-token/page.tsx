@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { authApi } from "../../../../lib/api/auth.api";
 import { useAuth } from "../../../../providers/auth-provider";
 import { useToast } from "../../../../providers/toast-provider";
-import { getDisplayName } from "@hardware-os/shared";
+import { getDisplayName } from "@swifta/shared";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import Link from "next/link";
@@ -88,7 +88,7 @@ export default function VerifyTokenPage() {
           >
             <img
               src={src}
-              alt="Construction materials logistics"
+              alt="E-commerce logistics"
               className="w-full h-full object-cover"
             />
           </div>
@@ -105,7 +105,7 @@ export default function VerifyTokenPage() {
             <span className="text-orange-400 font-bold block mb-1 tracking-widest text-xs uppercase">
               Internal Operations Portal
             </span>
-            Secure administration and operational management for the SwiftTrade
+            Secure administration and operational management for the Swifta
             infrastructure.
           </p>
           <div className="flex flex-col gap-3">
@@ -143,9 +143,9 @@ export default function VerifyTokenPage() {
       </div>
 
       {/* ─── RIGHT: Verification Panel ─── */}
-      <div className="w-full lg:w-[50%] bg-slate-50 flex flex-col h-screen overflow-y-auto">
+      <div className="w-full lg:w-[50%] bg-background flex flex-col h-screen overflow-y-auto">
         {/* Mobile header */}
-        <div className="lg:hidden flex items-center justify-between p-6 border-b border-slate-200 bg-white">
+        <div className="lg:hidden flex items-center justify-between p-6 border-b border-border bg-surface">
           <Link href="/" className="flex items-center gap-2">
             <Logo variant="light" size="md" />
           </Link>
@@ -158,15 +158,15 @@ export default function VerifyTokenPage() {
           {/* Header */}
           <div className="mb-10 relative">
             <div className="absolute -left-12 top-0 bottom-0 w-1 bg-orange-500 rounded-r hidden md:block"></div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2 flex items-center gap-3">
+            <h1 className="text-3xl font-black text-foreground tracking-tight mb-2 flex items-center gap-3">
               Verification Required{" "}
               <span className="material-symbols-outlined text-orange-500 text-3xl font-light">
                 verified_user
               </span>
             </h1>
-            <p className="text-slate-500 font-medium">
+            <p className="text-foreground-secondary font-medium">
               A valid staff token is required to access your{" "}
-              <span className="text-slate-900 font-bold">
+              <span className="text-foreground font-bold">
                 {roleLabel} Terminal
               </span>
               .
@@ -174,7 +174,7 @@ export default function VerifyTokenPage() {
           </div>
 
           {/* User Profile Badge (Simplified for light bg) */}
-          <div className="mb-10 p-5 bg-white border border-slate-200 rounded-2xl flex items-center gap-5 shadow-sm">
+          <div className="mb-10 p-5 bg-surface border border-border rounded-2xl flex items-center gap-5 shadow-sm">
             <div
               className={`h-14 w-14 rounded-xl bg-gradient-to-br ${roleColor} flex items-center justify-center shadow-lg transform -rotate-2`}
             >
@@ -183,14 +183,14 @@ export default function VerifyTokenPage() {
               </span>
             </div>
             <div>
-              <p className="text-lg font-black text-slate-900 leading-tight tracking-tight">
+              <p className="text-lg font-black text-foreground leading-tight tracking-tight">
                 {getDisplayName(user) || user.email}
               </p>
               <div className="flex items-center gap-2 mt-1">
                 <span
                   className={`size-2 rounded-full animate-pulse ${user.role === "OPERATOR" ? "bg-orange-500" : "bg-blue-500"}`}
                 ></span>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">
+                <p className="text-[10px] text-foreground-secondary font-bold uppercase tracking-[0.2em]">
                   {user.role} CHANNEL
                 </p>
               </div>
@@ -212,23 +212,23 @@ export default function VerifyTokenPage() {
           <form onSubmit={handleSubmit} className="space-y-8">
             <div className="space-y-4">
               <label
-                className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] block ml-1"
+                className="text-[10px] font-black text-foreground-secondary uppercase tracking-[0.3em] block ml-1"
                 htmlFor="accessToken"
               >
                 Access Encryption Token
               </label>
               <div className="relative group/field">
-                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl z-10 transition-colors group-focus-within/field:text-slate-900">
+                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-foreground-secondary text-xl z-10 transition-colors group-focus-within/field:text-foreground">
                   key
                 </span>
                 <input
-                  className={`w-full pl-12 pr-12 h-16 bg-white border shadow-sm text-xl font-mono tracking-[0.2em] uppercase focus:ring-2 focus:ring-orange-500 focus:border-orange-500 rounded-2xl transition-all ${
+                  className={`w-full pl-12 pr-12 h-16 bg-background-secondary text-foreground text-xl font-mono tracking-[0.2em] uppercase focus:ring-2 focus:ring-orange-500 focus:border-orange-500 rounded-2xl transition-all border ${
                     token.length > 0 &&
                     !/^[A-Z0-9-]+$/.test(token.toUpperCase())
                       ? "border-red-400 text-red-600"
                       : token.length >= 29
                         ? "border-emerald-400 text-emerald-600 shadow-[0_0_20px_-10px_rgba(16,185,129,0.2)]"
-                        : "border-slate-200 text-slate-900"
+                        : "border-border"
                   }`}
                   id="accessToken"
                   type="text"
@@ -253,7 +253,7 @@ export default function VerifyTokenPage() {
                 )}
               </div>
               <div className="flex items-center justify-between px-1">
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1.5">
+                <p className="text-[10px] text-foreground-secondary font-bold uppercase tracking-widest flex items-center gap-1.5">
                   <span className="size-1 rounded-full bg-slate-200"></span>
                   SECURITY LEVEL 2
                 </p>
@@ -265,7 +265,7 @@ export default function VerifyTokenPage() {
                     />
                   </div>
                   <p
-                    className={`text-[10px] font-black uppercase tracking-tighter w-12 text-right ${token.length >= 29 ? "text-emerald-500" : "text-slate-400"}`}
+                    className={`text-[10px] font-black uppercase tracking-tighter w-12 text-right ${token.length >= 29 ? "text-emerald-500" : "text-foreground-secondary"}`}
                   >
                     {token.length} / 29
                   </p>
@@ -275,10 +275,10 @@ export default function VerifyTokenPage() {
 
             <button
               disabled={isSubmitting || token.length < 10}
-              className={`w-full h-16 text-sm font-black uppercase tracking-[0.2em] shadow-lg shadow-slate-900/10 transition-all rounded-2xl active:scale-[0.98] flex items-center justify-center gap-3 ${
+              className={`w-full h-16 text-sm font-black uppercase tracking-[0.2em] transition-all rounded-2xl active:scale-[0.98] flex items-center justify-center gap-3 ${
                 token.length >= 10
-                  ? "bg-slate-900 text-white hover:bg-black"
-                  : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                  ? "bg-primary text-white hover:bg-primary-dark shadow-lg shadow-primary/10"
+                  : "bg-surface text-foreground-secondary border border-border cursor-not-allowed shadow-none"
               }`}
               type="submit"
             >
@@ -301,13 +301,13 @@ export default function VerifyTokenPage() {
           </form>
 
           {/* Switch to Login / Logout */}
-          <div className="text-center pt-8 border-t border-slate-200 mt-8 flex flex-col gap-4">
+          <div className="text-center pt-8 border-t border-border mt-8 flex flex-col gap-4">
             <button
               onClick={() => {
                 logout();
                 router.push("/admin/login");
               }}
-              className="text-[10px] text-slate-400 hover:text-red-600 font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 group/back"
+              className="text-[10px] text-foreground-secondary hover:text-red-500 font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 group/back"
             >
               <span className="material-symbols-outlined text-sm transition-transform group-hover/back:-translate-x-1">
                 logout
@@ -317,12 +317,6 @@ export default function VerifyTokenPage() {
           </div>
         </div>
 
-        {/* Footer */}
-        <footer className="px-8 py-6 border-t border-slate-200 bg-white">
-          <p className="text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-            SwiftTrade Internal Portal &bull; Strictly Confidential
-          </p>
-        </footer>
       </div>
     </div>
   );

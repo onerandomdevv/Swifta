@@ -7,6 +7,9 @@ export interface VerificationRequestData {
   governmentIdUrl: string;
   cacCertUrl?: string;
   idType: string;
+  targetTier: string;
+  ninNumber?: string;
+  proofOfAddressUrl?: string;
   createdAt: string;
   merchant: {
     id: string;

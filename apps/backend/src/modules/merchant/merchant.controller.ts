@@ -8,19 +8,27 @@ import {
   UseGuards,
   ParseUUIDPipe,
   Post,
+  Delete,
 } from "@nestjs/common";
 import { MerchantService } from "./merchant.service";
 import { UpdateMerchantDto } from "./dto/update-merchant.dto";
 import { UpdateBankAccountDto } from "./dto/update-bank-account.dto";
+import { UpdatePreferencesDto } from "./dto/update-preferences.dto";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { CurrentMerchant } from "../../common/decorators/current-merchant.decorator";
-import { UserRole } from "@hardware-os/shared";
+import { UserRole, JwtPayload } from "@swifta/shared";
+
+import { MerchantAnalyticsService } from "./merchant-analytics.service";
 
 @Controller("merchants")
 export class MerchantController {
-  constructor(private readonly merchantService: MerchantService) {}
+  constructor(
+    private readonly merchantService: MerchantService,
+    private readonly analyticsService: MerchantAnalyticsService,
+  ) {}
 
   @Get("me")
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -39,9 +47,31 @@ export class MerchantController {
     return this.merchantService.updateProfile(merchantId, dto);
   }
 
+  @Patch("me/username")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.MERCHANT)
+  async updateUsername(
+    @CurrentMerchant() merchantId: string,
+    @Body("username") username: string,
+  ) {
+    return this.merchantService.updateUsername(merchantId, username);
+  }
+
+  @Get("lookup/:slug")
+  async getBySlug(@Param("slug") slug: string) {
+    return this.merchantService.findBySlug(slug);
+  }
+
   @Get()
   async getAllMerchants() {
     return this.merchantService.getAllMerchants();
+  }
+
+  @Get("balance-summary")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.MERCHANT)
+  async getBalanceSummary(@CurrentMerchant() merchantId: string) {
+    return this.merchantService.getBalanceSummary(merchantId);
   }
 
   @Get(":id")
@@ -81,5 +111,60 @@ export class MerchantController {
   @Roles(UserRole.MERCHANT)
   async submitVerification(@CurrentMerchant() merchantId: string) {
     return this.merchantService.submitForVerification(merchantId);
+  }
+  @Get("me/analytics")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.MERCHANT)
+  async getMyAnalytics(
+    @CurrentMerchant() merchantId: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
+  ) {
+    return this.analyticsService.getMerchantStats(
+      merchantId,
+      startDate,
+      endDate,
+    );
+  }
+
+  @Post(":id/follow")
+  @UseGuards(JwtAuthGuard)
+  async followMerchant(
+    @CurrentUser() user: JwtPayload,
+    @Param("id", ParseUUIDPipe) merchantId: string,
+  ) {
+    return this.merchantService.followMerchant(user.sub, merchantId);
+  }
+
+  @Delete(":id/follow")
+  @UseGuards(JwtAuthGuard)
+  async unfollowMerchant(
+    @CurrentUser() user: JwtPayload,
+    @Param("id", ParseUUIDPipe) merchantId: string,
+  ) {
+    return this.merchantService.unfollowMerchant(user.sub, merchantId);
+  }
+
+  @Get(":id/is-following")
+  @UseGuards(JwtAuthGuard)
+  async isFollowing(
+    @CurrentUser() user: JwtPayload,
+    @Param("id", ParseUUIDPipe) merchantId: string,
+  ) {
+    const isFollowing = await this.merchantService.isFollowing(
+      user.sub,
+      merchantId,
+    );
+    return { isFollowing };
+  }
+
+  @Patch("me/preferences")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.MERCHANT)
+  async updatePreferences(
+    @CurrentMerchant() merchantId: string,
+    @Body() dto: UpdatePreferencesDto,
+  ) {
+    return this.merchantService.updatePreferences(merchantId, dto);
   }
 }

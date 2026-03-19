@@ -10,7 +10,7 @@ import {
   Get,
   Req,
 } from "@nestjs/common";
-import { Response, Request } from "express";
+import type { Response, Request } from "express";
 import { Throttle } from "@nestjs/throttler";
 import { AuthService } from "./auth.service";
 import { RegisterDto } from "./dto/register.dto";
@@ -25,7 +25,7 @@ import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
 import { JwtRefreshGuard } from "../../common/guards/jwt-refresh.guard";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
-import { JwtPayload } from "@hardware-os/shared";
+import { JwtPayload } from "@swifta/shared";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 
 @Controller("auth")
@@ -37,17 +37,17 @@ export class AuthController {
     tokens: { accessToken: string; refreshToken: string },
   ) {
     const isProd = process.env.NODE_ENV === "production";
-    res.cookie("hwos_access_token", tokens.accessToken, {
+    res.cookie("swifta_access_token", tokens.accessToken, {
       httpOnly: true,
       secure: isProd,
-      sameSite: isProd ? "none" : "lax",
+      sameSite: isProd ? "none" : false,
       maxAge: 15 * 60 * 1000,
       path: "/",
     });
-    res.cookie("hwos_refresh_token", tokens.refreshToken, {
+    res.cookie("swifta_refresh_token", tokens.refreshToken, {
       httpOnly: true,
       secure: isProd,
-      sameSite: isProd ? "none" : "lax",
+      sameSite: isProd ? "none" : false,
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: "/",
     });
@@ -58,11 +58,11 @@ export class AuthController {
     const cookieOptions = {
       httpOnly: true,
       secure: isProd,
-      sameSite: isProd ? ("none" as const) : ("lax" as const),
+      sameSite: isProd ? ("none" as const) : false,
       path: "/",
     };
-    res.clearCookie("hwos_access_token", cookieOptions);
-    res.clearCookie("hwos_refresh_token", cookieOptions);
+    res.clearCookie("swifta_access_token", cookieOptions);
+    res.clearCookie("swifta_refresh_token", cookieOptions);
   }
 
   @Throttle({ default: { limit: 5, ttl: 60000 } })
@@ -113,6 +113,28 @@ export class AuthController {
     return this.authService.sendPhoneOtp(dto, user.sub);
   }
 
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Post("whatsapp/initiate")
+  @HttpCode(HttpStatus.OK)
+  async initiateWhatsAppLogin(@Body() dto: SendPhoneOtpDto) {
+    return this.authService.initiateWhatsAppLogin(dto.phone);
+  }
+
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post("whatsapp/verify")
+  @HttpCode(HttpStatus.OK)
+  async verifyWhatsAppLogin(
+    @Body() dto: VerifyPhoneOtpDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.verifyWhatsAppLogin(
+      dto.phone,
+      dto.code,
+    );
+    this.setCookies(res, result);
+    return { user: result.user };
+  }
+
   @UseGuards(JwtAuthGuard)
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   @Post("verify-phone-otp")
@@ -122,6 +144,28 @@ export class AuthController {
     @Body() dto: VerifyPhoneOtpDto,
   ) {
     return this.authService.verifyPhoneOtp(dto, user.sub);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Post("whatsapp/link")
+  @HttpCode(HttpStatus.OK)
+  async initiateWhatsAppLink(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: SendPhoneOtpDto,
+  ) {
+    return this.authService.initiateWhatsAppLink(user.sub, dto.phone);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post("whatsapp/link/verify")
+  @HttpCode(HttpStatus.OK)
+  async verifyWhatsAppLink(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: VerifyPhoneOtpDto,
+  ) {
+    return this.authService.verifyWhatsAppLink(user.sub, dto.phone, dto.code);
   }
 
   @Post("refresh")
@@ -135,7 +179,8 @@ export class AuthController {
   ) {
     // Prefer HttpOnly cookie first, fallback to DTO body
     const refreshToken =
-      req.cookies?.["hwos_refresh_token"] || dto.refreshToken;
+      (req.cookies as Record<string, string>)?.["swifta_refresh_token"] ||
+      dto.refreshToken;
     const result = await this.authService.refreshTokens(user.sub, refreshToken);
     this.setCookies(res, result);
     return { success: true };

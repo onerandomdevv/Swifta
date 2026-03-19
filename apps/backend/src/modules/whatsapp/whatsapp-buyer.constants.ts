@@ -3,77 +3,43 @@
 // ---------------------------------------------------------------------------
 import { SchemaType, FunctionDeclaration } from "@google/generative-ai";
 
-export const BUYER_MAIN_MENU = `Welcome back! 🛒 Here's what I can help you with:
+export const BUYER_MAIN_MENU = `Welcome to the Swifta Marketplace! ✅
 
-1️⃣ Search Products — "I need 50 bags of cement in Ikeja"
-2️⃣ My Active Orders — "Where is my order?"
-3️⃣ Confirm Delivery — "Confirm delivery for ABC123"
-4️⃣ Order History — "Show my past purchases"
-5️⃣ Support — "I have a problem with my order"
+I'm your personal shopping assistant. I can help you find products, discover local merchants, and track your deliveries in real-time.
 
-Just type a number or tell me what you need! 🛒`;
+How can I assist you today?`;
 
-export const BUYER_FRIENDLY_FALLBACK = `I'm not exactly sure what you need 😅 But no worries, I can help you with:
+export const BUYER_FRIENDLY_FALLBACK = `I'm sorry, I didn't quite catch that. 📦
 
-1️⃣ Search Products — "I need 50 bags of cement in Ikeja"
-2️⃣ My Active Orders — "Where is my order?"
-3️⃣ Confirm Delivery — "Confirm delivery for ABC123"
-4️⃣ Order History — "Show my past purchases"
-5️⃣ Support — "I need help"
+I can help you find products, discover merchants, track orders, or connect with support.
 
-Just tell me what you're looking for!`;
+What would you like to do?`;
 
 export const BUYER_NUMBER_INTENT_MAP: Record<string, string> = {
   "1": "search_products",
-  "2": "get_active_orders",
-  "3": "confirm_delivery",
-  "4": "get_order_history",
-  "5": "contact_support",
+  "2": "search_merchants",
+  "3": "get_active_orders",
+  "4": "confirm_delivery",
+  "5": "get_order_history",
+  "6": "contact_support",
 };
 
-export const BUYER_SYSTEM_PROMPT = `You are SwiftTrade Buyer Bot, a helpful shopping assistant for construction and hardware buyers in Nigeria.
-
-YOUR JOB: Understand what the buyer wants to do and call the matching function to perform the action.
-
-LANGUAGE: Buyers may chat in English, Pidgin English, or a mix of Yoruba-English. Understand them naturally. Examples:
-
-Product Search:
-- "I need 50 bags of cement in Lekki" → search_products (query: "cement", location: "Lekki", quantity: 50)
-- "Where fit I get iron rod for Ikeja?" → search_products (query: "iron rod", location: "Ikeja")
-- "I wan buy wood" → search_products (query: "wood")
-- "price of granite" → search_products (query: "granite")
-
-Orders & Tracking:
-- "where is my order" → get_active_orders
-- "my orders" → get_active_orders
-- "track my delivery" → get_active_orders
-- "show my past purchases" → get_order_history
-
-Delivery Confirmation:
-- "confirm delivery for ABC123" → confirm_delivery (orderReference: "ABC123")
-- "I don receive my order ABC" → confirm_delivery (orderReference: "ABC")
-
-Purchasing:
-- "buy product DEF456 50 bags" → buy_product (productId: "DEF456", quantity: 50)
-- "I want to buy 100 units of item X" → buy_product (productId: "X", quantity: 100)
-
-RULES:
-- Call the appropriate tool for their query. Do not show the menu if you understand what they want.
-- Try to extract 'query', 'location', and 'quantity' strictly for search intents.
-- Do not make up product IDs.`;
+// ---------------------------------------------------------------------------
+// Gemini buyer system prompt is now managed via .env (WHATSAPP_BUYER_SYSTEM_PROMPT)
+// ---------------------------------------------------------------------------
 
 export const BUYER_GEMINI_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
   {
     name: "search_products",
     description:
-      "Search the global SwiftTrade catalogue for a product based on name and optionally location.",
+      "Search the global Swifta catalogue for a product based on name and optionally location.",
     parameters: {
       type: SchemaType.OBJECT,
       properties: {
         query: {
           type: SchemaType.STRING,
           description:
-            "The name of the item they want to buy (e.g. 'cement', 'iron rod', 'paint')",
+            "The name of the item they want to buy (e.g. 'phone', 'shoes', 'groceries')",
         },
         location: {
           type: SchemaType.STRING,
@@ -83,6 +49,27 @@ export const BUYER_GEMINI_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
         quantity: {
           type: SchemaType.NUMBER,
           description: "How many items they want to buy",
+        },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "search_merchants",
+    description:
+      "Search for verified merchants and shops on Swifta by name or specific location.",
+    parameters: {
+      type: SchemaType.OBJECT,
+      properties: {
+        query: {
+          type: SchemaType.STRING,
+          description:
+            "The name of the shop or type of merchant (e.g. 'Aliko Store', 'Electronics shops')",
+        },
+        location: {
+          type: SchemaType.STRING,
+          description:
+            "The location to search in (e.g. 'Lekki', 'Victoria Island')",
         },
       },
       required: ["query"],
@@ -131,7 +118,29 @@ export const BUYER_GEMINI_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
     },
   },
   {
-    name: "contact_support",
-    description: "Connect to support for dispute resolutions or problems.",
+    name: "browse_categories",
+    description:
+      "Browse the available product categories in the Swifta marketplace.",
+  },
+  {
+    name: "list_merchant_products",
+    description:
+      "List all products available from a specific merchant by their @handle or name.",
+    parameters: {
+      type: SchemaType.OBJECT,
+      properties: {
+        merchantSlug: {
+          type: SchemaType.STRING,
+          description:
+            "The merchant's @handle or slug (e.g. '@kareem' or 'kareem')",
+        },
+        query: {
+          type: SchemaType.STRING,
+          description:
+            "Optional product name to filter within that merchant's shop",
+        },
+      },
+      required: ["merchantSlug"],
+    },
   },
 ];

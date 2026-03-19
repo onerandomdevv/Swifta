@@ -1,4 +1,5 @@
 import { apiClient } from "../api-client";
+import { type SupplierProduct } from "@swifta/shared";
 
 export async function getSupplierProfile(): Promise<any> {
   return apiClient.get("/supplier/profile");
@@ -19,8 +20,8 @@ export async function updateSupplierProduct(
   return apiClient.put(`/supplier/products/${id}`, dto);
 }
 
-export async function getWholesaleCatalogue(): Promise<any[]> {
-  return apiClient.get("/supplier/catalogue");
+export async function getWholesaleCatalogue(): Promise<SupplierProduct[]> {
+  return apiClient.get<SupplierProduct[]>("/supplier/catalogue");
 }
 
 export async function createWholesaleOrder(data: {
@@ -33,4 +34,8 @@ export async function createWholesaleOrder(data: {
 
 export async function getSupplierDashboard(): Promise<any> {
   return apiClient.get("/supplier/dashboard");
+}
+
+export async function getRecommendedCatalogue(): Promise<SupplierProduct[]> {
+  return apiClient.get<SupplierProduct[]>("/supplier/recommended");
 }

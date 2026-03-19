@@ -1,5 +1,12 @@
-import { IsOptional, IsString, IsInt, Min, IsBoolean, IsIn } from "class-validator";
-import { PRODUCT_CATEGORIES } from "@hardware-os/shared";
+import {
+  IsOptional,
+  IsString,
+  IsInt,
+  IsNumber,
+  IsBoolean,
+  Min,
+  Max,
+} from "class-validator";
 
 export class UpdateProductDto {
   @IsOptional()
@@ -16,13 +23,21 @@ export class UpdateProductDto {
 
   @IsOptional()
   @IsString()
-  @IsIn(PRODUCT_CATEGORIES, { message: "Invalid category" })
   categoryTag?: string;
+
+  @IsOptional()
+  @IsString()
+  categoryId?: string;
 
   @IsOptional()
   @IsInt()
   @Min(1)
   minOrderQuantity?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  minOrderQuantityConsumer?: number;
 
   @IsOptional()
   @IsBoolean()
@@ -39,4 +54,38 @@ export class UpdateProductDto {
   @IsOptional()
   @IsString()
   pricePerUnitKobo?: string;
+
+  @IsOptional()
+  @IsString()
+  retailPriceKobo?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(99)
+  wholesaleDiscountPercent?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  wholesaleEnabled?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  weightKg?: number;
+
+  @IsOptional()
+  @IsString()
+  shortDescription?: string;
+
+  @IsOptional()
+  @IsString()
+  productCode?: string;
+
+  @IsOptional()
+  @IsString()
+  wholesalePriceKobo?: string;
+
+  @IsOptional()
+  @IsInt()
+  processingDays?: number;
 }

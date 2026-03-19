@@ -1,43 +1,49 @@
 import { apiClient } from '../api-client';
-import type { CreateProductDto, UpdateProductDto, Product } from '@hardware-os/shared';
+import type { CreateProductDto, UpdateProductDto, Product, PaginatedResponse } from '@swifta/shared';
 
-export async function createProduct(dto: CreateProductDto): Promise<Product> {
-  return apiClient.post('/products', dto);
-}
+export const productApi = {
+  createProduct: (dto: CreateProductDto): Promise<Product> => {
+    return apiClient.post('/products', dto);
+  },
 
-export async function updateProduct(id: string, dto: UpdateProductDto): Promise<Product> {
-  return apiClient.patch(`/products/${id}`, dto);
-}
+  updateProduct: (id: string, dto: UpdateProductDto): Promise<Product> => {
+    return apiClient.patch(`/products/${id}`, dto);
+  },
 
-export async function deleteProduct(id: string): Promise<void> {
-  return apiClient.delete(`/products/${id}`);
-}
+  deleteProduct: (id: string): Promise<void> => {
+    return apiClient.delete(`/products/${id}`);
+  },
 
-export async function restoreProduct(id: string): Promise<void> {
-  return apiClient.post(`/products/${id}/restore`);
-}
+  restoreProduct: (id: string): Promise<void> => {
+    return apiClient.post(`/products/${id}/restore`);
+  },
 
-export async function getMyProducts(page = 1, limit = 20): Promise<Product[]> {
-  return apiClient.get(`/products?page=${page}&limit=${limit}`);
-}
+  getMyProducts: (page = 1, limit = 20): Promise<Product[]> => {
+    return apiClient.get(`/products?page=${page}&limit=${limit}`);
+  },
 
-export async function getCatalogue(search = '', category = '', page = 1, limit = 20): Promise<Product[]> {
-  const query = new URLSearchParams({ page: String(page), limit: String(limit) });
-  if (search) query.append('search', search);
-  if (category && category !== 'All Categories') query.append('category', category);
-  return apiClient.get(`/products/catalogue?${query.toString()}`);
-}
+  getCatalogue: (search = '', category = '', page = 1, limit = 20): Promise<PaginatedResponse<Product>> => {
+    const query = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (search) query.append('search', search);
+    if (category && category !== 'All Categories') query.append('category', category);
+    return apiClient.getPaginated<Product>(`/products/catalogue?${query.toString()}`);
+  },
 
-export async function getProduct(id: string): Promise<Product> {
-  return apiClient.get(`/products/${id}`);
-}
+  getProduct: (id: string): Promise<Product> => {
+    return apiClient.get(`/products/${id}`);
+  },
 
-export async function uploadProductImage(file: File): Promise<{ url: string; message: string }> {
-  const formData = new FormData();
-  formData.append('file', file);
-  return apiClient.post('/upload/product-image', formData);
-}
+  uploadProductImage: (file: File): Promise<{ url: string; message: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiClient.post('/upload/product-image', formData);
+  },
 
-export async function getPublicProductsByMerchant(merchantId: string, page = 1, limit = 20): Promise<Product[]> {
-  return apiClient.get(`/products/merchant/${merchantId}?page=${page}&limit=${limit}`);
-}
+  getPublicProductsByMerchant: (merchantId: string, page = 1, limit = 20): Promise<Product[]> => {
+    return apiClient.get(`/products/merchant/${merchantId}?page=${page}&limit=${limit}`);
+  },
+
+  getSocialFeed: (page = 1, limit = 20): Promise<{ data: Product[] }> => {
+    return apiClient.get(`/products/social-feed?page=${page}&limit=${limit}`);
+  }
+};

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Resend } from "resend";
+import { PlatformConfig } from "../../config/platform.config";
 
 @Injectable()
 export class EmailService {
@@ -23,9 +24,9 @@ export class EmailService {
       this.logger.log(`Sending email to ${to}: ${subject}`);
 
       const { data, error } = await this.resend.emails.send({
-        from: `SwiftTrade <${this.fromEmail}>`,
+        from: `Swifta <${this.fromEmail}>`,
         to: [to],
-        subject: `SwiftTrade | ${subject}`,
+        subject: `Swifta | ${subject}`,
         html,
       });
 
@@ -69,12 +70,12 @@ export class EmailService {
     return `
       <div style="font-family: 'DM Sans', 'Inter', sans-serif; max-width: 600px; margin: 0 auto; color: #0F2B4C; line-height: 1.6;">
         <div style="padding: 40px 20px; text-align: center; background-color: #0F2B4C; border-radius: 12px 12px 0 0;">
-          <h1 style="color: #ffffff; margin: 0; font-size: 24px; letter-spacing: -0.03em; font-weight: 700;"><span style="color:#ffffff">Swift</span><span style="color:#00C853">Trade</span></h1>
+          <h1 style="color: #ffffff; margin: 0; font-size: 24px; letter-spacing: -0.03em; font-weight: 700;"><span style="color:#ffffff">Swifta</span></h1>
         </div>
         <div style="padding: 40px 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
           ${content}
           <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 14px; text-align: center;">
-            <p>&copy; ${new Date().getFullYear()} SwiftTrade. Built for Lagos trade.</p>
+            <p>&copy; ${new Date().getFullYear()} Swifta. Built for Lagos trade.</p>
           </div>
         </div>
       </div>
@@ -89,102 +90,31 @@ export class EmailService {
     const safeName = this.escapeHtml(name);
     const safeRole = this.escapeHtml(role);
     const content = `
-      <h2 style="font-size: 20px; margin-bottom: 20px;">Welcome to SwiftTrade, ${safeName}!</h2>
+      <h2 style="font-size: 20px; margin-bottom: 20px;">Welcome to Swifta, ${safeName}!</h2>
       <p>We're excited to have you on board as a <strong>${safeRole}</strong>.</p>
-      <p>SwiftTrade is digitizing Africa's hardware trade network, and you're now part of the movement.</p>
+      <p>Swifta is digitizing Africa's digital trade network, and you're now part of the movement.</p>
       ${
         role === "MERCHANT"
-          ? `<p>Next step: Complete your business profile and start listing your products to receive quote requests from buyers.</p>`
-          : `<p>Next step: Browse our merchant catalogues and start requesting quotes for your construction projects.</p>`
+          ? `<p>Next step: Complete your business profile and start listing your products to receive orders from buyers.</p>`
+          : `<p>Next step: Browse our merchant catalogues and start shopping for your favorite products.</p>`
       }
       <div style="margin-top: 30px; text-align: center;">
         <a href="${this.configService.get("FRONTEND_URL")}/dashboard" style="background-color: #0F2B4C; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Go to Dashboard</a>
       </div>
     `;
-    await this.sendEmail(to, "Welcome to SwiftTrade", this.getLayout(content));
+    await this.sendEmail(to, "Welcome to Swifta", this.getLayout(content));
   }
 
   async sendVerificationOTP(to: string, otp: string): Promise<void> {
     const safeOtp = this.escapeHtml(otp);
     const content = `
       <h2 style="font-size: 20px; margin-bottom: 20px; text-align: center;">Your Verification Code</h2>
-      <p style="text-align: center;">Please use the following code to verify your account. It expires in 10 minutes.</p>
+      <p style="text-align: center;">Please use the following code to verify your account. It expires in ${PlatformConfig.timers.otpExpiryEmailMinutes} minutes.</p>
       <div style="background-color: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 12px; padding: 20px; margin: 30px auto; max-width: 200px; text-align: center;">
         <h1 style="font-size: 32px; letter-spacing: 8px; margin: 0; color: #0f172a;">${safeOtp}</h1>
       </div>
     `;
     await this.sendEmail(to, "Your Verification Code", this.getLayout(content));
-  }
-
-  async sendNewRFQNotification(
-    to: string,
-    buyerName: string,
-    productName: string,
-    quantity: number,
-  ): Promise<void> {
-    const safeBuyerName = this.escapeHtml(buyerName);
-    const safeProductName = this.escapeHtml(productName);
-    const content = `
-      <h2 style="font-size: 20px; margin-bottom: 20px;">New Quote Request!</h2>
-      <p><strong>${safeBuyerName}</strong> has requested a quote for <strong>${quantity} units of ${safeProductName}</strong>.</p>
-      <p>Log in to your dashboard to provide your best price and win this trade.</p>
-      <div style="margin-top: 30px; text-align: center;">
-        <a href="${this.configService.get("FRONTEND_URL")}/merchant/rfqs" style="background-color: #0F2B4C; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">View RFQ</a>
-      </div>
-    `;
-    await this.sendEmail(
-      to,
-      `New quote request from ${safeBuyerName}`,
-      this.getLayout(content),
-    );
-  }
-
-  async sendQuoteSubmittedNotification(
-    to: string,
-    merchantName: string,
-    productName: string,
-    totalPriceKobo: bigint,
-  ): Promise<void> {
-    const safeMerchantName = this.escapeHtml(merchantName);
-    const safeProductName = this.escapeHtml(productName);
-    const content = `
-      <h2 style="font-size: 20px; margin-bottom: 20px;">You Received a Quote!</h2>
-      <p><strong>${safeMerchantName}</strong> has sent a quote for <strong>${safeProductName}</strong>.</p>
-      <p>Total Amount: <span style="font-size: 18px; font-weight: bold; color: #0f172a;">${this.formatNaira(totalPriceKobo)}</span></p>
-      <p>Review the quote details and accept it to proceed with your order.</p>
-      <div style="margin-top: 30px; text-align: center;">
-        <a href="${this.configService.get("FRONTEND_URL")}/buyer/quotes" style="background-color: #0F2B4C; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">View Quote</a>
-      </div>
-    `;
-    await this.sendEmail(
-      to,
-      `You received a quote from ${safeMerchantName}`,
-      this.getLayout(content),
-    );
-  }
-
-  async sendQuoteAcceptedNotification(
-    to: string,
-    buyerName: string,
-    orderId: string,
-    amountKobo: bigint,
-  ): Promise<void> {
-    const safeBuyerName = this.escapeHtml(buyerName);
-    const safeOrderId = encodeURIComponent(orderId);
-    const content = `
-      <h2 style="font-size: 20px; margin-bottom: 20px;">Your Quote Was Accepted!</h2>
-      <p><strong>${safeBuyerName}</strong> has accepted your quote. An order has been created.</p>
-      <p>Order Amount: <span style="font-size: 18px; font-weight: bold; color: #0f172a;">${this.formatNaira(amountKobo)}</span></p>
-      <p>You will be notified once the buyer makes payment.</p>
-      <div style="margin-top: 30px; text-align: center;">
-        <a href="${this.configService.get("FRONTEND_URL")}/merchant/orders/${safeOrderId}" style="background-color: #0F2B4C; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">View Order</a>
-      </div>
-    `;
-    await this.sendEmail(
-      to,
-      `${safeBuyerName} accepted your quote`,
-      this.getLayout(content),
-    );
   }
 
   async sendPaymentConfirmedNotification(
@@ -243,7 +173,7 @@ export class EmailService {
       <h2 style="font-size: 20px; margin-bottom: 20px;">Delivery Confirmed Success!</h2>
       <p>Delivery of Order <strong>#${safeReference}</strong> has been confirmed.</p>
       <p>The transaction of <strong>${this.formatNaira(amountKobo)}</strong> is now complete.</p>
-      <p>Thank you for trading with SwiftTrade!</p>
+      <p>Thank you for trading with Swifta!</p>
     `;
     await this.sendEmail(
       to,
@@ -264,11 +194,11 @@ export class EmailService {
       <div style="margin-top: 30px; text-align: center;">
         <a href="${resetUrl}" style="background-color: #0F2B4C; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Reset Password</a>
       </div>
-      <p style="margin-top: 30px; font-size: 12px; color: #94a3b8;">This link will expire in 15 minutes.</p>
+      <p style="margin-top: 30px; font-size: 12px; color: #94a3b8;">This link will expire in ${PlatformConfig.timers.otpExpiryAuthMinutes} minutes.</p>
     `;
     await this.sendEmail(
       to,
-      "Reset your SwiftTrade Password",
+      "Reset your Swifta Password",
       this.getLayout(content),
     );
   }

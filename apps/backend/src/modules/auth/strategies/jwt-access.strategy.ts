@@ -2,15 +2,15 @@ import { ExtractJwt, Strategy } from "passport-jwt";
 import { PassportStrategy } from "@nestjs/passport";
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { JwtPayload, UserRole } from "@hardware-os/shared";
+import { JwtPayload, UserRole } from "@swifta/shared";
 import { PrismaService } from "../../../prisma/prisma.service";
 
 import { Request } from "express";
 
 const cookieExtractor = (req: Request): string | null => {
   let token = null;
-  if (req && req.cookies && req.cookies["hwos_access_token"]) {
-    token = req.cookies["hwos_access_token"];
+  if (req && req.cookies && req.cookies["swifta_access_token"]) {
+    token = req.cookies["swifta_access_token"];
   }
   // Fallback to Bearer token
   if (!token && req.headers.authorization) {

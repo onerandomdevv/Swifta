@@ -9,9 +9,13 @@ import { WHATSAPP_QUEUE } from "../../queue/queue.constants";
  *
  * Job types:
  *  - process-message: Incoming WhatsApp message to handle
- *  - send-rfq-notification: Proactive RFQ push notification
  */
-@Processor(WHATSAPP_QUEUE)
+@Processor(WHATSAPP_QUEUE, {
+  drainDelay: 30000, // Slightly faster polling for WhatsApp messages, but still much slower than default 5s
+  stalledInterval: 300000,
+  lockDuration: 60000,
+  metrics: null,
+})
 export class WhatsAppProcessor extends WorkerHost {
   private readonly logger = new Logger(WhatsAppProcessor.name);
 
@@ -23,20 +27,14 @@ export class WhatsAppProcessor extends WorkerHost {
     try {
       switch (job.name) {
         case "process-message": {
-          const { phone, messageText, messageId } = job.data;
+          const { phone, messageText, messageId, interactiveReply, imageId } =
+            job.data;
           await this.whatsAppService.processMessage(
             phone,
             messageText,
             messageId,
-          );
-          break;
-        }
-
-        case "send-rfq-notification": {
-          const { merchantId, rfqData } = job.data;
-          await this.whatsAppService.sendRfqPushNotification(
-            merchantId,
-            rfqData,
+            interactiveReply,
+            imageId,
           );
           break;
         }

@@ -1,6 +1,7 @@
 import React from "react";
-import { formatKobo } from "@hardware-os/shared";
-import type { Order } from "@hardware-os/shared";
+import { formatKobo } from "@swifta/shared";
+import type { Order } from "@swifta/shared";
+import Link from "next/link";
 
 interface Props {
   order: Order;
@@ -65,6 +66,21 @@ export function BuyerOrderActions({
               </>
             )}
           </button>
+        </div>
+      )}
+
+      {/* Contact Merchant - Only if MERCHANT_DELIVERY & Paid */}
+      {order.deliveryMethod === "MERCHANT_DELIVERY" && ["PAID", "DISPATCHED"].includes(order.status) && (
+        <div className="mb-6">
+          <a
+            href={`https://wa.me/${order.merchant?.phone?.replace(/\D/g, '') || ""}?text=${encodeURIComponent(`Hello ${order.merchant?.businessName}, I'm following up on my Swifta Order #${order.id.slice(0, 8)}.`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-4 bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all hover:scale-[1.02] active:scale-95"
+          >
+            <span className="material-symbols-outlined text-lg">chat</span>
+            Contact Merchant on WhatsApp
+          </a>
         </div>
       )}
 
@@ -133,6 +149,54 @@ export function BuyerOrderActions({
           </div>
         </div>
       )}
+
+      {/* Review Merchant - only for DELIVERED or COMPLETED */}
+      {(order.status === "DELIVERED" || order.status === "COMPLETED") &&
+        !order.review && (
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-10 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <h3 className="text-sm font-black text-navy-dark dark:text-white uppercase tracking-widest mb-6 text-center leading-none">
+              How was your experience?
+            </h3>
+            <p className="text-xs font-bold text-slate-500 mb-8 text-center uppercase tracking-wide leading-relaxed">
+              Your feedback helps other buyers and improves the platform.
+            </p>
+            <Link
+              href={`/buyer/orders/${order.id}/review`}
+              className="w-full py-5 bg-amber-400 text-navy-dark rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] shadow-xl shadow-amber-400/20 flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-95"
+            >
+              <span className="material-symbols-outlined text-lg fill-navy-dark">
+                star
+              </span>
+              Rate Merchant
+            </Link>
+          </div>
+        )}
+
+      {/* Already Reviewed State */}
+      {(order.status === "DELIVERED" || order.status === "COMPLETED") &&
+        order.review && (
+          <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-10 flex flex-col items-center gap-4 text-center animate-in fade-in duration-700">
+            <div className="flex items-center gap-1 text-amber-500">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <span
+                  key={i}
+                  className={`material-symbols-outlined text-xl ${i < order.review.rating ? "fill-amber-500" : "fill-none opacity-20"}`}
+                >
+                  star
+                </span>
+              ))}
+            </div>
+            <p className="text-[10px] font-black text-navy-dark/40 dark:text-white/40 uppercase tracking-widest leading-none">
+              Order Rated {order.review.rating} Stars
+            </p>
+            <Link
+              href={`/buyer/orders/${order.id}/review`}
+              className="text-[8px] font-black text-primary uppercase tracking-[0.2em] hover:underline underline-offset-4 decoration-2"
+            >
+              View Your Review
+            </Link>
+          </div>
+        )}
     </>
   );
 }

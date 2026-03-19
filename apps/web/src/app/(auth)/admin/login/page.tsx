@@ -11,7 +11,7 @@ import {
 } from "../../../../lib/validations/auth";
 import { useAuth } from "../../../../providers/auth-provider";
 import { useToast } from "../../../../providers/toast-provider";
-import { UserRole } from "@hardware-os/shared";
+import { UserRole } from "@swifta/shared";
 import { Logo } from "@/components/ui/logo";
 
 const slides = [
@@ -43,7 +43,7 @@ export default function InternalLoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
+    defaultValues: { identifier: "", password: "" },
   });
 
   // Redirect on successful login
@@ -60,7 +60,7 @@ export default function InternalLoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     setFormError(null);
     try {
-      await internalLogin(data.email, data.password);
+      await internalLogin(data.identifier, data.password);
       toast.success("Internal portal access granted.");
     } catch (err: any) {
       console.error("Internal login error:", err);
@@ -85,7 +85,7 @@ export default function InternalLoginPage() {
           >
             <img
               src={src}
-              alt="Construction materials logistics"
+              alt="Swifta admin dashboard"
               className="w-full h-full object-cover"
             />
           </div>
@@ -102,7 +102,7 @@ export default function InternalLoginPage() {
             <span className="text-orange-400 font-bold block mb-1 tracking-widest text-xs uppercase">
               Internal Operations Portal
             </span>
-            Secure administration and operational management for the SwiftTrade
+            Secure administration and operational management for the Swifta
             infrastructure.
           </p>
           <div className="flex flex-col gap-3">
@@ -188,14 +188,14 @@ export default function InternalLoginPage() {
                 Staff Email
               </label>
               <input
-                className={`w-full px-4 py-3.5 bg-white border shadow-sm rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all text-slate-900 text-sm ${errors.email ? "border-red-400" : "border-slate-200"}`}
-                placeholder="ops@hardwareos.com"
-                type="email"
-                {...register("email", { onChange: () => setFormError(null) })}
+                className={`w-full px-4 py-3.5 bg-white border shadow-sm rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all text-slate-900 text-sm ${errors.identifier ? "border-red-400" : "border-slate-200"}`}
+                placeholder="ops@swifta.store"
+                type="text"
+                {...register("identifier", { onChange: () => setFormError(null) })}
               />
-              {errors.email && (
+              {errors.identifier && (
                 <p className="text-xs font-semibold text-red-500 mt-1">
-                  {errors.email.message}
+                  {errors.identifier.message}
                 </p>
               )}
             </div>
@@ -252,12 +252,6 @@ export default function InternalLoginPage() {
           </form>
         </div>
 
-        {/* Footer */}
-        <footer className="px-8 py-6 border-t border-slate-200 bg-white">
-          <p className="text-center text-xs font-medium text-slate-400 uppercase tracking-widest">
-            SwiftTrade Internal Portal &bull; Strictly Confidential
-          </p>
-        </footer>
       </div>
     </div>
   );

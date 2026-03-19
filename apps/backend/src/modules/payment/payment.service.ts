@@ -13,6 +13,7 @@ import { Queue } from "bullmq";
 import { PrismaService } from "../../prisma/prisma.service";
 import { PaystackClient } from "./paystack.client";
 import { OrderService } from "../order/order.service";
+import { DvaService } from "../dva/dva.service";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
 import { InitializePaymentDto } from "./dto/initialize-payment.dto";
 import { RequestPayoutDto } from "./dto/request-payout.dto";
@@ -21,7 +22,7 @@ import {
   PaymentDirection,
   OrderStatus,
   UserRole,
-} from "@hardware-os/shared";
+} from "@swifta/shared";
 import * as crypto from "crypto";
 import { PAYOUT_QUEUE, LOGISTICS_QUEUE } from "../../queue/queue.constants";
 
@@ -38,6 +39,8 @@ export class PaymentService {
     private config: ConfigService,
     @InjectQueue(PAYOUT_QUEUE) private payoutQueue: Queue,
     @InjectQueue(LOGISTICS_QUEUE) private logisticsQueue: Queue,
+    @Inject(forwardRef(() => DvaService))
+    private dvaService: DvaService,
   ) {}
 
   // ──────────────────────────────────────────────
@@ -76,7 +79,10 @@ export class PaymentService {
     );
     const callbackUrl = `${frontendUrl}/buyer/orders/payment/callback`;
 
-    const totalKobo = order.totalAmountKobo + order.deliveryFeeKobo;
+    // Total amount in kobo (subtotal + platform fee + shipping)
+    // IMPORTANT: order.totalAmountKobo already includes the delivery fee in the current logic.
+    // Adding it again here would double-charge the shipping cost.
+    const totalKobo = order.totalAmountKobo;
 
     // Idempotency: if payment already exists for this order, return existing
     const existingPayment = await this.prisma.payment.findFirst({
@@ -177,6 +183,16 @@ export class PaymentService {
     // ── CHARGE SUCCESS (buyer payment) ──
     if (event === "charge.success") {
       return this.handleChargeSuccess(payload);
+    }
+
+    // ── DVA EVENTS ──
+    if (event === "dedicatedaccount.assign.success") {
+      await this.dvaService.handleDvaAssignSuccess(payload.data);
+      return { status: "received" };
+    }
+    if (event === "dedicatedaccount.assign.failed") {
+      await this.dvaService.handleDvaAssignFailed(payload.data);
+      return { status: "received" };
     }
 
     // ── TRANSFER EVENTS (merchant payout) ──
@@ -401,6 +417,25 @@ export class PaymentService {
           OrderStatus.PAID,
           { paymentId: payment.id, reference },
         );
+
+        // Clear cart items for the products in this order
+        const orderItems = payment.order.items as any[];
+        if (Array.isArray(orderItems) && orderItems.length > 0) {
+          const productIds = orderItems
+            .map((item: any) => item.productId)
+            .filter(Boolean);
+          if (productIds.length > 0) {
+            const deleted = await this.prisma.cartItem.deleteMany({
+              where: {
+                buyerId: payment.order.buyerId,
+                productId: { in: productIds },
+              },
+            });
+            this.logger.log(
+              `Cleared ${deleted.count} cart items for order ${payment.orderId}`,
+            );
+          }
+        }
       }
 
       const orderData = await this.prisma.order.findUnique({
@@ -410,40 +445,16 @@ export class PaymentService {
 
       if (
         orderData &&
-        orderData.quoteId === null &&
         orderData.productId !== null &&
         orderData.quantity !== null
       ) {
         // DIRECT PURCHASE LOGIC
         const deliveryOtp = crypto.randomInt(100000, 999999).toString();
 
-        await this.prisma.$transaction(async (tx) => {
-          // Reserve inventory
-          await tx.inventoryEvent.create({
-            data: {
-              productId: orderData.productId!,
-              merchantId: orderData.merchantId,
-              eventType: "ORDER_RESERVED",
-              quantity: -orderData.quantity!,
-              referenceId: orderData.id,
-              notes: "Direct order reservation",
-            },
-          });
-
-          await tx.productStockCache.upsert({
-            where: { productId: orderData.productId! },
-            create: {
-              productId: orderData.productId!,
-              stock: -orderData.quantity!,
-            },
-            update: { stock: { decrement: orderData.quantity! } },
-          });
-
-          // Save OTP on the Order
-          await tx.order.update({
-            where: { id: orderData.id },
-            data: { deliveryOtp },
-          });
+        // Save OTP on the Order
+        await this.prisma.order.update({
+          where: { id: orderData.id },
+          data: { deliveryOtp },
         });
 
         // Notifications
@@ -482,7 +493,7 @@ export class PaymentService {
           }
         }
       } else {
-        // STANDARD RFQ QUOTE ACCEPTANCE LOGIC
+        // CART ORDER PAYMENT CONFIRMATION LOGIC
         await this.notifications.triggerPaymentConfirmed(
           payment.order.buyerId,
           payment.order.merchantId,

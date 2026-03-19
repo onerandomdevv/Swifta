@@ -1,13 +1,14 @@
 import {
   Injectable,
   Inject,
+  forwardRef,
   NotFoundException,
   BadRequestException,
   ForbiddenException,
   Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
-import { LogisticsClient } from "./clients/logistics.client";
+import type { LogisticsClient } from "./clients/logistics.client";
 import { DeliveryStatus, OrderStatus, UserRole } from "@prisma/client";
 import { WhatsAppService } from "../whatsapp/whatsapp.service";
 
@@ -18,6 +19,7 @@ export class LogisticsService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject("LogisticsClient") private readonly client: LogisticsClient,
+    @Inject(forwardRef(() => WhatsAppService))
     private readonly whatsappService: WhatsAppService,
   ) {}
 
@@ -234,15 +236,6 @@ export class LogisticsService {
       if (booking.order.merchantId) {
         await this.whatsappService.sendMerchantLogisticsUpdate(
           booking.order.merchantId,
-          booking.orderId,
-          newStatus,
-        );
-      }
-
-      // Notify Supplier
-      if (booking.order.supplierId) {
-        await this.whatsappService.sendSupplierLogisticsUpdate(
-          booking.order.supplierId,
           booking.orderId,
           newStatus,
         );

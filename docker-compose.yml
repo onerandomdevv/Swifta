@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: hardware_os
+      POSTGRES_DB: swifta
     ports:
       - "5432:5432"
     volumes:

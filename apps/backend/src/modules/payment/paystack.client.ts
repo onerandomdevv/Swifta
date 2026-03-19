@@ -59,6 +59,45 @@ export class PaystackClient {
     };
   }
 
+  /**
+   * Create a Paystack customer (required before DVA)
+   */
+  async createCustomer(params: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    phone: string;
+  }): Promise<any> {
+    const response = await fetch(`${this.baseUrl}/customer`, {
+      method: "POST",
+      headers: this.headers,
+      body: JSON.stringify({
+        email: params.email,
+        first_name: params.firstName,
+        last_name: params.lastName,
+        phone: params.phone,
+      }),
+    });
+    return response.json();
+  }
+
+  /**
+   * Create a Dedicated Virtual Account for a customer
+   * Auto-detects test mode and uses 'test-bank' accordingly
+   */
+  async createDedicatedVirtualAccount(customerCode: string): Promise<any> {
+    const isTestMode = this.secretKey.startsWith("sk_test_");
+    const response = await fetch(`${this.baseUrl}/dedicated_account`, {
+      method: "POST",
+      headers: this.headers,
+      body: JSON.stringify({
+        customer: customerCode,
+        preferred_bank: isTestMode ? "test-bank" : "wema-bank",
+      }),
+    });
+    return response.json();
+  }
+
   // ──────────────────────────────────────────────
   //  INITIALIZE TRANSACTION
   // ──────────────────────────────────────────────

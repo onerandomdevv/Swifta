@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
-import { LoggerModule as PinoLoggerModule } from 'nestjs-pino';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { Module } from "@nestjs/common";
+import { LoggerModule as PinoLoggerModule } from "nestjs-pino";
+import { ConfigModule, ConfigService } from "@nestjs/config";
 
 @Module({
   imports: [
@@ -8,8 +8,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (config: ConfigService) => {
-        const isProduction = config.get<string>('NODE_ENV') === 'production';
-        
+        const isProduction = config.get<string>("NODE_ENV") === "production";
+
         return {
           pinoHttp: {
             // Automatically log request and response at info level.
@@ -19,12 +19,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
               ? undefined
               : {
                   // In local development, use pino-pretty for clean, colorized output
-                  target: 'pino-pretty',
+                  target: "pino-pretty",
                   options: {
                     singleLine: true,
                     colorize: true,
-                    translateTime: 'SYS:standard',
-                    ignore: 'pid,hostname', // Keep it clean
+                    translateTime: "SYS:standard",
+                    ignore: "pid,hostname", // Keep it clean
                   },
                 },
             // Customize serializers to remove sensitive headers/data if needed
@@ -34,7 +34,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
                 return req;
               },
             },
-            level: isProduction ? 'info' : 'debug',
+            level: isProduction ? "info" : "debug",
           },
         };
       },

@@ -3,7 +3,6 @@ import { ConfigService } from "@nestjs/config";
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import {
   NUMBER_INTENT_MAP,
-  SYSTEM_PROMPT,
   GEMINI_FUNCTION_DECLARATIONS,
 } from "./whatsapp.constants";
 
@@ -57,17 +56,6 @@ export class WhatsAppIntentService {
     if (["menu", "help", "start"].includes(lower)) {
       this.logger.log(`Keyword shortcut: "${text}" → show_menu`);
       return { functionName: "show_menu", params: {} };
-    }
-
-    // 3. Wholesale / Manufacturer shortcuts (High priority in V4)
-    if (
-      lower.includes("wholesale") ||
-      lower.includes("manufacturer") ||
-      lower.includes("supplier") ||
-      lower.includes("buy stock")
-    ) {
-      this.logger.log(`Wholesale shortcut matched: "${text}"`);
-      return this.basicKeywordMatch(text);
     }
 
     // 4. EVERYTHING ELSE → send to Gemini AI for intent parsing
@@ -138,17 +126,6 @@ export class WhatsAppIntentService {
       return { functionName: "get_sales_summary", params: { timeframe } };
     }
 
-    // RFQ queries
-    if (
-      lower.includes("rfq") ||
-      lower.includes("order") ||
-      lower.includes("request") ||
-      lower.includes("buy") ||
-      lower.includes("pending")
-    ) {
-      return { functionName: "get_pending_rfqs", params: {} };
-    }
-
     // Inventory / stock check
     if (
       lower.includes("inventory") ||
@@ -179,11 +156,6 @@ export class WhatsAppIntentService {
       return { functionName: "update_stock", params: {} };
     }
 
-    // Quote / price
-    if (lower.includes("quote") || lower.includes("price")) {
-      return { functionName: "respond_to_rfq", params: {} };
-    }
-
     // Verification status
     if (
       lower.includes("verify") ||
@@ -193,23 +165,7 @@ export class WhatsAppIntentService {
       return { functionName: "get_verification_status", params: {} };
     }
 
-    // Wholesale / Stock
-    if (
-      lower.includes("wholesale") ||
-      lower.includes("manufacturer") ||
-      lower.includes("stock")
-    ) {
-      const buyMatch = lower.match(
-        /(?:buy|order)\s+(?:stock\s+)?([a-zA-Z0-9]+)/,
-      );
-      if (buyMatch) {
-        return {
-          functionName: "buy_wholesale",
-          params: { productId: buyMatch[1] },
-        };
-      }
-      return { functionName: "browse_wholesale", params: {} };
-    }
+    // greetings
 
     // Greetings
     if (
@@ -225,9 +181,14 @@ export class WhatsAppIntentService {
   // Gemini function calling
   // -----------------------------------------------------------------------
   private async parseWithGemini(messageText: string): Promise<ParsedIntent> {
+    const systemPrompt =
+      this.configService.get<string>("whatsapp.merchantSystemPrompt") || "";
+
+    const modelName =
+      this.configService.get<string>("GEMINI_MODEL") || "gemini-2.0-flash";
     const model = this.genAI!.getGenerativeModel({
-      model: "gemini-2.0-flash",
-      systemInstruction: SYSTEM_PROMPT,
+      model: modelName,
+      systemInstruction: systemPrompt,
       tools: [
         {
           functionDeclarations: GEMINI_FUNCTION_DECLARATIONS.map((fd) => ({

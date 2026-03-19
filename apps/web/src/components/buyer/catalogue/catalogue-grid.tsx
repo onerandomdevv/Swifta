@@ -1,19 +1,35 @@
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import type { Product } from "@hardware-os/shared";
+import { PriceType, type Product } from "@swifta/shared";
 import { VerificationBadge } from "@/components/ui/verification-badge";
+import { StarRating } from "@/components/ui/star-rating";
+import { toast } from "sonner";
 
 interface Props {
   products: Product[];
   setSearchQuery: (val: string) => void;
   setActiveCategory: (val: string) => void;
+  isOwner?: boolean;
+  onDelete?: (product: Product) => void;
 }
 
 export function CatalogueGrid({
   products,
   setSearchQuery,
   setActiveCategory,
+  isOwner,
+  onDelete,
 }: Props) {
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleCopy = (productId: string) => {
+    const url = `${window.location.origin}/buyer/products/${productId}`;
+    navigator.clipboard.writeText(url);
+    setCopiedId(productId);
+    toast.success("Product link copied to clipboard");
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
   if (products.length === 0) {
     return (
       <div className="py-20 text-center space-y-6 animate-in zoom-in duration-500">
@@ -24,7 +40,7 @@ export function CatalogueGrid({
         </div>
         <div>
           <h4 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
-            No materials found
+            No products found
           </h4>
           <p className="text-slate-500 font-bold text-sm tracking-wide mt-2">
             Adjust your filters or try a different search term.
@@ -44,135 +60,136 @@ export function CatalogueGrid({
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
       {products.map((p) => (
         <div
           key={p.id}
-          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col group hover:shadow-md transition-shadow"
+          className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex flex-col group hover:shadow-xl transition-all duration-500 rounded-2xl overflow-hidden shadow-sm"
         >
-          {/* Product Image */}
-          <div className="relative aspect-square overflow-hidden bg-slate-100 dark:bg-slate-800">
+          {/* Product Image - Absolute Square */}
+          <div className="relative aspect-square overflow-hidden bg-slate-50 dark:bg-slate-800/50">
             {p.imageUrl ? (
-              <div
-                className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-                style={{ backgroundImage: `url("${p.imageUrl}")` }}
+              <img
+                src={p.imageUrl}
+                alt={p.name}
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700"
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="material-symbols-outlined text-slate-300 dark:text-slate-600 text-[80px] group-hover:scale-105 transition-transform duration-500">
+                <span className="material-symbols-outlined text-slate-200 dark:text-slate-700 text-[80px]">
                   inventory_2
                 </span>
               </div>
             )}
-            {/* Category Badge */}
-            <span className="absolute top-3 right-3 bg-slate-900 text-white text-[10px] font-black uppercase px-2 py-1 tracking-wider">
-              {p.categoryTag}
-            </span>
+            
+            {/* Verification & Floating Badges */}
+            <div className="absolute top-4 left-4 flex gap-2">
+              <span className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-[#0F2B4C] dark:text-white text-[9px] font-black uppercase px-3 py-1.5 tracking-wider rounded-lg shadow-sm border border-slate-100/50 dark:border-slate-800/50">
+                {p.categoryTag}
+              </span>
+            </div>
           </div>
 
           {/* Product Details */}
-          <div className="p-4 flex flex-col flex-1">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase">
-              {p.name}
-            </h3>
-            <p className="text-xs font-medium text-primary mt-1">
-              {p.description || p.categoryTag}
-            </p>
-
-            {/* Merchant Info */}
-            {p.merchantProfile && (
-              <Link
-                href={`/buyer/merchants/${p.merchantProfile.id}`}
-                className="flex items-center gap-1.5 mt-3 group/m hover:opacity-80 transition-opacity"
-              >
-                <VerificationBadge tier={p.merchantProfile.verificationTier as any} />
-                {(p.merchantProfile.verificationTier === "VERIFIED" ||
-                  p.merchantProfile.verificationTier === "TRUSTED") && (
-                  <span className="text-[8px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-bold uppercase tracking-wide">
-                    Direct Pay
-                  </span>
-                )}
-                <span className="text-[11px] font-bold text-primary dark:text-primary-light truncate group-hover/m:underline decoration-1 underline-offset-2">
-                  {p.merchantProfile.businessName}
-                </span>
-              </Link>
-            )}
-
-            {/* Stock Availability Badge */}
-            {(p as any).stockAvailability &&
-              (p as any).stockAvailability !== "OUT_OF_STOCK" && (
-                <span
-                  className={`inline-block mt-2 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider w-fit ${
-                    (p as any).stockAvailability === "IN_STOCK"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-yellow-100 text-yellow-700"
-                  }`}
-                >
-                  {(p as any).stockAvailability === "IN_STOCK"
-                    ? "In Stock"
-                    : "Low Stock"}
-                </span>
-              )}
-            {(p as any).stockAvailability === "OUT_OF_STOCK" && (
-              <span className="inline-block mt-2 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider w-fit bg-red-100 text-red-700">
-                Out of Stock
-              </span>
-            )}
-
-            {/* Price Details */}
-            {p.pricePerUnitKobo ? (
-              <div className="mt-3">
-                <span className="text-lg font-black text-navy-dark dark:text-emerald-400">
-                  {(Number(p.pricePerUnitKobo) / 100).toLocaleString("en-NG", {
-                    style: "currency",
-                    currency: "NGN",
-                  })}
-                </span>
-                <span className="text-[10px] text-slate-500 font-bold ml-1 uppercase tracking-widest">
-                  / {p.unit}
-                </span>
-              </div>
-            ) : (
-              <div className="mt-3 text-xs font-bold text-slate-400 italic">
-                Request Quote for Price
-              </div>
-            )}
-
-            {/* Specs Table */}
-            <div className="mt-4 mb-6 border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
-              <div className="grid grid-cols-2 text-[10px] p-2 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-slate-500 uppercase font-bold tracking-tighter">
-                  Min. Order
-                </span>
-                <span className="text-right font-black text-slate-900 dark:text-white">
-                  {p.minOrderQuantity} {p.unit.toUpperCase()}
-                </span>
-              </div>
+          <div className="p-6 flex flex-col flex-1">
+            <div className="flex justify-between items-start gap-4">
+              <h3 className="text-[17px] font-black text-[#0F2B4C] dark:text-white uppercase leading-snug tracking-tighter line-clamp-2 min-h-[2.4em] flex-1">
+                {p.name}
+              </h3>
             </div>
 
-            {/* CTA */}
-            {p.pricePerUnitKobo ? (
-              <Link
-                href={`/buyer/checkout/${p.id}`}
-                className={`mt-auto w-full text-white text-xs font-black py-3 uppercase tracking-widest text-center block transition-colors ${
-                  (p as any).stockAvailability === "OUT_OF_STOCK"
-                    ? "bg-slate-300 cursor-not-allowed pointer-events-none"
-                    : "bg-navy-dark hover:bg-navy"
-                }`}
-              >
-                Buy Now
-              </Link>
-            ) : (
-              <Link
-                href={`/buyer/rfqs/new?productId=${p.id}`}
-                className="mt-auto w-full bg-primary text-white text-xs font-bold py-3 uppercase tracking-widest hover:bg-orange-600 transition-colors text-center block"
-              >
-                Request Quote
-              </Link>
-            )}
+            {/* Short Product Description */}
+            <p className="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-3 overflow-hidden">
+              {p.description || "Premium quality products for your professional and home needs."}
+            </p>
+
+            <div className="mt-auto pt-6">
+              {/* Price section - Professional Black */}
+              <div className="mb-2.5">
+                <p className="text-xl font-black text-slate-950 dark:text-white tabular-nums tracking-tighter">
+                  {(Number(p.retailPriceKobo || p.wholesalePriceKobo || 0) / 100).toLocaleString("en-NG", {
+                    style: "currency",
+                    currency: "NGN",
+                    minimumFractionDigits: 2,
+                  })}
+                </p>
+              </div>
+
+              {/* CTA Row */}
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/buyer/products/${p.id}`}
+                  className="flex-1 bg-[#00D084] hover:bg-[#00B873] text-white text-[10px] font-black py-4 rounded-xl uppercase tracking-widest text-center shadow-lg shadow-emerald-500/10 transition-all active:scale-95"
+                >
+                  {isOwner ? "View Product" : "Buy Now"}
+                </Link>
+                
+                {isOwner ? (
+                  <>
+                    <Link
+                      href={`/merchant/products/${p.id}`}
+                      className="size-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center text-[#0F2B4C] dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+                      title="Edit Product"
+                    >
+                      <span className="material-symbols-outlined text-xl">edit</span>
+                    </Link>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        onDelete?.(p);
+                      }}
+                      className="size-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all shadow-sm"
+                      title="Delete Product"
+                    >
+                      <span className="material-symbols-outlined text-xl">delete</span>
+                    </button>
+                    <button
+                      onClick={() => handleCopy(p.id)}
+                      className="size-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center text-[#0F2B4C] dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+                      title="Copy Product Link"
+                    >
+                      <span className="material-symbols-outlined text-xl">
+                        {copiedId === p.id ? "check_circle" : "content_copy"}
+                      </span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleAdd(p, PriceType.RETAIL, p.minOrderQuantityConsumer);
+                      }}
+                      className="size-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center text-[#0F2B4C] dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+                      title="Add to Cart"
+                    >
+                      <span className="material-symbols-outlined text-xl">shopping_cart</span>
+                    </button>
+                    <button 
+                      className="size-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center text-[#0F2B4C] dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+                      title="Save for Later"
+                    >
+                      <span className="material-symbols-outlined text-xl">bookmark</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       ))}
     </div>
   );
+}
+
+async function handleAdd(product: Product, priceType: PriceType, qty: number) {
+  try {
+    const { addToCart } = await import("@/lib/api/cart.api");
+    const { toast } = await import("sonner");
+    await addToCart(product.id, qty, priceType);
+    toast.success(`${product.name} added as ${priceType.toLowerCase()}`);
+  } catch (err: any) {
+    const { toast } = await import("sonner");
+    toast.error(err.message || "Failed to add to cart");
+  }
 }

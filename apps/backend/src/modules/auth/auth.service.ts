@@ -5,6 +5,8 @@ import {
   BadRequestException,
   NotFoundException,
   Logger,
+  Inject,
+  forwardRef,
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { JwtService } from "@nestjs/jwt";
@@ -16,6 +18,7 @@ import { RedisService } from "../../redis/redis.service";
 import { EmailService } from "../email/email.service";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
 import { RegisterDto } from "./dto/register.dto";
+import { PlatformConfig } from "../../config/platform.config";
 import { LoginDto } from "./dto/login.dto";
 import { VerifyEmailDto } from "./dto/verify-email.dto";
 import { ResendVerificationDto } from "./dto/resend-verification.dto";
@@ -25,7 +28,9 @@ import { AdminRegisterDto } from "./dto/admin-register.dto";
 import { SendPhoneOtpDto } from "./dto/send-phone-otp.dto";
 import { VerifyPhoneOtpDto } from "./dto/verify-phone-otp.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
-import { TokenPair, JwtPayload } from "@hardware-os/shared";
+import { TokenPair, JwtPayload } from "@swifta/shared";
+import { WhatsAppService } from "../whatsapp/whatsapp.service";
+import { WHATSAPP_OTP_TEMPLATE } from "../whatsapp/whatsapp.constants";
 import AfricasTalking from "africastalking";
 
 const SALT_ROUNDS = 10;
@@ -33,13 +38,13 @@ const REFRESH_TOKEN_PREFIX = "refresh_token:";
 const REFRESH_TOKEN_TTL = 7 * 24 * 60 * 60; // 7 days in seconds
 
 const EMAIL_OTP_PREFIX = "email_otp:";
-const EMAIL_OTP_TTL = 600; // 10 minutes in seconds
+const EMAIL_OTP_TTL = PlatformConfig.timers.otpExpiryEmailMinutes * 60; // Convert minutes to seconds
 const EMAIL_OTP_RATE_PREFIX = "email_otp_count:";
 const EMAIL_OTP_RATE_TTL = 600; // 10 minutes window
 const EMAIL_OTP_MAX_RESENDS = 3;
 
 const PHONE_OTP_PREFIX = "phone_otp:";
-const PHONE_OTP_TTL = 300; // 5 minutes in seconds
+const PHONE_OTP_TTL = PlatformConfig.timers.otpExpiryWhatsappMinutes * 60; // Convert minutes to seconds
 const PHONE_OTP_RATE_PREFIX = "phone_otp_count:";
 const PHONE_OTP_RATE_TTL = 600; // 10 minutes window
 const PHONE_OTP_MAX_RESENDS = 3;
@@ -73,6 +78,8 @@ export class AuthService {
     private redis: RedisService,
     private emailService: EmailService,
     private notificationTriggerService: NotificationTriggerService,
+    @Inject(forwardRef(() => WhatsAppService))
+    private whatsappService: WhatsAppService,
   ) {
     const atConfig = {
       apiKey: this.configService.get<string>("africastalking.apiKey"),
@@ -85,8 +92,11 @@ export class AuthService {
   }
 
   async register(dto: RegisterDto): Promise<TokenPair & { user: any }> {
+    const normalizedPhone = normalizePhone(dto.phone);
     const existingUser = await this.prisma.user.findFirst({
-      where: { OR: [{ email: dto.email }, { phone: dto.phone }] },
+      where: {
+        OR: [{ email: dto.email }, { phone: normalizedPhone }],
+      },
     });
     if (existingUser) {
       throw new ConflictException(
@@ -99,18 +109,21 @@ export class AuthService {
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
-        phone: dto.phone,
+        phone: normalizedPhone,
         firstName: dto.firstName,
         middleName: dto.middleName,
         lastName: dto.lastName,
         passwordHash,
-        role: dto.role,
+        role: dto.role as any,
         ...(dto.role === "MERCHANT" && dto.businessName
           ? {
               merchantProfile: {
                 create: {
                   businessName: dto.businessName,
-                },
+                  slug:
+                    dto.slug ||
+                    (await this.generateUniqueSlug(dto.businessName)),
+                } as any,
               },
             }
           : {}),
@@ -125,8 +138,23 @@ export class AuthService {
               },
             }
           : {}),
+        ...(dto.role === "BUYER"
+          ? {
+              buyerProfile: {
+                create: {
+                  buyerType: dto.buyerType || "CONSUMER",
+                  businessName:
+                    dto.buyerType === "CONSUMER" ? "" : dto.businessName,
+                },
+              },
+            }
+          : {}),
       },
-      include: { merchantProfile: true, supplierProfile: true },
+      include: {
+        merchantProfile: true,
+        supplierProfile: true,
+        buyerProfile: true,
+      },
     });
 
     // Generate and store OTP for email verification
@@ -204,17 +232,39 @@ export class AuthService {
   }
 
   async login(dto: LoginDto): Promise<TokenPair & { user: any }> {
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-      include: { merchantProfile: true },
-    });
+    // Check if the input is an email, or if it's potentially a merchant slug
+    const isEmail = dto.identifier.includes("@");
+
+    let user;
+    if (isEmail) {
+      user = await this.prisma.user.findUnique({
+        where: { email: dto.identifier.toLowerCase() },
+        include: { merchantProfile: true, buyerProfile: true },
+      });
+    } else {
+      user = await this.prisma.user.findFirst({
+        where: {
+          merchantProfile: {
+            OR: [
+              { slug: dto.identifier.toLowerCase() } as any,
+              {
+                slugHistory: {
+                  some: { oldSlug: dto.identifier.toLowerCase() },
+                },
+              } as any,
+            ],
+          },
+        },
+        include: { merchantProfile: true, buyerProfile: true },
+      });
+    }
 
     if (!user) {
-      throw new UnauthorizedException("Invalid email or password");
+      throw new UnauthorizedException("Invalid credentials");
     }
 
     if (!(await bcrypt.compare(dto.password, user.passwordHash))) {
-      throw new UnauthorizedException("Invalid email or password");
+      throw new UnauthorizedException("Invalid credentials");
     }
 
     return this.generateAndStoreTokens(user);
@@ -222,7 +272,7 @@ export class AuthService {
 
   async internalLogin(dto: LoginDto): Promise<TokenPair & { user: any }> {
     const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+      where: { email: dto.identifier.toLowerCase() },
       include: { adminProfile: true }, // Internal users have admin profiles instead of merchant profiles
     });
 
@@ -288,7 +338,7 @@ export class AuthService {
       // Dummy phone number, the internal users don't need phone verification for this phase
       const phonePlaceholder = `+2340000000${randomInt(100, 999)}`;
 
-      const user = await prisma.user.create({
+      await prisma.user.create({
         data: {
           firstName: dto.firstName,
           middleName: dto.middleName,
@@ -323,7 +373,15 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { merchantProfile: true },
+      include: {
+        merchantProfile: true,
+        buyerProfile: true,
+        supplierProfile: {
+          include: { whatsappSupplierLink: true },
+        },
+        whatsappLink: true,
+        whatsappBuyerLink: true,
+      },
     });
 
     if (!user) {
@@ -343,7 +401,15 @@ export class AuthService {
   async getInternalMe(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { merchantProfile: true, adminProfile: true },
+      include: {
+        merchantProfile: true,
+        adminProfile: true,
+        supplierProfile: {
+          include: { whatsappSupplierLink: true },
+        },
+        whatsappLink: true,
+        whatsappBuyerLink: true,
+      },
     });
 
     if (!user) {
@@ -360,6 +426,11 @@ export class AuthService {
       role: user.role,
       emailVerified: user.emailVerified,
       phoneVerified: user.phoneVerified,
+      isWhatsAppLinked: !!(
+        (user as any).whatsappLink ||
+        (user as any).whatsappBuyerLink ||
+        (user as any).supplierProfile?.whatsappSupplierLink
+      ),
       merchantId: user.merchantProfile?.id,
       adminId: user.adminProfile?.id,
       createdAt: user.createdAt,
@@ -554,11 +625,49 @@ export class AuthService {
         lastName: user.lastName,
         role: user.role,
         emailVerified: user.emailVerified,
+        isWhatsAppLinked: !!(
+          user.whatsappLink ||
+          user.whatsappBuyerLink ||
+          user.supplierProfile?.whatsappSupplierLink
+        ),
         merchantId: user.merchantProfile?.id,
+        buyerType:
+          user.buyerProfile?.buyerType ||
+          (user.role === "BUYER" ? "CONSUMER" : undefined),
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
     };
+  }
+
+  /**
+   * Generates a unique, URL-safe slug from a business name.
+   */
+  private async generateUniqueSlug(businessName: string): Promise<string> {
+    const baseSlug = businessName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-") // Replace non-alphanumeric with hyphens
+      .replace(/^-+|-+$/g, "") // Trim leading/trailing hyphens
+      .substring(0, 30); // Keep it reasonably short
+
+    let slug = baseSlug || "merchant";
+    let isUnique = false;
+    let counter = 0;
+
+    while (!isUnique) {
+      const existing = await this.prisma.merchantProfile.findFirst({
+        where: { slug },
+      });
+
+      if (!existing) {
+        isUnique = true;
+      } else {
+        counter++;
+        slug = `${baseSlug}-${counter}`;
+      }
+    }
+
+    return slug;
   }
 
   async sendPhoneOtp(
@@ -588,19 +697,35 @@ export class AuthService {
     await this.redis.set(rateKey, (count + 1).toString(), PHONE_OTP_RATE_TTL);
 
     try {
-      if (this.smsClient) {
-        await this.smsClient.send({
-          to: [phone],
-          message: `Your SwiftTrade verification code is ${otp}. It expires in 5 minutes.`,
-          from: this.configService.get<string>("africastalking.senderId"),
-        });
-      } else {
-        this.logger.warn(
-          "AfricasTalking SMS client not configured. OTP generated but not sent.",
-        );
+      this.logger.log(`Attempting to send WhatsApp OTP to ${phone}`);
+      await this.whatsappService.sendWhatsAppTemplateMessage(
+        phone,
+        WHATSAPP_OTP_TEMPLATE,
+        [{ type: "text", text: otp }],
+      );
+      this.logger.log(
+        `[DEVELOPMENT / LIVE] WhatsApp OTP sent successfully to ${phone}`,
+      );
+    } catch (waError) {
+      this.logger.warn(
+        `Failed to send WhatsApp OTP to ${phone}, falling back to SMS. Error: ${waError instanceof Error ? waError.message : waError}`,
+      );
+
+      try {
+        if (this.smsClient) {
+          await this.smsClient.send({
+            to: [phone],
+            message: `Your Swifta verification code is ${otp}. It expires in 5 minutes.`,
+            from: this.configService.get<string>("africastalking.senderId"),
+          });
+        } else {
+          this.logger.warn(
+            "AfricasTalking SMS client not configured. OTP generated but not sent.",
+          );
+        }
+      } catch (smsError) {
+        this.logger.error("Failed to send SMS via AfricasTalking", smsError);
       }
-    } catch (error) {
-      this.logger.error("Failed to send SMS via AfricasTalking", error);
     }
 
     return { message: "Verification code sent successfully." };
@@ -636,6 +761,242 @@ export class AuthService {
     this.logger.log(`Phone verified for user ${userId}`);
 
     return { message: "Phone verified successfully." };
+  }
+
+  async initiateWhatsAppLogin(phone: string): Promise<{ message: string }> {
+    const normalizedPhone = normalizePhone(phone);
+
+    // 1. Resolve linked identity (Merchant, Buyer, or Supplier)
+    const [merchantLink, buyerLink, supplierLink] = await Promise.all([
+      this.prisma.whatsAppLink.findUnique({
+        where: { phone: normalizedPhone },
+        include: { user: true },
+      }),
+      this.prisma.whatsAppBuyerLink.findUnique({
+        where: { phone: normalizedPhone },
+        include: { buyer: true },
+      }),
+      this.prisma.whatsAppSupplierLink.findUnique({
+        where: { phone: normalizedPhone },
+        include: { supplier: { include: { user: true } } },
+      }),
+    ]);
+
+    const user =
+      merchantLink?.user || buyerLink?.buyer || supplierLink?.supplier?.user;
+
+    if (!user) {
+      this.logger.warn(
+        `WhatsApp login initiated for unlinked/non-existent phone: ${normalizedPhone}`,
+      );
+      // Return generic success to mask user existence
+      return { message: "A login code has been sent to your WhatsApp." };
+    }
+
+    const otp = randomInt(100000, 999999).toString();
+    const otpKey = `wa_login_otp:${normalizedPhone}`;
+
+    // Store in Redis (dynamically using PlatformConfig)
+    await this.redis.set(
+      otpKey,
+      otp,
+      PlatformConfig.timers.otpExpiryWhatsappMinutes * 60,
+    );
+
+    // Send via WhatsApp Template (bypass 24h window)
+    await this.whatsappService.sendWhatsAppTemplateMessage(
+      normalizedPhone,
+      WHATSAPP_OTP_TEMPLATE,
+      [{ type: "text", text: otp }],
+    );
+
+    this.logger.log(
+      `WhatsApp Login Template sent to verified identity: ${normalizedPhone}`,
+    );
+
+    return { message: "A login code has been sent to your WhatsApp." };
+  }
+
+  async initiateWhatsAppLink(
+    userId: string,
+    phone: string,
+  ): Promise<{ message: string }> {
+    const normalizedPhone = normalizePhone(phone);
+
+    // 1. Check if phone is already linked to SOMEONE ELSE
+    const [merchantLink, buyerLink, supplierLink] = await Promise.all([
+      this.prisma.whatsAppLink.findUnique({
+        where: { phone: normalizedPhone },
+      }),
+      this.prisma.whatsAppBuyerLink.findUnique({
+        where: { phone: normalizedPhone },
+      }),
+      this.prisma.whatsAppSupplierLink.findUnique({
+        where: { phone: normalizedPhone },
+      }),
+    ]);
+
+    if (
+      (merchantLink && merchantLink.userId !== userId) ||
+      (buyerLink && buyerLink.buyerId !== userId) ||
+      (supplierLink &&
+        supplierLink.isActive &&
+        supplierLink.supplierId !==
+          (await this.prisma.supplierProfile.findUnique({ where: { userId } }))
+            ?.id)
+    ) {
+      throw new ConflictException(
+        "This WhatsApp number is already linked to another account.",
+      );
+    }
+
+    const otp = randomInt(100000, 999999).toString();
+    const otpKey = `wa_link_otp:${userId}:${normalizedPhone}`;
+
+    await this.redis.set(
+      otpKey,
+      otp,
+      PlatformConfig.timers.otpExpiryWhatsappMinutes * 60,
+    ); // Use WhatsApp expiry for linking code too
+
+    // Send via WhatsApp Template
+    await this.whatsappService.sendWhatsAppTemplateMessage(
+      normalizedPhone,
+      WHATSAPP_OTP_TEMPLATE,
+      [{ type: "text", text: otp }],
+    );
+
+    this.logger.log(`WhatsApp Linking Template sent to: ${normalizedPhone}`);
+
+    return { message: "Verification code sent to WhatsApp." };
+  }
+
+  async verifyWhatsAppLink(
+    userId: string,
+    phone: string,
+    code: string,
+  ): Promise<{ message: string }> {
+    const normalizedPhone = normalizePhone(phone);
+    const otpKey = `wa_link_otp:${userId}:${normalizedPhone}`;
+    const storedOtp = await this.redis.get(otpKey);
+
+    if (!storedOtp || storedOtp !== code) {
+      throw new BadRequestException("Invalid or expired verification code.");
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!user) throw new NotFoundException("User not found");
+
+    // Link based on role
+    await this.prisma.$transaction(async (tx) => {
+      if (user.role === "MERCHANT") {
+        await tx.whatsAppLink.upsert({
+          where: { userId },
+          update: { phone: normalizedPhone, isActive: true },
+          create: { userId, phone: normalizedPhone, isActive: true },
+        });
+      } else if (user.role === "BUYER") {
+        await tx.whatsAppBuyerLink.upsert({
+          where: { buyerId: userId },
+          update: { phone: normalizedPhone, isActive: true },
+          create: { buyerId: userId, phone: normalizedPhone, isActive: true },
+        });
+      } else if (user.role === "SUPPLIER") {
+        const supplier = await tx.supplierProfile.findUnique({
+          where: { userId },
+        });
+        if (supplier) {
+          await tx.whatsAppSupplierLink.upsert({
+            where: { supplierId: supplier.id },
+            update: { phone: normalizedPhone, isActive: true },
+            create: {
+              phone: normalizedPhone,
+              supplierId: supplier.id,
+              isActive: true,
+            },
+          });
+        }
+      }
+      // Also mark phone as verified on the main user record
+      await tx.user.update({
+        where: { id: userId },
+        data: { phoneVerified: true },
+      });
+    });
+
+    await this.redis.del(otpKey);
+    return { message: "WhatsApp linked successfully." };
+  }
+
+  async verifyWhatsAppLogin(
+    phone: string,
+    code: string,
+  ): Promise<TokenPair & { user: any }> {
+    const normalizedPhone = normalizePhone(phone);
+    const otpKey = `wa_login_otp:${normalizedPhone}`;
+    const storedOtp = await this.redis.get(otpKey);
+
+    if (!storedOtp || storedOtp !== code) {
+      throw new UnauthorizedException("Invalid or expired verification code.");
+    }
+
+    // Resolve linked identity again during verification
+    const [merchantLink, buyerLink, supplierLink] = await Promise.all([
+      this.prisma.whatsAppLink.findUnique({
+        where: { phone: normalizedPhone },
+        include: {
+          user: {
+            include: {
+              merchantProfile: true,
+              buyerProfile: true,
+              supplierProfile: true,
+            },
+          },
+        },
+      }),
+      this.prisma.whatsAppBuyerLink.findUnique({
+        where: { phone: normalizedPhone },
+        include: {
+          buyer: {
+            include: {
+              merchantProfile: true,
+              buyerProfile: true,
+              supplierProfile: true,
+            },
+          },
+        },
+      }),
+      this.prisma.whatsAppSupplierLink.findUnique({
+        where: { phone: normalizedPhone },
+        include: {
+          supplier: {
+            include: {
+              user: {
+                include: {
+                  merchantProfile: true,
+                  buyerProfile: true,
+                  supplierProfile: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+    const user =
+      merchantLink?.user || buyerLink?.buyer || supplierLink?.supplier?.user;
+
+    if (!user) {
+      throw new UnauthorizedException("User no longer exists.");
+    }
+
+    // Clean up
+    await this.redis.del(otpKey);
+
+    return this.generateAndStoreTokens(user);
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {

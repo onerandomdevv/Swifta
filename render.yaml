@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: hardware-os-backend
+    name: swifta-backend
     runtime: docker
     dockerfilePath: ./apps/backend/Dockerfile
     dockerContext: .
@@ -33,7 +33,7 @@ services:
       - key: RESEND_API_KEY
         sync: false
       - key: EMAIL_FROM
-        value: noreply@hardwareos.ng
+        value: noreply@swifta.store
       - key: NODE_ENV
         value: production
       - key: PORT

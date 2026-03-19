@@ -5,13 +5,15 @@ import {
   HttpException,
   HttpStatus,
   Logger,
-} from '@nestjs/common';
-import { Response } from 'express';
-import { ApiError } from '@hardware-os/shared';
+} from "@nestjs/common";
+import { Response } from "express";
+import { ApiError } from "@swifta/shared";
+import * as fs from "fs";
+import * as path from "path";
 
 // Prisma error types — imported by name to avoid hard dependency on @prisma/client at filter level
-const PRISMA_UNIQUE_CONSTRAINT = 'P2002';
-const PRISMA_NOT_FOUND = 'P2025';
+const PRISMA_UNIQUE_CONSTRAINT = "P2002";
+const PRISMA_NOT_FOUND = "P2025";
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -30,7 +32,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
       errorMessage =
-        typeof exceptionResponse === 'object'
+        typeof exceptionResponse === "object"
           ? (exceptionResponse as any).message || exception.message
           : exceptionResponse;
       code = status.toString();
@@ -43,22 +45,27 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     } else if (this.isPrismaValidationError(exception)) {
       // Prisma validation errors (bad query shape)
       status = HttpStatus.BAD_REQUEST;
-      errorMessage = 'Invalid request data';
-      code = 'VALIDATION_ERROR';
+      errorMessage = "Invalid request data";
+      code = "VALIDATION_ERROR";
     } else {
       // Unknown errors — log full details, return generic message
       this.logger.error(
-        { err: exception instanceof Error ? exception : new Error(String(exception)) },
-        'Unhandled exception'
+        {
+          err:
+            exception instanceof Error
+              ? exception
+              : new Error(String(exception)),
+        },
+        "Unhandled exception",
       );
       status = HttpStatus.INTERNAL_SERVER_ERROR;
-      errorMessage = 'Internal server error';
-      code = 'INTERNAL_ERROR';
+      errorMessage = "Internal server error";
+      code = "INTERNAL_ERROR";
     }
 
     // Flatten array messages (from ValidationPipe)
     if (Array.isArray(errorMessage)) {
-      errorMessage = errorMessage.join('; ');
+      errorMessage = errorMessage.join("; ");
     }
 
     const errorResponse: ApiError = {
@@ -72,18 +79,18 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
   private isPrismaKnownError(exception: unknown): boolean {
     return (
-      typeof exception === 'object' &&
+      typeof exception === "object" &&
       exception !== null &&
-      'code' in exception &&
-      'clientVersion' in exception
+      "code" in exception &&
+      "clientVersion" in exception
     );
   }
 
   private isPrismaValidationError(exception: unknown): boolean {
     return (
-      typeof exception === 'object' &&
+      typeof exception === "object" &&
       exception !== null &&
-      exception.constructor?.name === 'PrismaClientValidationError'
+      exception.constructor?.name === "PrismaClientValidationError"
     );
   }
 
@@ -94,25 +101,40 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   } {
     switch (exception.code) {
       case PRISMA_UNIQUE_CONSTRAINT: {
-        const fields = exception.meta?.target?.join(', ') || 'field';
+        const fields = exception.meta?.target?.join(", ") || "field";
         return {
           status: HttpStatus.CONFLICT,
           message: `A record with this ${fields} already exists`,
-          code: 'UNIQUE_CONSTRAINT',
+          code: "UNIQUE_CONSTRAINT",
         };
       }
       case PRISMA_NOT_FOUND:
         return {
           status: HttpStatus.NOT_FOUND,
-          message: exception.meta?.cause || 'Record not found',
-          code: 'NOT_FOUND',
+          message: exception.meta?.cause || "Record not found",
+          code: "NOT_FOUND",
         };
-      default:
+      default: {
+        // Log the full error to a debug file for capture
+        try {
+          const logPath = path.join(process.cwd(), "error_debug.log");
+          const logContent =
+            `\n[${new Date().toISOString()}] PRISMA ERROR: ${exception.code}\n` +
+            `Message: ${exception.message}\n` +
+            `Meta: ${JSON.stringify(exception.meta, null, 2)}\n` +
+            `Stack: ${exception.stack}\n` +
+            `------------------------------------------\n`;
+          fs.appendFileSync(logPath, logContent);
+        } catch (e) {
+          this.logger.error("Failed to write to error_debug.log", e);
+        }
+
         return {
           status: HttpStatus.BAD_REQUEST,
-          message: 'Database operation failed',
+          message: "Database operation failed",
           code: `PRISMA_${exception.code}`,
         };
+      }
     }
   }
 }

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import type { Order } from "@hardware-os/shared";
+import type { Order } from "@swifta/shared";
 import { formatKobo } from "@/lib/utils";
 
 interface DispatchModalProps {
@@ -44,14 +44,14 @@ export function DispatchModal({ order, onClose }: DispatchModalProps) {
               Dispatch Successful
             </h1>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">
-              Logistics Transaction Initiated
+              Delivery Process Started
             </p>
           </div>
 
           {/* OTP Display */}
           <div className="p-10 text-center">
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-4">
-              Delivery Authorization OTP
+              Delivery Confirmation Code
             </p>
             <div className="bg-slate-50 dark:bg-slate-800 border-2 border-slate-900 dark:border-white py-8 px-6 mb-6">
               <span className="text-5xl font-mono font-bold tracking-[0.25em] text-slate-900 dark:text-white">
@@ -78,7 +78,7 @@ export function DispatchModal({ order, onClose }: DispatchModalProps) {
             </div>
             <div className="flex justify-between items-center">
               <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                Escrow Value
+                Order Total
               </span>
               <span className="text-sm font-mono font-bold text-slate-900 dark:text-white">
                 {formatKobo(
@@ -107,14 +107,14 @@ export function DispatchModal({ order, onClose }: DispatchModalProps) {
               className="w-full bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500 text-slate-600 dark:text-slate-300 font-bold py-4 px-8 text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3"
             >
               <span className="material-symbols-outlined text-xl">print</span>
-              <span>Print Dispatch Slip</span>
+              <span>Print Shipping Slip</span>
             </button>
           </div>
 
           {/* Footer */}
           <div className="bg-slate-100 dark:bg-slate-800 p-4 border-t border-slate-200 dark:border-slate-700">
             <p className="text-[9px] text-center text-slate-400 uppercase tracking-widest font-bold">
-              SwiftTrade — Industrial Logistics Layer
+              Swifta — Secure E-commerce Platform
             </p>
           </div>
         </div>

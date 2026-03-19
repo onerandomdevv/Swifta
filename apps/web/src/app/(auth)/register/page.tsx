@@ -9,8 +9,8 @@ import {
   baseRegistrationSchema,
   type RegistrationFormData,
 } from "@/lib/validations/auth";
-import { UserRole } from "@hardware-os/shared";
-import type { RegisterDto } from "@hardware-os/shared";
+import { UserRole } from "@swifta/shared";
+import type { RegisterDto } from "@swifta/shared";
 import { useAuth } from "@/providers/auth-provider";
 import { useToast } from "@/providers/toast-provider";
 import { authApi } from "@/lib/api/auth.api";
@@ -50,12 +50,14 @@ export default function RegisterPage() {
       middleName: "",
       lastName: "",
       businessName: "",
+      buyerType: "CONSUMER",
       companyName: "",
       companyAddress: "",
       cacNumber: "",
       email: "",
       phone: "",
       password: "",
+      slug: "",
     },
     mode: "onChange",
   });
@@ -101,12 +103,17 @@ export default function RegisterPage() {
         middleName: data.middleName || undefined,
         lastName: data.lastName,
         password: data.password,
-        businessName: data.businessName,
+        businessName:
+          data.role === UserRole.BUYER && data.buyerType === "CONSUMER"
+            ? ""
+            : data.businessName,
+        buyerType: "CONSUMER",
         companyName: data.companyName,
         companyAddress: data.companyAddress,
         cacNumber: data.cacNumber,
         role: data.role,
-      } as RegisterDto);
+        slug: data.slug,
+      });
 
       setStep(3);
       toast.success("Registration successful! Check your inbox.");
@@ -126,18 +133,33 @@ export default function RegisterPage() {
   };
 
   const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) return;
+    // Take only the last character entered to allow replacing existing digit
+    const char = value.length > 1 ? value.slice(-1) : value;
+    if (!/^[0-9]*$/.test(char)) return;
+
     const newOtp = [...otp];
-    newOtp[index] = value;
+    newOtp[index] = char;
     setOtp(newOtp);
-    if (value !== "" && index < 5) {
+
+    // Auto-focus next input if a value was entered
+    if (char !== "" && index < 5) {
       otpRefs.current[index + 1]?.focus();
     }
   };
 
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
+    if (e.key === "Backspace") {
+      if (!otp[index] && index > 0) {
+        // If current is empty, move back and clear previous
+        const newOtp = [...otp];
+        newOtp[index - 1] = "";
+        setOtp(newOtp);
+        otpRefs.current[index - 1]?.focus();
+      }
+    } else if (e.key === "ArrowLeft" && index > 0) {
       otpRefs.current[index - 1]?.focus();
+    } else if (e.key === "ArrowRight" && index < 5) {
+      otpRefs.current[index + 1]?.focus();
     }
   };
 
@@ -161,7 +183,9 @@ export default function RegisterPage() {
           ? "/merchant/dashboard"
           : role === UserRole.SUPPLIER
             ? "/supplier/dashboard"
-            : "/buyer/dashboard";
+            : role === UserRole.BUYER
+              ? "/buyer/catalogue"
+              : "/admin/dashboard";
       setTimeout(() => {
         router.push(dashboardPath);
       }, 2000);
@@ -203,7 +227,7 @@ export default function RegisterPage() {
           >
             <img
               src={src}
-              alt="Construction materials"
+              alt="Swifta marketplace"
               className="w-full h-full object-cover"
             />
           </div>
@@ -215,14 +239,14 @@ export default function RegisterPage() {
             <Logo variant="dark" size="lg" />
           </Link>
           <p className="text-white/70 text-base font-medium max-w-xs leading-relaxed mb-6">
-            Join Nigeria&apos;s trusted B2B hardware trade network. Verified
-            merchants, private pricing, escrow protection.
+            Join Nigeria&apos;s WhatsApp marketplace. Buy and sell anything with
+            payment protection.
           </p>
           <div className="flex flex-col gap-3">
             {[
               { icon: "lock", label: "Escrow Protection" },
               { icon: "verified", label: "Verified Merchants" },
-              { icon: "visibility_off", label: "Private Pricing" },
+              { icon: "payments", label: "Instant Payouts" },
             ].map((item) => (
               <div
                 key={item.label}
@@ -247,15 +271,15 @@ export default function RegisterPage() {
       </div>
 
       {/* ─── RIGHT: Registration Form ─── */}
-      <div className="w-full lg:w-[50%] bg-white flex flex-col h-screen overflow-y-auto">
+      <div className="w-full lg:w-[50%] bg-surface flex flex-col min-h-screen lg:h-screen overflow-y-auto">
         {/* Mobile header */}
-        <div className="lg:hidden flex items-center justify-between p-6 border-b border-slate-100">
+        <div className="lg:hidden flex items-center justify-between p-6 border-b border-border bg-background">
           <Link href="/" className="flex items-center gap-2">
             <Logo variant="light" size="md" />
           </Link>
         </div>
 
-        <div className="flex-1 flex flex-col justify-center px-8 py-10 md:px-12 lg:px-14 xl:px-16">
+        <div className="flex-1 flex flex-col justify-center px-4 sm:px-8 py-10 md:px-12 lg:px-14 xl:px-16">
           <FormProvider {...methods}>
             {step === 1 && (
               <RoleSelectionStep
@@ -294,11 +318,6 @@ export default function RegisterPage() {
           </FormProvider>
         </div>
 
-        <footer className="px-8 py-6 border-t border-slate-100">
-          <p className="text-center text-xs text-slate-400">
-            &copy; {new Date().getFullYear()} SwiftTrade. Lagos, Nigeria.
-          </p>
-        </footer>
       </div>
     </div>
   );

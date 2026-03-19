@@ -1,4 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../../prisma/prisma.service";
 import { RedisService } from "../../redis/redis.service";
 import { EmailService } from "../email/email.service";
@@ -51,6 +52,7 @@ export class WhatsAppAuthService {
   private readonly logger = new Logger(WhatsAppAuthService.name);
 
   constructor(
+    private configService: ConfigService,
     private prisma: PrismaService,
     private redisService: RedisService,
     private emailService: EmailService,
@@ -89,7 +91,7 @@ export class WhatsAppAuthService {
    */
   async resolveSupplierPhone(phone: string): Promise<string | null> {
     try {
-      const link = await (this.prisma as any).whatsAppSupplierLink.findUnique({
+      const link = await this.prisma.whatsAppSupplierLink.findUnique({
         where: { phone },
         select: { supplierId: true, isActive: true },
       });
@@ -126,7 +128,9 @@ export class WhatsAppAuthService {
           JSON.stringify(session),
           SESSION_TTL,
         );
-        return WELCOME_MESSAGE;
+        return (
+          this.configService.get("whatsapp.welcomeMessage") || WELCOME_MESSAGE
+        );
       }
 
       const session: SessionData = JSON.parse(sessionRaw);
@@ -144,14 +148,19 @@ export class WhatsAppAuthService {
         default:
           // Corrupt session — restart
           await this.redisService.del(sessionKey);
-          return WELCOME_MESSAGE;
+          return (
+            this.configService.get<string>("whatsapp.welcomeMessage") ||
+            WELCOME_MESSAGE
+          );
       }
     } catch (error) {
       this.logger.error(
         `Error in linking flow for ${maskPhone(phone)}: ${error instanceof Error ? error.message : error}`,
       );
       await this.redisService.del(sessionKey);
-      return WELCOME_MESSAGE;
+      return (
+        this.configService.get("whatsapp.welcomeMessage") || WELCOME_MESSAGE
+      );
     }
   }
 
@@ -226,22 +235,22 @@ export class WhatsAppAuthService {
     let supplierId: string | undefined;
 
     if (actualRole === "MERCHANT") {
-      const link = await (this.prisma as any).whatsAppLink.findUnique({
+      const link = await this.prisma.whatsAppLink.findUnique({
         where: { userId: user.id },
       });
       if (link && link.phone !== phone) isLinked = true;
     } else if (actualRole === "BUYER") {
-      const link = await (this.prisma as any).whatsAppBuyerLink.findUnique({
+      const link = await this.prisma.whatsAppBuyerLink.findUnique({
         where: { buyerId: user.id },
       });
       if (link && link.phone !== phone) isLinked = true;
     } else if (actualRole === "SUPPLIER") {
-      const profile = await (this.prisma as any).supplierProfile.findUnique({
+      const profile = await this.prisma.supplierProfile.findUnique({
         where: { userId: user.id },
       });
       if (!profile) return EMAIL_NOT_FOUND;
       supplierId = profile.id; // Save for OTP step
-      const link = await (this.prisma as any).whatsAppSupplierLink.findUnique({
+      const link = await this.prisma.whatsAppSupplierLink.findUnique({
         where: { supplierId: profile.id },
       });
       if (link && link.phone !== phone) isLinked = true;
@@ -321,13 +330,13 @@ export class WhatsAppAuthService {
           create: { phone, userId: session.data.userId, isActive: true },
         });
       } else if (session.data.role === "BUYER") {
-        await (this.prisma as any).whatsAppBuyerLink.upsert({
+        await this.prisma.whatsAppBuyerLink.upsert({
           where: { phone },
           update: { buyerId: session.data.userId, isActive: true },
           create: { phone, buyerId: session.data.userId, isActive: true },
         });
       } else if (session.data.role === "SUPPLIER" && session.data.supplierId) {
-        await (this.prisma as any).whatsAppSupplierLink.upsert({
+        await this.prisma.whatsAppSupplierLink.upsert({
           where: { phone },
           update: { supplierId: session.data.supplierId, isActive: true },
           create: {

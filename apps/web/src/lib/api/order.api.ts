@@ -1,5 +1,5 @@
 import { apiClient } from "../api-client";
-import type { Order, OrderStatus } from "@hardware-os/shared";
+import type { Order, OrderStatus, PriceType } from "@swifta/shared";
 
 export interface OrderTrackingEvent {
   id: string;
@@ -59,13 +59,28 @@ export async function getReceipt(id: string): Promise<Order> {
   return apiClient.get(`/orders/${id}/receipt`);
 }
 
-export async function createDirectOrder(payload: {
+export async function downloadInvoice(id: string): Promise<Blob> {
+  return apiClient.download(`/orders/${id}/invoice`);
+}
+
+export interface CreateDirectOrderData {
   productId: string;
   quantity: number;
   deliveryAddress: string;
+  deliveryDetails?: {
+    state: string;
+    lga: string;
+    street: string;
+    busStop?: string;
+    primaryPhone?: string;
+    altPhone?: string;
+  };
   paymentMethod?: "ESCROW" | "DIRECT";
   deliveryMethod?: "MERCHANT_DELIVERY" | "PLATFORM_LOGISTICS";
-}): Promise<{
+  priceType?: PriceType;
+}
+
+export async function createDirectOrder(payload: CreateDirectOrderData): Promise<{
   orderId: string;
   authorizationUrl: string;
   totalAmountKobo: number;
@@ -86,3 +101,19 @@ export const getDeliveryQuote = async (
     weightKg,
   });
 };
+
+export async function checkoutCart(payload: {
+  cartItemIds: string[];
+  deliveryAddress: string;
+  deliveryDetails?: CreateDirectOrderData["deliveryDetails"];
+  paymentMethod?: "ESCROW" | "DIRECT";
+  deliveryMethod?: "MERCHANT_DELIVERY" | "PLATFORM_LOGISTICS";
+}): Promise<{
+  orderId: string;
+  authorizationUrl: string;
+  totalAmountKobo: number;
+  platformFeeKobo: number;
+  paymentMethod: string;
+}> {
+  return apiClient.post("/orders/checkout/cart", payload);
+}

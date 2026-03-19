@@ -2,6 +2,8 @@
 
 import { ReactNode, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "sonner";
+import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "./auth-provider";
 import { ToastProvider } from "./toast-provider";
 
@@ -11,7 +13,8 @@ export default function Providers({ children }: { children: ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000, // 1 minute
+            staleTime: 300 * 1000, // 5 minutes
+            gcTime: 10 * 60 * 1000, // 10 minutes
             retry: 1,
           },
         },
@@ -19,10 +22,15 @@ export default function Providers({ children }: { children: ReactNode }) {
   );
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <ToastProvider>{children}</ToastProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <ToastProvider>
+            {children}
+            <Toaster richColors position="top-right" />
+          </ToastProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }

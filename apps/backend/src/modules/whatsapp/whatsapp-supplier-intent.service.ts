@@ -43,31 +43,22 @@ const SUPPLIER_INTENT_SCHEMA = {
   required: ["functionName"],
 };
 
-// Use Gemini to understand the intent and map it to our command functions.
-const SUPPLIER_SYSTEM_PROMPT = `You are SwiftTrade Supplier Bot, an AI assistant for B2B manufacturers and wholesalers in Nigeria.
-Your job is to understand the user's message and determine their intent.
-
-Allowed intents:
-- "get_supplier_sales": "how much have I made", "today's sales", "sales summary"
-- "get_supplier_orders": "my orders", "who ordered", "new orders"
-- "get_supplier_products": "what do I sell", "my products"
-- "update_supplier_price": "update cement price to 8500", "change price of iron rod to 12000"
-- "get_supplier_payouts": "my payouts", "payment history"
-- "dispatch_supplier_order": "dispatch order A12B", "order 83f2 is on the way"
-- "show_menu": "menu", "help", "hello", "hi"
-- "unknown": Anything else that doesn't fit the above.
-
-Extract required parameters like 'productName', 'newPriceNaira', and 'orderId' if present.`;
-
 @Injectable()
 export class WhatsAppSupplierIntentService {
   private readonly logger = new Logger(WhatsAppSupplierIntentService.name);
   private readonly apiKey: string;
-  private readonly geminiUrl =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+  private readonly systemPrompt: string;
 
   constructor(private configService: ConfigService) {
     this.apiKey = this.configService.get<string>("GEMINI_API_KEY") || "";
+    this.systemPrompt =
+      this.configService.get<string>("whatsapp.supplierSystemPrompt") || "";
+  }
+
+  private getGeminiUrl(): string {
+    const modelName =
+      this.configService.get<string>("GEMINI_MODEL") || "gemini-2.0-flash";
+    return `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
   }
 
   async parseIntent(text: string): Promise<ParsedIntent> {
@@ -97,21 +88,24 @@ export class WhatsAppSupplierIntentService {
     }
 
     try {
-      const response = await fetch(`${this.geminiUrl}?key=${this.apiKey}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          system_instruction: {
-            parts: { text: SUPPLIER_SYSTEM_PROMPT },
-          },
-          contents: [{ parts: [{ text }] }],
-          generationConfig: {
-            response_mime_type: "application/json",
-            response_schema: SUPPLIER_INTENT_SCHEMA,
-            temperature: 0.1,
-          },
-        }),
-      });
+      const response = await fetch(
+        `${this.getGeminiUrl()}?key=${this.apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            system_instruction: {
+              parts: { text: this.systemPrompt },
+            },
+            contents: [{ parts: [{ text }] }],
+            generationConfig: {
+              response_mime_type: "application/json",
+              response_schema: SUPPLIER_INTENT_SCHEMA,
+              temperature: 0.1,
+            },
+          }),
+        },
+      );
 
       if (!response.ok) {
         throw new Error(`Gemini API Error: ${response.status}`);

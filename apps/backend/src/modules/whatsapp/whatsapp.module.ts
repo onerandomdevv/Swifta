@@ -4,11 +4,13 @@ import { PrismaModule } from "../../prisma/prisma.module";
 import { RedisModule } from "../../redis/redis.module";
 import { QueueModule } from "../../queue/queue.module";
 import { OrderModule } from "../order/order.module";
-import { RFQModule } from "../rfq/rfq.module";
-import { QuoteModule } from "../quote/quote.module";
 import { ProductModule } from "../product/product.module";
 import { TradeFinancingModule } from "../trade-financing/trade-financing.module";
 import { EmailModule } from "../email/email.module";
+import { ReviewModule } from "../review/review.module";
+import { SupplierModule } from "../supplier/supplier.module";
+import { DvaModule } from "../dva/dva.module";
+import { UploadModule } from "../upload/upload.module";
 import { WhatsAppController } from "./whatsapp.controller";
 import { WhatsAppService } from "./whatsapp.service";
 import { WhatsAppAuthService } from "./whatsapp-auth.service";
@@ -18,19 +20,23 @@ import { WhatsAppBuyerAuthService } from "./whatsapp-buyer-auth.service";
 import { WhatsAppBuyerIntentService } from "./whatsapp-buyer-intent.service";
 import { WhatsAppSupplierService } from "./whatsapp-supplier.service";
 import { WhatsAppSupplierIntentService } from "./whatsapp-supplier-intent.service";
+import { WhatsAppOnboardingService } from "./whatsapp-onboarding.service";
+import { WhatsAppInteractiveService } from "./whatsapp-interactive.service";
 import { WhatsAppProcessor } from "./whatsapp.processor";
+import { ImageSearchService } from "./image-search.service";
+import { WhatsAppLoggerService } from "./whatsapp-logger.service";
 
 /**
  * WhatsApp Bot Module
  *
  * Integrates with Meta's WhatsApp Business Cloud API to provide
- * merchants with a conversational interface to SwiftTrade.
+ * merchants with a conversational interface to Swifta.
  *
  * Dependencies:
  *  - PrismaModule: database access (WhatsAppLink, products, orders, etc.)
  *  - RedisModule: session state for linking flow + message dedup
  *  - QueueModule: BullMQ for async message processing
- *  - OrderModule, RFQModule, QuoteModule, ProductModule: existing services
+ *  - OrderModule, ProductModule: existing services
  *  - EmailModule: OTP delivery for phone linking
  *  - ConfigModule: WhatsApp API credentials
  *
@@ -44,11 +50,13 @@ import { WhatsAppProcessor } from "./whatsapp.processor";
     RedisModule,
     QueueModule,
     forwardRef(() => OrderModule),
-    RFQModule,
-    QuoteModule,
     ProductModule,
     TradeFinancingModule,
     EmailModule,
+    forwardRef(() => ReviewModule),
+    forwardRef(() => SupplierModule),
+    DvaModule,
+    UploadModule,
   ],
   controllers: [WhatsAppController],
   providers: [
@@ -60,7 +68,11 @@ import { WhatsAppProcessor } from "./whatsapp.processor";
     WhatsAppBuyerIntentService,
     WhatsAppSupplierService,
     WhatsAppSupplierIntentService,
+    WhatsAppOnboardingService,
+    WhatsAppInteractiveService,
     WhatsAppProcessor,
+    ImageSearchService,
+    WhatsAppLoggerService,
   ],
   exports: [WhatsAppService],
 })

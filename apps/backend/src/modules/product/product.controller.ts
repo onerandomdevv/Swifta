@@ -19,8 +19,9 @@ import { CatalogueQueryDto } from "./dto/catalogue-query.dto";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { CurrentMerchant } from "../../common/decorators/current-merchant.decorator";
-import { UserRole } from "@hardware-os/shared";
+import { UserRole, JwtPayload } from "@swifta/shared";
 
 @Controller("products")
 export class ProductController {
@@ -60,10 +61,30 @@ export class ProductController {
     return this.productService.getAssociations(category);
   }
 
+  @Get("social-feed")
+  @UseGuards(JwtAuthGuard)
+  async getSocialFeed(
+    @CurrentUser() user: JwtPayload,
+    @Query("page") page: number = 1,
+    @Query("limit") limit: number = 20,
+  ) {
+    return this.productService.getSocialFeed(
+      user.sub,
+      Number(page),
+      Number(limit),
+      user.role,
+    );
+  }
+
   @Get("catalogue")
   @UseInterceptors(CacheInterceptor)
   findAllCatalogue(@Query() query: CatalogueQueryDto) {
-    return this.productService.catalogue(query.search, query.category, query.page, query.limit);
+    return this.productService.catalogue(
+      query.search,
+      query.category,
+      query.page,
+      query.limit,
+    );
   }
 
   @Get(":id")

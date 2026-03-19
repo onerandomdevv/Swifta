@@ -1,14 +1,14 @@
-import { PaginatedResponse } from '@hardware-os/shared';
+import { PaginatedResponse } from "@swifta/shared";
 
 export interface PaginationParams {
   page: number;
   limit: number;
 }
 
-export async function paginate<T, M>(
+export async function paginate<T>(
   model: any,
   params: PaginationParams,
-  options: any = {}
+  options: any = {},
 ): Promise<PaginatedResponse<T>> {
   const { page, limit } = params;
   const skip = (page - 1) * limit;
@@ -22,6 +22,8 @@ export async function paginate<T, M>(
     model.count({ where: options.where }),
   ]);
 
+  const totalPages = Math.ceil(total / limit);
+
   return {
     success: true,
     data,
@@ -29,6 +31,7 @@ export async function paginate<T, M>(
       page,
       limit,
       total,
+      totalPages,
     },
   };
 }

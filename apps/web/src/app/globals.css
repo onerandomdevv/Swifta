@@ -3,16 +3,83 @@
 @tailwind utilities;
 
 :root {
-  --background: #F8FAFC;
-  --foreground: #0F2B4C;
-  --background-light: #F8FAFC;
-  --background-dark: #0F2B4C;
+  /* Backgrounds */
+  --background: 210 20% 98%;
+  --background-secondary: 210 40% 96%;
+  --background-light: 210 20% 98%;
+  --background-dark: 222 47% 7%;
+  --surface: 0 0% 100%;
+  --surface-hover: 210 20% 98%;
+  --surface-elevated: 0 0% 100%;
+  
+  /* Text */
+  --foreground: 213 67% 18%;
+  --foreground-secondary: 215 16% 47%;
+  --foreground-muted: 215 20% 65%;
+  --foreground-inverse: 0 0% 100%;
+  
+  /* Borders */
+  --border: 214 32% 91%;
+  --border-light: 210 40% 96%;
+  --border-input: 214 32% 80%;
+  
+  /* Brand */
+  --primary: 145 100% 39%;
+  --primary-hover: 144 100% 33%;
+  --primary-foreground: 0 0% 100%;
+  --deep-blue: 213 67% 18%;
+  --mid-blue: 213 52% 25%;
+  --accent-orange: 25 79% 52%;
+  
+  /* Status */
+  --success: 145 100% 39%;
+  --warning: 38 92% 50%;
+  --error: 0 84% 60%;
+  --info: 217 91% 60%;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.dark {
+  /* Backgrounds */
+  --background: 222 47% 7%;
+  --background-secondary: 222 47% 11%;
+  --surface: 217 33% 15%;
+  --surface-hover: 217 33% 17%;
+  --surface-elevated: 217 33% 18%;
+  
+  /* Text */
+  --foreground: 210 40% 96%;
+  --foreground-secondary: 215 20% 65%;
+  --foreground-muted: 217 19% 47%;
+  --foreground-inverse: 213 67% 18%;
+  
+  /* Borders */
+  --border: 217 33% 17%;
+  --border-light: 217 33% 15%;
+  --border-input: 215 25% 27%;
+  
+  /* Brand */
+  --primary: 145 100% 39%;
+  --primary-hover: 142 70% 58%;
+  --primary-foreground: 0 0% 100%;
+  --deep-blue: 210 40% 96%;
+  --mid-blue: 215 20% 65%;
+  --accent-orange: 38 92% 50%;
+  
+  /* Shadows — darker in dark mode */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.5);
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: 'DM Sans', Inter, sans-serif;
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
+  font-family: 'Outfit', 'DM Sans', Inter, sans-serif;
   @apply antialiased;
 }
 

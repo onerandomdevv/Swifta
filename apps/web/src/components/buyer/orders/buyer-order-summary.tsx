@@ -1,6 +1,6 @@
 import React from "react";
-import { formatKobo } from "@hardware-os/shared";
-import type { Order } from "@hardware-os/shared";
+import { formatKobo } from "@swifta/shared";
+import type { Order } from "@swifta/shared";
 
 interface Props {
   order: Order;
@@ -51,6 +51,51 @@ export function BuyerOrderSummary({ order }: Props) {
           <span className="text-xs font-bold text-slate-900 dark:text-white">
             {new Date(order.createdAt).toLocaleString()}
           </span>
+        </div>
+
+        {/* Delivery Details Block */}
+        <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">
+            Delivery Destination
+          </h4>
+          
+          {order.deliveryDetails ? (
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50 space-y-3">
+               <div className="flex items-start gap-3">
+                 <span className="material-symbols-outlined text-slate-400 text-lg mt-0.5">location_on</span>
+                 <div>
+                   <p className="text-sm font-bold text-navy-dark dark:text-white leading-tight">
+                     {order.deliveryDetails.street}
+                   </p>
+                   <p className="text-xs font-medium text-slate-500 mt-0.5">
+                     {order.deliveryDetails.lga}, {order.deliveryDetails.state}
+                   </p>
+                 </div>
+               </div>
+
+               {order.deliveryDetails.busStop && (
+                 <div className="flex items-center gap-3">
+                   <span className="material-symbols-outlined text-slate-400 text-lg">directions_bus</span>
+                   <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                     Landmark: <span className="font-bold">{order.deliveryDetails.busStop}</span>
+                   </p>
+                 </div>
+               )}
+
+               <div className="flex items-center gap-3">
+                 <span className="material-symbols-outlined text-slate-400 text-lg">call</span>
+                 <p className="text-xs font-bold text-navy-dark dark:text-white">
+                   {order.deliveryDetails.primaryPhone} 
+                   {order.deliveryDetails.altPhone && <span className="text-slate-400 font-medium ml-2">/ {order.deliveryDetails.altPhone}</span>}
+                 </p>
+               </div>
+            </div>
+          ) : (
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50 flex gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
+              <span className="material-symbols-outlined text-slate-400">location_on</span>
+              <span>{order.deliveryAddress}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

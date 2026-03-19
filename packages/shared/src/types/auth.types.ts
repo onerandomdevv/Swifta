@@ -12,10 +12,12 @@ export interface RegisterDto {
   companyAddress?: string;
   cacNumber?: string;
   role: UserRole;
+  buyerType?: "BUSINESS" | "CONSUMER";
+  slug?: string;
 }
 
 export interface LoginDto {
-  email: string;
+  identifier: string;
   password: string;
 }
 

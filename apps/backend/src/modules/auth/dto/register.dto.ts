@@ -6,7 +6,7 @@ import {
   MinLength,
   Matches,
 } from "class-validator";
-import { UserRole } from "@hardware-os/shared";
+import { UserRole } from "@swifta/shared";
 
 export class RegisterDto {
   @IsEmail()
@@ -60,4 +60,12 @@ export class RegisterDto {
 
   @IsEnum(UserRole)
   role: UserRole;
+
+  @IsOptional()
+  @IsString()
+  buyerType?: string;
+
+  @IsOptional()
+  @IsString()
+  slug?: string;
 }

@@ -3,6 +3,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   getWholesaleCatalogue,
+  getRecommendedCatalogue,
   createWholesaleOrder,
 } from "@/lib/api/supplier.api";
 import {
@@ -10,11 +11,12 @@ import {
   applyForTradeFinancing,
   type TradeFinancingEligibilityResponse,
 } from "@/lib/api/trade-financing.api";
-import { formatKobo } from "@hardware-os/shared";
+import { formatKobo } from "@swifta/shared";
 import { useToast } from "@/providers/toast-provider";
 import { useState, useEffect } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
+import { WholesaleCard } from "@/components/merchant/wholesale/wholesale-card";
 
 export default function WholesaleCataloguePage() {
   const toast = useToast();
@@ -37,6 +39,11 @@ export default function WholesaleCataloguePage() {
     queryFn: getWholesaleCatalogue,
   });
 
+  const { data: recommended } = useQuery({
+    queryKey: ["wholesale", "recommended"],
+    queryFn: getRecommendedCatalogue,
+  });
+
   useEffect(() => {
     checkTradeFinancingEligibility()
       .then(setEligibility)
@@ -44,7 +51,8 @@ export default function WholesaleCataloguePage() {
         console.error(err);
         toast.error("Failed to check Trade Financing eligibility.");
       });
-  }, [toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const orderMutation = useMutation({
     mutationFn: createWholesaleOrder,
@@ -110,6 +118,33 @@ export default function WholesaleCataloguePage() {
         </p>
       </div>
 
+      {/* Recommended Section */}
+      {recommended && recommended.length > 0 && (
+        <div className="space-y-6 animate-in slide-in-from-top-4 duration-700">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-amber-500">
+              auto_awesome
+            </span>
+            <h2 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em]">
+              Recommended for you
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {recommended
+              .filter((item: any) => item.isRecommended)
+              .slice(0, 3)
+              .map((item: any) => (
+                <WholesaleCard
+                  key={item.id}
+                  item={item}
+                  onOrder={handleOpenOrder}
+                  isRecommended={true}
+                />
+              ))}
+          </div>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
@@ -133,65 +168,19 @@ export default function WholesaleCataloguePage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {catalogue.map((item: any) => (
-            <div
-              key={item.id}
-              className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow group"
-            >
-              <div className="h-48 bg-slate-50 dark:bg-slate-800 relative flex items-center justify-center">
-                <span className="material-symbols-outlined text-4xl text-slate-300">
-                  inventory
-                </span>
-                <div className="absolute top-4 left-4 flex gap-2">
-                  <span className="px-2 py-1 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-md">
-                    Wholesale
-                  </span>
-                </div>
-              </div>
-              <div className="p-5 space-y-4">
-                <div>
-                  <h3 className="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">
-                    {item.name}
-                  </h3>
-                  <p className="text-xs text-slate-500 font-medium line-clamp-1">
-                    Sold by {item.supplier?.companyName || "Manufacturer"}
-                  </p>
-                </div>
-
-                <div className="flex items-end justify-between">
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                      Starting at
-                    </label>
-                    <p className="text-xl font-black text-primary tabular-nums">
-                      {formatKobo(item.wholesalePriceKobo)}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-                      Min. Order
-                    </label>
-                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                      {item.minOrderQty} {item.unit}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleOpenOrder(item)}
-                    className="flex-1 py-3 bg-primary text-white text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <span className="material-symbols-outlined text-lg">
-                      shopping_cart
-                    </span>
-                    Order Now
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="space-y-6">
+          <h2 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em]">
+            All Suppliers
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {catalogue.map((item: any) => (
+              <WholesaleCard
+                key={item.id}
+                item={item}
+                onOrder={handleOpenOrder}
+              />
+            ))}
+          </div>
         </div>
       )}
 
@@ -382,10 +371,31 @@ export default function WholesaleCataloguePage() {
           <p className="text-center text-[10px] text-slate-400 font-medium px-4">
             {paymentMethod === "TRADE_FINANCING"
               ? "Application will be cross-checked with our financing partner instantly."
-              : "By clicking confirm, you agree to the Hardware OS B2B Escrow terms."}
+              : "By clicking confirm, you agree to the Swifta Escrow terms."}
           </p>
         </form>
       </Modal>
+
+      <div className="absolute inset-0 z-[100] backdrop-blur-md bg-white/40 dark:bg-slate-900/40 flex flex-col items-center justify-center p-8 animate-in fade-in duration-1000">
+        <div className="max-w-md w-full p-12 bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-2xl text-center space-y-8">
+           <div className="size-24 rounded-[2rem] bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center mx-auto">
+              <span className="material-symbols-outlined text-4xl text-amber-500 animate-pulse">factory</span>
+           </div>
+           <div className="space-y-3">
+              <h2 className="text-3xl font-black text-navy-dark dark:text-white uppercase tracking-tighter">Manufacturer Trade</h2>
+              <p className="text-[11px] font-black text-amber-600 uppercase tracking-widest bg-amber-50/50 dark:bg-amber-900/30 px-3 py-1 rounded-full inline-block">Initial Launch Pending</p>
+           </div>
+           <p className="text-slate-500 font-bold text-sm leading-relaxed">
+              We are currently finalizing our Industrial Supplier Verification protocols. Wholesale inventory and Trade Financing will be initialized in Phase 2.
+           </p>
+           <button 
+             onClick={() => window.location.href = "/merchant/dashboard"}
+             className="px-10 py-5 bg-navy-dark dark:bg-white text-white dark:text-navy-dark rounded-[1.25rem] font-black uppercase tracking-[0.3em] text-[10px] shadow-2xl shadow-navy-dark/20 hover:scale-105 active:scale-95 transition-all w-full"
+           >
+             Return to Dashboard
+           </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,9 @@
-import { Module, MiddlewareConsumer, RequestMethod } from "@nestjs/common";
+import {
+  Module,
+  MiddlewareConsumer,
+  RequestMethod,
+  Logger,
+} from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ServeStaticModule } from "@nestjs/serve-static";
 import { ScheduleModule } from "@nestjs/schedule";
@@ -12,6 +17,7 @@ import redisConfig from "./config/redis.config";
 import jwtConfig from "./config/jwt.config";
 import paystackConfig from "./config/paystack.config";
 import africastalkingConfig from "./config/africastalking.config";
+import whatsappConfig from "./config/whatsapp.config";
 
 import { PrismaModule } from "./prisma/prisma.module";
 import { RedisModule } from "./redis/redis.module";
@@ -21,9 +27,6 @@ import { HealthModule } from "./health/health.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { MerchantModule } from "./modules/merchant/merchant.module";
 import { ProductModule } from "./modules/product/product.module";
-import { RFQModule } from "./modules/rfq/rfq.module";
-import { QuoteModule } from "./modules/quote/quote.module";
-import { OrderModule } from "./modules/order/order.module";
 import { PaymentModule } from "./modules/payment/payment.module";
 import { InventoryModule } from "./modules/inventory/inventory.module";
 import { NotificationModule } from "./modules/notification/notification.module";
@@ -35,6 +38,13 @@ import { PayoutModule } from "./modules/payout/payout.module";
 import { TradeFinancingModule } from "./modules/trade-financing/trade-financing.module";
 import { LogisticsModule } from "./modules/logistics/logistics.module";
 import { SupplierModule } from "./modules/supplier/supplier.module";
+import { CategoryModule } from "./modules/category/category.module";
+import { ReviewModule } from "./modules/review/review.module";
+import { BuyerModule } from "./modules/buyer/buyer.module";
+import { CartModule } from "./modules/cart/cart.module";
+import { WishlistModule } from "./modules/wishlist/wishlist.module";
+import { UssdModule } from "./modules/ussd/ussd.module";
+import { DvaModule } from "./modules/dva/dva.module";
 
 import { LoggerModule } from "./common/logger/logger.module";
 
@@ -42,6 +52,21 @@ import { MerchantContextMiddleware } from "./common/middleware/merchant-context.
 
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { APP_GUARD } from "@nestjs/core";
+
+function sanitizeRedisUrl(url: string | undefined): string | undefined {
+  if (!url) return url;
+  let cleanUrl = url.trim();
+  if (cleanUrl.startsWith("REDIS_URL=")) {
+    cleanUrl = cleanUrl.substring("REDIS_URL=".length);
+  }
+  if (cleanUrl.startsWith('"') && cleanUrl.endsWith('"')) {
+    cleanUrl = cleanUrl.substring(1, cleanUrl.length - 1);
+  }
+  if (cleanUrl.startsWith("'") && cleanUrl.endsWith("'")) {
+    cleanUrl = cleanUrl.substring(1, cleanUrl.length - 1);
+  }
+  return cleanUrl.trim();
+}
 
 @Module({
   imports: [
@@ -54,6 +79,7 @@ import { APP_GUARD } from "@nestjs/core";
         jwtConfig,
         paystackConfig,
         africastalkingConfig,
+        whatsappConfig,
       ],
     }),
     LoggerModule,
@@ -63,22 +89,47 @@ import { APP_GUARD } from "@nestjs/core";
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => {
-        const urlString =
-          configService.get<string>("redis.url") || "redis://127.0.0.1:6379";
-        const parsedUrl = new URL(urlString);
-        const store = await redisStore({
-          host: parsedUrl.hostname,
-          port: parseInt(parsedUrl.port, 10) || 6379,
-          password: parsedUrl.password || undefined,
-          username: parsedUrl.username || undefined,
-          tls:
-            parsedUrl.protocol === "rediss:"
-              ? { rejectUnauthorized: false }
-              : undefined,
-          family: 0,
-          ttl: 60 * 1000,
-        });
-        return { store };
+        const rawUrl = configService.get<string>("redis.url");
+        const urlString = sanitizeRedisUrl(rawUrl);
+
+        if (!urlString) {
+          Logger.warn(
+            "REDIS_URL not found for CacheModule, falling back to localhost",
+          );
+          const store = await redisStore({
+            host: "127.0.0.1",
+            port: 6379,
+            family: 0,
+            ttl: 60 * 1000,
+            enableReadyCheck: false,
+          });
+          return { store };
+        }
+
+        try {
+          const parsedUrl = new URL(urlString);
+          const store = await redisStore({
+            host: parsedUrl.hostname,
+            port: parseInt(parsedUrl.port, 10) || 6379,
+            password: parsedUrl.password || undefined,
+            username: parsedUrl.username || undefined,
+            tls:
+              parsedUrl.protocol === "rediss:"
+                ? { rejectUnauthorized: false }
+                : undefined,
+            family: 0,
+            ttl: 60 * 1000,
+            enableReadyCheck: false,
+          });
+          return { store };
+        } catch (error: any) {
+          Logger.error(
+            `CacheModule failed to parse REDIS_URL prefix: ${urlString.substring(0, 15)}...`,
+          );
+          throw new Error(
+            `Invalid REDIS_URL for CacheModule: ${error.message}`,
+          );
+        }
       },
     }),
     ServeStaticModule.forRoot({
@@ -98,9 +149,6 @@ import { APP_GUARD } from "@nestjs/core";
     AuthModule,
     MerchantModule,
     ProductModule,
-    RFQModule,
-    QuoteModule,
-    OrderModule,
     PaymentModule,
     InventoryModule,
     NotificationModule,
@@ -112,6 +160,13 @@ import { APP_GUARD } from "@nestjs/core";
     TradeFinancingModule,
     LogisticsModule,
     SupplierModule,
+    CategoryModule,
+    ReviewModule,
+    BuyerModule,
+    CartModule,
+    WishlistModule,
+    UssdModule,
+    DvaModule,
   ],
   controllers: [],
   providers: [

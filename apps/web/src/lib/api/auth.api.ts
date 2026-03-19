@@ -1,5 +1,5 @@
-import { UserRole } from "@hardware-os/shared";
-import type { LoginDto, RegisterDto, TokenPair } from "@hardware-os/shared";
+import { UserRole } from "@swifta/shared";
+import type { LoginDto, RegisterDto, TokenPair } from "@swifta/shared";
 import { apiClient } from "../api-client";
 
 export interface AuthResponse {
@@ -12,6 +12,7 @@ export interface AuthResponse {
     lastName: string;
     role: UserRole;
     emailVerified: boolean;
+    isWhatsAppLinked?: boolean;
     merchantId?: string;
     createdAt: string;
     updatedAt: string;
@@ -64,4 +65,19 @@ export const authApi = {
 
   changePassword: (dto: any) =>
     apiClient.post<{ message: string }>("/auth/change-password", dto),
+
+  initiateWhatsAppLogin: (phone: string) =>
+    apiClient.post<{ message: string }>("/auth/whatsapp/initiate", { phone }),
+
+  verifyWhatsAppLogin: (phone: string, code: string) =>
+    apiClient.post<AuthResponse>("/auth/whatsapp/verify", { phone, code }),
+
+  initiateWhatsAppLink: (phone: string) =>
+    apiClient.post<{ message: string }>("/auth/whatsapp/link", { phone }),
+
+  verifyWhatsAppLink: (phone: string, code: string) =>
+    apiClient.post<{ message: string }>("/auth/whatsapp/link/verify", {
+      phone,
+      code,
+    }),
 };

@@ -3,16 +3,16 @@ import Link from "next/link";
 export function BuyerQuickLinks() {
   const quickLinks = [
     {
-      label: "Create New RFQ",
-      sub: "Request quotes for new hardware",
-      icon: "add_box",
+      label: "Browse Catalogue",
+      sub: "View verified items",
+      icon: "storefront",
       color: "bg-navy-dark",
       textColor: "text-white",
     },
     {
-      label: "Browse Catalogue",
-      sub: "View verified items",
-      icon: "storefront",
+      label: "Order History",
+      sub: "Track your fulfillment",
+      icon: "history",
       color: "bg-white",
       textColor: "text-navy-dark",
     },
@@ -30,7 +30,7 @@ export function BuyerQuickLinks() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-1 gap-5">
         {quickLinks.map((link, idx) => {
-          const href = idx === 0 ? "/buyer/rfqs/new" : "/buyer/catalogue";
+          const href = idx === 0 ? "/buyer/catalogue" : "/buyer/orders";
           return (
             <Link
               key={idx}
@@ -60,13 +60,13 @@ export function BuyerQuickLinks() {
       </div>
 
       {/* Marketplace Tips Box */}
-      <div className="bg-navy-dark rounded-3xl p-8 text-white relative overflow-hidden group">
+      <div className="bg-navy-dark rounded-3xl p-8 text-white relative overflow-hidden group border border-navy-dark/10">
         <div className="relative z-10 space-y-4">
           <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">
-            Marketplace Tips
+            Marketplace Information
           </p>
           <h4 className="text-lg font-black leading-tight uppercase">
-            Get better rates by bundling RFQs for similar materials.
+            All transactions are protected by secure escrow until delivery.
           </h4>
         </div>
         <div className="absolute -bottom-10 -right-10 size-40 bg-white/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-[2s]"></div>

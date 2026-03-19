@@ -12,7 +12,7 @@ import {
 import {
   Notification as BackendNotification,
   NotificationType,
-} from "@hardware-os/shared";
+} from "@swifta/shared";
 
 export interface NotificationUI {
   id: string;
@@ -25,7 +25,8 @@ export interface NotificationUI {
   bg: string;
   unread: boolean;
   action?: string;
-  category: "Orders" | "Financials" | "System";
+  actionUrl?: string;
+  category: "All Activity" | "Orders" | "Payments" | "Account Security" | "Marketing";
 }
 
 export function useNotifications(
@@ -41,78 +42,76 @@ export function useNotifications(
       let icon = "info";
       let iconColor = "text-slate-500";
       let bg = "bg-slate-50/50";
-      let category: "Orders" | "Financials" | "System" = "System";
+      let category: NotificationUI["category"] = "All Activity";
       let action: string | undefined = undefined;
 
       switch (n.type) {
-        case NotificationType.QUOTE_RECEIVED:
-          icon = "payments";
-          iconColor = "text-blue-500";
-          bg = "bg-blue-50/50";
-          category = "Orders";
-          action = "Review Quote";
-          break;
         case NotificationType.PAYMENT_CONFIRMED:
-          icon = "check_circle";
-          iconColor = "text-emerald-500";
-          bg = "bg-emerald-50/50";
-          category = "Financials";
+          icon = "account_balance_wallet";
+          iconColor = "text-indigo-600 dark:text-indigo-400";
+          bg = "bg-indigo-100 dark:bg-indigo-900/30";
+          category = "Payments";
           break;
         case NotificationType.ORDER_DISPATCHED:
           icon = "local_shipping";
-          iconColor = "text-orange-500";
-          bg = "bg-orange-50/50";
+          iconColor = "text-emerald-600 dark:text-emerald-400";
+          bg = "bg-emerald-100 dark:bg-emerald-900/30";
           category = "Orders";
-          action = "Tracking Active";
+          action = "Process Order";
           break;
         case NotificationType.MERCHANT_VERIFIED:
           icon = "verified";
-          iconColor = "text-emerald-500";
-          bg = "bg-emerald-50/50";
-          category = "System";
+          iconColor = "text-emerald-600 dark:text-emerald-400";
+          bg = "bg-emerald-100 dark:bg-emerald-900/30";
+          category = "Account Security";
           break;
         case NotificationType.MERCHANT_REJECTED:
           icon = "error";
           iconColor = "text-rose-500";
           bg = "bg-rose-50/50";
-          category = "System";
+          category = "Account Security";
           break;
         case NotificationType.NEW_MERCHANT_SUBMISSION:
           icon = "person_add";
           iconColor = "text-amber-500";
           bg = "bg-amber-50/50";
-          category = "System";
+          category = "All Activity";
           action = "Review";
           break;
         case NotificationType.PAYOUT_REQUESTED:
           icon = "account_balance_wallet";
-          iconColor = "text-amber-600";
-          bg = "bg-amber-50/50";
-          category = "Financials";
+          iconColor = "text-indigo-600 dark:text-indigo-400";
+          bg = "bg-indigo-100 dark:bg-indigo-900/30";
+          category = "Payments";
           action = "Process";
           break;
         case NotificationType.PAYOUT_REQUEST_RECEIVED:
           icon = "sync";
           iconColor = "text-blue-500";
-          bg = "bg-blue-50/50";
-          category = "Financials";
+          bg = "bg-blue-100 dark:bg-blue-900/30";
+          category = "Payments";
           break;
-        case NotificationType.QUOTE_ACCEPTED:
-          icon = "verified";
-          iconColor = "text-blue-400";
-          bg = "bg-blue-50/20";
-          category = "Orders";
-          break;
+        default:
+          // Fallback for new types
+          if (n.title.toLowerCase().includes("stock")) {
+            icon = "warning";
+            iconColor = "text-amber-600 dark:text-amber-400";
+            bg = "bg-amber-100 dark:bg-amber-900/30";
+            category = "Orders";
+            action = "Restock Now";
+          } else if (n.title.toLowerCase().includes("campaign") || n.title.toLowerCase().includes("sale")) {
+            icon = "campaign";
+            iconColor = "text-primary";
+            bg = "bg-primary/10";
+            category = "Marketing";
+          }
       }
 
       return {
         id: n.id,
         title: n.title,
         desc: n.body,
-        time: new Date(n.createdAt).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
+        time: formatRelativeTime(n.createdAt),
         type: n.type.toLowerCase(),
         icon,
         iconColor,
@@ -125,9 +124,24 @@ export function useNotifications(
     [],
   );
 
+// Helper for relative time like the mockup
+function formatRelativeTime(dateInput: string | Date) {
+  const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+  const now = new Date();
+  const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / 60000);
+
+  if (diffInMinutes < 1) return "Just now";
+  if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours}h ago`;
+  return `${Math.floor(diffInHours / 24)}d ago`;
+}
+
   const {
     data: notifications = [],
     isLoading: loading,
+    isError,
+    error,
     refetch,
   } = useQuery({
     queryKey: ["notifications", "list"],
@@ -181,6 +195,8 @@ export function useNotifications(
     notifications,
     unreadCount,
     loading,
+    isError,
+    error,
     refresh: refetch,
     markAsRead: (id: string) => markAsReadMutation.mutate(id),
     markAllAsRead: () => markAllAsReadMutation.mutate(),

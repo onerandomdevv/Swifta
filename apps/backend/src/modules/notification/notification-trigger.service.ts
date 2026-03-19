@@ -5,7 +5,7 @@ import {
   NOTIFICATION_QUEUE,
   WHATSAPP_QUEUE,
 } from "../../queue/queue.constants";
-import { NotificationType, NotificationChannel } from "@hardware-os/shared";
+import { NotificationType, NotificationChannel } from "@swifta/shared";
 
 @Injectable()
 export class NotificationTriggerService {
@@ -50,8 +50,8 @@ export class NotificationTriggerService {
     await this.addJob(
       userId,
       NotificationType.WELCOME,
-      "Welcome to SwiftTrade",
-      "Welcome to Africa's hardware trade network.",
+      "Welcome to Swifta",
+      "Welcome to Africa's digital trade network.",
     );
   }
 
@@ -67,112 +67,6 @@ export class NotificationTriggerService {
     );
   }
 
-  async triggerNewRFQ(
-    merchantId: string,
-    metadata: {
-      rfqId: string;
-      buyerName: string;
-      productName: string;
-      quantity: number;
-      deliveryAddress?: string;
-    },
-  ) {
-    // Standard in-app + email notification
-    await this.addJob(
-      merchantId,
-      NotificationType.NEW_RFQ,
-      "New RFQ Received",
-      "You have a new request for quote.",
-      { ...metadata, isMerchantId: true },
-    );
-
-    // WhatsApp push notification (async — fire and forget)
-    try {
-      await this.whatsappQueue.add(
-        "send-rfq-notification",
-        {
-          merchantId,
-          rfqData: {
-            rfqId: metadata.rfqId,
-            buyerName: metadata.buyerName,
-            productName: metadata.productName,
-            quantity: metadata.quantity,
-            deliveryAddress: metadata.deliveryAddress || "Not specified",
-          },
-        },
-        {
-          attempts: 2,
-          backoff: { type: "exponential", delay: 3000 },
-          removeOnComplete: true,
-          removeOnFail: true,
-        },
-      );
-    } catch {
-      // Never let WhatsApp notification failure affect the main flow
-    }
-  }
-
-  async triggerQuoteReceived(
-    buyerId: string,
-    metadata: {
-      quoteId: string;
-      merchantName: string;
-      productName: string;
-      totalPriceKobo: bigint;
-    },
-  ) {
-    await this.addJob(
-      buyerId,
-      NotificationType.QUOTE_RECEIVED,
-      "Quote Received",
-      "You have received a new quote.",
-      { ...metadata, totalPriceKobo: metadata.totalPriceKobo.toString() }, // Pass as string for BullMQ JSON
-      [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
-    );
-  }
-
-  async triggerQuoteAccepted(
-    merchantId: string,
-    metadata: {
-      quoteId: string;
-      orderId: string;
-      buyerName: string;
-      amountKobo: bigint;
-    },
-  ) {
-    await this.addJob(
-      merchantId,
-      NotificationType.QUOTE_ACCEPTED,
-      "Quote Accepted",
-      "Your quote has been accepted.",
-      {
-        ...metadata,
-        amountKobo: metadata.amountKobo.toString(),
-        isMerchantId: true,
-      },
-    );
-  }
-
-  async triggerQuoteDeclined(merchantId: string, quoteId: string) {
-    await this.addJob(
-      merchantId,
-      NotificationType.QUOTE_DECLINED,
-      "Quote Declined",
-      "Your quote has been declined.",
-      { quoteId, isMerchantId: true },
-    );
-  }
-
-  async triggerRFQExpired(buyerId: string, rfqId: string) {
-    await this.addJob(
-      buyerId,
-      NotificationType.RFQ_EXPIRED,
-      "RFQ Expired",
-      "Your request for quote has expired without receiving a response.",
-      { rfqId },
-    );
-  }
-
   async triggerOrderPreparing(
     buyerId: string,
     metadata: { orderId: string; reference: string },
@@ -183,7 +77,11 @@ export class NotificationTriggerService {
       "Order Preparing",
       "📦 Your order is being prepared! The merchant is packing your goods.",
       { ...metadata },
-      [NotificationChannel.IN_APP, NotificationChannel.EMAIL, NotificationChannel.WHATSAPP],
+      [
+        NotificationChannel.IN_APP,
+        NotificationChannel.EMAIL,
+        NotificationChannel.WHATSAPP,
+      ],
     );
   }
 
@@ -197,7 +95,11 @@ export class NotificationTriggerService {
       "Order Dispatched",
       `🚚 Your order has been dispatched! Your delivery code is: ${metadata.otp}`,
       { ...metadata },
-      [NotificationChannel.IN_APP, NotificationChannel.EMAIL, NotificationChannel.WHATSAPP],
+      [
+        NotificationChannel.IN_APP,
+        NotificationChannel.EMAIL,
+        NotificationChannel.WHATSAPP,
+      ],
     );
   }
 
@@ -212,7 +114,11 @@ export class NotificationTriggerService {
       "Order In Transit",
       `📍 Your order is on the way!${noteText}`,
       { ...metadata },
-      [NotificationChannel.IN_APP, NotificationChannel.EMAIL, NotificationChannel.WHATSAPP],
+      [
+        NotificationChannel.IN_APP,
+        NotificationChannel.EMAIL,
+        NotificationChannel.WHATSAPP,
+      ],
     );
   }
 
@@ -362,7 +268,7 @@ export class NotificationTriggerService {
   ) {
     await this.addJob(
       userId,
-      "PASSWORD_RESET",
+      NotificationType.PASSWORD_RESET,
       "Reset your password",
       "Forgot your password?",
       { email, resetToken, frontendUrl },
@@ -379,7 +285,7 @@ export class NotificationTriggerService {
     // Notify buyer
     await this.addJob(
       buyerId,
-      "PAYMENT_CONFIRMED",
+      NotificationType.PAYMENT_CONFIRMED,
       "Payment Successful",
       "Your payment was successful.",
       { ...metadata, amountKobo: metadata.amountKobo.toString() },
@@ -387,7 +293,7 @@ export class NotificationTriggerService {
     // Notify merchant
     await this.addJob(
       merchantId,
-      "PAYMENT_CONFIRMED",
+      NotificationType.PAYMENT_CONFIRMED,
       "Payment Received",
       "Payment received for an order.",
       {
@@ -414,7 +320,7 @@ export class NotificationTriggerService {
     // Notify buyer via Email / In-App
     await this.addJob(
       buyerId,
-      "DIRECT_PURCHASE_CONFIRMED",
+      NotificationType.DIRECT_PURCHASE_CONFIRMED,
       "Payment confirmed!",
       "Your order is being prepared. You will receive a delivery code when the merchant dispatches.",
       { ...metadata, amountKobo: metadata.amountKobo.toString() },
@@ -424,7 +330,7 @@ export class NotificationTriggerService {
     // Notify merchant via Email / In-App
     await this.addJob(
       merchantId,
-      "DIRECT_PURCHASE_RECEIVED",
+      NotificationType.DIRECT_PURCHASE_RECEIVED,
       "New order received!",
       `${metadata.productName} × ${metadata.quantity} — ₦${Number(metadata.amountKobo) / 100}. Check your dashboard to dispatch.`,
       {
@@ -474,7 +380,7 @@ export class NotificationTriggerService {
   ) {
     await this.addJob(
       buyerId,
-      "REORDER_REMINDER",
+      NotificationType.REORDER_REMINDER,
       "Time to Reorder",
       `It's been ${metadata.daysSinceOrder} days since you ordered ${metadata.productName}. Need a restock?`,
       { ...metadata },
@@ -494,9 +400,9 @@ export class NotificationTriggerService {
   ) {
     await this.addJob(
       merchantId,
-      "MERCHANT_REORDER_PROMPT",
+      NotificationType.MERCHANT_REORDER_PROMPT,
       "Reorder Opportunity",
-      `${metadata.buyerName} might need a restock of ${metadata.productName}. Send a quote?`,
+      `${metadata.buyerName} might need a restock of ${metadata.productName}.`,
       { ...metadata, isMerchantId: true },
     );
   }
@@ -504,7 +410,7 @@ export class NotificationTriggerService {
   async triggerMerchantVerified(userId: string) {
     await this.addJob(
       userId,
-      "MERCHANT_VERIFIED",
+      NotificationType.MERCHANT_VERIFIED,
       "Account Verified",
       "Your merchant account has been successfully verified. You can now list products and receive quotes.",
       {},
@@ -514,7 +420,7 @@ export class NotificationTriggerService {
   async triggerMerchantRejected(userId: string, reason?: string) {
     await this.addJob(
       userId,
-      "MERCHANT_REJECTED",
+      NotificationType.MERCHANT_REJECTED,
       "Account Verification Rejected",
       `Your merchant account verification was unsuccessful. ${reason ? "Reason: " + reason : "Please review your details and re-submit."}`,
       { reason },
@@ -523,15 +429,15 @@ export class NotificationTriggerService {
 
   async triggerNewMerchantSubmission(
     adminUserIds: string[],
-    metadata: { merchantId: string; merchantName: string },
+    metadata: { merchantId: string; merchantName: string; targetTier?: string },
   ) {
     await Promise.allSettled(
       adminUserIds.map((adminId) =>
         this.addJob(
           adminId,
-          "NEW_MERCHANT_SUBMISSION",
+          NotificationType.NEW_MERCHANT_SUBMISSION,
           "New Merchant Verification Pending",
-          `${metadata.merchantName} has submitted their account for verification.`,
+          `${metadata.merchantName} has submitted their account for verification${metadata.targetTier ? ` (${metadata.targetTier})` : ""}.`,
           { ...metadata },
         ),
       ),
@@ -551,7 +457,7 @@ export class NotificationTriggerService {
       adminUserIds.map((adminId) =>
         this.addJob(
           adminId,
-          "PAYOUT_REQUESTED",
+          NotificationType.PAYOUT_REQUESTED,
           "New Payout Request",
           `${metadata.merchantName} has requested a payout.`,
           { ...metadata },
@@ -566,7 +472,7 @@ export class NotificationTriggerService {
   ) {
     await this.addJob(
       userId,
-      "PAYOUT_REQUEST_RECEIVED",
+      NotificationType.PAYOUT_REQUEST_RECEIVED,
       "Payout Request Received",
       `Your payout request has been received and is being processed.`,
       { ...metadata },
@@ -581,7 +487,7 @@ export class NotificationTriggerService {
     // Notify Merchant
     await this.addJob(
       merchantId,
-      "ORDER_DISPUTED",
+      NotificationType.ORDER_DISPUTED,
       "Order Dispute Raised",
       `A buyer has raised a dispute for Order #${orderId.slice(0, 8)}. Reason: ${reason}`,
       { orderId, reason, isMerchantId: true },
@@ -601,12 +507,60 @@ export class NotificationTriggerService {
   ) {
     await this.addJob(
       userId,
-      "DISPUTE_RESOLVED",
+      NotificationType.DISPUTE_RESOLVED,
       "Dispute Resolved",
       `The dispute for Order #${orderId.slice(0, 8)} has been resolved.`,
       { orderId, resolution },
       [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
       { url: `/buyer/orders/${orderId}` },
+    );
+  }
+
+  async triggerAutoConfirmationWarning(
+    buyerId: string,
+    orderRef: string,
+    hoursRemaining: number,
+  ) {
+    await this.addJob(
+      buyerId,
+      NotificationType.ORDER_AUTO_CONFIRM_WARNING,
+      "Action Required: Order Confirmation",
+      `Your order #${orderRef} will be automatically confirmed in ${hoursRemaining} hours. Please confirm delivery or raise a dispute if there are issues.`,
+      { orderRef, hoursRemaining },
+      [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+    );
+  }
+
+  async triggerOrderAutoConfirmed(
+    buyerId: string,
+    merchantId: string,
+    metadata: { orderId: string; reference: string; amountKobo: bigint },
+  ) {
+    const serializedMetadata = {
+      ...metadata,
+      amountKobo: metadata.amountKobo.toString(),
+    };
+
+    // Notify buyer
+    await this.addJob(
+      buyerId,
+      NotificationType.ORDER_AUTO_CONFIRMED,
+      "Order Auto-Confirmed",
+      `Order #${metadata.reference.slice(0, 8)} has been automatically confirmed after 72 hours.`,
+      serializedMetadata,
+      [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+      { url: `/buyer/orders/${metadata.orderId}` },
+    );
+
+    // Notify merchant
+    await this.addJob(
+      merchantId,
+      NotificationType.ORDER_AUTO_CONFIRMED,
+      "Order Auto-Confirmed",
+      `Order #${metadata.reference.slice(0, 8)} has been automatically confirmed by the system. Payout will be processed shortly.`,
+      { ...serializedMetadata, isMerchantId: true },
+      [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+      { url: `/merchant/orders/${metadata.orderId}` },
     );
   }
 }

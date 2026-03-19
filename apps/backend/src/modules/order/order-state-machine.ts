@@ -1,6 +1,9 @@
-import { OrderStatus, ORDER_TRANSITIONS } from '@hardware-os/shared';
+import { OrderStatus, ORDER_TRANSITIONS } from "@swifta/shared";
 
-export function validateTransition(from: OrderStatus, to: OrderStatus): boolean {
+export function validateTransition(
+  from: OrderStatus,
+  to: OrderStatus,
+): boolean {
   const allowed = ORDER_TRANSITIONS[from];
   return allowed ? allowed.includes(to) : false;
 }

@@ -4,7 +4,6 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ParsedIntent } from "./whatsapp-intent.service";
 import {
   BUYER_NUMBER_INTENT_MAP,
-  BUYER_SYSTEM_PROMPT,
   BUYER_GEMINI_FUNCTION_DECLARATIONS,
 } from "./whatsapp-buyer.constants";
 
@@ -50,6 +49,21 @@ export class WhatsAppBuyerIntentService {
     ) {
       return { functionName: "search_products", params: { query: text } };
     }
+    if (
+      lower.includes("category") ||
+      lower.includes("browse") ||
+      lower.includes("categories")
+    ) {
+      return { functionName: "browse_categories", params: {} };
+    }
+    if (
+      lower.includes("merchant") ||
+      lower.includes("seller") ||
+      lower.includes("shop") ||
+      lower.includes("store")
+    ) {
+      return { functionName: "search_merchants", params: { query: text } };
+    }
     if (lower.includes("where") || lower.includes("track")) {
       return { functionName: "get_active_orders", params: {} };
     }
@@ -60,9 +74,14 @@ export class WhatsAppBuyerIntentService {
   private async parseWithGemini(userMessage: string): Promise<ParsedIntent> {
     if (!this.genAI) throw new Error("Gemini AI is not initialized");
 
+    const systemPrompt =
+      this.configService.get<string>("whatsapp.buyerSystemPrompt") || "";
+
+    const modelName =
+      this.configService.get<string>("GEMINI_MODEL") || "gemini-2.0-flash";
     const model = this.genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
-      systemInstruction: BUYER_SYSTEM_PROMPT,
+      model: modelName,
+      systemInstruction: systemPrompt,
       tools: [{ functionDeclarations: BUYER_GEMINI_FUNCTION_DECLARATIONS }],
     });
 

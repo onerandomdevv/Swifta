@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { SupplierController } from "./supplier.controller";
 import { SupplierService } from "./supplier.service";
 
@@ -7,7 +7,11 @@ import { WhatsAppModule } from "../whatsapp/whatsapp.module";
 import { PrismaModule } from "../../prisma/prisma.module";
 
 @Module({
-  imports: [PaymentModule, WhatsAppModule, PrismaModule],
+  imports: [
+    forwardRef(() => PaymentModule),
+    forwardRef(() => WhatsAppModule),
+    PrismaModule,
+  ],
   controllers: [SupplierController],
   providers: [SupplierService],
   exports: [SupplierService],

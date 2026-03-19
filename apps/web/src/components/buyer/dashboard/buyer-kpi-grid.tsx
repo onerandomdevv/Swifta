@@ -62,12 +62,9 @@ export function BuyerKpiGrid({
               {kpi.subtext}
             </p>
             {idx === 0 && (
-              <Link
-                href="/buyer/rfqs"
-                className="text-[9px] font-black text-navy-dark dark:text-white uppercase tracking-widest hover:underline"
-              >
-                View List
-              </Link>
+              <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
+                Real-time Data
+              </span>
             )}
             {idx === 2 && (
               <Link

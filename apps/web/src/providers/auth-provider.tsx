@@ -10,8 +10,8 @@ import React, {
   ReactNode,
 } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { UserRole } from "@hardware-os/shared";
-import type { LoginDto, RegisterDto } from "@hardware-os/shared";
+import { UserRole } from "@swifta/shared";
+import type { LoginDto, RegisterDto } from "@swifta/shared";
 import { authApi } from "../lib/api/auth.api";
 import { apiClient } from "../lib/api-client";
 
@@ -24,8 +24,10 @@ interface User {
   phone: string;
   role: UserRole;
   emailVerified: boolean;
+  isWhatsAppLinked?: boolean;
   merchantId?: string;
   supplierId?: string;
+  buyerType?: "CONSUMER";
   supplierProfile?: {
     companyName: string;
     companyAddress: string;
@@ -39,11 +41,13 @@ interface AuthContextType {
   user: User | null;
   isLoggedIn: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  internalLogin: (email: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string) => Promise<void>;
+  internalLogin: (identifier: string, password: string) => Promise<void>;
   register: (dto: RegisterDto) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  initiateWhatsAppLogin: (phone: string) => Promise<void>;
+  verifyWhatsAppLogin: (phone: string, code: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -91,16 +95,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       },
     });
-  }, [handleRefresh, clearAuth, router]);
+  }, [handleRefresh, clearAuth, router, isPublicAuthRoute]);
 
-  const login = async (email: string, password: string) => {
-    const response = await authApi.login({ email, password });
+  const login = async (identifier: string, password: string) => {
+    const response = await authApi.login({ identifier, password });
     setUser(response.user);
   };
 
-  const internalLogin = async (email: string, password: string) => {
+  const internalLogin = async (identifier: string, password: string) => {
     // Note for backend: verify internalLogin attaches HttpOnly cookies just like login
-    const response = await authApi.internalLogin({ email, password });
+    const response = await authApi.internalLogin({ identifier, password });
     setUser(response.user);
   };
 
@@ -127,6 +131,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       router.push("/login");
     }
   }, [clearAuth, router]);
+
+  const initiateWhatsAppLogin = async (phone: string) => {
+    await authApi.initiateWhatsAppLogin(phone);
+  };
+
+  const verifyWhatsAppLogin = async (phone: string, code: string) => {
+    const response = await authApi.verifyWhatsAppLogin(phone, code);
+    setUser(response.user);
+  };
 
   // Initial check for session via HttpOnly cookies
   useEffect(() => {
@@ -168,6 +181,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout: logoutFn,
         refreshUser,
+        initiateWhatsAppLogin,
+        verifyWhatsAppLogin,
       }}
     >
       {children}

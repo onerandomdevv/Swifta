@@ -1,8 +1,0 @@
-export enum RFQStatus {
-  OPEN = "OPEN",
-  QUOTED = "QUOTED",
-  ACCEPTED = "ACCEPTED",
-  DECLINED = "DECLINED",
-  EXPIRED = "EXPIRED",
-  CANCELLED = "CANCELLED"
-}

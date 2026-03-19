@@ -1,5 +1,5 @@
 {
-  "name": "hardware-os",
+  "name": "swifta",
   "private": true,
   "scripts": {
     "build": "turbo run build",

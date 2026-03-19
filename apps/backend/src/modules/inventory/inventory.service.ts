@@ -2,9 +2,9 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
-} from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { InventoryEventType } from '@hardware-os/shared';
+} from "@nestjs/common";
+import { PrismaService } from "../../prisma/prisma.service";
+import { InventoryEventType } from "@swifta/shared";
 
 @Injectable()
 export class InventoryService {
@@ -22,7 +22,7 @@ export class InventoryService {
       InventoryEventType.ORDER_RESERVED,
       -quantity,
       orderId,
-      'Order reservation',
+      "Order reservation",
     );
   }
 
@@ -38,8 +38,37 @@ export class InventoryService {
       InventoryEventType.ORDER_RELEASED,
       quantity,
       orderId,
-      'Order cancellation release',
+      "Order cancellation release",
     );
+  }
+
+  async releaseStockBatch(
+    items: { productId: string; quantity: number }[],
+    merchantId: string,
+    orderId: string,
+  ) {
+    await this.prisma.$transaction(async (tx) => {
+      for (const item of items) {
+        // 1. Record event
+        await tx.inventoryEvent.create({
+          data: {
+            productId: item.productId,
+            merchantId,
+            eventType: InventoryEventType.ORDER_RELEASED,
+            quantity: item.quantity,
+            referenceId: orderId,
+            notes: "Order cancellation release (batch)",
+          },
+        });
+
+        // 2. Update stock cache atomically
+        await tx.productStockCache.upsert({
+          where: { productId: item.productId },
+          create: { productId: item.productId, stock: item.quantity },
+          update: { stock: { increment: item.quantity } },
+        });
+      }
+    });
   }
 
   async manualAdjustment(
@@ -52,14 +81,12 @@ export class InventoryService {
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
     });
-    if (!product) throw new NotFoundException('Product not found');
+    if (!product) throw new NotFoundException("Product not found");
     if (product.merchantId !== merchantId)
-      throw new ForbiddenException('Access denied');
+      throw new ForbiddenException("Access denied");
 
     const type =
-      quantity > 0
-        ? InventoryEventType.STOCK_IN
-        : InventoryEventType.STOCK_OUT;
+      quantity > 0 ? InventoryEventType.STOCK_IN : InventoryEventType.STOCK_OUT;
 
     await this.createEvent(
       productId,
@@ -67,19 +94,19 @@ export class InventoryService {
       type,
       quantity,
       null,
-      notes || 'Manual adjustment',
+      notes || "Manual adjustment",
     );
 
-    return { message: 'Stock adjusted' };
+    return { message: "Stock adjusted" };
   }
 
   async getStockLevel(merchantId: string, productId: string) {
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
     });
-    if (!product) throw new NotFoundException('Product not found');
+    if (!product) throw new NotFoundException("Product not found");
     if (product.merchantId !== merchantId)
-      throw new ForbiddenException('Access denied');
+      throw new ForbiddenException("Access denied");
 
     const cache = await this.prisma.productStockCache.findUnique({
       where: { productId },
@@ -101,9 +128,9 @@ export class InventoryService {
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
     });
-    if (!product) throw new NotFoundException('Product not found');
+    if (!product) throw new NotFoundException("Product not found");
     if (product.merchantId !== merchantId)
-      throw new ForbiddenException('Access denied');
+      throw new ForbiddenException("Access denied");
 
     const skip = (page - 1) * limit;
     const [data, total] = await Promise.all([
@@ -111,7 +138,7 @@ export class InventoryService {
         where: { productId },
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
       }),
       this.prisma.inventoryEvent.count({ where: { productId } }),
     ]);

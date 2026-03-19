@@ -4,10 +4,12 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getProduct } from "@/lib/api/product.api";
+import { productApi } from "@/lib/api/product.api";
 import { createDirectOrder, getDeliveryQuote } from "@/lib/api/order.api";
 import { useAuth } from "@/providers/auth-provider";
-import type { Product } from "@hardware-os/shared";
+import { Product, VerificationTier } from "@swifta/shared";
+import { cn, formatKobo } from "@/lib/utils";
+import { StateLgaSelector } from "@/components/ui/state-lga-selector";
 
 type PaymentMethod = "ESCROW" | "DIRECT";
 
@@ -23,31 +25,30 @@ export default function CheckoutPage({
   const [product, setProduct] = useState<Product | null>(null);
 
   const [quantity, setQuantity] = useState(1);
-  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [deliveryLga, setDeliveryLga] = useState("");
+  const [deliveryState, setDeliveryState] = useState("");
+  const [deliveryStreet, setDeliveryStreet] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("ESCROW");
   const [deliveryMethod, setDeliveryMethod] = useState<
     "MERCHANT_DELIVERY" | "PLATFORM_LOGISTICS"
   >("MERCHANT_DELIVERY");
-  const [deliveryQuoteKobo, setDeliveryQuoteKobo] = useState<number | null>(
-    null,
-  );
+  const [deliveryQuoteKobo, setDeliveryQuoteKobo] = useState<number | null>(null);
   const [isQuoting, setIsQuoting] = useState(false);
-  const [showMerchantDisclaimer, setShowMerchantDisclaimer] = useState(true);
 
-  const merchantTier = (product as any)?.merchantProfile?.verificationTier;
-  const isVerifiedMerchant =
-    merchantTier === "VERIFIED" || merchantTier === "TRUSTED";
+  const merchantTier = product?.merchantProfile?.verificationTier;
+  const isVerifiedMerchant = merchantTier === VerificationTier.TIER_2 || merchantTier === VerificationTier.TIER_3;
 
   useEffect(() => {
     async function fetchProduct() {
       try {
-        const response = await getProduct(params.productId);
+        const response = await productApi.getProduct(params.productId);
         if (!response.pricePerUnitKobo) {
-          router.replace(`/buyer/rfqs/new?productId=${response.id}`);
+          setError("This product is not available for direct purchase yet.");
           return;
         }
         setProduct(response);
-        setQuantity(response.minOrderQuantity || 1);
+        const initialMin = (user?.buyerType === "CONSUMER" ? response.minOrderQuantityConsumer : response.minOrderQuantity) || 1;
+        setQuantity(initialMin);
       } catch (err: any) {
         setError(err.message || "Failed to load product");
       } finally {
@@ -55,33 +56,29 @@ export default function CheckoutPage({
       }
     }
     fetchProduct();
-  }, [params.productId, router]);
+  }, [params.productId, router, user?.buyerType]);
 
-  const minQuantity = product?.minOrderQuantity || 1;
+  const minQuantity = (user?.buyerType === "CONSUMER" ? product?.minOrderQuantityConsumer : product?.minOrderQuantity) || 1;
   const isBelowMin = quantity < minQuantity;
 
   const createOrderMutation = useMutation({
     mutationFn: createDirectOrder,
     onError: (err: any) => {
-      setError(err?.message || "Payment initialization failed");
+      setError(err?.error || err?.message || "Payment initialization failed");
     },
     onSuccess: async (data) => {
       if (data.authorizationUrl) {
         window.location.href = data.authorizationUrl;
       } else {
-        setError("Invalid payment URL returned");
+        router.push("/buyer/orders");
       }
     },
   });
 
-  // Fetch Delivery Quote when address & product are available and PLATFORM_LOGISTICS is selected
   useEffect(() => {
     const fetchQuote = async () => {
-      if (
-        deliveryMethod !== "PLATFORM_LOGISTICS" ||
-        deliveryAddress.length < 5 ||
-        !product
-      ) {
+      const fullAddress = `${deliveryStreet}, ${deliveryLga}, ${deliveryState}`;
+      if (deliveryMethod !== "PLATFORM_LOGISTICS" || deliveryStreet.length < 5 || !deliveryState || !deliveryLga || !product) {
         setDeliveryQuoteKobo(null);
         return;
       }
@@ -91,17 +88,11 @@ export default function CheckoutPage({
 
       setIsQuoting(true);
       try {
-        const estimatedWeightKg =
-          product.unit.toLowerCase() === "bag" ? 50 * quantity : 1 * quantity;
-        const quote = await getDeliveryQuote(
-          pickupAddress,
-          deliveryAddress,
-          estimatedWeightKg,
-        );
+        const estimatedWeightKg = product.unit.toLowerCase() === "bag" ? 50 * quantity : 10 * quantity;
+        const quote = await getDeliveryQuote(pickupAddress, fullAddress, estimatedWeightKg);
         setDeliveryQuoteKobo(Number(quote.costKobo));
       } catch (err) {
         setDeliveryQuoteKobo(null);
-        console.error("Failed to fetch delivery quote", err);
       } finally {
         setIsQuoting(false);
       }
@@ -109,52 +100,45 @@ export default function CheckoutPage({
 
     const delayDebounceFn = setTimeout(() => fetchQuote(), 800);
     return () => clearTimeout(delayDebounceFn);
-  }, [deliveryMethod, deliveryAddress, quantity, product]);
+  }, [deliveryMethod, deliveryStreet, deliveryLga, deliveryState, quantity, product]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!product) return;
+    if (!deliveryState || !deliveryLga || !deliveryStreet.trim()) {
+      setError("Please complete your delivery address.");
+      return;
+    }
+
+    const fullAddress = `${deliveryStreet.trim()}, ${deliveryLga}, ${deliveryState}`;
     setError(null);
     createOrderMutation.mutate({
       productId: product.id,
       quantity,
-      deliveryAddress,
+      deliveryAddress: fullAddress,
       paymentMethod: isVerifiedMerchant ? paymentMethod : "ESCROW",
       deliveryMethod,
     });
   };
 
   const isSubmitting = createOrderMutation.isPending;
-
-  const priceKobo = product?.pricePerUnitKobo
-    ? Number(product.pricePerUnitKobo)
-    : 0;
+  const priceKobo = Number(product?.pricePerUnitKobo || 0);
   const subtotalKobo = priceKobo * quantity;
-  const feePercentage =
-    paymentMethod === "DIRECT" && isVerifiedMerchant ? 1 : 2;
+  const feePercentage = paymentMethod === "DIRECT" && isVerifiedMerchant ? 1 : 2;
   const platformFeeKobo = Math.floor(subtotalKobo * (feePercentage / 100));
-  const activeDeliveryFeeKobo =
-    deliveryMethod === "PLATFORM_LOGISTICS" ? deliveryQuoteKobo || 0 : 0;
-  const totalKobo = subtotalKobo + platformFeeKobo + activeDeliveryFeeKobo;
-
-  const formatMoney = (kobo: number) =>
-    (kobo / 100).toLocaleString("en-NG", {
-      style: "currency",
-      currency: "NGN",
-    });
-
-  const showPaymentMethodSection = isVerifiedMerchant;
+  const deliveryFeeKobo = deliveryMethod === "PLATFORM_LOGISTICS" ? deliveryQuoteKobo || 250000 : 0;
+  const totalKobo = subtotalKobo + platformFeeKobo + deliveryFeeKobo;
 
   if (loading) {
     return (
-      <div className="space-y-8 py-4 animate-in fade-in duration-500 max-w-4xl mx-auto">
-        <Skeleton className="size-10 rounded" />
-        <div className="space-y-2">
-          <Skeleton className="h-10 w-64 rounded-sm" />
-        </div>
-        <div className="bg-white border border-slate-200 rounded p-10 space-y-8">
-          <Skeleton className="h-12 w-full rounded-sm" />
-          <Skeleton className="h-48 w-full rounded-sm" />
+      <div className="max-w-4xl mx-auto px-4 py-12">
+        <Skeleton className="h-10 w-48 mb-8" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="md:col-span-2 space-y-4">
+            <Skeleton className="h-64 w-full rounded-2xl" />
+            <Skeleton className="h-64 w-full rounded-2xl" />
+          </div>
+          <Skeleton className="h-[400px] w-full rounded-2xl" />
         </div>
       </div>
     );
@@ -162,384 +146,248 @@ export default function CheckoutPage({
 
   if (!product) {
     return (
-      <div className="max-w-4xl mx-auto py-10">
-        <div className="p-4 bg-red-50 border border-red-200 rounded text-red-700 font-bold uppercase text-xs">
-          Product not found or unavailable for direct purchase.
+      <div className="max-w-4xl mx-auto px-4 py-32 text-center">
+        <div className="size-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-300">
+           <span className="material-symbols-outlined text-4xl">inventory_2</span>
         </div>
+        <h2 className="text-2xl font-bold text-slate-900 mb-2">Product Unavailable</h2>
+        <p className="text-slate-500 mb-8">This item is no longer available for direct purchase.</p>
+        <button onClick={() => router.back()} className="text-primary font-bold flex items-center gap-2 mx-auto">
+           <span className="material-symbols-outlined">arrow_back</span> Go Back
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 py-4 animate-in fade-in duration-500 max-w-4xl mx-auto">
-      <div className="flex items-center gap-4">
-        <button
+    <div className="max-w-5xl mx-auto px-4 py-10 min-h-screen animate-in fade-in duration-700">
+      <div className="flex items-center gap-4 mb-10">
+        <button 
           onClick={() => router.back()}
-          className="size-10 rounded border border-slate-300 flex items-center justify-center hover:bg-slate-50 transition-colors"
+          className="size-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors shadow-sm"
         >
-          <span className="material-symbols-outlined text-xl">arrow_back</span>
+          <span className="material-symbols-outlined text-xl text-slate-600">arrow_back</span>
         </button>
-        <div className="space-y-0.5">
-          <h1 className="text-[28px] font-bold uppercase tracking-tight leading-tight">
-            Checkout
-          </h1>
-          <p className="text-primary text-xs font-bold tracking-widest uppercase">
-            SECURE DIRECT PURCHASE
-          </p>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Checkout</h1>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Order Summary</p>
         </div>
       </div>
 
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded flex gap-3">
-          <span className="material-symbols-outlined text-red-600">error</span>
-          <p className="text-xs font-bold text-red-700 uppercase tracking-wide flex items-center">
-            {error}
-          </p>
-        </div>
-      )}
-
-      <form
-        onSubmit={handleSubmit}
-        className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start"
-      >
-        <div className="md:col-span-2 space-y-6">
-          <div className="bg-white border border-slate-200 rounded p-6 shadow-sm space-y-6">
-            <h2 className="text-sm font-black uppercase text-slate-800 tracking-widest border-b border-slate-100 pb-3">
-              Delivery Details
-            </h2>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                  DELIVERY ADDRESS
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={deliveryAddress}
-                  onChange={(e) => setDeliveryAddress(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded py-3 px-4 text-sm font-bold text-slate-900 outline-none focus:border-primary focus:bg-white transition-all"
-                  placeholder="Enter full delivery address in Lagos"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                  QUANTITY ({product.unit.toUpperCase()})
-                </label>
-                <input
-                  type="number"
-                  min={minQuantity}
-                  required
-                  value={quantity}
-                  onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                  className={`w-full bg-slate-50 border rounded py-3 px-4 text-sm font-mono font-medium text-slate-900 outline-none transition-all ${
-                    isBelowMin
-                      ? "border-red-400 bg-red-50"
-                      : "border-slate-300 focus:border-primary focus:bg-white"
-                  }`}
-                />
-                {isBelowMin && (
-                  <p className="text-[10px] font-bold text-red-600 uppercase tracking-tight mt-1 ml-1">
-                    Minimum order requirement is {minQuantity}.
-                  </p>
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+        <div className="lg:col-span-8 space-y-8">
+          {/* Item Summary */}
+          <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-6">
+            <div className="flex items-center gap-6">
+              <div className="size-24 rounded-xl border border-slate-100 bg-slate-50 overflow-hidden flex items-center justify-center shrink-0">
+                {product.imageUrl ? (
+                  <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="material-symbols-outlined text-4xl text-slate-200">inventory_2</span>
                 )}
               </div>
-            </div>
-          </div>
-
-          <div className="bg-white border border-slate-200 rounded p-6 shadow-sm space-y-4">
-            <h2 className="text-sm font-black uppercase text-slate-800 tracking-widest border-b border-slate-100 pb-3">
-              Delivery Method
-            </h2>
-
-            <label
-              className={`flex items-start gap-4 p-4 rounded border-2 cursor-pointer transition-all ${
-                deliveryMethod === "MERCHANT_DELIVERY"
-                  ? "border-primary bg-primary/5"
-                  : "border-slate-200 hover:border-slate-300"
-              }`}
-              onClick={() => setDeliveryMethod("MERCHANT_DELIVERY")}
-            >
-              <input
-                type="radio"
-                name="deliveryMethod"
-                value="MERCHANT_DELIVERY"
-                checked={deliveryMethod === "MERCHANT_DELIVERY"}
-                onChange={() => setDeliveryMethod("MERCHANT_DELIVERY")}
-                className="mt-1 accent-primary"
-              />
               <div className="flex-1">
-                <p className="text-sm font-black uppercase tracking-wide text-slate-900">
-                  Merchant Delivery
-                </p>
-                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                  Merchant handles shipping. Tracking is updated manually. Free
-                  or merchant-specified.
-                </p>
-              </div>
-            </label>
-
-            <label
-              className={`flex items-start gap-4 p-4 rounded border-2 cursor-pointer transition-all ${
-                deliveryMethod === "PLATFORM_LOGISTICS"
-                  ? "border-indigo-500 bg-indigo-50"
-                  : "border-slate-200 hover:border-slate-300"
-              }`}
-              onClick={() => setDeliveryMethod("PLATFORM_LOGISTICS")}
-            >
-              <input
-                type="radio"
-                name="deliveryMethod"
-                value="PLATFORM_LOGISTICS"
-                checked={deliveryMethod === "PLATFORM_LOGISTICS"}
-                onChange={() => setDeliveryMethod("PLATFORM_LOGISTICS")}
-                className="mt-1 accent-indigo-500"
-              />
-              <div className="flex-1">
-                <div className="flex justify-between items-start">
-                  <p className="text-sm font-black uppercase tracking-wide text-slate-900 flex items-center gap-2">
-                    SwiftTrade Delivery
-                    <span className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-bold">
-                      📍 GPS TRACKED
-                    </span>
-                  </p>
-                  <p className="text-sm font-black text-indigo-600">
-                    {isQuoting
-                      ? "..."
-                      : deliveryQuoteKobo
-                        ? formatMoney(deliveryQuoteKobo)
-                        : ""}
-                  </p>
-                </div>
-                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                  Professional tracked delivery. Requires a full delivery
-                  address.
-                </p>
-              </div>
-            </label>
-
-            {/* Merchant Delivery Disclaimer */}
-            {deliveryMethod === "MERCHANT_DELIVERY" &&
-              showMerchantDisclaimer && (
-                <div className="mt-2 p-4 bg-amber-50 border border-amber-200 rounded-lg space-y-3">
-                  <div className="flex items-start gap-2">
-                    <span className="material-symbols-outlined text-amber-500 mt-0.5 text-lg">
-                      info
-                    </span>
-                    <div className="flex-1">
-                      <p className="text-xs font-black text-amber-800 uppercase tracking-wide mb-2">
-                        📦 Merchant Delivery Selected
-                      </p>
-                      <ul className="space-y-1 text-[11px] text-amber-700 font-medium">
-                        <li>
-                          ✅ Your payment is still 100% protected by SwiftTrade
-                          escrow
-                        </li>
-                        <li>
-                          ✅ You confirm delivery with your OTP code before the
-                          merchant gets paid
-                        </li>
-                        <li>
-                          ⚠️ SwiftTrade does not control delivery timeline,
-                          method, or handling
-                        </li>
-                        <li>
-                          ⚠️ For tracked delivery with real-time updates, choose
-                          SwiftTrade Delivery
-                        </li>
-                      </ul>
+                 <h3 className="text-lg font-bold text-slate-900 leading-tight mb-1">{product.name}</h3>
+                 <p className="text-xs font-semibold text-slate-500 mb-4">Merchant: <span className="text-slate-900">{(product as any).merchantProfile?.businessName || "Verified Partner"}</span></p>
+                 <div className="flex items-center gap-6">
+                    <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg p-0.5">
+                       <button 
+                         type="button"
+                         onClick={() => setQuantity(Math.max(minQuantity, quantity - 1))}
+                         className="size-7 flex items-center justify-center text-slate-400 hover:text-primary transition-colors"
+                         disabled={quantity <= minQuantity}
+                       >
+                         <span className="material-symbols-outlined text-base">remove</span>
+                       </button>
+                       <span className="px-4 text-[11px] font-bold font-mono">{quantity}</span>
+                       <button 
+                         type="button"
+                         onClick={() => setQuantity(quantity + 1)}
+                         className="size-7 flex items-center justify-center text-slate-400 hover:text-primary transition-colors"
+                       >
+                         <span className="material-symbols-outlined text-base">add</span>
+                       </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowMerchantDisclaimer(false)}
-                      className="text-amber-400 hover:text-amber-600 transition-colors"
-                      aria-label="Dismiss notice"
-                    >
-                      <span className="material-symbols-outlined text-sm">
-                        close
-                      </span>
-                    </button>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDeliveryMethod("PLATFORM_LOGISTICS");
-                        setShowMerchantDisclaimer(true);
-                      }}
-                      className="flex-1 py-2 text-[10px] font-black uppercase tracking-widest bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
-                    >
-                      Switch to SwiftTrade Delivery
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowMerchantDisclaimer(false)}
-                      className="flex-1 py-2 text-[10px] font-black uppercase tracking-widest bg-white border border-amber-300 text-amber-700 rounded hover:bg-amber-50 transition-colors"
-                    >
-                      Continue with Merchant Delivery
-                    </button>
-                  </div>
-                </div>
-              )}
-          </div>
+                    <div>
+                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Price per unit</p>
+                       <p className="text-sm font-bold text-slate-900 mt-1">{formatKobo(priceKobo)}</p>
+                    </div>
+                 </div>
+              </div>
+            </div>
+          </section>
 
-          {/* Payment Method Selector */}
-          {showPaymentMethodSection && (
-            <div className="bg-white border border-slate-200 rounded p-6 shadow-sm space-y-4">
-              <h2 className="text-sm font-black uppercase text-slate-800 tracking-widest border-b border-slate-100 pb-3">
-                Payment Method
-              </h2>
+          {/* Delivery Address */}
+          <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-8 space-y-6">
+            <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100 pb-4">Delivery & Options</h2>
+            <StateLgaSelector 
+               selectedState={deliveryState}
+               selectedLga={deliveryLga}
+               onStateChange={setDeliveryState}
+               onLgaChange={setDeliveryLga}
+            />
+            <div className="space-y-4">
+               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                  <span className="material-symbols-outlined text-sm">home</span> Street Address
+               </label>
+               <textarea 
+                 value={deliveryStreet}
+                 onChange={(e) => setDeliveryStreet(e.target.value)}
+                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 text-sm font-semibold focus:border-primary outline-none transition-all placeholder:text-slate-300 min-h-[100px] resize-none"
+                 placeholder="Enter full delivery address details..."
+               />
+            </div>
 
-              <label
-                className={`flex items-start gap-4 p-4 rounded border-2 cursor-pointer transition-all ${
-                  paymentMethod === "ESCROW"
-                    ? "border-primary bg-primary/5"
-                    : "border-slate-200 hover:border-slate-300"
-                }`}
-                onClick={() => setPaymentMethod("ESCROW")}
-              >
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="ESCROW"
-                  checked={paymentMethod === "ESCROW"}
-                  onChange={() => setPaymentMethod("ESCROW")}
-                  className="mt-1 accent-primary"
-                />
-                <div>
-                  <p className="text-sm font-black uppercase tracking-wide text-slate-900">
-                    Pay via Escrow (2% fee)
-                  </p>
-                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                    🔒 Your money is held securely until you confirm delivery.
-                    Full buyer protection.
-                  </p>
-                </div>
-              </label>
-
-              {isVerifiedMerchant && (
-                <label
-                  className={`flex items-start gap-4 p-4 rounded border-2 cursor-pointer transition-all ${
-                    paymentMethod === "DIRECT"
-                      ? "border-emerald-500 bg-emerald-50"
-                      : "border-slate-200 hover:border-slate-300"
-                  }`}
-                  onClick={() => setPaymentMethod("DIRECT")}
-                >
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="DIRECT"
-                    checked={paymentMethod === "DIRECT"}
-                    onChange={() => setPaymentMethod("DIRECT")}
-                    className="mt-1 accent-emerald-500"
-                  />
-                  <div>
-                    <p className="text-sm font-black uppercase tracking-wide text-slate-900 flex items-center gap-2">
-                      Pay Direct (1% fee)
-                      <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-bold">
-                        ✅ VERIFIED MERCHANT
-                      </span>
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                      Money sent to merchant immediately. Lower fee for verified
-                      merchants you trust.
-                    </p>
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
+              <div className="space-y-4">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                   <span className="material-symbols-outlined text-sm">local_shipping</span> Shipping
                 </label>
-              )}
+                <div className="space-y-3">
+                   <div className={cn(
+                     "relative flex items-center justify-between p-4 h-[72px] rounded-xl border opacity-60",
+                     deliveryMethod === 'PLATFORM_LOGISTICS' ? 'border-primary bg-primary/[0.02]' : 'border-slate-100'
+                   )}>
+                     <div className="flex items-center gap-3">
+                       <span className="material-symbols-outlined text-slate-400">local_shipping</span>
+                       <span className="text-xs font-bold text-slate-900">Swifta <span className="text-[8px] text-primary uppercase ml-1">Soon</span></span>
+                     </div>
+                     <div className="size-4 rounded-full border-2 border-slate-100"></div>
+                   </div>
+                   <div 
+                     onClick={() => setDeliveryMethod('MERCHANT_DELIVERY')}
+                     className={cn(
+                       "relative flex items-center justify-between p-4 h-[72px] rounded-xl cursor-pointer border transition-all",
+                       deliveryMethod === 'MERCHANT_DELIVERY' ? 'border-slate-900 bg-slate-50' : 'border-slate-100'
+                     )}
+                   >
+                     <div className="flex items-center gap-3">
+                       <span className="material-symbols-outlined text-slate-400">hail</span>
+                       <span className="text-xs font-bold text-slate-900">Seller Delivery</span>
+                     </div>
+                     <div className={cn(
+                       "size-4 rounded-full border-2 flex items-center justify-center",
+                       deliveryMethod === 'MERCHANT_DELIVERY' ? 'border-primary' : 'border-slate-100'
+                     )}>
+                        {deliveryMethod === 'MERCHANT_DELIVERY' && <div className="size-2 rounded-full bg-primary" />}
+                     </div>
+                   </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                   <span className="material-symbols-outlined text-sm">payments</span> Payment
+                </label>
+                <div className="space-y-3">
+                   <div 
+                     onClick={() => setPaymentMethod('ESCROW')}
+                     className={cn(
+                       "relative flex items-center justify-between p-4 h-[72px] rounded-xl cursor-pointer border transition-all",
+                       paymentMethod === 'ESCROW' ? 'border-primary bg-primary/[0.02]' : 'border-slate-100'
+                     )}
+                   >
+                     <div className="flex items-center gap-3">
+                       <span className="material-symbols-outlined text-emerald-600">verified_user</span>
+                       <span className="text-xs font-bold text-slate-900">Secure Escrow</span>
+                     </div>
+                     <div className={cn(
+                       "size-4 rounded-full border-2 flex items-center justify-center",
+                       paymentMethod === 'ESCROW' ? 'border-primary' : 'border-slate-100'
+                     )}>
+                        {paymentMethod === 'ESCROW' && <div className="size-2 rounded-full bg-primary" />}
+                     </div>
+                   </div>
+                   <div 
+                     onClick={() => isVerifiedMerchant && setPaymentMethod('DIRECT')}
+                     className={cn(
+                       "relative flex items-center justify-between p-4 h-[72px] rounded-xl cursor-pointer border transition-all",
+                       paymentMethod === 'DIRECT' ? 'border-slate-900 bg-slate-50' : 'border-slate-100',
+                       !isVerifiedMerchant && "opacity-40 cursor-not-allowed"
+                     )}
+                   >
+                     <div className="flex items-center gap-3">
+                       <span className="material-symbols-outlined text-slate-400">send_money</span>
+                       <span className="text-xs font-bold text-slate-900">Pay Direct</span>
+                     </div>
+                     <div className={cn(
+                       "size-4 rounded-full border-2 flex items-center justify-center",
+                       paymentMethod === 'DIRECT' ? 'border-primary' : 'border-slate-100'
+                     )}>
+                        {paymentMethod === 'DIRECT' && <div className="size-2 rounded-full bg-primary" />}
+                     </div>
+                   </div>
+                </div>
+              </div>
             </div>
-          )}
+          </section>
         </div>
 
-        {/* Order Summary Sidebar */}
-        <div className="bg-slate-900 text-white rounded p-6 shadow-lg sticky top-8 space-y-6">
-          <h2 className="text-sm font-black uppercase tracking-widest border-b border-slate-800 pb-3 text-slate-300">
-            Order Summary
-          </h2>
+        <aside className="lg:col-span-4 lg:sticky lg:top-8">
+          <div className="bg-[#0f172a] rounded-xl p-8 text-white shadow-2xl relative border border-white/5">
+            <div className="space-y-8">
+              <div>
+                <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-500 mb-6">Order Summary</h2>
+                <div className="h-px bg-white/5" />
+              </div>
+              
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-emerald-500 uppercase tracking-widest leading-tight">
+                  {(product as any).merchantProfile?.businessName || "AmeenStore"}
+                </h3>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  1 item in checkout
+                </p>
+              </div>
 
-          <div className="space-y-4">
-            <div>
-              <p className="text-lg font-bold uppercase">{product.name}</p>
-              <p className="text-xs text-primary font-bold uppercase tracking-wider mt-1">
-                {(product as any).merchantProfile?.businessName ||
-                  "Verified Merchant"}
-              </p>
-            </div>
+              <div className="h-px bg-white/5" />
 
-            <div className="space-y-2 pt-4 border-t border-slate-800 text-sm font-mono">
-              <div className="flex justify-between items-center text-slate-300">
-                <span>Unit Price</span>
-                <span className="font-bold text-white">
-                  {formatMoney(priceKobo)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-slate-300">
-                <span>Quantity</span>
-                <span className="font-bold text-white">x {quantity}</span>
-              </div>
-              <div className="flex justify-between items-center text-slate-300">
-                <span>Subtotal</span>
-                <span className="font-bold text-white">
-                  {formatMoney(subtotalKobo)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-slate-400 text-xs">
-                <span>Platform Fee ({feePercentage}%)</span>
-                <span>{formatMoney(platformFeeKobo)}</span>
-              </div>
-              {deliveryMethod === "PLATFORM_LOGISTICS" && (
-                <div className="flex justify-between items-center text-indigo-300">
-                  <span>SwiftTrade Delivery</span>
-                  <span className="font-bold flex items-center gap-2">
-                    {isQuoting ? (
-                      <span className="material-symbols-outlined text-xs animate-spin">
-                        sync
-                      </span>
-                    ) : (
-                      formatMoney(activeDeliveryFeeKobo)
-                    )}
-                  </span>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center text-sm font-medium">
+                  <span className="text-slate-300">Subtotal</span>
+                  <span className="font-mono text-white tracking-tighter font-bold">{formatKobo(subtotalKobo)}</span>
                 </div>
-              )}
-            </div>
+                <div className="flex justify-between items-center text-sm font-medium">
+                  <span className="text-slate-400">Platform Fee (2%)</span>
+                  <span className="font-mono text-slate-400 tracking-tighter font-bold">{formatKobo(platformFeeKobo)}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm font-medium">
+                  <span className="text-slate-400">Shipping</span>
+                  <span className="font-mono text-white tracking-tighter font-bold">{formatKobo(deliveryFeeKobo)}</span>
+                </div>
+              </div>
 
-            <div className="pt-4 border-t border-slate-800 flex justify-between items-center text-lg">
-              <span className="font-bold uppercase tracking-widest text-slate-300 text-xs">
-                Total
-              </span>
-              <span className="font-black text-emerald-400">
-                {formatMoney(totalKobo)}
-              </span>
+              <div className="h-px bg-white/5" />
+
+              <div className="flex justify-between items-center py-2">
+                <span className="text-xs font-bold text-white uppercase tracking-[0.25em]">Total</span>
+                <span className="text-3xl font-bold text-emerald-400 font-mono tracking-tighter">{formatKobo(totalKobo)}</span>
+              </div>
+
+              <div className="space-y-6">
+                <button 
+                  type="submit"
+                  disabled={isSubmitting || isBelowMin || !deliveryStreet.trim() || !deliveryState || !deliveryLga}
+                  className="w-full py-5 rounded-xl bg-[#065f46] hover:bg-[#065f46]/90 text-white font-bold text-sm flex items-center justify-center gap-3 transition-all disabled:opacity-50 active:scale-[0.98]"
+                >
+                  <span className="material-symbols-outlined text-xl">lock</span>
+                  {isSubmitting ? "PROCESSING..." : `PAY ${formatKobo(totalKobo)}`}
+                </button>
+
+                <div className="text-center">
+                  <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em] leading-relaxed">
+                    Payments securely processed by Paystack Escrow
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
-
-          <button
-            type="submit"
-            disabled={isSubmitting || isBelowMin || !deliveryAddress}
-            className="w-full py-4 rounded text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-4 bg-primary hover:bg-orange-600"
-          >
-            {isSubmitting ? (
-              <>
-                <span className="material-symbols-outlined text-lg animate-spin">
-                  sync
-                </span>
-                PROCESSING...
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined text-lg">lock</span>
-                PAY {formatMoney(totalKobo)}
-              </>
-            )}
-          </button>
-
-          <p className="text-[10px] text-center text-slate-500 font-medium uppercase tracking-wider">
-            {paymentMethod === "DIRECT" && isVerifiedMerchant
-              ? "Direct payment to verified merchant via Paystack"
-              : "Payments securely processed by Paystack Escrow"}
-          </p>
-        </div>
+          
+          <div className="mt-4 flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-100 rounded-xl shadow-sm">
+             <span className="material-symbols-outlined text-emerald-500 text-sm">verified</span>
+             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none">Safe & Secure Payment</p>
+          </div>
+        </aside>
       </form>
     </div>
   );

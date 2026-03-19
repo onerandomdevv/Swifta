@@ -1,5 +1,5 @@
 import React from "react";
-import type { Order } from "@hardware-os/shared";
+import type { Order } from "@swifta/shared";
 
 interface Props {
   order: Order;
@@ -7,125 +7,114 @@ interface Props {
 }
 
 export function KanbanOrderCard({ order, onAction }: Props) {
-  // Styling and content specifically adapted for each order status based on the provided Stitch design rules.
-
-  if (order.status === "PAID") {
-    // Awaiting Dispatch Style (Blue theme, Urgent Tag, Generate OTP button)
+  if (!order) {
     return (
-      <div className="bg-white dark:bg-slate-900 border-2 border-primary p-4 shadow-sm flex flex-col h-[180px]">
-        <div className="flex justify-between items-start mb-2">
-          <span className="text-[10px] font-mono text-primary font-bold">
-            #HW-{order.id.slice(0, 4).toUpperCase()}
-          </span>
-          <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 font-bold rounded uppercase tracking-tighter italic">
-            Urgent
-          </span>
+      <div className="border-2 border-dashed border-border-light rounded-[1.5rem] p-10 flex flex-col items-center justify-center bg-background-secondary/30 min-h-[200px] group-hover:bg-background-secondary/50 transition-all">
+        <div className="size-12 rounded-full bg-surface flex items-center justify-center border border-border shadow-sm mb-4">
+          <span className="material-symbols-outlined text-foreground-muted">add</span>
         </div>
-        <h4
-          className="text-sm font-bold mb-1 truncate text-slate-900 dark:text-white"
-          title={order.rfq.product.name}
-        >
-          {order.rfq.quantity} {order.rfq.product.unit}s of{" "}
-          {order.rfq.product.name}
-        </h4>
-        <p
-          className="text-xs text-slate-500 mb-4 truncate"
-          title={order.buyerId}
-        >
-          Buyer ID: {order.buyerId.split("-")[0].toUpperCase()}
-        </p>
-        <div className="space-y-2 mt-auto">
-          <button
-            className="w-full bg-primary text-white py-2 text-xs font-bold uppercase tracking-widest hover:bg-primary/90 transition-colors"
-            onClick={() => onAction(order.id)}
-          >
-            Generate Dispatch OTP
-          </button>
-          <p className="text-[9px] text-center text-slate-400 italic">
-            Ready for carrier
-          </p>
-        </div>
+        <p className="text-[10px] font-black text-foreground-muted uppercase tracking-[0.2em]">Drop orders here</p>
       </div>
     );
   }
 
-  if (order.status === "DISPATCHED") {
-    // In Transit Style (Basic border, Progress Bar, Route markers)
-    return (
-      <div
-        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 shadow-sm h-[180px] flex flex-col hover:border-slate-400 dark:hover:border-slate-600 transition-colors cursor-pointer"
-        onClick={() => onAction(order.id)}
-      >
-        <div className="flex justify-between items-start mb-2">
-          <span className="text-[10px] font-mono text-slate-400">
-            #HW-{order.id.slice(0, 4).toUpperCase()}
-          </span>
-          <div className="flex items-center gap-1 text-[10px] text-blue-500 font-bold">
-            <span className="material-symbols-outlined text-sm">
-              local_shipping
-            </span>
-            ON ROAD
-          </div>
-        </div>
-        <h4
-          className="text-sm font-bold mb-1 truncate text-slate-900 dark:text-white"
-          title={order.rfq.product.name}
-        >
-          {order.rfq.quantity} {order.rfq.product.unit}s of{" "}
-          {order.rfq.product.name}
-        </h4>
-        <p
-          className="text-xs text-slate-500 mb-3 truncate"
-          title={order.buyerId}
-        >
-          Buyer ID: {order.buyerId.split("-")[0].toUpperCase()}
-        </p>
-        <div className="mt-auto">
-          <div className="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded overflow-hidden mb-2">
-            <div className="bg-primary h-full w-[65%]"></div>
-          </div>
-          <div className="flex justify-between text-[9px] uppercase font-bold text-slate-400">
-            <span>Dispatched</span>
-            <span
-              className="truncate max-w-[100px] text-right"
-              title={order.quote?.rfq?.deliveryAddress}
-            >
-              {order.quote?.rfq?.deliveryAddress?.split(",")[0] ||
-                "Destination"}
-            </span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Payout Completed Style (Emerald text, simple list view)
-  return (
-    <div
-      className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 shadow-sm hover:border-emerald-500/50 transition-colors cursor-pointer"
-      onClick={() => onAction(order.id)}
+  const shortId = `#ORD-${order.id.slice(0, 4).toUpperCase()}`;
+  // Prioritize product name from order object directly
+  const productName = order.product?.name || "Product";
+  // Safely access buyer name if populated by backend joins
+  const buyerName = (order as any).buyer?.name;
+  const buyerInitial = buyerName?.slice(0, 2).toUpperCase() || order.buyerId?.slice(0, 2).toUpperCase() || "CU";
+  const amount = Number(order.totalAmountKobo || 0) / 100;
+  
+  const CardWrapper = ({ children, className = "", onClick }: { children: React.ReactNode, className?: string, onClick?: () => void }) => (
+    <button 
+      type="button"
+      onClick={onClick}
+      className={`appearance-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 text-left w-full bg-surface border border-border p-5 rounded-[1.5rem] shadow-sm hover:border-primary/50 transition-all group active:scale-[0.98] relative overflow-hidden flex flex-col ${className}`}
     >
-      <div className="flex justify-between items-start mb-2">
-        <span className="text-[10px] font-mono text-slate-400">
-          #HW-{order.id.slice(0, 4).toUpperCase()}
-        </span>
-        <span className="text-[10px] text-emerald-500 font-bold flex items-center gap-0.5">
-          <span className="material-symbols-outlined text-xs">
-            check_circle
-          </span>
-          COMPLETED
-        </span>
+      {children}
+    </button>
+  );
+
+  // --- New Orders (PENDING_PAYMENT) ---
+  if (order.status === "PENDING_PAYMENT") {
+    return (
+      <CardWrapper onClick={() => onAction(order.id)}>
+        <div className="flex justify-between items-start mb-4">
+          <span className="text-[10px] font-black text-foreground-muted/40 uppercase tracking-widest">{shortId}</span>
+          <span className="px-3 py-1 rounded bg-orange-500/10 text-orange-600 dark:text-orange-400 text-[9px] font-black uppercase tracking-widest border border-orange-500/20">Urgent</span>
+        </div>
+        <h4 className="text-sm font-black text-foreground mb-6 leading-tight tracking-tight line-clamp-2">{productName}</h4>
+        <div className="flex items-center justify-between mt-auto">
+          <div className="size-8 rounded-full bg-background-secondary flex items-center justify-center border border-border text-[10px] font-black text-foreground-secondary">
+            {buyerInitial}
+          </div>
+          <span className="text-sm font-black text-foreground tabular-nums tracking-widest">₦{amount.toLocaleString()}</span>
+        </div>
+      </CardWrapper>
+    );
+  }
+
+  // --- Awaiting Dispatch (PAID) ---
+  if (order.status === "PAID") {
+    return (
+      <CardWrapper onClick={() => onAction(order.id)}>
+        <div className="flex justify-between items-start mb-4">
+          <span className="text-[10px] font-black text-foreground-muted/40 uppercase tracking-widest">{shortId}</span>
+          <span className="px-3 py-1 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[9px] font-black uppercase tracking-widest border border-blue-500/20">Ready</span>
+        </div>
+        <h4 className="text-sm font-black text-foreground mb-6 leading-tight tracking-tight line-clamp-2">{productName}</h4>
+        <div className="flex items-center justify-between mt-auto">
+          <div className="flex items-center gap-2">
+            <span className="size-2 bg-blue-500 rounded-full animate-pulse"></span>
+            <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">Ready to Ship</span>
+          </div>
+          <span className="text-sm font-black text-foreground tabular-nums tracking-widest">₦{amount.toLocaleString()}</span>
+        </div>
+      </CardWrapper>
+    );
+  }
+
+  // --- On The Road (DISPATCHED) ---
+  if (order.status === "DISPATCHED") {
+    const transitId = order.id?.startsWith("ORD") ? order.id.replace("ORD", "TRK") : `#TRK-${order.id.slice(0, 4).toUpperCase()}`;
+    const location = order.deliveryDetails?.state || "In Transit";
+
+    return (
+      <CardWrapper onClick={() => onAction(order.id)} className="bg-indigo-500/5 border-indigo-500/20 dark:border-indigo-900/30">
+        <div className="flex justify-between items-start mb-4">
+          <span className="text-[10px] font-black text-indigo-500/60 uppercase tracking-widest">{transitId}</span>
+          <span className="px-3 py-1 rounded bg-indigo-500 text-primary-foreground text-[9px] font-black uppercase tracking-widest">Transit</span>
+        </div>
+        <h4 className="text-sm font-black text-foreground mb-4 leading-tight tracking-tight line-clamp-2">{productName}</h4>
+        
+        <div className="w-full bg-background-secondary h-1.5 rounded-full overflow-hidden mb-4 border border-border/10">
+          <div className="bg-indigo-500 h-full w-[45%] animate-pulse shadow-[0_0_12px_rgba(99,102,241,0.5)]"></div>
+        </div>
+
+        <div className="flex items-baseline justify-between mt-auto">
+          <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Location: {location}</span>
+          <span className="text-sm font-black text-foreground tabular-nums tracking-widest">₦{amount.toLocaleString()}</span>
+        </div>
+      </CardWrapper>
+    );
+  }
+
+  // --- Completed ---
+  return (
+    <CardWrapper onClick={() => onAction(order.id)} className="opacity-80">
+      <div className="flex justify-between items-start mb-4">
+        <span className="text-[10px] font-black text-foreground-muted/40 uppercase tracking-widest">{shortId}</span>
+        <span className="px-3 py-1 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9px] font-black uppercase tracking-widest border border-emerald-500/20">Delivered</span>
       </div>
-      <h4
-        className="text-sm font-bold mb-1 truncate text-slate-900 dark:text-white"
-        title={order.quote?.rfq?.product?.name}
-      >
-        {order.quote?.rfq?.quantity} {order.quote?.rfq?.product?.unit}s of{" "}
-        {order.quote?.rfq?.product?.name}
-      </h4>
-      <p className="text-xs text-slate-500 truncate" title={order.buyerId}>
-        Buyer ID: {order.buyerId.split("-")[0].toUpperCase()}
-      </p>
-    </div>
+      <h4 className="text-sm font-black text-foreground mb-6 leading-tight tracking-tight line-clamp-2">{productName}</h4>
+      <div className="flex items-center justify-between mt-auto">
+        <div className="flex items-center gap-1.5">
+          <span className="material-symbols-outlined text-[14px] text-emerald-500">task_alt</span>
+          <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Completed</span>
+        </div>
+        <span className="text-sm font-black text-foreground tabular-nums tracking-widest">₦{amount.toLocaleString()}</span>
+      </div>
+    </CardWrapper>
   );
 }

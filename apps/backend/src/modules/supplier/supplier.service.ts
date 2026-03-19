@@ -3,22 +3,75 @@ import {
   ForbiddenException,
   NotFoundException,
   BadRequestException,
+  Inject,
+  forwardRef,
+  Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { CreateSupplierProductDto } from "./dto/create-supplier-product.dto";
 import { UpdateSupplierProductDto } from "./dto/update-supplier-product.dto";
 import { CreateWholesaleOrderDto } from "./dto/create-wholesale-order.dto";
-import { OrderStatus } from "@hardware-os/shared";
+import { OrderStatus } from "@swifta/shared";
 import { PaymentService } from "../payment/payment.service";
-import { WhatsAppService } from "../whatsapp/whatsapp.service";
 
 @Injectable()
 export class SupplierService {
+  private readonly logger = new Logger(SupplierService.name);
+
   constructor(
     private prisma: PrismaService,
+    @Inject(forwardRef(() => PaymentService))
     private paymentService: PaymentService,
-    private whatsappService: WhatsAppService,
   ) {}
+
+  private async findMerchantCategories(merchantId: string): Promise<string[]> {
+    const products = await this.prisma.product.findMany({
+      where: { merchantId, isActive: true, deletedAt: null },
+      select: { categoryTag: true },
+      distinct: ["categoryTag"],
+    });
+    return products.map((p) => p.categoryTag);
+  }
+
+  async getRecommendedCatalogue(
+    merchantId: string,
+    page: number = 1,
+    limit: number = 50,
+  ) {
+    const merchantCategories = (
+      await this.findMerchantCategories(merchantId)
+    ).map((c) => c.trim().toLowerCase());
+
+    // Get all active supplier products (with pagination)
+    const allProducts = await this.prisma.supplierProduct.findMany({
+      where: {
+        isActive: true,
+        supplier: { isVerified: true },
+      },
+      include: {
+        supplier: {
+          select: { companyName: true, isVerified: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      skip: (page - 1) * limit,
+    });
+
+    // Map and Sort: Recommended (matching categories) first
+    return allProducts
+      .map((p) => {
+        const isMatch = merchantCategories.includes(
+          p.category.trim().toLowerCase(),
+        );
+        return { ...p, isRecommended: isMatch };
+      })
+      .sort((a, b) => {
+        if (a.isRecommended && !b.isRecommended) return -1;
+        if (!a.isRecommended && b.isRecommended) return 1;
+        return 0; // maintain default order (createdAt desc from query)
+      });
+  }
 
   async getProfile(userId: string) {
     const profile = await this.prisma.supplierProfile.findUnique({
@@ -201,7 +254,7 @@ export class SupplierService {
     });
 
     // Initialize payment — if this fails, compensate by deleting the orphan order
-    let paymentData: any;
+    let paymentData: { authorization_url?: string };
     try {
       paymentData = await this.paymentService.initialize(
         userId,
@@ -213,29 +266,6 @@ export class SupplierService {
       await this.prisma.order.delete({ where: { id: order.id } });
       throw new BadRequestException(
         "Payment initialization failed. Please try again.",
-      );
-    }
-
-    // Trigger WhatsApp notification to Supplier (outside transaction)
-    try {
-      const buyer = await this.prisma.user.findUnique({
-        where: { id: userId },
-      });
-      if (buyer) {
-        await this.whatsappService.sendSupplierNewOrder(product.supplierId, {
-          orderId: order.id,
-          buyerName: `${buyer.firstName} ${buyer.lastName}`,
-          productName: product.name,
-          quantity: dto.quantity,
-          amountKobo: totalAmountKobo,
-          deliveryAddress: dto.deliveryAddress,
-        });
-      }
-    } catch (notifierErr) {
-      // Just log, don't fail the order creation
-      console.error(
-        `Failed to send supplier WhatsApp notification for ${order.id}`,
-        notifierErr,
       );
     }
 

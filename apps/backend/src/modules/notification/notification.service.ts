@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "../../prisma/prisma.service";
 
 @Injectable()
 export class NotificationService {
@@ -12,7 +12,7 @@ export class NotificationService {
         where: { userId },
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
       }),
       this.prisma.notification.count({ where: { userId } }),
       this.prisma.notification.count({ where: { userId, isRead: false } }),
@@ -33,7 +33,7 @@ export class NotificationService {
     });
 
     if (!notification || notification.userId !== userId) {
-      throw new NotFoundException('Notification not found');
+      throw new NotFoundException("Notification not found");
     }
 
     return this.prisma.notification.update({
@@ -47,6 +47,6 @@ export class NotificationService {
       where: { userId, isRead: false },
       data: { isRead: true },
     });
-    return { message: 'All marked as read', count: result.count };
+    return { message: "All marked as read", count: result.count };
   }
 }

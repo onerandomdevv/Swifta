@@ -8,13 +8,12 @@ import {
   UseGuards,
   UnauthorizedException,
   ForbiddenException,
-  RawBodyRequest,
   Logger,
 } from "@nestjs/common";
 import * as crypto from "crypto";
 import { LogisticsService } from "./logistics.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
-import { UserRole } from "@hardware-os/shared";
+import { UserRole } from "@swifta/shared";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
 
@@ -53,7 +52,7 @@ export class LogisticsController {
   }
 
   @Post("webhook")
-  async handleWebhook(@Body() payload: any, @Req() req: RawBodyRequest<any>) {
+  async handleWebhook(@Body() payload: any, @Req() req: any) {
     // 0. Optional IP allowlisting
     const allowedIps = process.env.LOGISTICS_ALLOWED_IPS;
     if (allowedIps) {

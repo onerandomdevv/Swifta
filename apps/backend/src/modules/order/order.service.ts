@@ -15,20 +15,30 @@ import { InventoryService } from "../inventory/inventory.service";
 import { PaymentService } from "../payment/payment.service";
 import { ReorderService } from "../reorder/reorder.service";
 import { LogisticsService } from "../logistics/logistics.service";
-import { PAYOUT_QUEUE } from "../../queue/queue.constants";
+import {
+  PAYOUT_QUEUE,
+  REVIEW_QUEUE,
+  CHECKOUT_REMINDER_QUEUE,
+} from "../../queue/queue.constants";
 import { WhatsAppService } from "../whatsapp/whatsapp.service";
 import {
-  OrderStatus,
-  OTP_LENGTH,
-  PaginatedResponse,
+  InventoryEventType,
   Order,
-} from "@hardware-os/shared";
+  OrderStatus,
+  PaginatedResponse,
+  PriceType,
+} from "@swifta/shared";
+
 import { paginate } from "../../common/utils/pagination";
 import { validateTransition, getNextStates } from "./order-state-machine";
 import * as crypto from "crypto";
 import { VerificationService } from "../verification/verification.service";
 import { CreateDirectOrderDto } from "./dto/create-direct-order.dto";
 import { CreateTrackingDto } from "./dto/create-tracking.dto";
+import { CheckoutCartDto } from "./dto/checkout-cart.dto";
+
+import { PayoutService } from "../payout/payout.service";
+import { PlatformConfig } from "../../config/platform.config";
 
 @Injectable()
 export class OrderService {
@@ -42,81 +52,15 @@ export class OrderService {
     private paymentService: PaymentService,
     private reorderService: ReorderService,
     @InjectQueue(PAYOUT_QUEUE) private payoutQueue: Queue,
+    @InjectQueue(REVIEW_QUEUE) private reviewQueue: Queue,
+    @InjectQueue(CHECKOUT_REMINDER_QUEUE) private checkoutReminderQueue: Queue,
     private verificationService: VerificationService,
+    @Inject(forwardRef(() => LogisticsService))
     private logisticsService: LogisticsService,
+    @Inject(forwardRef(() => WhatsAppService))
     private whatsappService: WhatsAppService,
+    private payoutService: PayoutService,
   ) {}
-
-  // ──────────────────────────────────────────────
-  //  CREATE ORDER FROM ACCEPTED QUOTE (transaction)
-  // ──────────────────────────────────────────────
-
-  async createFromQuote(quoteId: string, buyerId: string) {
-    const quote = await this.prisma.quote.findUnique({
-      where: { id: quoteId },
-      include: { rfq: true },
-    });
-    if (!quote) throw new NotFoundException("Quote not found");
-    if (!quote.rfq) throw new NotFoundException("RFQ not found for this quote");
-
-    const idempotencyKey = `order-create-${quoteId}`;
-
-    // Check idempotency — if order already exists for this quote, return it
-    const existing = await this.prisma.order.findUnique({
-      where: { quoteId },
-    });
-    if (existing) return existing;
-
-    // Atomic: create order + reserve inventory + log initial event
-    const order = await this.prisma.$transaction(async (tx) => {
-      const newOrder = await tx.order.create({
-        data: {
-          quoteId,
-          buyerId,
-          merchantId: quote.merchantId,
-          totalAmountKobo: quote.totalPriceKobo,
-          deliveryFeeKobo: quote.deliveryFeeKobo,
-          currency: quote.currency,
-          status: OrderStatus.PENDING_PAYMENT,
-          idempotencyKey,
-        },
-      });
-
-      // Log initial OrderEvent
-      await tx.orderEvent.create({
-        data: {
-          orderId: newOrder.id,
-          fromStatus: null,
-          toStatus: OrderStatus.PENDING_PAYMENT,
-          triggeredBy: buyerId,
-          metadata: { action: "order_created_from_quote", quoteId },
-        },
-      });
-
-      // Reserve inventory
-      await tx.inventoryEvent.create({
-        data: {
-          productId: quote.rfq.productId,
-          merchantId: quote.merchantId,
-          eventType: "ORDER_RESERVED",
-          quantity: -quote.rfq.quantity,
-          referenceId: newOrder.id,
-          notes: "Order reservation",
-        },
-      });
-
-      await tx.productStockCache.upsert({
-        where: { productId: quote.rfq.productId },
-        create: { productId: quote.rfq.productId, stock: -quote.rfq.quantity },
-        update: { stock: { decrement: quote.rfq.quantity } },
-      });
-
-      return newOrder;
-    });
-
-    this.logger.log(`Order ${order.id} created from quote ${quoteId}`);
-    return order;
-  }
 
   // ──────────────────────────────────────────────
   //  CREATE DIRECT ORDER
@@ -127,6 +71,7 @@ export class OrderService {
       productId,
       quantity,
       deliveryAddress,
+      deliveryDetails,
       paymentMethod: requestedMethod,
       deliveryMethod = "MERCHANT_DELIVERY",
     } = dto;
@@ -137,29 +82,61 @@ export class OrderService {
 
     if (!product) throw new NotFoundException("Product not found");
     if (!product.isActive) throw new BadRequestException("Product is inactive");
-    if (product.pricePerUnitKobo === null) {
-      throw new BadRequestException("Product requires an RFQ");
+
+    if (product.merchantProfile?.userId === buyerId) {
+      throw new ForbiddenException(
+        "Merchants cannot purchase their own products",
+      );
     }
 
-    if (
-      !product.productStockCache ||
-      product.productStockCache.stock < quantity
-    ) {
+    // Resolve buyer type to determine price
+    const buyerProfile = await this.prisma.buyerProfile.findUnique({
+      where: { userId: buyerId },
+    });
+    const isConsumer = buyerProfile?.buyerType === "CONSUMER";
+
+    const resolvedPriceKobo =
+      isConsumer && product.retailPriceKobo
+        ? product.retailPriceKobo
+        : (product.wholesalePriceKobo ?? product.pricePerUnitKobo);
+
+    if (resolvedPriceKobo === null) {
+      throw new BadRequestException("Product price is not available");
+    }
+
+    // Handle missing stock cache: auto-heal for all active products to prevent checkout blocks
+    let currentStock = product.productStockCache?.stock ?? 0;
+    if (!product.productStockCache && product.isActive) {
+      this.logger.warn(
+        `Auto-creating missing productStockCache for product ${product.id}`,
+      );
+      currentStock = product.isSeeded ? 100 : 50;
+      await this.prisma.productStockCache.upsert({
+        where: { productId: product.id },
+        update: { stock: currentStock },
+        create: { productId: product.id, stock: currentStock },
+      });
+    }
+
+    if (currentStock < quantity) {
       throw new BadRequestException("Insufficient stock");
     }
 
     // Determine payment method based on merchant verification tier
     const merchantTier = product.merchantProfile?.verificationTier;
-    const isVerifiedMerchant =
-      merchantTier === "VERIFIED" || merchantTier === "TRUSTED";
+    const isTier2Or3 = merchantTier === "TIER_2" || merchantTier === "TIER_3";
     const paymentMethod =
-      requestedMethod === "DIRECT" && isVerifiedMerchant ? "DIRECT" : "ESCROW";
+      requestedMethod === "DIRECT" && isTier2Or3 ? "DIRECT" : "ESCROW";
 
-    // Dynamic platform fee: 1% for DIRECT, 2% for ESCROW
-    const platformFeePercentage = paymentMethod === "DIRECT" ? 1 : 2;
-    const subtotalKobo = Number(product.pricePerUnitKobo) * quantity;
-    const platformFeeKobo = Math.floor(
-      subtotalKobo * (platformFeePercentage / 100),
+    const subtotalKobo = BigInt(resolvedPriceKobo) * BigInt(quantity);
+    const platformFeePercent = PlatformConfig.getPlatformFeePercent(
+      merchantTier,
+      paymentMethod,
+    );
+    const platformFeeKobo = PlatformConfig.calculateFeeKobo(
+      subtotalKobo,
+      merchantTier,
+      paymentMethod,
     );
 
     let calculatedDeliveryFeeKobo = 0n;
@@ -167,7 +144,7 @@ export class OrderService {
       deliveryMethod === "PLATFORM_LOGISTICS" &&
       product.merchantProfile?.businessAddress
     ) {
-      // Estimate weight roughly, e.g., 50kg per unit if Cement, or fallback to 1kg
+      // Estimate weight roughly, e.g., 50kg per unit if bulky, or fallback to 1kg
       const estimatedWeightKg =
         product.unit.toLowerCase() === "bag" ? 50 * quantity : 1 * quantity;
       const quote = await this.logisticsService.getQuote(
@@ -179,32 +156,80 @@ export class OrderService {
     }
 
     // Add delivery fee logic
-    const totalAmountKobo =
-      BigInt(subtotalKobo + platformFeeKobo) + calculatedDeliveryFeeKobo;
+    const totalKobo =
+      subtotalKobo + platformFeeKobo + calculatedDeliveryFeeKobo;
 
-    const idempotencyKey = `direct-order-${productId}-${buyerId}-${Date.now()}`;
+    const idempotencyKey =
+      dto.idempotencyKey ||
+      this.generateDeterministicKey("direct", buyerId, {
+        productId,
+        quantity,
+        deliveryAddress,
+        paymentMethod,
+        deliveryMethod,
+      });
 
-    // Create the order
+    // Create the order with reservation
     const order = await this.prisma.$transaction(async (tx) => {
-      const newOrder = await tx.order.create({
-        data: {
-          buyerId,
-          merchantId: product.merchantId,
+      // 1. Atomic reservation
+      const updateResult = await tx.productStockCache.updateMany({
+        where: {
           productId: product.id,
-          quantity,
-          unitPriceKobo: product.pricePerUnitKobo,
-          deliveryAddress,
-          totalAmountKobo,
-          deliveryFeeKobo: calculatedDeliveryFeeKobo,
-          currency: "NGN",
-          status: OrderStatus.PENDING_PAYMENT,
-          paymentMethod,
-          deliveryMethod,
-          quoteId: null,
-          idempotencyKey,
-          payoutStatus: "PENDING",
+          stock: { gte: quantity },
+        },
+        data: { stock: { decrement: quantity } },
+      });
+
+      if (updateResult.count === 0) {
+        throw new BadRequestException("Insufficient stock");
+      }
+
+      // 2. Inventory Event
+      await tx.inventoryEvent.create({
+        data: {
+          productId: product.id,
+          merchantId: product.merchantId,
+          eventType: InventoryEventType.ORDER_RESERVED,
+          quantity: quantity,
+          notes: `Direct purchase reservation (buyer: ${buyerId})`,
         },
       });
+
+      // 3. Create order (with P2002 idempotency guard)
+      let newOrder;
+      try {
+        newOrder = await tx.order.create({
+          data: {
+            buyerId,
+            merchantId: product.merchantId,
+            productId: product.id,
+            quantity,
+            unitPriceKobo: resolvedPriceKobo,
+            deliveryAddress,
+            deliveryDetails: deliveryDetails ? (deliveryDetails as any) : null,
+            totalAmountKobo: totalKobo,
+            deliveryFeeKobo: calculatedDeliveryFeeKobo,
+            currency: "NGN",
+            status: OrderStatus.PENDING_PAYMENT,
+            paymentMethod,
+            deliveryMethod,
+            platformFeeKobo,
+            platformFeePercent,
+            quoteId: null,
+            idempotencyKey,
+            payoutStatus: "PENDING",
+          },
+        });
+      } catch (err: any) {
+        // If idempotency key conflict (P2002), return existing order
+        if (err?.code === "P2002") {
+          const existing = await tx.order.findFirst({
+            where: { idempotencyKey },
+          });
+          if (existing) return existing;
+        }
+        throw err;
+      }
 
       // Log initial OrderEvent
       await tx.orderEvent.create({
@@ -233,9 +258,8 @@ export class OrderService {
       });
 
       if (orderWithDetails && order.merchantId) {
-        await this.whatsappService.sendDirectOrderNotification(
-          order.merchantId,
-          {
+        this.whatsappService
+          .sendDirectOrderNotification(order.merchantId, {
             orderId: order.id,
             buyerName:
               orderWithDetails.user.firstName +
@@ -245,8 +269,10 @@ export class OrderService {
             quantity: order.quantity || 1,
             amountKobo: order.totalAmountKobo,
             deliveryAddress: order.deliveryAddress || "Not specified",
-          },
-        );
+          })
+          .catch((err) =>
+            this.logger.error(`Error in sendDirectOrderNotification: ${err}`),
+          );
       }
     } catch (notifierErr) {
       this.logger.error(
@@ -259,6 +285,12 @@ export class OrderService {
       `Direct order ${order.id} created for product ${productId} (method: ${paymentMethod})`,
     );
 
+    await this.checkoutReminderQueue.add(
+      "send-checkout-reminder",
+      { orderId: order.id },
+      { delay: 60 * 60 * 1000 },
+    );
+
     // Call payment service to get the authorization URL dynamically
     const paymentData = await this.paymentService.initialize(
       buyerId,
@@ -269,8 +301,277 @@ export class OrderService {
     return {
       orderId: order.id,
       authorizationUrl: paymentData.authorization_url,
-      totalAmountKobo: Number(totalAmountKobo),
+      totalAmountKobo: Number(totalKobo), // For notifications/events, cast back to number
       platformFeeKobo,
+      paymentMethod,
+    };
+  }
+
+  // ──────────────────────────────────────────────
+  //  CHECKOUT CART (B2C MULTI-ITEM CHECKOUT)
+  // ──────────────────────────────────────────────
+
+  async checkoutCart(buyerId: string, dto: CheckoutCartDto) {
+    const {
+      cartItemIds,
+      deliveryAddress,
+      deliveryDetails,
+      deliveryMethod = "MERCHANT_DELIVERY",
+      paymentMethod: requestedMethod,
+    } = dto;
+
+    if (!cartItemIds || cartItemIds.length === 0) {
+      throw new BadRequestException("No cart items provided for checkout.");
+    }
+
+    // Fetch the cart items with products and ensuring they belong to the buyer
+    const items = await this.prisma.cartItem.findMany({
+      where: {
+        id: { in: cartItemIds },
+        buyerId: buyerId,
+      },
+      include: {
+        product: {
+          include: { merchantProfile: true, productStockCache: true },
+        },
+      },
+    });
+
+    if (items.length !== cartItemIds.length) {
+      throw new BadRequestException(
+        "One or more cart items are invalid or do not belong to you.",
+      );
+    }
+
+    // Ensure all items are from the SAME MERCHANT because Escrow Payouts are 1-to-1 Order-to-Merchant
+    const merchantIds = new Set(items.map((item) => item.product.merchantId));
+    if (merchantIds.size > 1) {
+      throw new BadRequestException(
+        "Cart checkout is restricted to one merchant per order. Please split your checkout.",
+      );
+    }
+
+    const merchantId = items[0].product.merchantId;
+    const merchantProfile = items[0].product.merchantProfile;
+    if (!merchantProfile) {
+      throw new BadRequestException(
+        "Merchant profile not found for these items.",
+      );
+    }
+
+    if (merchantProfile.userId === buyerId) {
+      throw new ForbiddenException(
+        "Merchants cannot purchase their own products",
+      );
+    }
+
+    await this.prisma.buyerProfile.findUnique({
+      where: { userId: buyerId },
+    });
+
+    let subtotalKobo = 0n;
+    const jsonItems = [];
+
+    // Validations and calculations
+    for (const item of items) {
+      const product = item.product;
+      if (!product.isActive || product.deletedAt) {
+        throw new BadRequestException(
+          `Product ${product.name} is no longer available.`,
+        );
+      }
+
+      // Logic: Retail vs Wholesale price selection based on item.priceType
+      const isWholesale = item.priceType === PriceType.WHOLESALE;
+      const minQty = isWholesale
+        ? product.minOrderQuantity
+        : product.minOrderQuantityConsumer;
+
+      // Handle missing stock cache: auto-heal for all active products to prevent checkout blocks
+      let currentStock = product.productStockCache?.stock ?? 0;
+      if (!product.productStockCache && product.isActive) {
+        this.logger.warn(
+          `Auto-creating missing productStockCache for product ${product.id}`,
+        );
+        // Give it a default buffer to allow checkout to proceed or 100 for seeded
+        currentStock = product.isSeeded ? 100 : 50;
+        await this.prisma.productStockCache.upsert({
+          where: { productId: product.id },
+          update: { stock: currentStock },
+          create: { productId: product.id, stock: currentStock },
+        });
+      }
+
+      if (currentStock < item.quantity || item.quantity < minQty) {
+        throw new BadRequestException(
+          `Insufficient stock or quantity for ${product.name} is below the minimum for ${item.priceType} (${minQty})`,
+        );
+      }
+
+      const resolvedPriceKobo = isWholesale
+        ? (product.wholesalePriceKobo ?? product.pricePerUnitKobo ?? 0n)
+        : (product.retailPriceKobo ?? product.pricePerUnitKobo ?? 0n);
+
+      if (resolvedPriceKobo === 0n) {
+        throw new BadRequestException(
+          `Product ${product.name} does not have a valid ${item.priceType} price.`,
+        );
+      }
+
+      subtotalKobo += BigInt(resolvedPriceKobo) * BigInt(item.quantity);
+
+      jsonItems.push({
+        productId: product.id,
+        quantity: item.quantity,
+        unitPriceKobo: resolvedPriceKobo.toString(),
+        name: product.name,
+        priceType: item.priceType,
+      });
+    }
+
+    // Determine payment method and platform fee
+    const merchantTier = merchantProfile.verificationTier;
+    const isTier2Or3 = merchantTier === "TIER_2" || merchantTier === "TIER_3";
+    const paymentMethod =
+      requestedMethod === "DIRECT" && isTier2Or3 ? "DIRECT" : "ESCROW";
+
+    // Dynamic platform fee based on config/tier
+    const platformFeePercentage = PlatformConfig.getPlatformFeePercent(
+      merchantTier,
+      paymentMethod,
+    );
+    const platformFeeKobo = PlatformConfig.calculateFeeKobo(
+      subtotalKobo,
+      merchantTier,
+      paymentMethod,
+    );
+
+    let calculatedDeliveryFeeKobo = 0n;
+    if (
+      deliveryMethod === "PLATFORM_LOGISTICS" &&
+      merchantProfile.businessAddress
+    ) {
+      // Very rough estimate of 10kg per cart item total for now
+      const estimatedWeightKg = 10 * items.length;
+      // No try-catch here: let logistics errors propagate to the user
+      const quote = await this.logisticsService.getQuote(
+        merchantProfile.businessAddress,
+        deliveryAddress,
+        estimatedWeightKg,
+      );
+      calculatedDeliveryFeeKobo = BigInt(quote.costKobo);
+    }
+
+    const totalKobo =
+      subtotalKobo + platformFeeKobo + calculatedDeliveryFeeKobo;
+    const idempotencyKey =
+      dto.idempotencyKey ||
+      this.generateDeterministicKey("cart", buyerId, {
+        cartItemIds: [...cartItemIds].sort(),
+        deliveryAddress,
+        paymentMethod,
+        deliveryMethod,
+      });
+
+    // Create the order atomically with inventory reservation
+    const order = await this.prisma.$transaction(async (tx) => {
+      // 1. Atomic: check and decrement stock
+      for (const item of items) {
+        const updateResult = await tx.productStockCache.updateMany({
+          where: {
+            productId: item.productId,
+            stock: { gte: item.quantity },
+          },
+          data: { stock: { decrement: item.quantity } },
+        });
+
+        if (updateResult.count === 0) {
+          throw new BadRequestException(
+            `Insufficient stock for ${item.product.name}.`,
+          );
+        }
+
+        // Log inventory event
+        await tx.inventoryEvent.create({
+          data: {
+            productId: item.productId,
+            merchantId: merchantId as string,
+            eventType: InventoryEventType.ORDER_RESERVED,
+            quantity: item.quantity,
+            notes: `Reserved for cart checkout (buyer: ${buyerId})`,
+          },
+        });
+      }
+
+      // 2. Create the order (with P2002 idempotency guard)
+      let newOrder;
+      try {
+        newOrder = await tx.order.create({
+          data: {
+            buyerId,
+            merchantId,
+            deliveryAddress,
+            deliveryDetails: deliveryDetails ? (deliveryDetails as any) : null,
+            totalAmountKobo: totalKobo,
+            deliveryFeeKobo: calculatedDeliveryFeeKobo,
+            currency: "NGN",
+            status: OrderStatus.PENDING_PAYMENT,
+            paymentMethod,
+            deliveryMethod: deliveryMethod as any,
+            platformFeeKobo,
+            platformFeePercent: platformFeePercentage,
+            items: jsonItems,
+            quoteId: null,
+            idempotencyKey,
+            payoutStatus: "PENDING",
+          },
+        });
+      } catch (err: any) {
+        // If idempotency key conflict (P2002), return existing order
+        if (err?.code === "P2002") {
+          const existing = await tx.order.findFirst({
+            where: { idempotencyKey },
+          });
+          if (existing) return existing;
+        }
+        throw err;
+      }
+
+      // 3. Create initial order event (audit trail)
+      await tx.orderEvent.create({
+        data: {
+          orderId: newOrder.id,
+          toStatus: OrderStatus.PENDING_PAYMENT,
+          triggeredBy: buyerId,
+          metadata: { action: "cart_checkout", items: jsonItems },
+        },
+      });
+
+      // 4. NOTE: Cart items are NOT cleared here anymore.
+      // They will be cleared in the webhook handler after payment succeeds.
+      // This prevents data loss when buyers abandon payment.
+
+      return newOrder;
+    });
+
+    await this.checkoutReminderQueue.add(
+      "send-checkout-reminder",
+      { orderId: order.id },
+      { delay: 60 * 60 * 1000 },
+    );
+
+    // Generate Payment Link
+    const paymentData = await this.paymentService.initialize(
+      buyerId,
+      { orderId: order.id },
+      `init-cart-${order.id}`,
+    );
+
+    return {
+      orderId: order.id,
+      authorizationUrl: paymentData.authorization_url,
+      totalAmountKobo: Number(totalKobo),
+      platformFeeKobo: Number(platformFeeKobo),
       paymentMethod,
     };
   }
@@ -359,8 +660,8 @@ export class OrderService {
     const order = await this.prisma.order.findUnique({
       where: { id },
       include: {
-        quote: { include: { rfq: { include: { product: true } } } },
         orderEvents: { orderBy: { createdAt: "asc" } },
+        review: true,
       },
     });
     if (!order) throw new NotFoundException("Order not found");
@@ -406,7 +707,10 @@ export class OrderService {
       {
         where: { merchantId },
         orderBy: { createdAt: "desc" },
-        include: { user: { select: { email: true, phone: true } } },
+        include: {
+          user: { select: { email: true, phone: true } },
+          product: true,
+        },
       },
     );
   }
@@ -685,7 +989,138 @@ export class OrderService {
       );
     }
 
+    // REVIEW PROMPT: Queue a review prompt job after 1 hour (3600 seconds)
+    // Only if the order has a merchant (Reviews are for merchants)
+    if (order.merchantId) {
+      try {
+        this.logger.log(
+          `Queueing review prompt for order ${orderId} in 1 hour`,
+        );
+        await this.reviewQueue.add(
+          "send-review-prompt",
+          { orderId, buyerId },
+          {
+            delay: 3600 * 1000, // 1 hour delay
+            jobId: `review-prompt-${orderId}`,
+            removeOnComplete: true,
+          },
+        );
+      } catch (error) {
+        this.logger.error(
+          `Failed to queue review prompt for order ${orderId}: ${error instanceof Error ? error.message : error}`,
+        );
+      }
+    } else {
+      this.logger.log(
+        `Skipping review prompt for order ${orderId} (No merchant associated)`,
+      );
+    }
+
     return { message: "Delivery confirmed" };
+  }
+
+  /**
+   * System-triggered delivery confirmation after 72 hours of inactivity.
+   */
+  async autoConfirmDelivery(orderId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        user: true, // buyer
+        merchantProfile: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order ${orderId} not found`);
+    }
+
+    if (
+      order.status !== OrderStatus.DISPATCHED &&
+      order.status !== OrderStatus.IN_TRANSIT
+    ) {
+      this.logger.warn(
+        `Order ${orderId} is in ${order.status} state, cannot auto-confirm.`,
+      );
+      return;
+    }
+
+    this.logger.log(`Auto-confirming delivery for order ${orderId}`);
+
+    // 1. Transition to DELIVERED (uses standard audit trail)
+    await this.transition(
+      orderId,
+      order.status as OrderStatus,
+      OrderStatus.DELIVERED,
+      order.buyerId, // System acting on behalf of buyer's silence
+      { action: "system_auto_confirm" },
+    );
+
+    // 2. Clear dispute window immediately for auto-confirmation
+    await this.prisma.order.update({
+      where: { id: orderId },
+      data: { disputeWindowEndsAt: new Date() },
+    });
+
+    // 3. Create tracking entry AFTER transition
+    await this.prisma.orderTracking.create({
+      data: {
+        orderId,
+        status: OrderStatus.DELIVERED,
+        note: "Delivery auto-confirmed after 72 hours of no response.",
+      },
+    });
+
+    // 4. Notify participants with strict isolation
+    try {
+      if (order.merchantId) {
+        await this.notifications.triggerOrderAutoConfirmed(
+          order.buyerId,
+          order.merchantId,
+          {
+            orderId: order.id,
+            reference: order.id.slice(0, 8).toUpperCase(),
+            amountKobo: order.totalAmountKobo,
+          },
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to notify for auto-confirmed order ${orderId}: ${error instanceof Error ? error.message : error}`,
+      );
+    }
+
+    // 5. Final transition to COMPLETED
+    await this.transition(
+      orderId,
+      OrderStatus.DELIVERED,
+      OrderStatus.COMPLETED,
+      order.buyerId,
+      { action: "auto_completion_payout" },
+    );
+
+    // 6. Post-completion processing (payouts and tier checks)
+    try {
+      if (order.merchantId) {
+        // Upgrade check
+        await this.verificationService.checkAndUpgradeTier(order.merchantId);
+
+        // Payout if ESCROW
+        if (order.paymentMethod === "ESCROW") {
+          await this.payoutQueue.add(
+            "process-payout",
+            { orderId },
+            { jobId: `payout-${orderId}` },
+          );
+        }
+      }
+    } catch (err: unknown) {
+      this.logger.error(
+        `Post-auto-confirm processing failed for ${orderId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+
+    return { success: true };
   }
 
   // ──────────────────────────────────────────────
@@ -728,18 +1163,32 @@ export class OrderService {
       { cancelledBy: isBuyer ? "buyer" : "merchant" },
     );
 
-    // Release reserved stock
-    const quote = await this.prisma.quote.findUnique({
-      where: { id: order.quoteId },
-      include: { rfq: true },
-    });
-    if (quote?.rfq) {
+    // Release reserved stock for different order types
+    if (order.productId && order.quantity) {
+      // Direct Purchase
       await this.inventoryService.releaseStock(
-        quote.rfq.productId,
-        order.merchantId,
-        quote.rfq.quantity,
+        order.productId,
+        order.merchantId as string,
+        order.quantity,
         orderId,
       );
+    } else if (order.items) {
+      // Cart Checkout (Multi-item)
+      const items = order.items as any[];
+      const releasePayload = items
+        .filter((item) => item.productId && item.quantity)
+        .map((item) => ({
+          productId: item.productId,
+          quantity: Number(item.quantity),
+        }));
+
+      if (releasePayload.length > 0) {
+        await this.inventoryService.releaseStockBatch(
+          releasePayload,
+          order.merchantId as string,
+          orderId,
+        );
+      }
     }
 
     // Notify both parties
@@ -825,13 +1274,6 @@ export class OrderService {
           },
         },
         user: { select: { email: true, phone: true } },
-        quote: {
-          include: {
-            rfq: {
-              include: { product: true },
-            },
-          },
-        },
         payments: {
           where: { status: "SUCCESS" },
           orderBy: { createdAt: "desc" },
@@ -905,5 +1347,46 @@ export class OrderService {
     });
     if (!merchant) throw new NotFoundException("Merchant not found");
     return merchant.userId;
+  }
+
+  private generateDeterministicKey(
+    prefix: string,
+    buyerId: string,
+    payload: Record<string, any>,
+  ): string {
+    // Canonicalize: sort arrays and use stable key ordering
+    const canonical = this.canonicalize({ buyerId, ...payload });
+    const hash = crypto.createHash("sha256").update(canonical).digest("hex");
+    return `${prefix}-${hash.substring(0, 16)}`;
+  }
+
+  /**
+   * Stable JSON serialization: sort object keys recursively and sort arrays
+   * so that the same logical payload always produces the same hash.
+   */
+  private canonicalize(obj: any): string {
+    return JSON.stringify(obj, (_, value) => {
+      if (Array.isArray(value)) {
+        // Sort primitive arrays for stable ordering
+        return [...value].sort();
+      }
+      if (
+        value !== null &&
+        typeof value === "object" &&
+        !Array.isArray(value)
+      ) {
+        // Sort object keys
+        return Object.keys(value)
+          .sort()
+          .reduce(
+            (sorted, key) => {
+              sorted[key] = value[key];
+              return sorted;
+            },
+            {} as Record<string, any>,
+          );
+      }
+      return value;
+    });
   }
 }

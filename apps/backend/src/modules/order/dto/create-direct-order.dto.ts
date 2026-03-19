@@ -6,6 +6,7 @@ import {
   Min,
   IsOptional,
   IsEnum,
+  IsObject,
 } from "class-validator";
 import { DeliveryMethod } from "@prisma/client";
 
@@ -29,6 +30,10 @@ export class CreateDirectOrderDto {
   deliveryAddress: string;
 
   @IsOptional()
+  @IsObject()
+  deliveryDetails?: Record<string, any>;
+
+  @IsOptional()
   @IsEnum(PaymentMethodDto, {
     message: "paymentMethod must be ESCROW or DIRECT",
   })
@@ -39,4 +44,8 @@ export class CreateDirectOrderDto {
     message: "deliveryMethod must be MERCHANT_DELIVERY or PLATFORM_LOGISTICS",
   })
   deliveryMethod?: DeliveryMethod;
+
+  @IsOptional()
+  @IsString()
+  idempotencyKey?: string;
 }

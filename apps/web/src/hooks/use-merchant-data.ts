@@ -1,21 +1,13 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { getMerchantRFQs } from "@/lib/api/rfq.api";
 import { getOrders } from "@/lib/api/order.api";
-import { getMyProducts } from "@/lib/api/product.api";
-import type { RFQ, Order, Product } from "@hardware-os/shared";
+import { productApi } from "@/lib/api/product.api";
+import { merchantApi } from "@/lib/api/merchant.api";
+import { authApi } from "@/lib/api/auth.api";
+import type { Order, Product } from "@swifta/shared";
 
-export function useMerchantDashboard() {
-  const rfqQuery = useQuery({
-    queryKey: ["merchant", "rfqs", "recent"],
-    queryFn: async () => {
-      const data = await getMerchantRFQs(1, 5);
-      return Array.isArray(data) ? data : [];
-    },
-    refetchInterval: 30000,
-  });
-
+export function useMerchantDashboard(startDate?: string, endDate?: string) {
   const orderQuery = useQuery({
     queryKey: ["merchant", "orders", "all"],
     queryFn: async () => {
@@ -25,29 +17,47 @@ export function useMerchantDashboard() {
     refetchInterval: 30000,
   });
 
-  const isLoading = rfqQuery.isLoading || orderQuery.isLoading;
+  const analyticsQuery = useQuery({
+    queryKey: ["merchant", "analytics", startDate, endDate],
+    queryFn: () => merchantApi.getAnalytics(startDate, endDate),
+    refetchInterval: 60000,
+  });
+
+  const userQuery = useQuery({
+    queryKey: ["auth", "me"],
+    queryFn: async () => {
+      const response = await authApi.me();
+      return response.user;
+    },
+    refetchInterval: 60000,
+  });
+
+  const isLoading = orderQuery.isLoading || userQuery.isLoading || analyticsQuery.isLoading;
 
   return {
-    rfqs: rfqQuery.data || ([] as RFQ[]),
     orders: orderQuery.data || ([] as Order[]),
+    analytics: analyticsQuery.data || null,
+    user: userQuery.data,
     isLoading,
-    isError: rfqQuery.isError || orderQuery.isError,
+    isError: orderQuery.isError || userQuery.isError || analyticsQuery.isError,
     error: (() => {
-      const error = rfqQuery.error || orderQuery.error;
+      const error = orderQuery.error || userQuery.error || analyticsQuery.error;
       if (!error) return null;
       const anyErr = error as any;
-      if (typeof anyErr.error === 'string') return anyErr.error;
-      if (typeof (error as Error).message === 'string') return (error as Error).message;
+      if (typeof anyErr.error === "string") return anyErr.error;
+      if (typeof (error as Error).message === "string")
+        return (error as Error).message;
       try {
         if (anyErr.error) return JSON.stringify(anyErr.error);
       } catch (e) {
         // Fallback
       }
-      return 'Failed to load dashboard data';
+      return "Failed to load dashboard data";
     })(),
     refetch: () => {
-      rfqQuery.refetch();
       orderQuery.refetch();
+      userQuery.refetch();
+      analyticsQuery.refetch();
     },
   };
 }
@@ -56,7 +66,7 @@ export function useMerchantInventory() {
   const productQuery = useQuery({
     queryKey: ["merchant", "products", "inventory"],
     queryFn: async () => {
-      const data = await getMyProducts(1, 100);
+      const data = await productApi.getMyProducts(1, 100);
       return Array.isArray(data) ? data : [];
     },
     refetchInterval: 30000,
@@ -70,16 +80,16 @@ export function useMerchantInventory() {
       const error = productQuery.error;
       if (!error) return null;
       const anyErr = error as any;
-      if (typeof anyErr.error === 'string') return anyErr.error;
-      if (typeof (error as Error).message === 'string') return (error as Error).message;
+      if (typeof anyErr.error === "string") return anyErr.error;
+      if (typeof (error as Error).message === "string")
+        return (error as Error).message;
       try {
         if (anyErr.error) return JSON.stringify(anyErr.error);
       } catch (e) {
         // Fallback
       }
-      return 'Failed to load inventory';
+      return "Failed to load inventory";
     })() as string | null,
     refetch: productQuery.refetch,
   };
 }
-
