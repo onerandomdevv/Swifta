@@ -25,6 +25,11 @@ import {
 } from "./whatsapp.constants";
 import { OrderStatus, VerificationTier } from "@swifta/shared";
 
+function maskPhone(phone: string): string {
+  if (!phone) return "unknown";
+  return phone.replace(/(\+\d{3})\d{7}(\d{2})/, "$1****$2");
+}
+
 /**
  * Core WhatsApp Bot service.
  *
@@ -263,6 +268,11 @@ export class WhatsAppService {
     reply: { id: string; title: string },
   ): Promise<void> {
     const { id } = reply;
+
+    if (id === "support_handoff") {
+      await this.handleSupportHandoff(phone);
+      return;
+    }
 
     if (id === "show_merchant_menu") {
       await this.sendMerchantMenu(phone);
@@ -681,7 +691,9 @@ export class WhatsAppService {
       phone,
       "You are being transferred to a human agent. They will reply to you on this number shortly.\n\nType *'resume'* at any time to reactivate the AI assistant.",
     );
-    this.logger.log(`Support Handoff initiated for merchant/user ${phone}`);
+    this.logger.log(
+      `Support Handoff initiated for merchant/user ${maskPhone(phone)}`,
+    );
   }
 
   /**

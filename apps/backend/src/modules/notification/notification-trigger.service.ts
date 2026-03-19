@@ -67,112 +67,6 @@ export class NotificationTriggerService {
     );
   }
 
-  async triggerNewRFQ(
-    merchantId: string,
-    metadata: {
-      rfqId: string;
-      buyerName: string;
-      productName: string;
-      quantity: number;
-      deliveryAddress?: string;
-    },
-  ) {
-    // Standard in-app + email notification
-    await this.addJob(
-      merchantId,
-      NotificationType.NEW_RFQ,
-      "New RFQ Received",
-      "You have a new request for quote.",
-      { ...metadata, isMerchantId: true },
-    );
-
-    // WhatsApp push notification (async — fire and forget)
-    try {
-      await this.whatsappQueue.add(
-        "send-rfq-notification",
-        {
-          merchantId,
-          rfqData: {
-            rfqId: metadata.rfqId,
-            buyerName: metadata.buyerName,
-            productName: metadata.productName,
-            quantity: metadata.quantity,
-            deliveryAddress: metadata.deliveryAddress || "Not specified",
-          },
-        },
-        {
-          attempts: 2,
-          backoff: { type: "exponential", delay: 3000 },
-          removeOnComplete: true,
-          removeOnFail: true,
-        },
-      );
-    } catch {
-      // Never let WhatsApp notification failure affect the main flow
-    }
-  }
-
-  async triggerQuoteReceived(
-    buyerId: string,
-    metadata: {
-      quoteId: string;
-      merchantName: string;
-      productName: string;
-      totalPriceKobo: bigint;
-    },
-  ) {
-    await this.addJob(
-      buyerId,
-      NotificationType.QUOTE_RECEIVED,
-      "Quote Received",
-      "You have received a new quote.",
-      { ...metadata, totalPriceKobo: metadata.totalPriceKobo.toString() }, // Pass as string for BullMQ JSON
-      [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
-    );
-  }
-
-  async triggerQuoteAccepted(
-    merchantId: string,
-    metadata: {
-      quoteId: string;
-      orderId: string;
-      buyerName: string;
-      amountKobo: bigint;
-    },
-  ) {
-    await this.addJob(
-      merchantId,
-      NotificationType.QUOTE_ACCEPTED,
-      "Quote Accepted",
-      "Your quote has been accepted.",
-      {
-        ...metadata,
-        amountKobo: metadata.amountKobo.toString(),
-        isMerchantId: true,
-      },
-    );
-  }
-
-  async triggerQuoteDeclined(merchantId: string, quoteId: string) {
-    await this.addJob(
-      merchantId,
-      NotificationType.QUOTE_DECLINED,
-      "Quote Declined",
-      "Your quote has been declined.",
-      { quoteId, isMerchantId: true },
-    );
-  }
-
-  async triggerRFQExpired(buyerId: string, rfqId: string) {
-    await this.addJob(
-      buyerId,
-      NotificationType.RFQ_EXPIRED,
-      "RFQ Expired",
-      "Your request for quote has expired without receiving a response.",
-      { rfqId },
-    );
-  }
-
   async triggerOrderPreparing(
     buyerId: string,
     metadata: { orderId: string; reference: string },
@@ -508,7 +402,7 @@ export class NotificationTriggerService {
       merchantId,
       NotificationType.MERCHANT_REORDER_PROMPT,
       "Reorder Opportunity",
-      `${metadata.buyerName} might need a restock of ${metadata.productName}. Send a quote?`,
+      `${metadata.buyerName} might need a restock of ${metadata.productName}.`,
       { ...metadata, isMerchantId: true },
     );
   }
