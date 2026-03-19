@@ -17,7 +17,7 @@ export class ReviewService {
   constructor(private prisma: PrismaService) {}
 
   async create(userId: string, dto: CreateReviewDto) {
-    const { orderId, rating, comment } = dto;
+    const { orderId, rating, comment, imageUrl } = dto;
 
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
@@ -56,6 +56,7 @@ export class ReviewService {
             merchantId,
             rating,
             comment,
+            imageUrl,
           },
         });
 

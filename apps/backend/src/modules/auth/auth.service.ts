@@ -703,10 +703,14 @@ export class AuthService {
         WHATSAPP_OTP_TEMPLATE,
         [{ type: "text", text: otp }],
       );
-      this.logger.log(`[DEVELOPMENT / LIVE] WhatsApp OTP sent successfully to ${phone}`);
+      this.logger.log(
+        `[DEVELOPMENT / LIVE] WhatsApp OTP sent successfully to ${phone}`,
+      );
     } catch (waError) {
-      this.logger.warn(`Failed to send WhatsApp OTP to ${phone}, falling back to SMS. Error: ${waError instanceof Error ? waError.message : waError}`);
-      
+      this.logger.warn(
+        `Failed to send WhatsApp OTP to ${phone}, falling back to SMS. Error: ${waError instanceof Error ? waError.message : waError}`,
+      );
+
       try {
         if (this.smsClient) {
           await this.smsClient.send({

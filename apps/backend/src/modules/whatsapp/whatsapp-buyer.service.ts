@@ -166,11 +166,13 @@ export class WhatsAppBuyerService {
       if (checkoutSession) {
         // If this is an interactive reply and it's one of the delivery methods, LET IT FALL THROUGH
         // to handleInteractiveReply, which properly processes and clears the checkout state.
-        const isDeliveryInteraction =
+        const isAllowedInteraction =
           interactiveReply &&
-          ["delivery_merchant", "delivery_track"].includes(interactiveReply.id);
+          ["delivery_merchant", "delivery_track", "support_handoff"].includes(
+            interactiveReply.id,
+          );
 
-        if (!isDeliveryInteraction) {
+        if (!isAllowedInteraction) {
           await this.handleCheckoutStep(
             buyerId,
             checkoutSession,
@@ -695,7 +697,24 @@ export class WhatsAppBuyerService {
       "You are being transferred to a human agent. They will reply to you on this number shortly.\n\nType *'resume'* at any time to reactivate the AI assistant.",
     );
     this.logger.log(`Support Handoff initiated for ${maskPhone(phone)}`);
-    // In a real app we would fire an event to the notification queue for admins
+
+    // Record in AuditLog for admin visibility
+    try {
+      const buyerId = await this.authService.resolvePhone(phone);
+      if (buyerId) {
+        await this.prisma.auditLog.create({
+          data: {
+            userId: buyerId,
+            action: "SUPPORT_HANDOFF",
+            targetType: "WHATSAPP_BOT",
+            targetId: phone,
+            metadata: { status: "AI_PAUSED", phone },
+          },
+        });
+      }
+    } catch (err) {
+      this.logger.error("Failed to record support handoff in AuditLog", err);
+    }
   }
 
   /**
@@ -1222,8 +1241,8 @@ export class WhatsAppBuyerService {
       await this.redisService.del(pendingOtpKey);
 
       // Feature 3: Rich Media Delivery Reviews (Wait for photo)
-      const photoKey = `pending_review_photo_${phone}`; // or buyerId, but phone is easier to get in webhook
-      await this.redisService.set(photoKey, orderId, 3600); // 1 hour window
+      const photoKey = `wa_pending_review_photo:${phone}:${orderId}`;
+      await this.redisService.set(photoKey, "1", 3600); // 1 hour window
 
       return `Delivery confirmed. ✅ Your order has been marked as delivered. Payment will be released to the merchant.\n\n📸 *Optional:* Reply with a photo of the item you received to help other buyers!`;
     } catch (error: any) {
@@ -1307,10 +1326,21 @@ export class WhatsAppBuyerService {
   ): Promise<string | null> {
     // Initial save (without comment)
     try {
+      const bufferedImage = await this.redisService.get(
+        `wa_order_captured_image:${session.orderId}`,
+      );
+
       await this.reviewService.create(buyerId, {
         orderId: session.orderId,
         rating,
+        imageUrl: bufferedImage || undefined,
       });
+
+      if (bufferedImage) {
+        await this.redisService.del(
+          `wa_order_captured_image:${session.orderId}`,
+        );
+      }
 
       // Update session to allow adding comment
       session.rating = rating;
@@ -1374,17 +1404,12 @@ export class WhatsAppBuyerService {
         where: { id: orderId },
       });
       if (order && order.merchantId) {
-        await this.prisma.review.upsert({
-          where: { orderId },
-          update: { imageUrl },
-          create: {
-            orderId,
-            buyerId: order.buyerId,
-            merchantId: order.merchantId,
-            rating: 0, // Pending actual star rating
-            imageUrl,
-          },
-        });
+        // Store image in Redis instead of database placeholder
+        await this.redisService.set(
+          `wa_order_captured_image:${orderId}`,
+          imageUrl,
+          3600,
+        );
       }
 
       await this.interactiveService.sendTextMessage(

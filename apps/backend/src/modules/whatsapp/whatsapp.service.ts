@@ -104,14 +104,15 @@ export class WhatsAppService {
     try {
       if (imageId) {
         // Feature 3: Check if waiting for a review photo
-        const photoKey = `pending_review_photo_${phone}`;
-        const orderId = await this.redisService.get(photoKey);
-
-        if (orderId) {
+        const keys = await this.redisService.keys(
+          `wa_pending_review_photo:${phone}:*`,
+        );
+        if (keys.length > 0) {
+          const orderId = keys[0].split(":").pop()!;
           this.logger.log(
             `Routing image as review photo (Phone: ${phone}, Order: ${orderId})`,
           );
-          await this.redisService.del(photoKey);
+          await this.redisService.del(keys[0]);
           await this.buyerService.handleReviewPhoto(phone, orderId, imageId);
           return;
         }
