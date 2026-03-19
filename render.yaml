@@ -1,3 +1,6 @@
+previews:
+  generation: automatic
+
 services:
   - type: web
     name: swifta-backend
@@ -6,7 +9,6 @@ services:
     dockerContext: .
     region: oregon
     plan: starter
-    branch: main
     envVars:
       - key: DATABASE_URL
         sync: false
