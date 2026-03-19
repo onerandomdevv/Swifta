@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { ReorderService } from "./reorder.service";
 import { ReorderController } from "./reorder.controller";
 import { ReorderReminderProcessor } from "./reorder-reminder.processor";
@@ -7,7 +7,11 @@ import { NotificationModule } from "../notification/notification.module";
 import { QueueModule } from "../../queue/queue.module";
 
 @Module({
-  imports: [PrismaModule, NotificationModule, QueueModule],
+  imports: [
+    PrismaModule,
+    forwardRef(() => NotificationModule),
+    forwardRef(() => QueueModule),
+  ],
   controllers: [ReorderController],
   providers: [ReorderService, ReorderReminderProcessor],
   exports: [ReorderService],

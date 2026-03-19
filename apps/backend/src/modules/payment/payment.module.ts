@@ -15,7 +15,7 @@ import { PAYOUT_QUEUE, LOGISTICS_QUEUE } from "../../queue/queue.constants";
     PrismaModule,
     forwardRef(() => OrderModule),
     forwardRef(() => DvaModule),
-    NotificationModule,
+    forwardRef(() => NotificationModule),
     ConfigModule,
     BullModule.registerQueue({ name: PAYOUT_QUEUE }),
     BullModule.registerQueue({ name: LOGISTICS_QUEUE }),
