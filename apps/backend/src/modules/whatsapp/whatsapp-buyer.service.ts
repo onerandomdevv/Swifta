@@ -465,7 +465,10 @@ export class WhatsAppBuyerService {
     }
   }
 
-  private async sendBuyerMenu(phone: string): Promise<void> {
+  private async sendBuyerMenu(
+    phone: string,
+    customBody?: string,
+  ): Promise<void> {
     const isMerchant = await this.prisma.user.findFirst({
       where: { phone, role: "MERCHANT" },
     });
@@ -538,7 +541,7 @@ export class WhatsAppBuyerService {
 
     await this.interactiveService.sendListMessage(
       phone,
-      BUYER_MAIN_MENU,
+      customBody || BUYER_MAIN_MENU,
       "Select Action",
       sections,
     );
@@ -664,10 +667,7 @@ export class WhatsAppBuyerService {
           await this.handleSupportHandoff(phone);
           break;
         case "friendly_fallback":
-          await this.interactiveService.sendTextMessage(
-            phone,
-            BUYER_FRIENDLY_FALLBACK,
-          );
+          await this.sendBuyerMenu(phone, BUYER_FRIENDLY_FALLBACK);
           break;
         case "show_menu":
         default:
@@ -1020,8 +1020,9 @@ export class WhatsAppBuyerService {
         name, 
         unit,
         price_per_unit_kobo AS "pricePerUnitKobo",
-        retail_price_kobo AS "retailPriceKobo",
-        wholesale_price_kobo AS "wholesalePriceKobo"
+        retail_price_kobo AS \"retailPriceKobo\",
+        wholesale_price_kobo AS \"wholesalePriceKobo\",
+        image_url AS \"imageUrl\"
       FROM products 
       WHERE id::text LIKE ${partialId + "%"}
         AND is_active = true
@@ -1073,6 +1074,7 @@ export class WhatsAppBuyerService {
           { id: "delivery_merchant", title: "Direct Merchant" },
           { id: "delivery_track", title: "Swifta Tracked" },
         ],
+        product.imageUrl || undefined,
       );
     } catch (e) {
       this.logger.error("Checkout session issue", e);
