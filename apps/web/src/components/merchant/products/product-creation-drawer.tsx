@@ -382,7 +382,16 @@ export function ProductCreationDrawer({
                 <p className="text-[10px] font-bold text-foreground-muted ml-1 uppercase">Smallest order a buyer can place</p>
               </div>
 
-              {/* Wholesale Section — Fully Hidden for B2C Presentation */}
+              {/* Wholesale Section — Fully Hidden for B2C Presentation, but show indicator if exists */}
+              {initialData?.wholesalePriceKobo && (
+                <div className="p-4 bg-amber-50/50 border border-amber-200/50 rounded-2xl flex items-start gap-3">
+                  <span className="material-symbols-outlined text-amber-500 text-sm">info</span>
+                  <p className="text-[10px] font-bold text-amber-700 leading-tight uppercase tracking-wider">
+                    Wholesale pricing is active on this listing and will be retained. 
+                    Manage wholesale tiers via the desktop dashboard.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

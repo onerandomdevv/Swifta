@@ -1,16 +1,20 @@
-import { Module, Global, Logger } from "@nestjs/common";
+import { Module, Global, Logger, forwardRef } from "@nestjs/common";
 import { BullModule } from "@nestjs/bullmq";
 import { ConfigService } from "@nestjs/config";
+import { WhatsAppModule } from "../modules/whatsapp/whatsapp.module";
 import {
   NOTIFICATION_QUEUE,
-  RFQ_EXPIRY_QUEUE,
   REORDER_REMINDER_QUEUE,
   WHATSAPP_QUEUE,
   PAYOUT_QUEUE,
   LOGISTICS_QUEUE,
   AUTO_CONFIRM_QUEUE,
   REVIEW_QUEUE,
+  CHECKOUT_REMINDER_QUEUE,
 } from "./queue.constants";
+import { AutoConfirmProcessor } from "./auto-confirm.processor";
+import { LogisticsProcessor } from "./logistics.processor";
+import { CheckoutReminderProcessor } from "./checkout-reminder.processor";
 
 function sanitizeRedisUrl(url: string | undefined): string | undefined {
   if (!url) return url;
@@ -80,16 +84,22 @@ function sanitizeRedisUrl(url: string | undefined): string | undefined {
       },
       inject: [ConfigService],
     }),
+    forwardRef(() => WhatsAppModule),
     BullModule.registerQueue(
       { name: NOTIFICATION_QUEUE },
-      { name: RFQ_EXPIRY_QUEUE },
       { name: REORDER_REMINDER_QUEUE },
       { name: WHATSAPP_QUEUE },
       { name: PAYOUT_QUEUE },
       { name: LOGISTICS_QUEUE },
       { name: AUTO_CONFIRM_QUEUE },
       { name: REVIEW_QUEUE },
+      { name: CHECKOUT_REMINDER_QUEUE },
     ),
+  ],
+  providers: [
+    AutoConfirmProcessor,
+    LogisticsProcessor,
+    CheckoutReminderProcessor,
   ],
   exports: [BullModule],
 })

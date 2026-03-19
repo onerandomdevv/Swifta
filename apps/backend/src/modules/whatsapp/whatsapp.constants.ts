@@ -210,6 +210,12 @@ export const GEMINI_FUNCTION_DECLARATIONS = [
       "Get the merchant's current verification tier and status. Triggered by: 'verify', 'my verification', 'am I verified', 'verification status'",
     parameters: { type: "object" as const, properties: {} },
   },
+  {
+    name: "support_handoff",
+    description:
+      "Pause AI and request human assistance. Triggered by: 'talk to a human', 'support', 'customer care', 'agent', 'help me'",
+    parameters: { type: "object" as const, properties: {} },
+  },
 ];
 
 /** Meta Graph API version */

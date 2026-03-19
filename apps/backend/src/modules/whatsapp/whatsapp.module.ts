@@ -10,6 +10,7 @@ import { EmailModule } from "../email/email.module";
 import { ReviewModule } from "../review/review.module";
 import { SupplierModule } from "../supplier/supplier.module";
 import { DvaModule } from "../dva/dva.module";
+import { UploadModule } from "../upload/upload.module";
 import { WhatsAppController } from "./whatsapp.controller";
 import { WhatsAppService } from "./whatsapp.service";
 import { WhatsAppAuthService } from "./whatsapp-auth.service";
@@ -55,6 +56,7 @@ import { WhatsAppLoggerService } from "./whatsapp-logger.service";
     forwardRef(() => ReviewModule),
     forwardRef(() => SupplierModule),
     DvaModule,
+    UploadModule,
   ],
   controllers: [WhatsAppController],
   providers: [

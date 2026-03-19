@@ -445,7 +445,6 @@ export class PaymentService {
 
       if (
         orderData &&
-        orderData.quoteId === null &&
         orderData.productId !== null &&
         orderData.quantity !== null
       ) {
@@ -494,7 +493,7 @@ export class PaymentService {
           }
         }
       } else {
-        // STANDARD RFQ QUOTE ACCEPTANCE LOGIC
+        // CART ORDER PAYMENT CONFIRMATION LOGIC
         await this.notifications.triggerPaymentConfirmed(
           payment.order.buyerId,
           payment.order.merchantId,

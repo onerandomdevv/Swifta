@@ -15,7 +15,11 @@ import { InventoryService } from "../inventory/inventory.service";
 import { PaymentService } from "../payment/payment.service";
 import { ReorderService } from "../reorder/reorder.service";
 import { LogisticsService } from "../logistics/logistics.service";
-import { PAYOUT_QUEUE, REVIEW_QUEUE } from "../../queue/queue.constants";
+import {
+  PAYOUT_QUEUE,
+  REVIEW_QUEUE,
+  CHECKOUT_REMINDER_QUEUE,
+} from "../../queue/queue.constants";
 import { WhatsAppService } from "../whatsapp/whatsapp.service";
 import {
   InventoryEventType,
@@ -49,6 +53,7 @@ export class OrderService {
     private reorderService: ReorderService,
     @InjectQueue(PAYOUT_QUEUE) private payoutQueue: Queue,
     @InjectQueue(REVIEW_QUEUE) private reviewQueue: Queue,
+    @InjectQueue(CHECKOUT_REMINDER_QUEUE) private checkoutReminderQueue: Queue,
     private verificationService: VerificationService,
     @Inject(forwardRef(() => LogisticsService))
     private logisticsService: LogisticsService,
@@ -96,7 +101,7 @@ export class OrderService {
         : (product.wholesalePriceKobo ?? product.pricePerUnitKobo);
 
     if (resolvedPriceKobo === null) {
-      throw new BadRequestException("Product requires an RFQ");
+      throw new BadRequestException("Product price is not available");
     }
 
     // Handle missing stock cache: auto-heal for all active products to prevent checkout blocks
@@ -278,6 +283,12 @@ export class OrderService {
 
     this.logger.log(
       `Direct order ${order.id} created for product ${productId} (method: ${paymentMethod})`,
+    );
+
+    await this.checkoutReminderQueue.add(
+      "send-checkout-reminder",
+      { orderId: order.id },
+      { delay: 60 * 60 * 1000 },
     );
 
     // Call payment service to get the authorization URL dynamically
@@ -542,6 +553,12 @@ export class OrderService {
 
       return newOrder;
     });
+
+    await this.checkoutReminderQueue.add(
+      "send-checkout-reminder",
+      { orderId: order.id },
+      { delay: 60 * 60 * 1000 },
+    );
 
     // Generate Payment Link
     const paymentData = await this.paymentService.initialize(

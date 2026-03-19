@@ -70,7 +70,7 @@ export class EmailService {
     return `
       <div style="font-family: 'DM Sans', 'Inter', sans-serif; max-width: 600px; margin: 0 auto; color: #0F2B4C; line-height: 1.6;">
         <div style="padding: 40px 20px; text-align: center; background-color: #0F2B4C; border-radius: 12px 12px 0 0;">
-          <h1 style="color: #ffffff; margin: 0; font-size: 24px; letter-spacing: -0.03em; font-weight: 700;"><span style="color:#ffffff">Swift</span><span style="color:#00C853">Trade</span></h1>
+          <h1 style="color: #ffffff; margin: 0; font-size: 24px; letter-spacing: -0.03em; font-weight: 700;"><span style="color:#ffffff">Swifta</span></h1>
         </div>
         <div style="padding: 40px 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
           ${content}
@@ -115,77 +115,6 @@ export class EmailService {
       </div>
     `;
     await this.sendEmail(to, "Your Verification Code", this.getLayout(content));
-  }
-
-  async sendNewRFQNotification(
-    to: string,
-    buyerName: string,
-    productName: string,
-    quantity: number,
-  ): Promise<void> {
-    const safeBuyerName = this.escapeHtml(buyerName);
-    const safeProductName = this.escapeHtml(productName);
-    const content = `
-      <h2 style="font-size: 20px; margin-bottom: 20px;">New Quote Request!</h2>
-      <p><strong>${safeBuyerName}</strong> has requested a quote for <strong>${quantity} units of ${safeProductName}</strong>.</p>
-      <p>Log in to your dashboard to provide your best price and win this trade.</p>
-      <div style="margin-top: 30px; text-align: center;">
-        <a href="${this.configService.get("FRONTEND_URL")}/merchant/rfqs" style="background-color: #0F2B4C; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">View RFQ</a>
-      </div>
-    `;
-    await this.sendEmail(
-      to,
-      `New quote request from ${safeBuyerName}`,
-      this.getLayout(content),
-    );
-  }
-
-  async sendQuoteSubmittedNotification(
-    to: string,
-    merchantName: string,
-    productName: string,
-    totalPriceKobo: bigint,
-  ): Promise<void> {
-    const safeMerchantName = this.escapeHtml(merchantName);
-    const safeProductName = this.escapeHtml(productName);
-    const content = `
-      <h2 style="font-size: 20px; margin-bottom: 20px;">You Received a Quote!</h2>
-      <p><strong>${safeMerchantName}</strong> has sent a quote for <strong>${safeProductName}</strong>.</p>
-      <p>Total Amount: <span style="font-size: 18px; font-weight: bold; color: #0f172a;">${this.formatNaira(totalPriceKobo)}</span></p>
-      <p>Review the quote details and accept it to proceed with your order.</p>
-      <div style="margin-top: 30px; text-align: center;">
-        <a href="${this.configService.get("FRONTEND_URL")}/buyer/quotes" style="background-color: #0F2B4C; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">View Quote</a>
-      </div>
-    `;
-    await this.sendEmail(
-      to,
-      `You received a quote from ${safeMerchantName}`,
-      this.getLayout(content),
-    );
-  }
-
-  async sendQuoteAcceptedNotification(
-    to: string,
-    buyerName: string,
-    orderId: string,
-    amountKobo: bigint,
-  ): Promise<void> {
-    const safeBuyerName = this.escapeHtml(buyerName);
-    const safeOrderId = encodeURIComponent(orderId);
-    const content = `
-      <h2 style="font-size: 20px; margin-bottom: 20px;">Your Quote Was Accepted!</h2>
-      <p><strong>${safeBuyerName}</strong> has accepted your quote. An order has been created.</p>
-      <p>Order Amount: <span style="font-size: 18px; font-weight: bold; color: #0f172a;">${this.formatNaira(amountKobo)}</span></p>
-      <p>You will be notified once the buyer makes payment.</p>
-      <div style="margin-top: 30px; text-align: center;">
-        <a href="${this.configService.get("FRONTEND_URL")}/merchant/orders/${safeOrderId}" style="background-color: #0F2B4C; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">View Order</a>
-      </div>
-    `;
-    await this.sendEmail(
-      to,
-      `${safeBuyerName} accepted your quote`,
-      this.getLayout(content),
-    );
   }
 
   async sendPaymentConfirmedNotification(
