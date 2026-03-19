@@ -619,6 +619,13 @@ export class WhatsAppBuyerService {
             intent.params.quantity,
           );
           break;
+        case "list_merchant_products":
+          await this.handleListMerchantProducts(
+            phone,
+            intent.params.merchantSlug,
+            intent.params.query,
+          );
+          break;
         case "search_merchants":
           await this.handleSearchMerchants(
             phone,
@@ -1710,6 +1717,48 @@ export class WhatsAppBuyerService {
       { id: `shop_products_${merchantId}`, title: "Browse Their Shop" },
       { id: "show_buyer_menu", title: "Main Menu" },
     ]);
+  }
+
+  /**
+   * 🏪 List Products from a specific merchant by slug/handle
+   */
+  private async handleListMerchantProducts(
+    phone: string,
+    merchantSlug: string,
+    query?: string,
+  ): Promise<void> {
+    if (!merchantSlug) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "Please specify a merchant handle (e.g. @businessusername).",
+      );
+      return;
+    }
+
+    const cleanSlug = merchantSlug.trim().replace(/^@/, "").toLowerCase();
+
+    const merchant = await this.prisma.merchantProfile.findFirst({
+      where: {
+        slug: { equals: cleanSlug, mode: "insensitive" },
+      },
+    });
+
+    if (!merchant) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `I couldn't find a merchant with the handle "@${cleanSlug}". 🏪\n\nWould you like to search for the shop name instead?`,
+      );
+      return;
+    }
+
+    // Reuse existing search logic but pinned to this merchant
+    await this.handleSearchProducts(
+      phone,
+      query || "",
+      undefined,
+      1,
+      merchant.id,
+    );
   }
 
   private async getSafeDva(buyerId: string): Promise<any | null> {

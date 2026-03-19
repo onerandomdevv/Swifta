@@ -127,7 +127,24 @@ export const BUYER_GEMINI_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
       "Browse the available product categories in the Swifta marketplace.",
   },
   {
-    name: "contact_support",
-    description: "Connect to support for dispute resolutions or problems.",
+    name: "list_merchant_products",
+    description:
+      "List all products available from a specific merchant by their @handle or name.",
+    parameters: {
+      type: SchemaType.OBJECT,
+      properties: {
+        merchantSlug: {
+          type: SchemaType.STRING,
+          description:
+            "The merchant's @handle or slug (e.g. '@kareem' or 'kareem')",
+        },
+        query: {
+          type: SchemaType.STRING,
+          description:
+            "Optional product name to filter within that merchant's shop",
+        },
+      },
+      required: ["merchantSlug"],
+    },
   },
 ];
