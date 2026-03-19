@@ -736,7 +736,7 @@ export class WhatsAppBuyerService {
     // For WhatsApp, treat ALL as consumers by default unless explicitly a BUSINESS buyer
     const isConsumer = profile ? profile.buyerType !== "BUSINESS" : true;
 
-    if (!query) {
+    if (!query && !merchantId) {
       await this.interactiveService.sendTextMessage(
         phone,
         "What kind of product are you looking for? e.g. 'I need a new laptop' or 'iPhone 15'",
@@ -1239,19 +1239,41 @@ export class WhatsAppBuyerService {
     phone: string,
   ): Promise<string> {
     try {
+      // 1. Core action: Confirm delivery in DB
       await this.orderService.confirmDelivery(buyerId, orderId, otp);
-      await this.redisService.del(pendingOtpKey);
 
-      // Feature 3: Rich Media Delivery Reviews (Wait for photo)
-      const photoKey = `wa_pending_review_photo:${phone}:${orderId}`;
-      await this.redisService.set(photoKey, "1", 3600); // 1 hour window
+      // 2. Best-effort cleanup: Remove the pending OTP
+      try {
+        await this.redisService.del(pendingOtpKey);
+      } catch (err) {
+        this.logger.error(
+          `Failed to delete pendingOtpKey ${pendingOtpKey} after success`,
+          err,
+        );
+      }
+
+      // 3. Best-effort setup: Prepare for photo review
+      try {
+        const photoKey = `wa_pending_review_photo:${phone}:${orderId}`;
+        await this.redisService.set(photoKey, "1", 3600); // 1 hour window
+      } catch (err) {
+        this.logger.error(
+          `Failed to set photoKey for order ${orderId} after success`,
+          err,
+        );
+      }
 
       return `Delivery confirmed. ✅ Your order has been marked as delivered. Payment will be released to the merchant.\n\n📸 *Optional:* Reply with a photo of the item you received to help other buyers!`;
     } catch (error: any) {
       this.logger.warn(
         `OTP confirmation failed for order ${orderId}: ${error.message}`,
       );
-      await this.redisService.del(pendingOtpKey);
+
+      // Attempt cleanup on failure too, but ignore errors
+      try {
+        await this.redisService.del(pendingOtpKey);
+      } catch (ignore) {}
+
       return `Invalid or expired OTP. Please check your code and try again.`;
     }
   }
@@ -1766,14 +1788,17 @@ export class WhatsAppBuyerService {
 
     const merchant = await this.prisma.merchantProfile.findFirst({
       where: {
-        slug: { equals: cleanSlug, mode: "insensitive" },
+        OR: [
+          { slug: { equals: cleanSlug, mode: "insensitive" } },
+          { businessName: { contains: cleanSlug, mode: "insensitive" } },
+        ],
       },
     });
 
     if (!merchant) {
       await this.interactiveService.sendTextMessage(
         phone,
-        `I couldn't find a merchant with the handle "@${cleanSlug}". 🏪\n\nWould you like to search for the shop name instead?`,
+        `I couldn't find a merchant or shop matching "${cleanSlug}". 🏪`,
       );
       return;
     }

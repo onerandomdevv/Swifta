@@ -27,7 +27,9 @@ import { OrderStatus, VerificationTier } from "@swifta/shared";
 
 function maskPhone(phone: string): string {
   if (!phone) return "unknown";
-  return phone.replace(/(\+\d{3})\d{7}(\d{2})/, "$1****$2");
+  return phone.replace(/^(\+\d{1,3})(\d+)(\d{2})$/, (_, p1, p2, p3) => {
+    return p1 + "*".repeat(p2.length) + p3;
+  });
 }
 
 /**
@@ -1469,7 +1471,7 @@ export class WhatsAppService {
       }
     } catch (error) {
       this.logger.error(
-        `Failed to send WhatsApp message to ${phone}: ${error instanceof Error ? error.message : error}`,
+        `Failed to send WhatsApp message to ${maskPhone(phone)}: ${error instanceof Error ? error.message : error}`,
       );
     }
   }
@@ -1484,7 +1486,9 @@ export class WhatsAppService {
     parameters: { type: "text"; text: string }[] = [],
   ): Promise<void> {
     const otpCode = parameters.length > 0 ? parameters[0].text : "";
-    this.logger.log(`Dispatching template '${templateName}' to ${phone}`);
+    this.logger.log(
+      `Dispatching template '${templateName}' to ${maskPhone(phone)}`,
+    );
     try {
       await this.interactiveService.sendTemplateMessage(
         phone,
@@ -1492,11 +1496,15 @@ export class WhatsAppService {
         otpCode,
       );
     } catch (error) {
-      this.logger.warn(`Template failed, falling back to text for ${phone}`);
+      this.logger.warn(
+        `Template failed, falling back to text for ${maskPhone(phone)}`,
+      );
       await this.interactiveService.sendTextMessage(
         phone,
         `Your Swifta OTP is: ${otpCode}. Please use this to confirm your action.`,
       );
+      // Rethrow to allow upstream SMS fallback if both WhatsApp methods fail
+      throw error;
     }
   }
 

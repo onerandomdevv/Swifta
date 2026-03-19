@@ -168,6 +168,14 @@ export class WhatsAppInteractiveService {
     templateName: string,
     otpCode: string,
   ): Promise<void> {
+    const trimmedOtp = (otpCode || "").trim();
+    if (!trimmedOtp || trimmedOtp.length < 4) {
+      this.logger.error(
+        `Invalid or missing OTP code provided for template ${templateName}.`,
+      );
+      throw new Error(`Invalid OTP code provided for template ${templateName}`);
+    }
+
     await this.callMetaApi(phone, {
       messaging_product: "whatsapp",
       to: phone,
