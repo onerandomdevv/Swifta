@@ -1815,10 +1815,33 @@ export class WhatsAppBuyerService {
 
   private async getSafeDva(buyerId: string): Promise<any | null> {
     try {
-      return await this.dvaService.getDva(buyerId);
+      const dva = await this.dvaService.getDva(buyerId);
+      if (dva && dva.active && dva.accountNumber) {
+        return dva;
+      }
+
+      // If buyer exists but DVA is inactive/unassigned, attempt auto-provision
+      this.logger.log(`Auto-provisioning DVA for buyer ${buyerId}`);
+      try {
+        const newDva = await this.dvaService.createDva(buyerId);
+        if (newDva && newDva.dva) {
+          return {
+            active: true,
+            accountNumber: newDva.dva.accountNumber,
+            accountName: newDva.dva.accountName,
+            bankName: newDva.dva.bankName,
+          };
+        }
+      } catch (createError) {
+        this.logger.error(
+          `Failed to auto-provision DVA for buyer ${buyerId}:`,
+          createError,
+        );
+      }
+      return null;
     } catch (error) {
-      if (error instanceof NotFoundException) {
-        return null;
+      if (error instanceof NotFoundException || (error as any).status === 404) {
+        return null; // Buyer profile doesn't exist
       }
       this.logger.error(`DVA lookup error for buyer ${buyerId}`, error);
       return null;
