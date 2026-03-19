@@ -97,7 +97,7 @@ const MERCHANT_FEATURES = [
 
 const CATEGORIES = [
   {
-    name: "Building Materials",
+    name: "Home & Kitchen",
     count: "500+",
     img: "/images/slideshow/slide-1.jpg",
   },
@@ -121,9 +121,9 @@ const CATEGORIES = [
 const TESTIMONIALS = [
   {
     name: "Adebayo Ogunlesi",
-    role: "Contractor",
+    role: "Regular Buyer",
     stars: 5,
-    text: "I ordered 200 bags of cement through WhatsApp. Got matched with a verified supplier, paid securely, and delivery arrived the next day. This is the future of commerce!",
+    text: "I ordered a pair of limited edition sneakers through WhatsApp. Got matched with a verified merchant, paid securely, and delivery arrived the next day. This is the future of commerce!",
   },
   {
     name: "Chioma Nwosu",
@@ -477,7 +477,7 @@ export default function LandingPage() {
               Shop Any Category
             </h2>
             <p className="text-slate-500 font-medium max-w-lg mx-auto">
-              From building materials to electronics — find everything you need
+              From fashion to electronics — find everything you need
             </p>
           </div>
 

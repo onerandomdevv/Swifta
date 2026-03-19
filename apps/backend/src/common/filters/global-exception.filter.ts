@@ -118,7 +118,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         // Log the full error to a debug file for capture
         try {
           const logPath = path.join(process.cwd(), "error_debug.log");
-          const logContent = `\n[${new Date().toISOString()}] PRISMA ERROR: ${exception.code}\n` +
+          const logContent =
+            `\n[${new Date().toISOString()}] PRISMA ERROR: ${exception.code}\n` +
             `Message: ${exception.message}\n` +
             `Meta: ${JSON.stringify(exception.meta, null, 2)}\n` +
             `Stack: ${exception.stack}\n` +

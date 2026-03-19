@@ -29,7 +29,7 @@ export class TestSetup {
   }
 
   async createMockBuyer() {
-    const email = `test.buyer.${Date.now()}@hardware.os`;
+    const email = `test.buyer.${Date.now()}@swifta.store`;
     const user = await this.prisma.user.create({
       data: {
         email,
@@ -54,7 +54,7 @@ export class TestSetup {
   }
 
   async createMockMerchant() {
-    const email = `test.merchant.${Date.now()}@hardware.os`;
+    const email = `test.merchant.${Date.now()}@swifta.store`;
     const user = await this.prisma.user.create({
       data: {
         email,
@@ -66,8 +66,8 @@ export class TestSetup {
         emailVerified: true,
         merchantProfile: {
           create: {
-            businessName: "Golden Path Cement Co.",
-            slug: "golden-path-cement-co",
+            businessName: "Zaza Fashion Hub",
+            slug: "zaza-fashion-hub",
             businessAddress: "123 E2E Street, Lagos",
             cacNumber: "RC123456",
             verificationTier: "VERIFIED",

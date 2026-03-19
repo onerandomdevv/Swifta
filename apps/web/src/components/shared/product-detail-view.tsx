@@ -310,7 +310,7 @@ export function ProductDetailView({ productId, isOwner: initialIsOwner }: Produc
                         <p className="text-xs font-bold text-slate-300 mb-1">/ {product.unit || "unit"}</p>
                     </div>
                 </div>
-                {wholesale > 0 && (
+                {wholesale > 0 && effectiveIsOwner && (
                     <div className="space-y-1 text-right">
                         <p className="text-emerald-600/60 text-[10px] font-bold uppercase tracking-widest">Wholesale</p>
                         <div className="flex items-end justify-end gap-1">
@@ -321,7 +321,7 @@ export function ProductDetailView({ productId, isOwner: initialIsOwner }: Produc
                 )}
              </div>
 
-            {wholesale > 0 && (
+            {wholesale > 0 && effectiveIsOwner && (
               <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-primary/10 border border-emerald-100/50 rounded-lg">
                 <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-emerald-600 text-sm">inventory</span>
@@ -455,10 +455,12 @@ export function ProductDetailView({ productId, isOwner: initialIsOwner }: Produc
                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Unit Specification</span>
                  <span className="font-bold text-slate-900 dark:text-white text-xs uppercase">{product?.unit || "Unit"}</span>
                </div>
-               <div className="flex justify-between py-3 border-b border-slate-50 dark:border-white/5">
-                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Wholesale Threshold</span>
-                 <span className="font-bold text-slate-900 dark:text-white text-xs">{product?.minOrderQuantity} Units</span>
-               </div>
+                {effectiveIsOwner && (
+                  <div className="flex justify-between py-3 border-b border-slate-50 dark:border-white/5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Wholesale Threshold</span>
+                    <span className="font-bold text-slate-900 dark:text-white text-xs">{product?.minOrderQuantity} Units</span>
+                  </div>
+                )}
                 <div className="flex justify-between py-3 border-b border-slate-50 dark:border-white/5">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Weight (Approx)</span>
                   <span className="font-bold text-slate-900 dark:text-white text-xs">{product?.weightKg ? `${product.weightKg}kg` : "N/A"}</span>

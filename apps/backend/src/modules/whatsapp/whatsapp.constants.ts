@@ -16,17 +16,17 @@ export const BUYER_MAIN_MENU = `Welcome to the Swifta Buyer Assistant. Select an
 
 /** Friendly fallback for buyers */
 export const BUYER_FRIENDLY_FALLBACK = `I did not understand that. You can ask:
-• "I need 50 bags of cement in Lekki"
+• "I want to buy an iPhone 15"
 • "Where is my order?"
 • "Show my purchase history"`;
 
 /** Follow-up when stock update is incomplete */
 export const STOCK_UPDATE_FOLLOWUP = `Understood. Which product would you like to update and by how much?
 
-Example: "Add 50 bags of cement" or "Remove 10 iron rods"`;
+Example: "Add 10 pairs of sneakers" or "Remove 5 laptops"`;
 
 /** First message for an unlinked phone */
-export const WELCOME_MESSAGE = `Welcome to Swifta. Nigeria's digital marketplace for retail and wholesale needs. How would you like to use our platform?`;
+export const WELCOME_MESSAGE = `Welcome to Swifta. Nigeria's digital marketplace for all your shopping needs. How would you like to use our platform?`;
 
 export const ROLE_SELECTED_MESSAGE = `To link your account, please reply with your registered email address.`;
 
@@ -73,7 +73,6 @@ export const NUMBER_INTENT_MAP: Record<string, string> = {
   "6": "get_products",
   "7": "update_product_price",
   "8": "get_verification_status",
-  "9": "browse_wholesale",
 };
 
 // ---------------------------------------------------------------------------
@@ -116,7 +115,7 @@ export const GEMINI_FUNCTION_DECLARATIONS = [
   {
     name: "update_stock",
     description:
-      "Add or remove inventory stock. Triggered by: 'add 50 bags cement', 'remove 10 rods', 'I just receive 100 iron', 'restock'",
+      "Add or remove inventory stock. Triggered by: 'add 10 sneakers', 'remove 5 phones', 'I just received 100 shirts', 'restock'",
     parameters: {
       type: "object" as const,
       properties: {
@@ -192,7 +191,7 @@ export const GEMINI_FUNCTION_DECLARATIONS = [
   {
     name: "update_product_price",
     description:
-      "Update the price of a product. Triggered by: 'update cement price to 9000', 'change price 8500'",
+      "Update the price of a product. Triggered by: 'update phone price to 90000', 'change price to 8500'",
     parameters: {
       type: "object" as const,
       properties: {
@@ -210,39 +209,6 @@ export const GEMINI_FUNCTION_DECLARATIONS = [
     description:
       "Get the merchant's current verification tier and status. Triggered by: 'verify', 'my verification', 'am I verified', 'verification status'",
     parameters: { type: "object" as const, properties: {} },
-  },
-  {
-    name: "browse_wholesale",
-    description:
-      "Browse the manufacturer/supplier catalogue for stock. Triggered by: 'I need stock', 'manufacturer catalogue', 'wholesale'",
-    parameters: {
-      type: "object" as const,
-      properties: {
-        query: {
-          type: "string",
-          description: "Optional product name to search for",
-        },
-      },
-    },
-  },
-  {
-    name: "buy_wholesale",
-    description:
-      "Purchase stock from a manufacturer. Triggered by: 'buy stock ABC 50 units'",
-    parameters: {
-      type: "object" as const,
-      properties: {
-        productId: {
-          type: "string",
-          description: "The short ID of the manufacturer product",
-        },
-        quantity: {
-          type: "number",
-          description: "How many units to buy",
-        },
-      },
-      required: ["productId"],
-    },
   },
 ];
 

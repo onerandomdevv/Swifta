@@ -179,7 +179,7 @@ export function ProductCreationDrawer({
               Command Center
             </p>
             <h2 className="text-2xl font-black text-foreground uppercase tracking-tighter">
-              {currentStep === "SUCCESS" ? "Listing Active" : "List New Material"}
+              {currentStep === "SUCCESS" ? "Listing Active" : "List New Product"}
             </h2>
           </div>
           <button
@@ -302,7 +302,7 @@ export function ProductCreationDrawer({
                   autoFocus
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g. Dangote Cement 3X (50kg)"
+                  placeholder="e.g. Apple iPhone 15 Pro (128GB)"
                   className="w-full p-6 text-xl font-black border-2 border-border-light bg-background-secondary/50 rounded-[1.5rem] focus:border-primary focus:bg-surface transition-all outline-none placeholder:text-foreground-muted text-foreground uppercase tracking-tighter"
                 />
               </div>
@@ -382,88 +382,7 @@ export function ProductCreationDrawer({
                 <p className="text-[10px] font-bold text-foreground-muted ml-1 uppercase">Smallest order a buyer can place</p>
               </div>
 
-              {/* Wholesale Toggle */}
-              <div className="border-t border-border pt-8">
-                <div className="p-6 rounded-[1.5rem] border-2 border-border-light bg-background-secondary/30">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className={`size-12 rounded-2xl flex items-center justify-center transition-colors ${wholesaleEnabled ? "bg-emerald-500/10 text-emerald-600" : "bg-background-secondary text-foreground-muted"}`}>
-                        <span className="material-symbols-outlined text-xl">local_offer</span>
-                      </div>
-                      <div>
-                        <p className="text-sm font-black text-foreground uppercase tracking-tight">
-                          Enable Wholesale
-                        </p>
-                        <p className="text-[10px] font-bold text-foreground-muted mt-0.5">
-                          Offer a bulk discount for larger orders
-                        </p>
-                      </div>
-                    </div>
-                    <label className="relative flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="sr-only"
-                        checked={wholesaleEnabled}
-                        onChange={(e) => setWholesaleEnabled(e.target.checked)}
-                      />
-                      <div className={`block w-14 h-8 rounded-full transition-colors ${wholesaleEnabled ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"}`}></div>
-                      <div className={`absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform shadow-sm ${wholesaleEnabled ? "translate-x-6" : ""}`}></div>
-                    </label>
-                  </div>
-
-                  {/* Wholesale fields — revealed on toggle */}
-                  {wholesaleEnabled && (
-                    <div className="mt-6 pt-6 border-t border-border space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-3">
-                          <label className="text-[10px] font-black text-emerald-600 uppercase tracking-widest ml-1">
-                            Discount %
-                          </label>
-                          <div className="relative">
-                            <input
-                              type="number"
-                              min={1}
-                              max={99}
-                              value={formData.wholesaleDiscountPercent}
-                              onChange={(e) => setFormData({ ...formData, wholesaleDiscountPercent: Math.min(99, Math.max(1, parseInt(e.target.value) || 1)) })}
-                              className="w-full p-5 pr-10 text-lg font-black border-2 border-emerald-500/20 bg-emerald-500/5 rounded-xl focus:border-emerald-500 transition-all outline-none tabular-nums text-emerald-600"
-                            />
-                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-400 font-black">%</span>
-                          </div>
-                        </div>
-
-                        <div className="space-y-3">
-                          <label className="text-[10px] font-black text-emerald-600 uppercase tracking-widest ml-1">
-                            Min. Qty
-                          </label>
-                          <input
-                            type="number"
-                            min={2}
-                            value={formData.minOrderQuantity}
-                            onChange={(e) => setFormData({ ...formData, minOrderQuantity: Math.max(2, parseInt(e.target.value) || 2) })}
-                            className="w-full p-5 text-lg font-black border-2 border-emerald-500/20 bg-emerald-500/5 rounded-xl focus:border-emerald-500 transition-all outline-none tabular-nums text-emerald-600"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Calculated wholesale price */}
-                      {retailPriceNum > 0 && (
-                        <div className="p-5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between">
-                          <div>
-                            <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Wholesale Price</p>
-                            <p className="text-[10px] font-bold text-emerald-500/70 mt-0.5">
-                              Auto-calculated: {formData.wholesaleDiscountPercent}% off ₦{retailPriceNum.toLocaleString()}
-                            </p>
-                          </div>
-                          <p className="text-2xl font-black text-emerald-600 tabular-nums">
-                            ₦{calculatedWholesalePrice.toLocaleString()}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+              {/* Wholesale Section — Fully Hidden for B2C Presentation */}
             </div>
           )}
 
@@ -473,7 +392,7 @@ export function ProductCreationDrawer({
                 <span className="material-symbols-outlined text-6xl text-white">verified</span>
               </div>
               <div className="space-y-2">
-                <h3 className="text-3xl font-black text-foreground uppercase tracking-tighter">Material Live</h3>
+                <h3 className="text-3xl font-black text-foreground uppercase tracking-tighter">Product Live</h3>
                 <p className="text-foreground-secondary font-bold max-w-xs mx-auto leading-relaxed">
                   Your listing has been successfully created. The Swifta marketplace can now discover your products.
                 </p>
@@ -498,7 +417,7 @@ export function ProductCreationDrawer({
                 className="px-10 py-5 bg-primary text-primary-foreground rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] flex items-center gap-3 transition-all hover:scale-105 active:scale-95"
               >
                 <span className="material-symbols-outlined text-lg">add_circle</span>
-                List Another Surface
+                List Another Product
               </button>
             </div>
           )}

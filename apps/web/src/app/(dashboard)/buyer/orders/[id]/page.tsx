@@ -92,7 +92,7 @@ export default function BuyerOrderDetailsPage() {
     // Cart checkout
     if (Array.isArray((order as any).items)) {
       items.push(...(order as any).items.map((item: any) => ({
-        name: item.name || "Hardware Item",
+        name: item.name || "Swifta Product",
         sku: `${item.productId?.slice(0, 8)?.toUpperCase() || "GEN"}`,
         quantity: item.quantity,
         unitPrice: item.unitPriceKobo,

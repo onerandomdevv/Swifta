@@ -16,6 +16,7 @@ import {
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
+import { CurrentMerchant } from "../../common/decorators/current-merchant.decorator";
 import { UserRole } from "@swifta/shared";
 import { PaginationQueryDto } from "../../common/dto/pagination-query.dto";
 
@@ -28,15 +29,17 @@ export class VerificationController {
 
   @Post("verification/request")
   @Roles(UserRole.MERCHANT)
-  submitRequest(@Body() dto: SubmitVerificationDto, @Req() req: any) {
-    // req.merchantId is attached by MerchantContextMiddleware
-    return this.verificationService.submitRequest(req.merchantId, dto);
+  submitRequest(
+    @Body() dto: SubmitVerificationDto,
+    @CurrentMerchant() merchantId: string,
+  ) {
+    return this.verificationService.submitRequest(merchantId, dto);
   }
 
   @Get("verification/status")
   @Roles(UserRole.MERCHANT)
-  getStatus(@Req() req: any) {
-    return this.verificationService.getStatus(req.merchantId);
+  getStatus(@CurrentMerchant() merchantId: string) {
+    return this.verificationService.getStatus(merchantId);
   }
 
   // ─── ADMIN ENDPOINTS ─────────────────────────────────────────────────────

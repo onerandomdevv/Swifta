@@ -48,7 +48,7 @@ describe("The Golden Path (e2e)", () => {
       data: {
         merchantId: merchantId,
         categoryId: category.id,
-        name: "100 Bags of High-Grade Cement",
+        name: "iPhone 15 Pro Max",
         categoryTag: category.name,
         pricePerUnitKobo: 500000,
         unit: "bags",
@@ -83,7 +83,7 @@ describe("The Golden Path (e2e)", () => {
       .send({
         productId,
         quantity: 100,
-        deliveryAddress: "Lekki Phase 1 Construction Site",
+        deliveryAddress: "Lekki Phase 1, Lagos",
         paymentMethod: "ESCROW",
         deliveryMethod: "MERCHANT_DELIVERY",
       })

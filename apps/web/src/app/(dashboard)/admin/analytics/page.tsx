@@ -90,7 +90,7 @@ export default function AdminAnalyticsPage() {
               link.setAttribute("href", url);
               link.setAttribute(
                 "download",
-                `hardware_os_financials_${new Date().toISOString().split("T")[0]}.csv`,
+                `swifta_financials_${new Date().toISOString().split("T")[0]}.csv`,
               );
               document.body.appendChild(link);
               link.click();

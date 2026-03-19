@@ -21,7 +21,6 @@ import { OrderStatus } from "@swifta/shared";
 import { ReviewService } from "../review/review.service";
 import { WhatsAppInteractiveService } from "./whatsapp-interactive.service";
 import { DvaService } from "../dva/dva.service";
-import { MENU_MERCHANT_MODE } from "./whatsapp.constants";
 
 const PENDING_OTP_PREFIX = "wa_pending_otp_";
 const PENDING_REVIEW_PREFIX = "wa_pending_review_";
@@ -163,7 +162,7 @@ export class WhatsAppBuyerService {
         await this.handleCheckoutStep(
           buyerId,
           checkoutSession,
-          messageText || '',
+          messageText || "",
           checkoutKey,
         );
         return;
@@ -204,7 +203,7 @@ export class WhatsAppBuyerService {
         return;
       }
 
-      const intent = await this.intentService.parseIntent(messageText || '');
+      const intent = await this.intentService.parseIntent(messageText || "");
 
       // B1: Scrubbed log — mask phone, only log intent function name + param keys (not values)
       this.logger.debug(
@@ -370,12 +369,24 @@ export class WhatsAppBuyerService {
 
     if (id.startsWith("buy_")) {
       const parts = id.split("_");
-      const productIdShort = parts[1];
+      const productIdRaw = parts[1];
       const quantity = parseInt(parts[2]) || 1;
 
-      const product = await this.prisma.product.findFirst({
-        where: { id: { startsWith: productIdShort } as any },
-      });
+      let product;
+      if (productIdRaw.length === 36) {
+        product = await this.prisma.product.findUnique({
+          where: { id: productIdRaw },
+        });
+      } else {
+        const productsRaw = await this.prisma.$queryRaw<any[]>`
+          SELECT id FROM products 
+          WHERE id::text LIKE ${productIdRaw + "%"}
+          LIMIT 1
+        `;
+        if (productsRaw.length > 0) {
+          product = { id: productsRaw[0].id } as any;
+        }
+      }
 
       if (product) {
         await this.handleBuyProduct(buyerId, phone, product.id, quantity);
@@ -769,12 +780,18 @@ export class WhatsAppBuyerService {
               ? ` | 📍${p.warehouseLocation}`
               : "";
 
-            const shortDesc = p.shortDescription ? `${p.shortDescription} | ` : "";
+            const shortDesc = p.shortDescription
+              ? `${p.shortDescription} | `
+              : "";
 
             return {
-              id: `buy_${p.id.substring(0, 8)}_${quantity}`,
-              title: `${p.name}${wholesaleBadge}`,
-              description: `${shortDesc}${this.formatNaira(resolvedPriceKobo)}${weightStr}${locationStr}${starStr}`,
+              id: `buy_${p.id}_${quantity}`,
+              title: `${p.name}${wholesaleBadge}`.substring(0, 24),
+              description:
+                `${shortDesc}${this.formatNaira(resolvedPriceKobo)}${weightStr}${locationStr}${starStr}`.substring(
+                  0,
+                  72,
+                ),
             };
           }),
         },
@@ -1386,9 +1403,13 @@ export class WhatsAppBuyerService {
               : "";
 
             return {
-              id: `buy_${p.id.substring(0, 8)}_1`,
-              title: `${p.name}${wholesaleBadge}`,
-              description: `${this.formatNaira(resolvedPriceKobo)}${weightStr}${locationStr}${stars} | ${p.merchantProfile?.businessName || "Seller"}`,
+              id: `buy_${p.id}_1`,
+              title: `${p.name}${wholesaleBadge}`.substring(0, 24),
+              description:
+                `${this.formatNaira(resolvedPriceKobo)}${weightStr}${locationStr}${stars} | ${p.merchantProfile?.businessName || "Seller"}`.substring(
+                  0,
+                  72,
+                ),
             };
           }),
         },

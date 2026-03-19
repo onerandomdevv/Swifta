@@ -45,7 +45,6 @@ export function MerchantSidebar({
       group: "Restocking",
       items: [
         { label: "Supplies Cart", icon: "shopping_cart_checkout", href: "/merchant/procurement/cart" },
-        { label: "Wholesale Finder", icon: "factory", href: "/merchant/wholesale", isComingSoon: true },
       ]
     },
     {

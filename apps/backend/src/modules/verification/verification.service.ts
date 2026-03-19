@@ -119,7 +119,10 @@ export class VerificationService {
           where: { merchantId, status: OrderStatus.COMPLETED },
         }),
         this.prisma.order.count({
-          where: { merchantId, disputeStatus: { not: OrderDisputeStatus.NONE } },
+          where: {
+            merchantId,
+            disputeStatus: { not: OrderDisputeStatus.NONE },
+          },
         }),
         this.prisma.verificationRequest.findFirst({
           where: { merchantId, status: "PENDING" },

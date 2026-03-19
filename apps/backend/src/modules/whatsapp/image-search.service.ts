@@ -74,7 +74,7 @@ export class ImageSearchService {
       if (!extractedTerms) {
         await this.interactiveService.sendTextMessage(
           phone,
-          "Identification failed. Please ensure the product is clearly visible.",
+          "I couldn't identify the product in this photo. ⚠️ Please make sure the item is clearly visible and try sending it again.",
         );
         return;
       }
@@ -86,10 +86,11 @@ export class ImageSearchService {
 
       // 4. Send response
       if (products.length === 0) {
-        await this.interactiveService.sendTextMessage(
-          phone,
-          `I detected "${extractedTerms.join(", ")}" but found no matching products on Swifta.`,
-        );
+        const bodyText = `I identified the item as *${extractedTerms[0]}*, but I couldn't find a direct match on Swifta right now. 📦\n\nWould you like to browse our top categories or search for a different product?`;
+        await this.interactiveService.sendReplyButtons(phone, bodyText, [
+          { id: "browse_categories", title: "Browse Categories" },
+          { id: "search_products", title: "Try Text Search" },
+        ]);
         return;
       }
 
@@ -97,7 +98,7 @@ export class ImageSearchService {
         id: `view_product_${p.id}`,
         title: p.name.substring(0, 24),
         description:
-          `₦${Number(p.pricePerUnitKobo || 0) / 100} / ${p.unit}`.substring(
+          `Retail Price: ₦${(Number(p.retailPriceKobo || p.pricePerUnitKobo || 0) / 100).toLocaleString("en-NG")} / ${p.unit}`.substring(
             0,
             72,
           ),
@@ -204,8 +205,9 @@ export class ImageSearchService {
               {
                 image: { content: base64Data },
                 features: [
-                  { type: "LABEL_DETECTION", maxResults: 5 },
+                  { type: "TEXT_DETECTION", maxResults: 1 },
                   { type: "OBJECT_LOCALIZATION", maxResults: 3 },
+                  { type: "LABEL_DETECTION", maxResults: 5 },
                 ],
               },
             ],
@@ -219,15 +221,27 @@ export class ImageSearchService {
       if (!response.ok) return null;
       const data = await response.json();
 
-      const labels =
-        data.responses[0]?.labelAnnotations?.map((l: any) => l.description) ||
-        [];
+      const textBlock =
+        data.responses[0]?.textAnnotations?.[0]?.description || "";
+      let textTerms: string[] = [];
+      if (textBlock) {
+        textTerms = textBlock
+          .split(/\s+/)
+          .filter((w: string) => w.length > 3 && !w.match(/^[0-9]+$/))
+          .slice(0, 5); // Take top 5 meaningful words from OCR
+      }
+
       const objects =
         data.responses[0]?.localizedObjectAnnotations?.map(
           (o: any) => o.name,
         ) || [];
 
-      const terms = Array.from(new Set([...objects, ...labels]));
+      const labels =
+        data.responses[0]?.labelAnnotations?.map((l: any) => l.description) ||
+        [];
+
+      // Prioritize Text OCR -> Objects -> General Labels
+      const terms = Array.from(new Set([...textTerms, ...objects, ...labels]));
       return terms.length > 0 ? terms : null;
     } catch (error) {
       this.logger.error("Cloud Vision error:", error);

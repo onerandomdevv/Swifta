@@ -370,7 +370,7 @@ export default function MerchantSettingsPage() {
                               .replace(/[^a-z0-9-]/g, ""),
                           )
                         }
-                        placeholder="e.g. dangote-cement"
+                        placeholder="e.g. zaza-fashion"
                       />
                       <p className="mt-2 text-[10px] text-slate-400 font-medium">
                         3-30 characters. Lowercase letters, numbers, and hyphens
