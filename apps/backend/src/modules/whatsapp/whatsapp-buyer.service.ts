@@ -19,6 +19,8 @@ import {
 } from "./whatsapp-buyer.constants";
 import { OrderStatus } from "@swifta/shared";
 import { ReviewService } from "../review/review.service";
+import { UploadService } from "../upload/upload.service";
+import { ImageSearchService } from "./image-search.service";
 import { WhatsAppInteractiveService } from "./whatsapp-interactive.service";
 import { DvaService } from "../dva/dva.service";
 
@@ -92,6 +94,8 @@ export class WhatsAppBuyerService {
     private reviewService: ReviewService,
     private interactiveService: WhatsAppInteractiveService,
     private dvaService: DvaService,
+    private uploadService: UploadService,
+    private imageSearchService: ImageSearchService,
   ) {
     this.accessToken =
       this.configService.get<string>("whatsapp.accessToken") || "";
@@ -139,6 +143,7 @@ export class WhatsAppBuyerService {
           pendingOtpSession.orderId,
           cleanText,
           pendingOtpKey,
+          phone,
         );
         await this.sendWhatsAppMessage(phone, response);
         return;
@@ -159,13 +164,21 @@ export class WhatsAppBuyerService {
       }
 
       if (checkoutSession) {
-        await this.handleCheckoutStep(
-          buyerId,
-          checkoutSession,
-          messageText || "",
-          checkoutKey,
-        );
-        return;
+        // If this is an interactive reply and it's one of the delivery methods, LET IT FALL THROUGH
+        // to handleInteractiveReply, which properly processes and clears the checkout state.
+        const isDeliveryInteraction =
+          interactiveReply &&
+          ["delivery_merchant", "delivery_track"].includes(interactiveReply.id);
+
+        if (!isDeliveryInteraction) {
+          await this.handleCheckoutStep(
+            buyerId,
+            checkoutSession,
+            messageText || "",
+            checkoutKey,
+          );
+          return;
+        }
       }
 
       // 3. Check for pending review session (text comments)
@@ -372,24 +385,39 @@ export class WhatsAppBuyerService {
       const productIdRaw = parts[1];
       const quantity = parseInt(parts[2]) || 1;
 
-      let product;
-      if (productIdRaw.length === 36) {
-        product = await this.prisma.product.findUnique({
-          where: { id: productIdRaw },
-        });
-      } else {
-        const productsRaw = await this.prisma.$queryRaw<any[]>`
-          SELECT id FROM products 
-          WHERE id::text LIKE ${productIdRaw + "%"}
-          LIMIT 1
-        `;
-        if (productsRaw.length > 0) {
-          product = { id: productsRaw[0].id } as any;
+      try {
+        let product;
+        if (productIdRaw.length === 36) {
+          product = await this.prisma.product.findUnique({
+            where: { id: productIdRaw },
+          });
+        } else {
+          const productsRaw = await this.prisma.$queryRaw<any[]>`
+            SELECT id FROM products 
+            WHERE id::text LIKE ${productIdRaw + "%"}
+            LIMIT 1
+          `;
+          if (productsRaw.length > 0) {
+            product = { id: productsRaw[0].id } as any;
+          }
         }
-      }
 
-      if (product) {
-        await this.handleBuyProduct(buyerId, phone, product.id, quantity);
+        if (product) {
+          await this.handleBuyProduct(buyerId, phone, product.id, quantity);
+        } else {
+          await this.interactiveService.sendTextMessage(
+            phone,
+            "This product is no longer available. Please search for another item.",
+          );
+        }
+      } catch (err) {
+        this.logger.error(
+          `Buy interactive handler error: ${err instanceof Error ? err.message : err}`,
+        );
+        await this.interactiveService.sendTextMessage(
+          phone,
+          "Something went wrong while loading the product. Please try again.",
+        );
       }
       return;
     }
@@ -473,6 +501,16 @@ export class WhatsAppBuyerService {
             id: "get_order_history",
             title: "Order History",
             description: "Review past purchases",
+          },
+        ],
+      },
+      {
+        title: "Support",
+        rows: [
+          {
+            id: "support_handoff",
+            title: "📞 Need Help?",
+            description: "Chat with a human agent",
           },
         ],
       },
@@ -608,10 +646,8 @@ export class WhatsAppBuyerService {
           );
           break;
         case "contact_support":
-          await this.interactiveService.sendTextMessage(
-            phone,
-            "Contact Swifta Support at support@swifta.store for assistance.",
-          );
+        case "support_handoff":
+          await this.handleSupportHandoff(phone);
           break;
         case "friendly_fallback":
           await this.interactiveService.sendTextMessage(
@@ -638,6 +674,17 @@ export class WhatsAppBuyerService {
   // =======================================================================
   // Command Handlers
   // =======================================================================
+
+  private async handleSupportHandoff(phone: string): Promise<void> {
+    const pauseKey = `ai_paused_${phone}`;
+    await this.redisService.set(pauseKey, "1", 24 * 60 * 60); // 24 hours
+    await this.interactiveService.sendTextMessage(
+      phone,
+      "You are being transferred to a human agent. They will reply to you on this number shortly.\n\nType *'resume'* at any time to reactivate the AI assistant.",
+    );
+    this.logger.log(`Support Handoff initiated for ${phone}`);
+    // In a real app we would fire an event to the notification queue for admins
+  }
 
   /**
    * 🔎 Search Products globally based on AI extracted intent
@@ -715,31 +762,97 @@ export class WhatsAppBuyerService {
 
     if (products.length === 0) {
       const msg = query
-        ? `No results for "${query}"${location ? ` near ${location}` : ""}. 🛍️`
-        : "This merchant currently has no active products. 🏪";
+        ? `No results found for "${query}"${location ? ` near ${location}` : ""}. 🛍️\n\nHere are some other popular items you might like:`
+        : "This merchant currently has no active products. 🏪\n\nHere are some popular items from other sellers:";
 
-      await this.interactiveService.sendListMessage(phone, msg, "Options", [
-        {
-          title: "Try something else",
-          rows: [
-            {
-              id: "browse_categories",
-              title: "Browse Categories",
-              description: "Explore by product type",
-            },
-            {
-              id: "search_products",
-              title: "New Search",
-              description: "Search for a different item",
-            },
-            {
-              id: "show_buyer_menu",
-              title: "Main Menu",
-              description: "Return to home",
-            },
-          ],
-        },
-      ]);
+      // Feature 4: Smart "No Results" Fallback
+      const fallbackProducts = await this.prisma.product.findMany({
+        where: { isActive: true },
+        include: { merchantProfile: true, category: true },
+        take: 5,
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (fallbackProducts.length > 0) {
+        const validFallbacks = fallbackProducts.filter(
+          (p) => resolvePrice(p, quantity, isConsumer) !== null,
+        );
+
+        if (validFallbacks.length > 0) {
+          const rows = validFallbacks.map((p) => {
+            const resolvedPriceKobo = resolvePrice(p, quantity, isConsumer)!;
+            return {
+              id: `buy_${p.id}_${quantity}`,
+              title: p.name.substring(0, 24),
+              description:
+                `${this.formatNaira(resolvedPriceKobo)} | ${p.merchantProfile?.businessName || "Verified Shop"}`.substring(
+                  0,
+                  72,
+                ),
+            };
+          });
+
+          await this.interactiveService.sendListMessage(
+            phone,
+            msg,
+            "Alternative Items",
+            [
+              { title: "Suggested Products", rows },
+              {
+                title: "Other Options",
+                rows: [
+                  {
+                    id: "browse_categories",
+                    title: "Browse Categories",
+                    description: "Explore by type",
+                  },
+                  {
+                    id: "search_products",
+                    title: "New Search",
+                    description: "Search for a different item",
+                  },
+                  {
+                    id: "show_buyer_menu",
+                    title: "Main Menu",
+                    description: "Return to home",
+                  },
+                ],
+              },
+            ],
+          );
+          return;
+        }
+      }
+
+      await this.interactiveService.sendListMessage(
+        phone,
+        query
+          ? `No results for "${query}". 🛍️`
+          : "This merchant has no active products. 🏪",
+        "Options",
+        [
+          {
+            title: "Try something else",
+            rows: [
+              {
+                id: "browse_categories",
+                title: "Browse Categories",
+                description: "Explore by product type",
+              },
+              {
+                id: "search_products",
+                title: "New Search",
+                description: "Search for a different item",
+              },
+              {
+                id: "show_buyer_menu",
+                title: "Main Menu",
+                description: "Return to home",
+              },
+            ],
+          },
+        ],
+      );
       return;
     }
 
@@ -1090,11 +1203,17 @@ export class WhatsAppBuyerService {
     orderId: string,
     otp: string,
     pendingOtpKey: string,
+    phone: string,
   ): Promise<string> {
     try {
       await this.orderService.confirmDelivery(buyerId, orderId, otp);
       await this.redisService.del(pendingOtpKey);
-      return `Delivery confirmed. ✅ Your order has been marked as delivered. Payment will be released to the merchant.`;
+
+      // Feature 3: Rich Media Delivery Reviews (Wait for photo)
+      const photoKey = `pending_review_photo_${phone}`; // or buyerId, but phone is easier to get in webhook
+      await this.redisService.set(photoKey, orderId, 3600); // 1 hour window
+
+      return `Delivery confirmed. ✅ Your order has been marked as delivered. Payment will be released to the merchant.\n\n📸 *Optional:* Reply with a photo of the item you received to help other buyers!`;
     } catch (error: any) {
       this.logger.warn(
         `OTP confirmation failed for order ${orderId}: ${error.message}`,
@@ -1208,6 +1327,69 @@ export class WhatsAppBuyerService {
       throw error;
     }
   }
+
+  // Feature 3: Rich Media Delivery Reviews
+  async handleReviewPhoto(
+    phone: string,
+    orderId: string,
+    imageId: string,
+  ): Promise<void> {
+    try {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "Processing your photo...",
+      );
+
+      const imageResult =
+        await this.imageSearchService.downloadMetaImage(imageId);
+      if (!imageResult) {
+        await this.interactiveService.sendTextMessage(
+          phone,
+          "Sorry, I couldn't download the photo. Please try again.",
+        );
+        return;
+      }
+
+      const buffer = Buffer.from(imageResult.base64Data, "base64");
+      const file = { buffer, mimetype: imageResult.mimeType } as any;
+
+      const imageUrl = await this.uploadService.uploadImageToCloudinary(
+        file,
+        "swifta/reviews",
+      );
+
+      const order = await this.prisma.order.findUnique({
+        where: { id: orderId },
+      });
+      if (order && order.merchantId) {
+        await this.prisma.review.upsert({
+          where: { orderId },
+          update: { imageUrl },
+          create: {
+            orderId,
+            buyerId: order.buyerId,
+            merchantId: order.merchantId,
+            rating: 5, // Default rating if photo is sent before star rating
+            imageUrl,
+          },
+        });
+      }
+
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "Amazing! 📸 Your photo has been attached to your review to help other buyers.",
+      );
+    } catch (error) {
+      this.logger.error(
+        `Review photo upload failed: ${error instanceof Error ? error.message : error}`,
+      );
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "An error occurred while saving your photo.",
+      );
+    }
+  }
+
   private async handleTrackOrder(
     buyerId: string,
     orderIdShort: string,
