@@ -215,6 +215,9 @@ export class WhatsAppInteractiveService {
   // Internal: Call Meta Cloud API
   // -----------------------------------------------------------------------
   private async callMetaApi(phone: string, payload: any): Promise<void> {
+    const toPhone = phone.startsWith("+") ? phone.slice(1) : phone;
+    payload.to = toPhone;
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
 
