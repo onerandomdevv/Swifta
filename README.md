@@ -196,9 +196,9 @@ pnpm --filter @swifta/web dev        # Frontend → http://localhost:3000
 
 Built by **codedDevs** — a software development team based in Lagos, Nigeria.
 
-- **Kareem Aliameen** — CEO & Product & Engineering Lead
+- **Kareem Aliameen** — Product & Engineering Lead
 - **Yusuf Saheed** — CTO & Engineering Lead
-- **Amoo Mustakheem** — CDO & Business Development
+
 
 📧 codeddevs.team@gmail.com
 🐙 [github.com/coded-devs](https://github.com/coded-devs)

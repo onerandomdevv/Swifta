@@ -86,19 +86,69 @@ export class ImageSearchService {
 
       // 4. Send response
       if (products.length === 0) {
-        const bodyText = `I identified the item as *${extractedTerms[0]}*, but I couldn't find a direct match on Swifta right now. 📦\n\nWould you like to browse our top categories or search for a different product?`;
-        await this.interactiveService.sendReplyButtons(phone, bodyText, [
-          { id: "browse_categories", title: "Browse Categories" },
-          { id: "search_products", title: "Try Text Search" },
-        ]);
+        // Feature 4: Smart "No Results" Fallback
+        const bodyText = `I identified the item as *${extractedTerms[0]}*, but I couldn't find a direct match right now. 📦\n\nHere are some other popular products you might like instead:`;
+
+        const fallbackProducts = await this.prisma.product.findMany({
+          where: { isActive: true },
+          include: { merchantProfile: { select: { businessName: true } } },
+          take: 5,
+          orderBy: { createdAt: "desc" },
+        });
+
+        if (fallbackProducts.length > 0) {
+          const rows = fallbackProducts.map((p) => ({
+            id: `buy_${p.id}_1`,
+            title: p.name.substring(0, 24),
+            description:
+              `₦${(Number(p.retailPriceKobo || p.pricePerUnitKobo || 0) / 100).toLocaleString("en-NG")} | ${p.merchantProfile?.businessName || "Verified Shop"}`.substring(
+                0,
+                72,
+              ),
+          }));
+          await this.interactiveService.sendListMessage(
+            phone,
+            bodyText,
+            "Alternative Products",
+            [
+              { title: "Suggested Items", rows },
+              {
+                title: "Other Options",
+                rows: [
+                  {
+                    id: "browse_categories",
+                    title: "Browse Categories",
+                    description: "Explore by type",
+                  },
+                  {
+                    id: "search_products",
+                    title: "Try Text Search",
+                    description: "Search by keyword",
+                  },
+                ],
+              },
+            ],
+          );
+          return;
+        }
+
+        const bodyTextFallback = `I identified the item as *${extractedTerms[0]}*, but I couldn't find a direct match. 📦\n\nWould you like to browse our top categories or search for a different product?`;
+        await this.interactiveService.sendReplyButtons(
+          phone,
+          bodyTextFallback,
+          [
+            { id: "browse_categories", title: "Browse Categories" },
+            { id: "search_products", title: "Try Text Search" },
+          ],
+        );
         return;
       }
 
       const rows = products.slice(0, 10).map((p) => ({
-        id: `view_product_${p.id}`,
+        id: `buy_${p.id}_1`,
         title: p.name.substring(0, 24),
         description:
-          `Retail Price: ₦${(Number(p.retailPriceKobo || p.pricePerUnitKobo || 0) / 100).toLocaleString("en-NG")} / ${p.unit}`.substring(
+          `₦${(Number(p.retailPriceKobo || p.pricePerUnitKobo || 0) / 100).toLocaleString("en-NG")} | ${p.merchantProfile?.businessName || "Verified Shop"}`.substring(
             0,
             72,
           ),
@@ -122,7 +172,7 @@ export class ImageSearchService {
     }
   }
 
-  private async downloadMetaImage(
+  public async downloadMetaImage(
     imageId: string,
   ): Promise<{ base64Data: string; mimeType: string } | null> {
     try {

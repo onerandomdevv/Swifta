@@ -73,8 +73,44 @@ export class WhatsAppService {
     interactiveReply?: { type: string; id: string; title: string },
     imageId?: string,
   ): Promise<void> {
+    // 0. Check if AI is paused for Support Handoff
+    const pauseKey = `ai_paused_${phone}`;
+    const isPaused = await this.redisService.get(pauseKey);
+
+    if (isPaused) {
+      if (
+        messageText?.toLowerCase().trim() === "resume" ||
+        messageText?.toLowerCase().trim() === "resume ai"
+      ) {
+        await this.redisService.del(pauseKey);
+        await this.interactiveService.sendTextMessage(
+          phone,
+          "✅ AI assistance has been resumed. How can I help you today?",
+        );
+        this.logger.log(`AI resumed by user (Phone: ${phone})`);
+        return;
+      }
+      this.logger.debug(
+        `Message from ${phone} ignored (AI Support Handoff active)`,
+      );
+      return;
+    }
+
     try {
       if (imageId) {
+        // Feature 3: Check if waiting for a review photo
+        const photoKey = `pending_review_photo_${phone}`;
+        const orderId = await this.redisService.get(photoKey);
+
+        if (orderId) {
+          this.logger.log(
+            `Routing image as review photo (Phone: ${phone}, Order: ${orderId})`,
+          );
+          await this.redisService.del(photoKey);
+          await this.buyerService.handleReviewPhoto(phone, orderId, imageId);
+          return;
+        }
+
         this.logger.log(`Routing image search (Phone: ${phone})`);
         await this.imageSearchService.handleImageSearch(phone, imageId);
         return;
@@ -553,9 +589,9 @@ export class WhatsAppService {
               description: "Check tier level",
             },
             {
-              id: "menu_help",
-              title: "Help & Support",
-              description: "How to use the Swifta",
+              id: "support_handoff",
+              title: "📞 Need Help?",
+              description: "Chat with a human agent",
             },
           ],
         },
@@ -618,6 +654,9 @@ export class WhatsAppService {
             FRIENDLY_FALLBACK,
           );
           break;
+        case "support_handoff":
+          await this.handleSupportHandoff(phone);
+          break;
         case "show_menu":
         default:
           await this.sendMerchantMenu(phone);
@@ -634,6 +673,16 @@ export class WhatsAppService {
   // =======================================================================
   // Command handlers — professional English responses (Pidgin/Lagos input understood, English output always)
   // =======================================================================
+
+  private async handleSupportHandoff(phone: string): Promise<void> {
+    const pauseKey = `ai_paused_${phone}`;
+    await this.redisService.set(pauseKey, "1", 24 * 60 * 60); // 24 hours
+    await this.interactiveService.sendTextMessage(
+      phone,
+      "You are being transferred to a human agent. They will reply to you on this number shortly.\n\nType *'resume'* at any time to reactivate the AI assistant.",
+    );
+    this.logger.log(`Support Handoff initiated for merchant/user ${phone}`);
+  }
 
   /**
    * 📊 Sales Summary

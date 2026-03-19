@@ -10,7 +10,11 @@ import {
   LOGISTICS_QUEUE,
   AUTO_CONFIRM_QUEUE,
   REVIEW_QUEUE,
+  CHECKOUT_REMINDER_QUEUE,
 } from "./queue.constants";
+import { AutoConfirmProcessor } from "./auto-confirm.processor";
+import { LogisticsProcessor } from "./logistics.processor";
+import { CheckoutReminderProcessor } from "./checkout-reminder.processor";
 
 function sanitizeRedisUrl(url: string | undefined): string | undefined {
   if (!url) return url;
@@ -89,7 +93,13 @@ function sanitizeRedisUrl(url: string | undefined): string | undefined {
       { name: LOGISTICS_QUEUE },
       { name: AUTO_CONFIRM_QUEUE },
       { name: REVIEW_QUEUE },
+      { name: CHECKOUT_REMINDER_QUEUE },
     ),
+  ],
+  providers: [
+    AutoConfirmProcessor,
+    LogisticsProcessor,
+    CheckoutReminderProcessor,
   ],
   exports: [BullModule],
 })
