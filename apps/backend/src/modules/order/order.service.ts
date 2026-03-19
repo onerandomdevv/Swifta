@@ -101,7 +101,7 @@ export class OrderService {
         : (product.wholesalePriceKobo ?? product.pricePerUnitKobo);
 
     if (resolvedPriceKobo === null) {
-      throw new BadRequestException("Product requires an RFQ");
+      throw new BadRequestException("Product price is not available");
     }
 
     // Handle missing stock cache: auto-heal for all active products to prevent checkout blocks

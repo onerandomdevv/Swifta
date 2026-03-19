@@ -3,7 +3,6 @@ import { BullModule } from "@nestjs/bullmq";
 import { ConfigService } from "@nestjs/config";
 import {
   NOTIFICATION_QUEUE,
-  RFQ_EXPIRY_QUEUE,
   REORDER_REMINDER_QUEUE,
   WHATSAPP_QUEUE,
   PAYOUT_QUEUE,
@@ -86,7 +85,6 @@ function sanitizeRedisUrl(url: string | undefined): string | undefined {
     }),
     BullModule.registerQueue(
       { name: NOTIFICATION_QUEUE },
-      { name: RFQ_EXPIRY_QUEUE },
       { name: REORDER_REMINDER_QUEUE },
       { name: WHATSAPP_QUEUE },
       { name: PAYOUT_QUEUE },
