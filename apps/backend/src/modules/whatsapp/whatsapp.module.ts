@@ -48,7 +48,7 @@ import { WhatsAppLoggerService } from "./whatsapp-logger.service";
     ConfigModule,
     PrismaModule,
     RedisModule,
-    QueueModule,
+    forwardRef(() => QueueModule),
     forwardRef(() => OrderModule),
     ProductModule,
     TradeFinancingModule,
