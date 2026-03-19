@@ -15,7 +15,7 @@ import { PayoutModule } from "../payout/payout.module";
 @Module({
   imports: [
     PrismaModule,
-    NotificationModule,
+    forwardRef(() => NotificationModule),
     InventoryModule,
     forwardRef(() => PaymentModule),
     ReorderModule,
