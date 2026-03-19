@@ -27,7 +27,9 @@ import { OrderStatus, VerificationTier } from "@swifta/shared";
 
 function maskPhone(phone: string): string {
   if (!phone) return "unknown";
-  return phone.replace(/(\+\d{3})\d{7}(\d{2})/, "$1****$2");
+  return phone.replace(/^(\+\d{1,3})(\d+)(\d{2})$/, (_, p1, p2, p3) => {
+    return p1 + "*".repeat(p2.length) + p3;
+  });
 }
 
 /**
@@ -104,14 +106,15 @@ export class WhatsAppService {
     try {
       if (imageId) {
         // Feature 3: Check if waiting for a review photo
-        const photoKey = `pending_review_photo_${phone}`;
-        const orderId = await this.redisService.get(photoKey);
-
-        if (orderId) {
+        const keys = await this.redisService.keys(
+          `wa_pending_review_photo:${phone}:*`,
+        );
+        if (keys.length > 0) {
+          const orderId = keys[0].split(":").pop()!;
           this.logger.log(
             `Routing image as review photo (Phone: ${phone}, Order: ${orderId})`,
           );
-          await this.redisService.del(photoKey);
+          await this.redisService.del(keys[0]);
           await this.buyerService.handleReviewPhoto(phone, orderId, imageId);
           return;
         }
@@ -1468,7 +1471,7 @@ export class WhatsAppService {
       }
     } catch (error) {
       this.logger.error(
-        `Failed to send WhatsApp message to ${phone}: ${error instanceof Error ? error.message : error}`,
+        `Failed to send WhatsApp message to ${maskPhone(phone)}: ${error instanceof Error ? error.message : error}`,
       );
     }
   }
@@ -1482,49 +1485,26 @@ export class WhatsAppService {
     templateName: string,
     parameters: { type: "text"; text: string }[] = [],
   ): Promise<void> {
-    const url = `https://graph.facebook.com/${META_API_VERSION}/${this.phoneNumberId}/messages`;
-
+    const otpCode = parameters.length > 0 ? parameters[0].text : "";
+    this.logger.log(
+      `Dispatching template '${templateName}' to ${maskPhone(phone)}`,
+    );
     try {
-      const payload = {
-        messaging_product: "whatsapp",
-        to: phone,
-        type: "template",
-        template: {
-          name: templateName,
-          language: { code: "en_US" },
-          components:
-            parameters.length > 0
-              ? [
-                  {
-                    type: "body",
-                    parameters,
-                  },
-                ]
-              : [],
-        },
-      };
-
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorBody = await response.text();
-        this.logger.error(
-          `Meta Template API error (${response.status}): ${errorBody}`,
-        );
-      } else {
-        this.logger.log(`WhatsApp Template (${templateName}) sent to ${phone}`);
-      }
-    } catch (error) {
-      this.logger.error(
-        `Failed to send WhatsApp template ${templateName} to ${phone}: ${error instanceof Error ? error.message : error}`,
+      await this.interactiveService.sendTemplateMessage(
+        phone,
+        templateName,
+        otpCode,
       );
+    } catch (error) {
+      this.logger.warn(
+        `Template failed, falling back to text for ${maskPhone(phone)}`,
+      );
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `Your Swifta OTP is: ${otpCode}. Please use this to confirm your action.`,
+      );
+      // Rethrow to allow upstream SMS fallback if both WhatsApp methods fail
+      throw error;
     }
   }
 

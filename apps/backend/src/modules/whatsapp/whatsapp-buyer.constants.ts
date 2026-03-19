@@ -3,19 +3,15 @@
 // ---------------------------------------------------------------------------
 import { SchemaType, FunctionDeclaration } from "@google/generative-ai";
 
-export const BUYER_MAIN_MENU = `Welcome to the Swifta Marketplace! 🛒✨
+export const BUYER_MAIN_MENU = `Welcome to the Swifta Marketplace! ✅
 
 I'm your personal shopping assistant. I can help you find products, discover local merchants, and track your deliveries in real-time.
 
 How can I assist you today?`;
 
-export const BUYER_FRIENDLY_FALLBACK = `I'm sorry, I didn't quite catch that. 
+export const BUYER_FRIENDLY_FALLBACK = `I'm sorry, I didn't quite catch that. 📦
 
-I can help you:
-🔍 *Search for products* (e.g., "iPhone 15" or "Nike sneakers")
-🏪 *Find merchants* (e.g., "Supermarkets", "Fashion stores" or "Gadgets & Devices stores")
-📦 *Track your orders*
-🤝 *Connect with support*
+I can help you find products, discover merchants, track orders, or connect with support.
 
 What would you like to do?`;
 
@@ -127,7 +123,24 @@ export const BUYER_GEMINI_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
       "Browse the available product categories in the Swifta marketplace.",
   },
   {
-    name: "contact_support",
-    description: "Connect to support for dispute resolutions or problems.",
+    name: "list_merchant_products",
+    description:
+      "List all products available from a specific merchant by their @handle or name.",
+    parameters: {
+      type: SchemaType.OBJECT,
+      properties: {
+        merchantSlug: {
+          type: SchemaType.STRING,
+          description:
+            "The merchant's @handle or slug (e.g. '@kareem' or 'kareem')",
+        },
+        query: {
+          type: SchemaType.STRING,
+          description:
+            "Optional product name to filter within that merchant's shop",
+        },
+      },
+      required: ["merchantSlug"],
+    },
   },
 ];

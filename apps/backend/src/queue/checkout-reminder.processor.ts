@@ -63,7 +63,13 @@ export class CheckoutReminderProcessor extends WorkerHost {
         msg += `Please transfer ₦${amountNaira} to your Dedicated Virtual Account:\n\n*Bank*: ${buyerProfile.dvaBankName}\n*Account*: ${buyerProfile.dvaAccountNumber}\n*Name*: ${buyerProfile.dvaAccountName}\n\n`;
         msg += `Your order will be processed automatically once payment is received. ⚡`;
       } else {
-        msg += `Please complete your payment using the secure Paystack checkout link you generated to finalize the order. ⚡`;
+        const metadata = order.metadata as Record<string, any>;
+        if (metadata?.checkoutUrl) {
+          msg += `Please complete your payment using this secure link: ${metadata.checkoutUrl}\n\n`;
+          msg += `This link will finalize your order immediately. ⚡`;
+        } else {
+          msg += `Please return to the Swifta shop to complete your payment or request a new checkout link from the menu. ⚡`;
+        }
       }
 
       await this.whatsappService.sendWhatsAppMessage(phone, msg);

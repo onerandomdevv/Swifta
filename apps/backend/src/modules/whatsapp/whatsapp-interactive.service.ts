@@ -49,6 +49,7 @@ export class WhatsAppInteractiveService {
     phone: string,
     bodyText: string,
     buttons: Array<{ id: string; title: string }>,
+    headerImageUrl?: string,
   ): Promise<void> {
     if (buttons.length > 3) {
       this.logger.warn(
@@ -57,23 +58,32 @@ export class WhatsAppInteractiveService {
       buttons = buttons.slice(0, 3);
     }
 
+    const interactive: any = {
+      type: "button",
+      body: { text: bodyText },
+      action: {
+        buttons: buttons.map((btn) => ({
+          type: "reply",
+          reply: {
+            id: btn.id,
+            title: btn.title.substring(0, 20),
+          },
+        })),
+      },
+    };
+
+    if (headerImageUrl) {
+      interactive.header = {
+        type: "image",
+        image: { link: headerImageUrl },
+      };
+    }
+
     await this.callMetaApi(phone, {
       messaging_product: "whatsapp",
       to: phone,
       type: "interactive",
-      interactive: {
-        type: "button",
-        body: { text: bodyText },
-        action: {
-          buttons: buttons.map((btn) => ({
-            type: "reply",
-            reply: {
-              id: btn.id,
-              title: btn.title.substring(0, 20),
-            },
-          })),
-        },
-      },
+      interactive,
     });
   }
 
@@ -88,28 +98,38 @@ export class WhatsAppInteractiveService {
       title: string;
       rows: Array<{ id: string; title: string; description?: string }>;
     }>,
+    headerImageUrl?: string,
   ): Promise<void> {
+    const interactive: any = {
+      type: "list",
+      body: { text: bodyText },
+      action: {
+        button: buttonLabel.substring(0, 20),
+        sections: sections.map((section) => ({
+          title: section.title,
+          rows: section.rows.map((row) => ({
+            id: row.id,
+            title: row.title.substring(0, 24),
+            description: row.description
+              ? row.description.substring(0, 72)
+              : undefined,
+          })),
+        })),
+      },
+    };
+
+    if (headerImageUrl) {
+      interactive.header = {
+        type: "image",
+        image: { link: headerImageUrl },
+      };
+    }
+
     await this.callMetaApi(phone, {
       messaging_product: "whatsapp",
       to: phone,
       type: "interactive",
-      interactive: {
-        type: "list",
-        body: { text: bodyText },
-        action: {
-          button: buttonLabel.substring(0, 20),
-          sections: sections.map((section) => ({
-            title: section.title,
-            rows: section.rows.map((row) => ({
-              id: row.id,
-              title: row.title.substring(0, 24),
-              description: row.description
-                ? row.description.substring(0, 72)
-                : undefined,
-            })),
-          })),
-        },
-      },
+      interactive,
     });
   }
 
@@ -136,6 +156,57 @@ export class WhatsAppInteractiveService {
             url: url,
           },
         },
+      },
+    });
+  }
+
+  // -----------------------------------------------------------------------
+  // Send Template Message (Pre-approved Meta Templates like auth_otp)
+  // -----------------------------------------------------------------------
+  async sendTemplateMessage(
+    phone: string,
+    templateName: string,
+    otpCode: string,
+  ): Promise<void> {
+    const trimmedOtp = (otpCode || "").trim();
+    if (!trimmedOtp || trimmedOtp.length < 4) {
+      this.logger.error(
+        `Invalid or missing OTP code provided for template ${templateName}.`,
+      );
+      throw new Error(`Invalid OTP code provided for template ${templateName}`);
+    }
+
+    await this.callMetaApi(phone, {
+      messaging_product: "whatsapp",
+      to: phone,
+      type: "template",
+      template: {
+        name: templateName,
+        language: {
+          code: "en",
+        },
+        components: [
+          {
+            type: "body",
+            parameters: [
+              {
+                type: "text",
+                text: otpCode,
+              },
+            ],
+          },
+          {
+            type: "button",
+            sub_type: "url",
+            index: 0,
+            parameters: [
+              {
+                type: "text",
+                text: otpCode,
+              },
+            ],
+          },
+        ],
       },
     });
   }

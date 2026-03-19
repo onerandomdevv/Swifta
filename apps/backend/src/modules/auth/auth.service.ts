@@ -697,19 +697,35 @@ export class AuthService {
     await this.redis.set(rateKey, (count + 1).toString(), PHONE_OTP_RATE_TTL);
 
     try {
-      if (this.smsClient) {
-        await this.smsClient.send({
-          to: [phone],
-          message: `Your Swifta verification code is ${otp}. It expires in 5 minutes.`,
-          from: this.configService.get<string>("africastalking.senderId"),
-        });
-      } else {
-        this.logger.warn(
-          "AfricasTalking SMS client not configured. OTP generated but not sent.",
-        );
+      this.logger.log(`Attempting to send WhatsApp OTP to ${phone}`);
+      await this.whatsappService.sendWhatsAppTemplateMessage(
+        phone,
+        WHATSAPP_OTP_TEMPLATE,
+        [{ type: "text", text: otp }],
+      );
+      this.logger.log(
+        `[DEVELOPMENT / LIVE] WhatsApp OTP sent successfully to ${phone}`,
+      );
+    } catch (waError) {
+      this.logger.warn(
+        `Failed to send WhatsApp OTP to ${phone}, falling back to SMS. Error: ${waError instanceof Error ? waError.message : waError}`,
+      );
+
+      try {
+        if (this.smsClient) {
+          await this.smsClient.send({
+            to: [phone],
+            message: `Your Swifta verification code is ${otp}. It expires in 5 minutes.`,
+            from: this.configService.get<string>("africastalking.senderId"),
+          });
+        } else {
+          this.logger.warn(
+            "AfricasTalking SMS client not configured. OTP generated but not sent.",
+          );
+        }
+      } catch (smsError) {
+        this.logger.error("Failed to send SMS via AfricasTalking", smsError);
       }
-    } catch (error) {
-      this.logger.error("Failed to send SMS via AfricasTalking", error);
     }
 
     return { message: "Verification code sent successfully." };

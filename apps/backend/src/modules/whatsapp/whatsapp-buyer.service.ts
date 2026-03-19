@@ -166,11 +166,13 @@ export class WhatsAppBuyerService {
       if (checkoutSession) {
         // If this is an interactive reply and it's one of the delivery methods, LET IT FALL THROUGH
         // to handleInteractiveReply, which properly processes and clears the checkout state.
-        const isDeliveryInteraction =
+        const isAllowedInteraction =
           interactiveReply &&
-          ["delivery_merchant", "delivery_track"].includes(interactiveReply.id);
+          ["delivery_merchant", "delivery_track", "support_handoff"].includes(
+            interactiveReply.id,
+          );
 
-        if (!isDeliveryInteraction) {
+        if (!isAllowedInteraction) {
           await this.handleCheckoutStep(
             buyerId,
             checkoutSession,
@@ -463,7 +465,10 @@ export class WhatsAppBuyerService {
     }
   }
 
-  private async sendBuyerMenu(phone: string): Promise<void> {
+  private async sendBuyerMenu(
+    phone: string,
+    customBody?: string,
+  ): Promise<void> {
     const isMerchant = await this.prisma.user.findFirst({
       where: { phone, role: "MERCHANT" },
     });
@@ -536,7 +541,7 @@ export class WhatsAppBuyerService {
 
     await this.interactiveService.sendListMessage(
       phone,
-      BUYER_MAIN_MENU,
+      customBody || BUYER_MAIN_MENU,
       "Select Action",
       sections,
     );
@@ -619,6 +624,13 @@ export class WhatsAppBuyerService {
             intent.params.quantity,
           );
           break;
+        case "list_merchant_products":
+          await this.handleListMerchantProducts(
+            phone,
+            intent.params.merchantSlug,
+            intent.params.query,
+          );
+          break;
         case "search_merchants":
           await this.handleSearchMerchants(
             phone,
@@ -655,10 +667,7 @@ export class WhatsAppBuyerService {
           await this.handleSupportHandoff(phone);
           break;
         case "friendly_fallback":
-          await this.interactiveService.sendTextMessage(
-            phone,
-            BUYER_FRIENDLY_FALLBACK,
-          );
+          await this.sendBuyerMenu(phone, BUYER_FRIENDLY_FALLBACK);
           break;
         case "show_menu":
         default:
@@ -688,7 +697,24 @@ export class WhatsAppBuyerService {
       "You are being transferred to a human agent. They will reply to you on this number shortly.\n\nType *'resume'* at any time to reactivate the AI assistant.",
     );
     this.logger.log(`Support Handoff initiated for ${maskPhone(phone)}`);
-    // In a real app we would fire an event to the notification queue for admins
+
+    // Record in AuditLog for admin visibility
+    try {
+      const buyerId = await this.authService.resolvePhone(phone);
+      if (buyerId) {
+        await this.prisma.auditLog.create({
+          data: {
+            userId: buyerId,
+            action: "SUPPORT_HANDOFF",
+            targetType: "WHATSAPP_BOT",
+            targetId: phone,
+            metadata: { status: "AI_PAUSED", phone },
+          },
+        });
+      }
+    } catch (err) {
+      this.logger.error("Failed to record support handoff in AuditLog", err);
+    }
   }
 
   /**
@@ -710,7 +736,7 @@ export class WhatsAppBuyerService {
     // For WhatsApp, treat ALL as consumers by default unless explicitly a BUSINESS buyer
     const isConsumer = profile ? profile.buyerType !== "BUSINESS" : true;
 
-    if (!query) {
+    if (!query && !merchantId) {
       await this.interactiveService.sendTextMessage(
         phone,
         "What kind of product are you looking for? e.g. 'I need a new laptop' or 'iPhone 15'",
@@ -994,8 +1020,9 @@ export class WhatsAppBuyerService {
         name, 
         unit,
         price_per_unit_kobo AS "pricePerUnitKobo",
-        retail_price_kobo AS "retailPriceKobo",
-        wholesale_price_kobo AS "wholesalePriceKobo"
+        retail_price_kobo AS \"retailPriceKobo\",
+        wholesale_price_kobo AS \"wholesalePriceKobo\",
+        image_url AS \"imageUrl\"
       FROM products 
       WHERE id::text LIKE ${partialId + "%"}
         AND is_active = true
@@ -1047,6 +1074,7 @@ export class WhatsAppBuyerService {
           { id: "delivery_merchant", title: "Direct Merchant" },
           { id: "delivery_track", title: "Swifta Tracked" },
         ],
+        product.imageUrl || undefined,
       );
     } catch (e) {
       this.logger.error("Checkout session issue", e);
@@ -1211,19 +1239,41 @@ export class WhatsAppBuyerService {
     phone: string,
   ): Promise<string> {
     try {
+      // 1. Core action: Confirm delivery in DB
       await this.orderService.confirmDelivery(buyerId, orderId, otp);
-      await this.redisService.del(pendingOtpKey);
 
-      // Feature 3: Rich Media Delivery Reviews (Wait for photo)
-      const photoKey = `pending_review_photo_${phone}`; // or buyerId, but phone is easier to get in webhook
-      await this.redisService.set(photoKey, orderId, 3600); // 1 hour window
+      // 2. Best-effort cleanup: Remove the pending OTP
+      try {
+        await this.redisService.del(pendingOtpKey);
+      } catch (err) {
+        this.logger.error(
+          `Failed to delete pendingOtpKey ${pendingOtpKey} after success`,
+          err,
+        );
+      }
+
+      // 3. Best-effort setup: Prepare for photo review
+      try {
+        const photoKey = `wa_pending_review_photo:${phone}:${orderId}`;
+        await this.redisService.set(photoKey, "1", 3600); // 1 hour window
+      } catch (err) {
+        this.logger.error(
+          `Failed to set photoKey for order ${orderId} after success`,
+          err,
+        );
+      }
 
       return `Delivery confirmed. ✅ Your order has been marked as delivered. Payment will be released to the merchant.\n\n📸 *Optional:* Reply with a photo of the item you received to help other buyers!`;
     } catch (error: any) {
       this.logger.warn(
         `OTP confirmation failed for order ${orderId}: ${error.message}`,
       );
-      await this.redisService.del(pendingOtpKey);
+
+      // Attempt cleanup on failure too, but ignore errors
+      try {
+        await this.redisService.del(pendingOtpKey);
+      } catch (ignore) {}
+
       return `Invalid or expired OTP. Please check your code and try again.`;
     }
   }
@@ -1300,10 +1350,21 @@ export class WhatsAppBuyerService {
   ): Promise<string | null> {
     // Initial save (without comment)
     try {
+      const bufferedImage = await this.redisService.get(
+        `wa_order_captured_image:${session.orderId}`,
+      );
+
       await this.reviewService.create(buyerId, {
         orderId: session.orderId,
         rating,
+        imageUrl: bufferedImage || undefined,
       });
+
+      if (bufferedImage) {
+        await this.redisService.del(
+          `wa_order_captured_image:${session.orderId}`,
+        );
+      }
 
       // Update session to allow adding comment
       session.rating = rating;
@@ -1367,17 +1428,12 @@ export class WhatsAppBuyerService {
         where: { id: orderId },
       });
       if (order && order.merchantId) {
-        await this.prisma.review.upsert({
-          where: { orderId },
-          update: { imageUrl },
-          create: {
-            orderId,
-            buyerId: order.buyerId,
-            merchantId: order.merchantId,
-            rating: 0, // Pending actual star rating
-            imageUrl,
-          },
-        });
+        // Store image in Redis instead of database placeholder
+        await this.redisService.set(
+          `wa_order_captured_image:${orderId}`,
+          imageUrl,
+          3600,
+        );
       }
 
       await this.interactiveService.sendTextMessage(
@@ -1710,6 +1766,51 @@ export class WhatsAppBuyerService {
       { id: `shop_products_${merchantId}`, title: "Browse Their Shop" },
       { id: "show_buyer_menu", title: "Main Menu" },
     ]);
+  }
+
+  /**
+   * 🏪 List Products from a specific merchant by slug/handle
+   */
+  private async handleListMerchantProducts(
+    phone: string,
+    merchantSlug: string,
+    query?: string,
+  ): Promise<void> {
+    if (!merchantSlug) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        "Please specify a merchant handle (e.g. @businessusername).",
+      );
+      return;
+    }
+
+    const cleanSlug = merchantSlug.trim().replace(/^@/, "").toLowerCase();
+
+    const merchant = await this.prisma.merchantProfile.findFirst({
+      where: {
+        OR: [
+          { slug: { equals: cleanSlug, mode: "insensitive" } },
+          { businessName: { contains: cleanSlug, mode: "insensitive" } },
+        ],
+      },
+    });
+
+    if (!merchant) {
+      await this.interactiveService.sendTextMessage(
+        phone,
+        `I couldn't find a merchant or shop matching "${cleanSlug}". 🏪`,
+      );
+      return;
+    }
+
+    // Reuse existing search logic but pinned to this merchant
+    await this.handleSearchProducts(
+      phone,
+      query || "",
+      undefined,
+      1,
+      merchant.id,
+    );
   }
 
   private async getSafeDva(buyerId: string): Promise<any | null> {

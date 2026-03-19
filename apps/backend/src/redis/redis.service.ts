@@ -46,4 +46,8 @@ export class RedisService {
   async hGetAll(key: string): Promise<Record<string, string>> {
     return this.redis.hgetall(key);
   }
+
+  async keys(pattern: string): Promise<string[]> {
+    return this.redis.keys(pattern);
+  }
 }

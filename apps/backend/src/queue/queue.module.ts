@@ -13,7 +13,6 @@ import {
   CHECKOUT_REMINDER_QUEUE,
 } from "./queue.constants";
 import { AutoConfirmProcessor } from "./auto-confirm.processor";
-import { LogisticsProcessor } from "./logistics.processor";
 import { CheckoutReminderProcessor } from "./checkout-reminder.processor";
 
 function sanitizeRedisUrl(url: string | undefined): string | undefined {
@@ -96,11 +95,7 @@ function sanitizeRedisUrl(url: string | undefined): string | undefined {
       { name: CHECKOUT_REMINDER_QUEUE },
     ),
   ],
-  providers: [
-    AutoConfirmProcessor,
-    LogisticsProcessor,
-    CheckoutReminderProcessor,
-  ],
+  providers: [AutoConfirmProcessor, CheckoutReminderProcessor],
   exports: [BullModule],
 })
 export class QueueModule {}
