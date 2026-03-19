@@ -1,6 +1,6 @@
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Job } from "bullmq";
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, Inject, forwardRef } from "@nestjs/common";
 import { AUTO_CONFIRM_QUEUE } from "./queue.constants";
 import { PrismaService } from "../prisma/prisma.service";
 import { PayoutService } from "../modules/payout/payout.service";
@@ -24,6 +24,7 @@ export class AutoConfirmProcessor extends WorkerHost {
 
   constructor(
     private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => PayoutService))
     private readonly payoutService: PayoutService,
     private readonly whatsappService: WhatsAppService,
   ) {
