@@ -1445,14 +1445,20 @@ export class WhatsAppService {
   }
 
   async sendPaymentConfirmedNotification(phone: string, metadata: any) {
-    if (!metadata.reference || !metadata.amountKobo) {
-      this.logger.warn(
-        `Missing reference or amountKobo in sendPaymentConfirmedNotification for ${phone}. Skipping.`,
+    const amountNum = Number(metadata.amountKobo);
+    if (
+      !metadata.reference ||
+      !metadata.amountKobo ||
+      !Number.isFinite(amountNum)
+    ) {
+      this.logger.error(
+        `Invalid metadata for payment confirmation (ref: ${metadata.reference}, amount: ${metadata.amountKobo}) to ${phone}`,
       );
       return;
     }
+
     const shortRef = metadata.reference.slice(0, 8);
-    const amountStr = this.formatNaira(Number(metadata.amountKobo));
+    const amountStr = this.formatNaira(amountNum);
     const msg = `Payment Successful. ✅\n\nYour payment of ${amountStr} for Order #${shortRef.toUpperCase()} has been confirmed. The merchant is now preparing your order.`;
     await this.sendWhatsAppMessage(phone, msg);
   }
