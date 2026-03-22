@@ -673,6 +673,10 @@ export class OrderService {
       throw new ForbiddenException("Access denied");
     }
 
+    if (!isBuyer && "deliveryOtp" in order) {
+      order.deliveryOtp = null;
+    }
+
     return order;
   }
 
@@ -701,7 +705,7 @@ export class OrderService {
     page: number,
     limit: number,
   ): Promise<PaginatedResponse<Order>> {
-    return paginate(
+    const paginated = await paginate(
       this.prisma.order,
       { page, limit },
       {
@@ -713,6 +717,15 @@ export class OrderService {
         },
       },
     );
+
+    // Strip OTP from merchant responses
+    if (paginated.data) {
+      (paginated.data as any[]).forEach((order) => {
+        order.deliveryOtp = null;
+      });
+    }
+
+    return paginated as any;
   }
 
   // ──────────────────────────────────────────────
@@ -743,11 +756,11 @@ export class OrderService {
     // Resolve triggeredBy (userId from merchantId)
     const triggeredBy = await this.getUserIdFromMerchant(merchantId);
 
-    // Save OTP + tracking record atomically
+    // Save OTP, dispatchedAt + tracking record atomically
     await this.prisma.$transaction([
       this.prisma.order.update({
         where: { id: orderId },
-        data: { deliveryOtp },
+        data: { deliveryOtp, dispatchedAt: new Date() },
       }),
       this.prisma.orderTracking.create({
         data: {
@@ -813,7 +826,7 @@ export class OrderService {
       deliveryOtp = crypto.randomInt(100000, 999999).toString();
       await this.prisma.order.update({
         where: { id: orderId },
-        data: { deliveryOtp },
+        data: { deliveryOtp, dispatchedAt: new Date() },
       });
     }
 

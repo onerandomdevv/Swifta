@@ -43,12 +43,12 @@ export class AdminCronService {
         Date.now() - PlatformConfig.timers.escrowWindowHours * 60 * 60 * 1000,
       );
 
-      // 1. Auto-confirm orders older than 72h
       const overdueOrders = await this.prisma.order.findMany({
         where: {
           status: { in: [OrderStatus.DISPATCHED, OrderStatus.IN_TRANSIT] },
-          updatedAt: {
+          dispatchedAt: {
             lt: seventyTwoHoursAgo,
+            not: null,
           },
         },
       });
@@ -70,18 +70,20 @@ export class AdminCronService {
       const warningCandidates = await this.prisma.order.findMany({
         where: {
           status: { in: [OrderStatus.DISPATCHED, OrderStatus.IN_TRANSIT] },
-          updatedAt: {
+          dispatchedAt: {
             lt: twentyFourHoursAgo,
             gt: seventyTwoHoursAgo,
+            not: null,
           },
         },
-        select: { id: true, buyerId: true, updatedAt: true, metadata: true },
+        select: { id: true, buyerId: true, dispatchedAt: true, metadata: true },
       });
 
       for (const order of warningCandidates) {
         try {
+          if (!order.dispatchedAt) continue;
           const hoursSinceUpdate =
-            (Date.now() - order.updatedAt.getTime()) / (1000 * 60 * 60);
+            (Date.now() - order.dispatchedAt.getTime()) / (1000 * 60 * 60);
 
           const metadata = (order.metadata as any) || {};
 

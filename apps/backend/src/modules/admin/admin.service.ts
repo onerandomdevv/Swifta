@@ -169,7 +169,7 @@ export class AdminService {
   }
 
   async getAllOrders() {
-    return this.prisma.order.findMany({
+    const orders = await this.prisma.order.findMany({
       include: {
         merchantProfile: {
           select: { businessName: true },
@@ -181,6 +181,12 @@ export class AdminService {
       },
       orderBy: { createdAt: "desc" },
     });
+
+    orders.forEach((order) => {
+      order.deliveryOtp = null;
+    });
+
+    return orders;
   }
 
   async forceResolveOrder(
