@@ -1,11 +1,16 @@
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Job } from "bullmq";
 import { Logger } from "@nestjs/common";
-import { NOTIFICATION_QUEUE } from "../../queue/queue.constants";
+import {
+  NOTIFICATION_QUEUE,
+  WHATSAPP_QUEUE,
+} from "../../queue/queue.constants";
 import { PrismaService } from "../../prisma/prisma.service";
 import { EmailService } from "../email/email.service";
 import { SmsService } from "./sms.service";
 import { NotificationChannel } from "@swifta/shared";
+import { InjectQueue } from "@nestjs/bullmq";
+import { Queue } from "bullmq";
 
 @Processor(NOTIFICATION_QUEUE, {
   concurrency: 5,
@@ -22,6 +27,7 @@ export class NotificationProcessor extends WorkerHost {
     private prisma: PrismaService,
     private emailService: EmailService,
     private smsService: SmsService,
+    @InjectQueue(WHATSAPP_QUEUE) private whatsappQueue: Queue,
   ) {
     super();
   }
@@ -165,6 +171,40 @@ export class NotificationProcessor extends WorkerHost {
           } catch (smsError) {
             this.logger.warn(
               `Failed to dispatch SMS, moving to next channel. Warning: ${smsError}`,
+            );
+          }
+        } else if (channel === NotificationChannel.WHATSAPP && user.phone) {
+          try {
+            switch (type) {
+              case "PAYMENT_CONFIRMED":
+              case "DIRECT_PURCHASE_CONFIRMED":
+                await this.whatsappQueue.add(
+                  "send-payment-confirmed-notification",
+                  { phone: user.phone, orderData: metadata },
+                  { attempts: 2, removeOnComplete: true, removeOnFail: true },
+                );
+                break;
+              case "ORDER_DISPATCHED":
+                await this.whatsappQueue.add(
+                  "send-order-dispatched-notification",
+                  { phone: user.phone, orderData: metadata },
+                  { attempts: 2, removeOnComplete: true, removeOnFail: true },
+                );
+                break;
+              default:
+                await this.whatsappQueue.add(
+                  "send-text-message",
+                  { phone: user.phone, text: body },
+                  { attempts: 2, removeOnComplete: true, removeOnFail: true },
+                );
+                break;
+            }
+            this.logger.log(
+              `WhatsApp notification (${type}) queued for ${user.phone}`,
+            );
+          } catch (waError) {
+            this.logger.warn(
+              `Failed to dispatch WhatsApp job, moving to next channel. Warning: ${waError}`,
             );
           }
         }
