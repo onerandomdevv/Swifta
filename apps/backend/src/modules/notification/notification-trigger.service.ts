@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Queue } from "bullmq";
 import {
@@ -9,6 +9,8 @@ import { NotificationType, NotificationChannel } from "@swifta/shared";
 
 @Injectable()
 export class NotificationTriggerService {
+  private readonly logger = new Logger(NotificationTriggerService.name);
+
   constructor(
     @InjectQueue(NOTIFICATION_QUEUE) private queue: Queue,
     @InjectQueue(WHATSAPP_QUEUE) private whatsappQueue: Queue,
@@ -185,8 +187,13 @@ export class NotificationTriggerService {
           removeOnFail: true,
         },
       );
-    } catch {
-      // Ignore Whatsapp failures to omit transaction rollbacks
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      const errStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(
+        `WhatsApp notification failed for new-order: ${errMsg}`,
+        errStack,
+      );
     }
   }
 
@@ -212,7 +219,14 @@ export class NotificationTriggerService {
         { merchantId, payoutData: metadata },
         { attempts: 2, removeOnComplete: true, removeOnFail: true },
       );
-    } catch {}
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      const errStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(
+        `WhatsApp notification failed for payout-completed: ${errMsg}`,
+        errStack,
+      );
+    }
   }
 
   async triggerPayoutFailed(
@@ -236,7 +250,14 @@ export class NotificationTriggerService {
         { merchantId, payoutData: metadata },
         { attempts: 2, removeOnComplete: true, removeOnFail: true },
       );
-    } catch {}
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      const errStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(
+        `WhatsApp notification failed for payout-failed: ${errMsg}`,
+        errStack,
+      );
+    }
   }
 
   async triggerOrderCancelled(
@@ -289,6 +310,11 @@ export class NotificationTriggerService {
       "Payment Successful",
       "Your payment was successful.",
       { ...metadata, amountKobo: metadata.amountKobo.toString() },
+      [
+        NotificationChannel.IN_APP,
+        NotificationChannel.EMAIL,
+        NotificationChannel.WHATSAPP,
+      ],
     );
     // Notify merchant
     await this.addJob(
@@ -324,7 +350,11 @@ export class NotificationTriggerService {
       "Payment confirmed!",
       "Your order is being prepared. You will receive a delivery code when the merchant dispatches.",
       { ...metadata, amountKobo: metadata.amountKobo.toString() },
-      [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+      [
+        NotificationChannel.IN_APP,
+        NotificationChannel.EMAIL,
+        NotificationChannel.WHATSAPP,
+      ],
     );
 
     // Notify merchant via Email / In-App

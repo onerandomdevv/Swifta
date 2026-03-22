@@ -387,13 +387,17 @@ export class PaymentService {
 
       // Update payment status + log event
       await this.prisma.$transaction(async (tx) => {
-        await tx.payment.update({
-          where: { id: payment.id },
+        const updateResult = await tx.payment.updateMany({
+          where: { id: payment.id, status: PaymentStatus.INITIALIZED },
           data: {
             status: PaymentStatus.SUCCESS,
             verifiedAt: new Date(),
           },
         });
+
+        if (updateResult.count === 0) {
+          throw new Error("Payment already processed by another thread");
+        }
 
         await tx.paymentEvent.create({
           data: {
@@ -449,13 +453,6 @@ export class PaymentService {
         orderData.quantity !== null
       ) {
         // DIRECT PURCHASE LOGIC
-        const deliveryOtp = crypto.randomInt(100000, 999999).toString();
-
-        // Save OTP on the Order
-        await this.prisma.order.update({
-          where: { id: orderData.id },
-          data: { deliveryOtp },
-        });
 
         // Notifications
         await this.notifications.triggerDirectPurchaseConfirmed(
@@ -602,6 +599,36 @@ export class PaymentService {
     if (!merchantProfile.bankAccountNumber || !merchantProfile.bankCode) {
       throw new BadRequestException(
         "Please set your bank details in settings before requesting a payout.",
+      );
+    }
+
+    // 5. Validate available balance
+    const orders = await this.prisma.order.aggregate({
+      where: { merchantId, status: "COMPLETED" },
+      _sum: { totalAmountKobo: true, platformFeeKobo: true },
+    });
+
+    const payouts = await this.prisma.payout.aggregate({
+      where: { merchantId, status: { in: ["COMPLETED", "PROCESSING"] } },
+      _sum: { amountKobo: true },
+    });
+
+    const pendingRequests = await this.prisma.payoutRequest.aggregate({
+      where: { merchantId, status: { in: ["PENDING", "PROCESSING"] } },
+      _sum: { amountKobo: true },
+    });
+
+    const grossOrders = BigInt(orders._sum.totalAmountKobo || 0);
+    const platformFees = BigInt(orders._sum.platformFeeKobo || 0);
+    const existingPayouts =
+      BigInt(payouts._sum.amountKobo || 0) +
+      BigInt(pendingRequests._sum.amountKobo || 0);
+
+    const availableBalance = grossOrders - platformFees - existingPayouts;
+
+    if (BigInt(dto.amount) > availableBalance) {
+      throw new BadRequestException(
+        `Requested amount exceeds available balance.`,
       );
     }
 

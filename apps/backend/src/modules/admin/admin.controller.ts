@@ -10,12 +10,21 @@ import {
   Query,
   Post,
 } from "@nestjs/common";
+import { Request } from "express";
 import { AdminService } from "./admin.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { UserRole, OrderStatus } from "@swifta/shared";
 import { IsEnum, IsString, IsNotEmpty, IsBoolean, IsIn } from "class-validator";
+
+interface AuthenticatedRequest extends Request {
+  user: {
+    sub: string;
+    email: string;
+    role: string;
+  };
+}
 
 export class CreateAccessTokenDto {
   @IsEnum(UserRole)
@@ -48,13 +57,19 @@ export class AdminController {
 
   @Patch("merchants/:id/verify")
   @Roles(UserRole.SUPER_ADMIN, UserRole.OPERATOR)
-  verifyMerchantProfile(@Param("id") merchantId: string, @Req() req: any) {
+  verifyMerchantProfile(
+    @Param("id") merchantId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.adminService.verifyMerchant(merchantId, req.user.sub);
   }
 
   @Patch("merchants/:id/reject")
   @Roles(UserRole.SUPER_ADMIN, UserRole.OPERATOR)
-  rejectMerchantProfile(@Param("id") merchantId: string, @Req() req: any) {
+  rejectMerchantProfile(
+    @Param("id") merchantId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.adminService.rejectMerchant(
       merchantId,
       undefined,
@@ -67,7 +82,7 @@ export class AdminController {
   toggleMerchantFlag(
     @Param("id") merchantId: string,
     @Body() dto: ToggleMerchantFlagDto,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.adminService.toggleMerchantFlag(
       merchantId,
@@ -92,7 +107,7 @@ export class AdminController {
   forceResolveOrder(
     @Param("id") orderId: string,
     @Body("status") status: OrderStatus,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.adminService.forceResolveOrder(orderId, status, req.user.sub);
   }
@@ -143,7 +158,7 @@ export class AdminController {
   promoteToAdmin(
     @Param("id") userId: string,
     @Body("role") role: UserRole,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.adminService.promoteToAdmin(userId, role, req.user.sub);
   }
@@ -155,25 +170,28 @@ export class AdminController {
 
   @Patch("staff/:id/approve")
   @Roles(UserRole.SUPER_ADMIN)
-  approveStaff(@Param("id") staffId: string, @Req() req: any) {
+  approveStaff(@Param("id") staffId: string, @Req() req: AuthenticatedRequest) {
     return this.adminService.approveStaff(staffId, req.user.sub);
   }
 
   @Delete("users/:id")
   @Roles(UserRole.SUPER_ADMIN)
-  deleteUser(@Param("id") userId: string, @Req() req: any) {
+  deleteUser(@Param("id") userId: string, @Req() req: AuthenticatedRequest) {
     return this.adminService.deleteUser(userId, req.user.sub);
   }
 
   @Patch("staff/:id/suspend")
   @Roles(UserRole.SUPER_ADMIN)
-  suspendStaff(@Param("id") staffId: string, @Req() req: any) {
+  suspendStaff(@Param("id") staffId: string, @Req() req: AuthenticatedRequest) {
     return this.adminService.suspendStaff(staffId, req.user.sub);
   }
 
   @Patch("staff/:id/reactivate")
   @Roles(UserRole.SUPER_ADMIN)
-  reactivateStaff(@Param("id") staffId: string, @Req() req: any) {
+  reactivateStaff(
+    @Param("id") staffId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.adminService.reactivateStaff(staffId, req.user.sub);
   }
 
@@ -181,7 +199,7 @@ export class AdminController {
   changePassword(
     @Body("currentPassword") currentPassword: string,
     @Body("newPassword") newPassword: string,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.adminService.changePassword(
       req.user.sub,
@@ -200,7 +218,10 @@ export class AdminController {
 
   @Patch("payouts/:id/process")
   @Roles(UserRole.SUPER_ADMIN, UserRole.OPERATOR)
-  processPayout(@Param("id") payoutId: string, @Req() req: any) {
+  processPayout(
+    @Param("id") payoutId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.adminService.processPayout(payoutId, req.user.sub);
   }
 
@@ -214,7 +235,10 @@ export class AdminController {
 
   @Post("access-tokens")
   @Roles(UserRole.SUPER_ADMIN)
-  createAccessToken(@Body() dto: CreateAccessTokenDto, @Req() req: any) {
+  createAccessToken(
+    @Body() dto: CreateAccessTokenDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.adminService.createAccessToken(
       dto.role,
       dto.token,
@@ -224,7 +248,10 @@ export class AdminController {
 
   @Delete("access-tokens/:id")
   @Roles(UserRole.SUPER_ADMIN)
-  revokeAccessToken(@Param("id") tokenId: string, @Req() req: any) {
+  revokeAccessToken(
+    @Param("id") tokenId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.adminService.revokeAccessToken(tokenId, req.user.sub);
   }
 
@@ -244,7 +271,7 @@ export class AdminController {
       companyAddress: string;
       cacNumber?: string;
     },
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.adminService.createSupplierAccount(dto, req.user.sub);
   }
@@ -259,7 +286,10 @@ export class AdminController {
 
   @Patch("suppliers/:id/verify")
   @Roles(UserRole.SUPER_ADMIN, UserRole.OPERATOR)
-  verifySupplier(@Param("id") supplierId: string, @Req() req: any) {
+  verifySupplier(
+    @Param("id") supplierId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.adminService.verifySupplier(supplierId, req.user.sub);
   }
 }

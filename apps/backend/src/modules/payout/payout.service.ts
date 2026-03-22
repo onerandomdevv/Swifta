@@ -28,6 +28,21 @@ export class PayoutService {
       return;
     }
 
+    // Check if a payout is already completed or processing for this order
+    const existingPayout = await this.prisma.payout.findFirst({
+      where: {
+        orderId,
+        status: { in: ["COMPLETED", "PROCESSING"] },
+      },
+    });
+
+    if (existingPayout) {
+      this.logger.warn(
+        `Payout already exists for order ${orderId} with status ${existingPayout.status}. Skipping.`,
+      );
+      return;
+    }
+
     const merchant = order.merchantProfile;
 
     // Determine gross amount and platform fee
@@ -81,7 +96,7 @@ export class PayoutService {
       const transferResponse = await this.paystack.createTransfer(
         merchant.paystackRecipientCode,
         payoutAmountKobo,
-        `PO-${order.id.slice(0, 8).toUpperCase()}-${Date.now()}`,
+        `PO-${order.id.slice(0, 8).toUpperCase()}`,
         `Swifta payout for Order #${order.id.slice(0, 8).toUpperCase()}`,
       );
 

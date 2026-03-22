@@ -57,7 +57,7 @@ export class WhatsAppSupplierIntentService {
 
   private getGeminiUrl(): string {
     const modelName =
-      this.configService.get<string>("GEMINI_MODEL") || "gemini-2.0-flash";
+      this.configService.get<string>("GEMINI_MODEL") || "gemini-2.5-flash";
     return `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
   }
 

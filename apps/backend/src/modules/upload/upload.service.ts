@@ -6,6 +6,7 @@ import {
 } from "cloudinary";
 import { ConfigService } from "@nestjs/config";
 import { Readable } from "stream";
+import { CLOUDINARY_TRANSFORMS } from "./cloudinary-transforms";
 
 @Injectable()
 export class UploadService {
@@ -22,10 +23,24 @@ export class UploadService {
   async uploadImageToCloudinary(
     file: Express.Multer.File,
     folder: string = "swifta/merchants",
+    transformType?: string,
   ): Promise<string> {
     return new Promise((resolve, reject) => {
+      const options: any = { folder };
+      if (
+        transformType &&
+        CLOUDINARY_TRANSFORMS[
+          transformType as keyof typeof CLOUDINARY_TRANSFORMS
+        ]
+      ) {
+        options.transformation =
+          CLOUDINARY_TRANSFORMS[
+            transformType as keyof typeof CLOUDINARY_TRANSFORMS
+          ];
+      }
+
       const upload = cloudinary.uploader.upload_stream(
-        { folder },
+        options,
         (error: UploadApiErrorResponse, result: UploadApiResponse) => {
           if (error) {
             return reject(

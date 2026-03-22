@@ -77,7 +77,8 @@ export function EditProfileModal({
 
     setUploadingImage(type);
     try {
-      const { url } = await merchantApi.uploadDocument(file);
+      const transformType = type === "profile" ? "PROFILE_AVATAR" : "MERCHANT_BANNER";
+      const { url } = await merchantApi.uploadDocument(file, transformType);
       setFormData((prev) => ({
         ...prev,
         [type === "profile" ? "profileImage" : "coverImage"]: url,
