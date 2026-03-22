@@ -25,9 +25,10 @@ export const merchantApi = {
     return apiClient.get(`/merchants/${id}`);
   },
 
-  uploadDocument: (file: File): Promise<{ url: string; message: string }> => {
+  uploadDocument: (file: File, type?: string): Promise<{ url: string; message: string }> => {
     const formData = new FormData();
     formData.append("file", file);
+    if (type) formData.append("transformType", type);
     return apiClient.post("/upload/document", formData);
   },
 

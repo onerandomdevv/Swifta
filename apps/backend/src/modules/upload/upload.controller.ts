@@ -5,6 +5,7 @@ import {
   UploadedFile,
   BadRequestException,
   UseGuards,
+  Body,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
@@ -30,13 +31,20 @@ export class UploadController {
       },
     }),
   )
-  async uploadDocument(@UploadedFile() file: Express.Multer.File) {
+  async uploadDocument(
+    @UploadedFile() file: Express.Multer.File,
+    @Body("transformType") transformType?: string,
+  ) {
     if (!file) {
       throw new BadRequestException("No file uploaded");
     }
 
     try {
-      const url = await this.uploadService.uploadImageToCloudinary(file);
+      const url = await this.uploadService.uploadImageToCloudinary(
+        file,
+        "swifta/documents",
+        transformType,
+      );
       return {
         url,
         message: "File uploaded successfully",
@@ -61,7 +69,10 @@ export class UploadController {
       },
     }),
   )
-  async uploadProductImage(@UploadedFile() file: Express.Multer.File) {
+  async uploadProductImage(
+    @UploadedFile() file: Express.Multer.File,
+    @Body("transformType") transformType?: string,
+  ) {
     if (!file) {
       throw new BadRequestException("No image uploaded");
     }
@@ -70,6 +81,7 @@ export class UploadController {
       const url = await this.uploadService.uploadImageToCloudinary(
         file,
         "swifta/products",
+        transformType,
       );
       return {
         url,

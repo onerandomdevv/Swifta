@@ -36,6 +36,7 @@ export const productApi = {
   uploadProductImage: (file: File): Promise<{ url: string; message: string }> => {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('transformType', 'PRODUCT_DETAIL');
     return apiClient.post('/upload/product-image', formData);
   },
 
