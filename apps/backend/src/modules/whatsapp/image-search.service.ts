@@ -271,27 +271,36 @@ export class ImageSearchService {
       if (!response.ok) return null;
       const data = await response.json();
 
-      const textBlock =
-        data.responses[0]?.textAnnotations?.[0]?.description || "";
+      // 1. Extract object detection results (highest confidence for product identification)
+      const objects =
+        data.responses[0]?.localizedObjectAnnotations
+          ?.filter((o: { score: number }) => o.score > 0.5)
+          ?.map((o: { name: string }) => o.name) || [];
+
+      // 2. Extract label annotations (general image classification)
+      const labels =
+        data.responses[0]?.labelAnnotations
+          ?.filter((l: { score: number }) => l.score > 0.7)
+          ?.map((l: { description: string }) => l.description) || [];
+
+      // 3. OCR text — LAST RESORT ONLY. Only used if objects AND labels are both empty.
       let textTerms: string[] = [];
-      if (textBlock) {
-        textTerms = textBlock
-          .split(/\s+/)
-          .filter((w: string) => w.length > 3 && !w.match(/^[0-9]+$/))
-          .slice(0, 5); // Take top 5 meaningful words from OCR
+      if (objects.length === 0 && labels.length === 0) {
+        const textBlock =
+          data.responses[0]?.textAnnotations?.[0]?.description || "";
+        if (textBlock) {
+          textTerms = textBlock
+            .split(/\s+/)
+            .filter((w: string) => w.length > 3 && !w.match(/^[0-9]+$/))
+            .slice(0, 3);
+        }
       }
 
-      const objects =
-        data.responses[0]?.localizedObjectAnnotations?.map(
-          (o: any) => o.name,
-        ) || [];
-
-      const labels =
-        data.responses[0]?.labelAnnotations?.map((l: any) => l.description) ||
-        [];
-
-      // Prioritize Objects -> General Labels -> Text OCR (to prevent arbitrary text like 'CELEBRATING' from outranking objects)
+      // Build final terms: Objects first, then Labels, then OCR fallback
       const terms = Array.from(new Set([...objects, ...labels, ...textTerms]));
+      this.logger.debug(
+        `Vision results — objects: [${objects.join(", ")}], labels: [${labels.join(", ")}], ocrFallback: [${textTerms.join(", ")}]`,
+      );
       return terms.length > 0 ? terms : null;
     } catch (error) {
       this.logger.error("Cloud Vision error:", error);

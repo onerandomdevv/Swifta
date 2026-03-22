@@ -379,6 +379,11 @@ export class WhatsAppBuyerService {
       return;
     }
 
+    if (id === "show_full_menu") {
+      await this.sendBuyerMenu(phone, "Select an action below to continue:");
+      return;
+    }
+
     if (id === "buy_now") {
       await this.interactiveService.sendTextMessage(
         phone,
@@ -398,13 +403,26 @@ export class WhatsAppBuyerService {
           product = await this.prisma.product.findUnique({
             where: { id: productIdRaw },
           });
+        } else if (productIdRaw.length < 4) {
+          await this.interactiveService.sendTextMessage(
+            phone,
+            "Product code too short. Please provide at least 4 characters of the product code.",
+          );
+          return;
         } else {
           const productsRaw = await this.prisma.$queryRaw<any[]>`
             SELECT id FROM products 
             WHERE id::text LIKE ${productIdRaw + "%"}
-            LIMIT 1
+            LIMIT 5
           `;
-          if (productsRaw.length > 0) {
+          if (productsRaw.length > 1) {
+            await this.interactiveService.sendTextMessage(
+              phone,
+              `Multiple products match the code "${productIdRaw}". Please provide a longer code to narrow it down.`,
+            );
+            return;
+          }
+          if (productsRaw.length === 1) {
             product = { id: productsRaw[0].id } as any;
           }
         }
@@ -563,7 +581,7 @@ export class WhatsAppBuyerService {
     if (session.step === "SELECT_DELIVERY") {
       if (input === "1" || input.toLowerCase().includes("merchant")) {
         session.deliveryMethod = "MERCHANT_DELIVERY";
-      } else if (input === "2" || input.toLowerCase().includes("Swifta")) {
+      } else if (input === "2" || input.toLowerCase().includes("swifta")) {
         session.deliveryMethod = "PLATFORM_LOGISTICS";
       } else {
         await this.interactiveService.sendReplyButtons(
@@ -663,13 +681,15 @@ export class WhatsAppBuyerService {
           );
           break;
         case "contact_support":
+        case "show_menu":
+          await this.sendBuyerWelcomeButtons(phone);
+          break;
         case "support_handoff":
           await this.handleSupportHandoff(phone);
           break;
         case "friendly_fallback":
           await this.sendBuyerMenu(phone, BUYER_FRIENDLY_FALLBACK);
           break;
-        case "show_menu":
         default:
           await this.sendBuyerMenu(phone);
           break;
@@ -1811,6 +1831,22 @@ export class WhatsAppBuyerService {
       1,
       merchant.id,
     );
+  }
+
+  /**
+   * 🏠 Registered Buyer Welcome (Reply Buttons) — Scenario 2 fix
+   */
+  private async sendBuyerWelcomeButtons(phone: string): Promise<void> {
+    const welcomeMsg =
+      `Welcome back to Swifta! 👋\n\n` +
+      `Secure social commerce for Nigeria. Shop across any category or track your active deliveries.\n\n` +
+      `What would you like to do?`;
+
+    await this.interactiveService.sendReplyButtons(phone, welcomeMsg, [
+      { id: "browse_categories", title: "🛍️ Shop" },
+      { id: "get_active_orders", title: "🚚 Tracks" },
+      { id: "show_full_menu", title: "📋 More" },
+    ]);
   }
 
   private async getSafeDva(buyerId: string): Promise<any | null> {
