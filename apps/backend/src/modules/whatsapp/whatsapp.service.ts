@@ -1444,6 +1444,25 @@ export class WhatsAppService {
     }
   }
 
+  async sendPaymentConfirmedNotification(phone: string, metadata: any) {
+    const shortRef = metadata.reference
+      ? metadata.reference.slice(0, 8)
+      : "Unknown";
+    const amountStr = this.formatNaira(Number(metadata.amountKobo));
+    const msg = `Payment Successful. ✅\n\nYour payment of ${amountStr} for Order #${shortRef.toUpperCase()} has been confirmed. The merchant is now preparing your order.`;
+    await this.sendWhatsAppMessage(phone, msg);
+  }
+
+  async sendOrderDispatchedNotification(phone: string, metadata: any) {
+    const shortRef = metadata.reference
+      ? metadata.reference.slice(0, 8)
+      : "Unknown";
+    const msg = `🚚 *Order Dispatched*\n\nYour order #${shortRef.toUpperCase()} is on the way! Your delivery code is *${metadata.otp}*\n\nPlease provide this code to the merchant / dispatch rider upon delivery to confirm receipt.`;
+
+    // We can just use the standard template method if needed or raw message
+    await this.sendWhatsAppMessage(phone, msg);
+  }
+
   // =======================================================================
   // Meta Cloud API — Send message
   // =======================================================================
