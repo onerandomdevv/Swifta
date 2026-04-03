@@ -48,6 +48,30 @@ export class WhatsAppProcessor extends WorkerHost {
           break;
         }
 
+        case "send-payment-confirmed-notification": {
+          const { phone, orderData } = job.data;
+          await this.whatsAppService.sendPaymentConfirmedNotification(
+            phone,
+            orderData,
+          );
+          break;
+        }
+
+        case "send-order-dispatched-notification": {
+          const { phone, orderData } = job.data;
+          await this.whatsAppService.sendOrderDispatchedNotification(
+            phone,
+            orderData,
+          );
+          break;
+        }
+
+        case "send-text-message": {
+          const { phone, text } = job.data;
+          await this.whatsAppService.sendWhatsAppMessage(phone, text);
+          break;
+        }
+
         case "send-delivery-confirmed-notification": {
           const { merchantId, payoutData } = job.data;
           await this.whatsAppService.sendDeliveryConfirmedNotification(

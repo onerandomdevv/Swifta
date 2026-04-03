@@ -1444,6 +1444,40 @@ export class WhatsAppService {
     }
   }
 
+  async sendPaymentConfirmedNotification(phone: string, metadata: any) {
+    const amountNum = Number(metadata.amountKobo);
+    if (
+      !metadata.reference ||
+      !metadata.amountKobo ||
+      !Number.isFinite(amountNum)
+    ) {
+      this.logger.error(
+        `Invalid metadata for payment confirmation (ref: ${metadata.reference}, amount: ${metadata.amountKobo}) to ${phone}`,
+      );
+      return;
+    }
+
+    const shortRef = metadata.reference.slice(0, 8);
+    const amountStr = this.formatNaira(amountNum);
+    const msg = `Payment Successful. ✅\n\nYour payment of ${amountStr} for Order #${shortRef.toUpperCase()} has been confirmed. The merchant is now preparing your order.`;
+    await this.sendWhatsAppMessage(phone, msg);
+  }
+
+  async sendOrderDispatchedNotification(phone: string, metadata: any) {
+    if (!metadata.reference || !metadata.otp) {
+      this.logger.warn(
+        `Missing orderReference or OTP in sendOrderDispatchedNotification for ${phone}. Skipping.`,
+      );
+      return;
+    }
+
+    const shortRef = metadata.reference.slice(0, 8);
+    const otpSafe = String(metadata.otp);
+    const msg = `🚚 *Order Dispatched*\n\nYour order #${shortRef.toUpperCase()} is on the way! Your delivery code is *${otpSafe}*\n\nPlease provide this code to the merchant / dispatch rider upon delivery to confirm receipt.`;
+
+    await this.sendWhatsAppMessage(phone, msg);
+  }
+
   // =======================================================================
   // Meta Cloud API — Send message
   // =======================================================================
