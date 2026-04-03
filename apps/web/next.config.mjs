@@ -6,7 +6,7 @@ const nextConfig = {
   images: {
     domains: ["res.cloudinary.com", "ui-avatars.com"],
   },
-  transpilePackages: ["@swifta/shared"],
+  transpilePackages: ["@twizrr/shared"],
 };
 
 export default withSentryConfig(
@@ -15,8 +15,8 @@ export default withSentryConfig(
     // For all available options, see:
     // https://github.com/getsentry/sentry-webpack-plugin#options
     silent: true, // Suppresses all logs
-    org: process.env.SENTRY_ORG || "swifta",
-    project: process.env.SENTRY_PROJECT || "swifta-frontend",
+    org: process.env.SENTRY_ORG || "twizrr",
+    project: process.env.SENTRY_PROJECT || "twizrr-frontend",
   },
   {
     // For all available options, see:

@@ -1,5 +1,5 @@
 import React from "react";
-import type { Order } from "@swifta/shared";
+import type { Order } from "@twizrr/shared";
 import { DeliveryCard } from "./delivery-card";
 
 interface Props {

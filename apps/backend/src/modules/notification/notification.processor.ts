@@ -5,7 +5,7 @@ import { NOTIFICATION_QUEUE } from "../../queue/queue.constants";
 import { PrismaService } from "../../prisma/prisma.service";
 import { EmailService } from "../email/email.service";
 import { SmsService } from "./sms.service";
-import { NotificationChannel } from "@swifta/shared";
+import { NotificationChannel } from "@twizrr/shared";
 
 @Processor(NOTIFICATION_QUEUE, {
   concurrency: 5,

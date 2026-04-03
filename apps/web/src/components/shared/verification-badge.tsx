@@ -1,5 +1,5 @@
 import React from "react";
-import { VerificationTier } from "@swifta/shared";
+import { VerificationTier } from "@twizrr/shared";
 import { cn } from "@/lib/utils";
 
 interface VerificationBadgeProps {

@@ -3,11 +3,11 @@
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { merchantApi } from "@/lib/api/merchant.api";
-import { VerificationTier } from "@swifta/shared";
+import { VerificationTier } from "@twizrr/shared";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-const DISMISS_KEY = "swifta-merchant-verification-banner-dismissed";
+const DISMISS_KEY = "twizrr-merchant-verification-banner-dismissed";
 
 export function VerificationBanner() {
   const [isVisible, setIsVisible] = useState(true);

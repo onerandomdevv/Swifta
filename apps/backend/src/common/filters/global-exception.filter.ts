@@ -7,7 +7,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { Response } from "express";
-import { ApiError } from "@swifta/shared";
+import { ApiError } from "@twizrr/shared";
 import * as fs from "fs";
 import * as path from "path";
 

@@ -1,5 +1,5 @@
-import { UserRole } from "@swifta/shared";
-import type { LoginDto, RegisterDto, TokenPair } from "@swifta/shared";
+import { UserRole } from "@twizrr/shared";
+import type { LoginDto, RegisterDto, TokenPair } from "@twizrr/shared";
 import { apiClient } from "../api-client";
 
 export interface AuthResponse {

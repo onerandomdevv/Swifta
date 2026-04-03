@@ -15,7 +15,7 @@ import {
   OrderStatus,
   OrderDisputeStatus,
   NotificationType,
-} from "@swifta/shared";
+} from "@twizrr/shared";
 
 @Injectable()
 export class VerificationService {

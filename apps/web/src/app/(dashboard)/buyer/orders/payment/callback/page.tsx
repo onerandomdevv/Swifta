@@ -169,7 +169,7 @@ export default function PaymentCallbackPage() {
                 <div className="bg-slate-800 p-1 rounded shadow-sm">
                   <span className="material-symbols-outlined text-white text-sm">bolt</span>
                 </div>
-                <span className="font-bold text-sm tracking-widest uppercase text-slate-800">Swifta</span>
+                <span className="font-bold text-sm tracking-widest uppercase text-slate-800">twizrr</span>
               </div>
               <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Secure Checkout</p>
             </div>
@@ -297,7 +297,7 @@ export default function PaymentCallbackPage() {
 
       {/* Powered By Footer */}
       <p className="mt-8 text-slate-400 text-sm font-medium opacity-75">
-        Powered by <span className="text-slate-600 font-bold">Swifta Pay</span> · Fintech Secured
+        Powered by <span className="text-slate-600 font-bold">twizrr Pay</span> · Fintech Secured
       </p>
     </div>
   );

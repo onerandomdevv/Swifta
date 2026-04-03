@@ -8,7 +8,7 @@ import * as z from "zod";
 import { apiClient } from "@/lib/api-client";
 import { useToast } from "@/providers/toast-provider";
 import { useAuth } from "@/providers/auth-provider";
-import { getDisplayName } from "@swifta/shared";
+import { getDisplayName } from "@twizrr/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authApi } from "@/lib/api/auth.api";

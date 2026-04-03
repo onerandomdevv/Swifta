@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import type { Order } from "@swifta/shared";
+import type { Order } from "@twizrr/shared";
 import { formatKobo } from "@/lib/utils";
 
 interface DispatchModalProps {
@@ -114,7 +114,7 @@ export function DispatchModal({ order, onClose }: DispatchModalProps) {
           {/* Footer */}
           <div className="bg-slate-100 dark:bg-slate-800 p-4 border-t border-slate-200 dark:border-slate-700">
             <p className="text-[9px] text-center text-slate-400 uppercase tracking-widest font-bold">
-              Swifta — Secure E-commerce Platform
+              twizrr — Secure E-commerce Platform
             </p>
           </div>
         </div>

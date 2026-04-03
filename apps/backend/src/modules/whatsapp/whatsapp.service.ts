@@ -23,7 +23,7 @@ import {
   MENU_BUYER_MODE,
   MENU_MERCHANT_MODE,
 } from "./whatsapp.constants";
-import { OrderStatus, VerificationTier } from "@swifta/shared";
+import { OrderStatus, VerificationTier } from "@twizrr/shared";
 
 function maskPhone(phone: string): string {
   if (!phone) return "unknown";
@@ -310,7 +310,7 @@ export class WhatsAppService {
     if (id === "menu_help") {
       await this.interactiveService.sendTextMessage(
         phone,
-        `🤝 *Swifta Merchant Support*\n\nYou can manage your business by using the menu or via natural language commands:\n\n• *"sales summary"* - View performance\n• *"my orders"* - Manage latest orders\n• *"check inventory"* - Monitor stock\n• *"update price of [item] to [amount]"*\n• *"add [qty] to [item] stock"*\n\nNeed more help? Visit our web dashboard or contact support at support@swifta.store`,
+        `🤝 *twizrr Merchant Support*\n\nYou can manage your business by using the menu or via natural language commands:\n\n• *"sales summary"* - View performance\n• *"my orders"* - Manage latest orders\n• *"check inventory"* - Monitor stock\n• *"update price of [item] to [amount]"*\n• *"add [qty] to [item] stock"*\n\nNeed more help? Visit our web dashboard or contact support at support@twizrr.com`,
       );
       return;
     }
@@ -918,7 +918,7 @@ export class WhatsAppService {
     if (products.length === 0) {
       await this.interactiveService.sendTextMessage(
         phone,
-        "🏪 You have no products listed currently. Please add products via the Swifta web dashboard to begin selling. 🛒",
+        "🏪 You have no products listed currently. Please add products via the twizrr web dashboard to begin selling. 🛒",
       );
       return;
     }
@@ -1151,13 +1151,13 @@ export class WhatsAppService {
       let msg = "";
       switch (tier) {
         case VerificationTier.UNVERIFIED:
-          msg = `Unverified Account. ⚠️\n\nVisit your dashboard settings to complete verification. Verified merchants receive lower fees and higher customer trust.\n\nDashboard: swifta.store/settings`;
+          msg = `Unverified Account. ⚠️\n\nVisit your dashboard settings to complete verification. Verified merchants receive lower fees and higher customer trust.\n\nDashboard: twizrr.com/settings`;
           break;
         case VerificationTier.TIER_1:
           msg = `Verification Tier: Basic.\n\nUpgrade your status to Verified to enjoy lower platform fees and direct customer payments.`;
           break;
         case VerificationTier.TIER_2:
-          msg = `Account Verified. ✅\n\nYou currently enjoy 1% platform fees and direct customer payments. Thank you for using Swifta.`;
+          msg = `Account Verified. ✅\n\nYou currently enjoy 1% platform fees and direct customer payments. Thank you for using twizrr.`;
           break;
         case VerificationTier.TIER_3:
           msg = `Trusted Merchant Account. ✅\n\nYou have achieved the highest trust level. You benefit from minimal fees and featured listings.`;
@@ -1501,7 +1501,7 @@ export class WhatsAppService {
       );
       await this.interactiveService.sendTextMessage(
         phone,
-        `Your Swifta OTP is: ${otpCode}. Please use this to confirm your action.`,
+        `Your twizrr OTP is: ${otpCode}. Please use this to confirm your action.`,
       );
       // Rethrow to allow upstream SMS fallback if both WhatsApp methods fail
       throw error;
@@ -1698,7 +1698,7 @@ export class WhatsAppService {
       // Complete - generate app link or pay stack link
       await this.redisService.del(key);
       const appUrl =
-        this.configService.get("FRONTEND_URL") || "https://Swifta.com";
+        this.configService.get("FRONTEND_URL") || "https://twizrr.com";
 
       if (paymentMethod === "PAY_NOW") {
         const merchant = await this.prisma.merchantProfile.findUnique({
@@ -2162,7 +2162,7 @@ export class WhatsAppService {
           await this.redisService.del(sessionKey);
           await this.interactiveService.sendTextMessage(
             phone,
-            `✅ *Success!* "${data.name}" is now live on Swifta.`,
+            `✅ *Success!* "${data.name}" is now live on twizrr.`,
           );
           return;
         }

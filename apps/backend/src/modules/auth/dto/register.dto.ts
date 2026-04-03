@@ -6,7 +6,7 @@ import {
   MinLength,
   Matches,
 } from "class-validator";
-import { UserRole } from "@swifta/shared";
+import { UserRole } from "@twizrr/shared";
 
 export class RegisterDto {
   @IsEmail()

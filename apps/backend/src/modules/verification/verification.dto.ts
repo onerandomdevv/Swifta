@@ -6,7 +6,7 @@ import {
   IsUrl,
   IsIn,
 } from "class-validator";
-import { VerificationIdType } from "@swifta/shared";
+import { VerificationIdType } from "@twizrr/shared";
 
 export class SubmitVerificationDto {
   @IsUrl({ protocols: ["https"], require_protocol: true })

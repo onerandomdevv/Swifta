@@ -4,7 +4,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { CHECKOUT_REMINDER_QUEUE } from "./queue.constants";
 import { PrismaService } from "../prisma/prisma.service";
 import { WhatsAppService } from "../modules/whatsapp/whatsapp.service";
-import { OrderStatus } from "@swifta/shared";
+import { OrderStatus } from "@twizrr/shared";
 
 @Injectable()
 @Processor(CHECKOUT_REMINDER_QUEUE, {
@@ -50,7 +50,7 @@ export class CheckoutReminderProcessor extends WorkerHost {
       const itemName =
         order.product?.name ?? order.supplierProduct?.name ?? "your items";
 
-      let msg = `🛒 *Checkout Reminder from Swifta*\n\nHi ${order.user.firstName || "there"}! Your order #${order.id.substring(0, 8).toUpperCase()} for *${itemName}* is waiting for payment.\n\n`;
+      let msg = `🛒 *Checkout Reminder from twizrr*\n\nHi ${order.user.firstName || "there"}! Your order #${order.id.substring(0, 8).toUpperCase()} for *${itemName}* is waiting for payment.\n\n`;
 
       const buyerProfile = order.user?.buyerProfile;
       if (buyerProfile?.dvaActive && buyerProfile?.dvaAccountNumber) {
@@ -68,7 +68,7 @@ export class CheckoutReminderProcessor extends WorkerHost {
           msg += `Please complete your payment using this secure link: ${metadata.checkoutUrl}\n\n`;
           msg += `This link will finalize your order immediately. ⚡`;
         } else {
-          msg += `Please return to the Swifta shop to complete your payment or request a new checkout link from the menu. ⚡`;
+          msg += `Please return to the twizrr shop to complete your payment or request a new checkout link from the menu. ⚡`;
         }
       }
 

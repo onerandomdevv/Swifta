@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
-import { getDisplayName } from "@swifta/shared";
+import { getDisplayName } from "@twizrr/shared";
 import { Logo } from "@/components/ui/logo";
 import { WhatsAppLinkStatus } from "@/components/dashboard/whatsapp-link-status";
 import { useNotifications } from "@/hooks/use-notifications";

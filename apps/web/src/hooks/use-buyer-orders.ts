@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { getOrders } from "@/lib/api/order.api";
-import type { Order } from "@swifta/shared";
+import type { Order } from "@twizrr/shared";
 
 export function useBuyerOrders() {
   const { data, isLoading, error, refetch } = useQuery({

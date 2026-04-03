@@ -12,7 +12,7 @@ export const SUPPLIER_MAIN_MENU = `Supplier Dashboard. Use the menu below to man
 export const FRIENDLY_FALLBACK = `I did not understand that. Select an option from the menu:`;
 
 /** Main menu for buyers */
-export const BUYER_MAIN_MENU = `Welcome to the Swifta Buyer Assistant. Select an option to proceed.`;
+export const BUYER_MAIN_MENU = `Welcome to the twizrr Buyer Assistant. Select an option to proceed.`;
 
 /** Friendly fallback for buyers */
 export const BUYER_FRIENDLY_FALLBACK = `I did not understand that. You can ask:
@@ -26,7 +26,7 @@ export const STOCK_UPDATE_FOLLOWUP = `Understood. Which product would you like t
 Example: "Add 10 pairs of sneakers" or "Remove 5 laptops"`;
 
 /** First message for an unlinked phone */
-export const WELCOME_MESSAGE = `Welcome to Swifta. Nigeria's digital marketplace for all your shopping needs. How would you like to use our platform?`;
+export const WELCOME_MESSAGE = `Welcome to twizrr. Nigeria's digital marketplace for all your shopping needs. How would you like to use our platform?`;
 
 export const ROLE_SELECTED_MESSAGE = `To link your account, please reply with your registered email address.`;
 

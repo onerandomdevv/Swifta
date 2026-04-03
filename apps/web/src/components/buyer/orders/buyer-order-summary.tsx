@@ -1,6 +1,6 @@
 import React from "react";
-import { formatKobo } from "@swifta/shared";
-import type { Order } from "@swifta/shared";
+import { formatKobo } from "@twizrr/shared";
+import type { Order } from "@twizrr/shared";
 
 interface Props {
   order: Order;

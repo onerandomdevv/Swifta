@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { Money } from "@/components/ui/money";
-import type { Order } from "@swifta/shared";
+import type { Order } from "@twizrr/shared";
 
 interface Props {
   orders: Order[];

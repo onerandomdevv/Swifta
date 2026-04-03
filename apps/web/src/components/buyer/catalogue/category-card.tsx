@@ -1,5 +1,5 @@
 import React from "react";
-import { type Category } from "@swifta/shared";
+import { type Category } from "@twizrr/shared";
 
 interface Props {
   category: Category & { productCount?: number };

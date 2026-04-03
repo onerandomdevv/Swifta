@@ -1,5 +1,5 @@
-import type { ApiResponse, ApiError } from "@swifta/shared";
-import { bigIntReviver, bigIntReplacer } from "@swifta/shared";
+import type { ApiResponse, ApiError } from "@twizrr/shared";
+import { bigIntReviver, bigIntReplacer } from "@twizrr/shared";
 
 type RequestConfig = RequestInit & {
   params?: Record<string, string>;

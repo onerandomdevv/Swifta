@@ -13,7 +13,7 @@ function Invoke-SafeCommand {
     }
 }
 
-Write-Host "--- Swifta Pre-commit Checks ---" -ForegroundColor Yellow
+Write-Host "--- twizrr Pre-commit Checks ---" -ForegroundColor Yellow
 
 # Check if branch exists
 $exists = git rev-parse --verify $branchName 2>$null

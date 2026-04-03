@@ -6,7 +6,7 @@ import {
 import { PrismaService } from "../../prisma/prisma.service";
 import PDFDocument from "pdfkit";
 import { Response } from "express";
-import { JwtPayload } from "@swifta/shared";
+import { JwtPayload } from "@twizrr/shared";
 
 @Injectable()
 export class InvoiceService {
@@ -66,7 +66,7 @@ export class InvoiceService {
     doc
       .fillColor("#444444")
       .fontSize(20)
-      .text("Swifta", 50, 45, { align: "left" })
+      .text("twizrr", 50, 45, { align: "left" })
       .fontSize(10)
       .text("Digital Marketplace & Escrow Payments", 50, 70, { align: "left" })
       .fillColor("#000000")

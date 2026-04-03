@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Link from "next/link";
-import { PriceType, type Product } from "@swifta/shared";
+import { PriceType, type Product } from "@twizrr/shared";
 import { VerificationBadge } from "@/components/ui/verification-badge";
 import { StarRating } from "@/components/ui/star-rating";
 import { toast } from "sonner";

@@ -1,4 +1,4 @@
-# @swifta/shared (Swifta)
+# @twizrr/shared (twizrr)
 
 Shared types, enums, constants, and utilities used by both the backend and frontend.
 
@@ -9,8 +9,8 @@ Shared types, enums, constants, and utilities used by both the backend and front
 This package is automatically available in the monorepo. Import using:
 
 ```typescript
-import { OrderStatus, formatKobo } from "@swifta/shared";
-import type { Product, ApiResponse } from "@swifta/shared";
+import { OrderStatus, formatKobo } from "@twizrr/shared";
+import type { Product, ApiResponse } from "@twizrr/shared";
 ```
 
 ---
@@ -53,7 +53,7 @@ API response wrappers: `ApiResponse<T>`, `PaginatedResponse<T>`, `ApiError`.
 **Money formatting:**
 
 ```typescript
-import { formatKobo, koboToNaira, nairaToKobo } from "@swifta/shared";
+import { formatKobo, koboToNaira, nairaToKobo } from "@twizrr/shared";
 
 formatKobo(650000n); // "₦6,500.00"
 koboToNaira(650000n); // "₦6,500.00" (alias)
@@ -92,5 +92,5 @@ Both exist and both are needed. The shared types define the SHAPE. The backend D
 ## Building
 
 ```bash
-pnpm --filter @swifta/shared build
+pnpm --filter @twizrr/shared build
 ```

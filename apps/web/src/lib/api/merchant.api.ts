@@ -3,7 +3,7 @@ import type {
   UpdateMerchantDto,
   ApiResponse,
   MerchantProfile,
-} from "@swifta/shared";
+} from "@twizrr/shared";
 
 export const merchantApi = {
   getProfile: (): Promise<MerchantProfile> => {

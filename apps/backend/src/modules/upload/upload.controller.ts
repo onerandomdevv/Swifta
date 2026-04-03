@@ -42,7 +42,7 @@ export class UploadController {
     try {
       const url = await this.uploadService.uploadImageToCloudinary(
         file,
-        "swifta/documents",
+        "twizrr/documents",
         transformType,
       );
       return {
@@ -80,7 +80,7 @@ export class UploadController {
     try {
       const url = await this.uploadService.uploadImageToCloudinary(
         file,
-        "swifta/products",
+        "twizrr/products",
         transformType,
       );
       return {

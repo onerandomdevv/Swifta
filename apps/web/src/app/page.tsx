@@ -19,7 +19,7 @@ import {
 import { Logo } from "@/components/ui/logo";
 
 const WHATSAPP_NUMBER = String(process.env.NEXT_PUBLIC_WHATSAPP_BOT_NUMBER || "2348147846093").replace(/\D/g, "") || "2348147846093";
-const WHATSAPP_WELCOME = process.env.NEXT_PUBLIC_WHATSAPP_WELCOME_MESSAGE || "Hi, I'd like to shop on Swifta";
+const WHATSAPP_WELCOME = process.env.NEXT_PUBLIC_WHATSAPP_WELCOME_MESSAGE || "Hi, I'd like to shop on twizrr";
 const whatsappLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_WELCOME)}`;
 
 /* ── Reusable WhatsApp CTA Button ── */
@@ -63,7 +63,7 @@ function WhatsAppCTA({
 const STEPS = [
   {
     num: "1",
-    title: "Message Swifta",
+    title: "Message twizrr",
     desc: "Send us what you need on WhatsApp. Text or photo — our AI understands both.",
     icon: <MessageCircle className="w-6 h-6" />,
   },
@@ -129,7 +129,7 @@ const TESTIMONIALS = [
     name: "Chioma Nwosu",
     role: "Fashion Retailer",
     stars: 5,
-    text: "As a merchant, Swifta changed my business. I manage everything from WhatsApp — products, orders, payouts. My revenue has tripled in 3 months.",
+    text: "As a merchant, twizrr changed my business. I manage everything from WhatsApp — products, orders, payouts. My revenue has tripled in 3 months.",
   },
   {
     name: "Emeka Obi",
@@ -312,7 +312,7 @@ export default function LandingPage() {
               Simple & Fast
             </p>
             <h2 className="text-3xl sm:text-4xl font-black text-deep-blue tracking-tight">
-              How Swifta Works
+              How twizrr Works
             </h2>
           </div>
 

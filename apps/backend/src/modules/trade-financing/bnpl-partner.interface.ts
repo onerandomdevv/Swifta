@@ -11,7 +11,7 @@ export interface BuyerCreditData {
 
 export interface BnplPartnerClient {
   /**
-   * Evaluates the buyer's creditworthiness based on Swifta history + partner logic
+   * Evaluates the buyer's creditworthiness based on twizrr history + partner logic
    */
   checkEligibility(buyerData: BuyerCreditData): Promise<{
     eligible: boolean;
@@ -21,7 +21,7 @@ export interface BnplPartnerClient {
   }>;
 
   /**
-   * Books the loan with the partner. If approved, the partner will disburse funds to Swifta.
+   * Books the loan with the partner. If approved, the partner will disburse funds to twizrr.
    */
   initiateLoan(
     orderId: string,

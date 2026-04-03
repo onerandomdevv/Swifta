@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { MerchantDiscovery } from "@/components/buyer/merchants/merchant-discovery";
 
 export const metadata: Metadata = {
-  title: "Merchant Directory | Swifta",
+  title: "Merchant Directory | twizrr",
   description: "Find and follow verified merchants.",
 };
 

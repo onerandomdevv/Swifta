@@ -9,7 +9,7 @@ import { merchantApi } from "@/lib/api/merchant.api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { StateLgaSelector } from "@/components/ui/state-lga-selector";
-import type { MerchantProfile, UpdateMerchantDto } from "@swifta/shared";
+import type { MerchantProfile, UpdateMerchantDto } from "@twizrr/shared";
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -119,7 +119,7 @@ export function EditProfileModal({
       isOpen={isOpen}
       onClose={onClose}
       title="Edit Store Profile"
-      description="Update your business identity and presence on Swifta."
+      description="Update your business identity and presence on twizrr."
       className="relative bg-surface border border-border rounded-[2.5rem] shadow-2xl w-full max-w-2xl mx-4 overflow-hidden"
     >
       <form onSubmit={handleSubmit} className="p-8 space-y-8">

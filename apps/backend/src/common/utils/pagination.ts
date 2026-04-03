@@ -1,4 +1,4 @@
-import { PaginatedResponse } from "@swifta/shared";
+import { PaginatedResponse } from "@twizrr/shared";
 
 export interface PaginationParams {
   page: number;

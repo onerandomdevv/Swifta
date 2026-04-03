@@ -24,7 +24,7 @@ export class UssdService {
     try {
       // Level 0: Welcome menu
       if (level === 0) {
-        return "CON Welcome to Swifta\n1. Pay for an order\n2. Check order status";
+        return "CON Welcome to twizrr\n1. Pay for an order\n2. Check order status";
       }
 
       const mainChoice = inputs[0];
@@ -52,7 +52,7 @@ export class UssdService {
 
     // Level 1: Ask for phone
     if (level === 1) {
-      return "CON Enter the phone number linked to your Swifta account:";
+      return "CON Enter the phone number linked to your twizrr account:";
     }
 
     // Level 2: Show pending orders
@@ -61,13 +61,13 @@ export class UssdService {
       const user = await this.prisma.user.findFirst({ where: { phone } });
 
       if (!user) {
-        return "END No Swifta account found for this number. Visit swifta.store to register.";
+        return "END No twizrr account found for this number. Visit twizrr.com to register.";
       }
 
       const orders = await this.getPendingOrders(user.id);
 
       if (orders.length === 0) {
-        return "END You have no pending orders. Visit swifta.store to place an order.";
+        return "END You have no pending orders. Visit twizrr.com to place an order.";
       }
 
       let response = "CON Your pending orders:\n";
@@ -136,7 +136,7 @@ export class UssdService {
         try {
           await this.smsService.sendSms(
             phone,
-            `Swifta: Complete your payment of N${this.koboToNaira(order.totalAmountKobo)} here: ${paymentData.authorization_url}`,
+            `twizrr: Complete your payment of N${this.koboToNaira(order.totalAmountKobo)} here: ${paymentData.authorization_url}`,
           );
         } catch (smsErr) {
           this.logger.warn(
@@ -148,7 +148,7 @@ export class UssdService {
         return [
           `END Payment initiated for Order #${shortId}.`,
           "You will receive a payment link via SMS shortly.",
-          "Thank you for using Swifta.",
+          "Thank you for using twizrr.",
         ].join("\n");
       }
 
@@ -164,14 +164,14 @@ export class UssdService {
     const level = inputs.length;
 
     if (level === 1) {
-      return "CON Enter the phone number linked to your Swifta account:";
+      return "CON Enter the phone number linked to your twizrr account:";
     }
 
     if (level === 2) {
       const phone = this.toE164(inputs[1]);
       const user = await this.prisma.user.findFirst({ where: { phone } });
 
-      if (!user) return "END No Swifta account found for this number.";
+      if (!user) return "END No twizrr account found for this number.";
 
       const orders = await this.prisma.order.findMany({
         where: { buyerId: user.id },

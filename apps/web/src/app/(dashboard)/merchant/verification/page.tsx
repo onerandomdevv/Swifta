@@ -9,7 +9,7 @@ import {
   MerchantProfile,
   VerificationTier,
   VerificationIdType,
-} from "@swifta/shared";
+} from "@twizrr/shared";
 import { VerificationBadge } from "@/components/shared/verification-badge";
 import { cn, formatKobo } from "@/lib/utils";
 
@@ -767,7 +767,7 @@ export default function MerchantVerificationPage() {
             Your data is secure
           </h4>
           <p className="text-sm text-foreground-muted max-w-2xl leading-relaxed">
-            Swifta is PCI-DSS and NDPR compliant. Identity documents are
+            twizrr is PCI-DSS and NDPR compliant. Identity documents are
             encrypted and only accessible to verified senior compliance
             officers. We never share your business data with third parties.
           </p>

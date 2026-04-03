@@ -16,7 +16,7 @@ import { WebhookSignatureGuard } from "./webhook-signature.guard";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { IdempotencyKey } from "../../common/decorators/idempotency-key.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
-import { UserRole, JwtPayload } from "@swifta/shared";
+import { UserRole, JwtPayload } from "@twizrr/shared";
 
 @Controller("payments")
 export class PaymentController {

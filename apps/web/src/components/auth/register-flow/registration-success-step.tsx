@@ -1,5 +1,5 @@
 import { useRouter } from "next/navigation";
-import { UserRole } from "@swifta/shared";
+import { UserRole } from "@twizrr/shared";
 
 interface RegistrationSuccessStepProps {
   role: UserRole | null;
@@ -29,7 +29,7 @@ export function RegistrationSuccessStep({
             </h1>
             <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-8 font-medium">
               Your email has been verified and your account is now fully active.
-              Welcome to the Swifta marketplace!
+              Welcome to the twizrr marketplace!
             </p>
           </div>
 

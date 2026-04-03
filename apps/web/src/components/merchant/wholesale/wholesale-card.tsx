@@ -1,5 +1,5 @@
 import React from "react";
-import { formatKobo } from "@swifta/shared";
+import { formatKobo } from "@twizrr/shared";
 
 interface Props {
   item: any;

@@ -90,7 +90,7 @@ export default function AdminAnalyticsPage() {
               link.setAttribute("href", url);
               link.setAttribute(
                 "download",
-                `swifta_financials_${new Date().toISOString().split("T")[0]}.csv`,
+                `twizrr_financials_${new Date().toISOString().split("T")[0]}.csv`,
               );
               document.body.appendChild(link);
               link.click();

@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { UserRole } from "@swifta/shared";
+import { UserRole } from "@twizrr/shared";
 
 export const loginSchema = z.object({
   identifier: z

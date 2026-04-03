@@ -5,9 +5,9 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL || "https://swifta.store",
+    process.env.NEXT_PUBLIC_APP_URL || "https://twizrr.com",
   ),
-  title: "Swifta — Nigeria's WhatsApp E-Commerce Platform",
+  title: "twizrr — Nigeria's WhatsApp E-Commerce Platform",
   /*
   ### Instant Checkout & Toast Fixes
   - **Redirection Delay:** Removed the 1.5s delay in `InstantCheckoutModal` that was causing browsers to block the Paystack redirect.
@@ -21,8 +21,8 @@ export const metadata: Metadata = {
     "Buy and sell anything on WhatsApp with escrow payment protection. Verified merchants, tracked delivery, instant payouts.",
   manifest: "/manifest.json",
   openGraph: {
-    title: "Swifta — Nigeria's WhatsApp E-Commerce Platform",
-    siteName: "Swifta",
+    title: "twizrr — Nigeria's WhatsApp E-Commerce Platform",
+    siteName: "twizrr",
     description:
       "Buy and sell anything on WhatsApp with escrow payment protection. Verified merchants, tracked delivery, instant payouts.",
   },

@@ -7,7 +7,7 @@ RUN npm install -g turbo
 
 COPY . .
 
-RUN turbo prune --scope=@swifta/backend --docker
+RUN turbo prune --scope=@twizrr/backend --docker
 
 # ── Stage 2: Install deps + build ──
 FROM node:20-alpine AS installer
@@ -25,7 +25,7 @@ COPY --from=builder /app/out/full/ .
 RUN npx prisma generate --schema=apps/backend/prisma/schema.prisma
 
 # Build backend + shared
-RUN pnpm turbo run build --filter=@swifta/backend...
+RUN pnpm turbo run build --filter=@twizrr/backend...
 
 # ── Stage 3: Slim production runner ──
 FROM node:20-alpine AS runner

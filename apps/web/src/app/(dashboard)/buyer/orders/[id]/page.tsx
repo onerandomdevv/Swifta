@@ -4,7 +4,7 @@ import React, { useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatKobo } from "@/lib/utils";
-import type { Order } from "@swifta/shared";
+import type { Order } from "@twizrr/shared";
 import { useOrder } from "@/hooks/use-order";
 import { OrderTimeline } from "@/components/ui/order-timeline";
 import { Modal } from "@/components/ui/modal";
@@ -92,7 +92,7 @@ export default function BuyerOrderDetailsPage() {
     // Cart checkout
     if (Array.isArray((order as any).items)) {
       items.push(...(order as any).items.map((item: any) => ({
-        name: item.name || "Swifta Product",
+        name: item.name || "twizrr Product",
         sku: `${item.productId?.slice(0, 8)?.toUpperCase() || "GEN"}`,
         quantity: item.quantity,
         unitPrice: item.unitPriceKobo,
@@ -430,7 +430,7 @@ export default function BuyerOrderDetailsPage() {
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-slate-500">Carrier</span>
                     <span className="font-medium text-slate-900 dark:text-white">
-                      {order.deliveryMethod === "PLATFORM_LOGISTICS" ? "Swifta Express" : "Merchant Delivery"}
+                      {order.deliveryMethod === "PLATFORM_LOGISTICS" ? "twizrr Express" : "Merchant Delivery"}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
@@ -533,7 +533,7 @@ export default function BuyerOrderDetailsPage() {
       >
         <div className="space-y-6">
           <p className="text-sm text-slate-500">
-            Describe the issue you encountered. The Swifta mediation team will review your report within 24 hours.
+            Describe the issue you encountered. The twizrr mediation team will review your report within 24 hours.
           </p>
           <textarea
             value={disputeReason}

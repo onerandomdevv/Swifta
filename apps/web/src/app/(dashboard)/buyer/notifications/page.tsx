@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { NotificationsSharedPage } from "@/components/notifications/notifications-page";
 
 export const metadata: Metadata = {
-  title: "Notifications | Swifta Buyer",
+  title: "Notifications | twizrr Buyer",
   description: "View your recent activities and alerts.",
 };
 

@@ -14,7 +14,7 @@ export function ModeSwitcher({ onModeChange, className }: ModeSwitcherProps) {
   const [mode, setMode] = useState<Mode>("MERCHANT");
 
   useEffect(() => {
-    const savedMode = localStorage.getItem("Swifta_activeMode") as Mode;
+    const savedMode = localStorage.getItem("twizrr_activeMode") as Mode;
     if (savedMode) {
       setMode(savedMode);
       onModeChange(savedMode);
@@ -24,7 +24,7 @@ export function ModeSwitcher({ onModeChange, className }: ModeSwitcherProps) {
   const toggleMode = () => {
     const newMode = mode === "MERCHANT" ? "BUYER" : "MERCHANT";
     setMode(newMode);
-    localStorage.setItem("Swifta_activeMode", newMode);
+    localStorage.setItem("twizrr_activeMode", newMode);
     onModeChange(newMode);
   };
 

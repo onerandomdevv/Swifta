@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type Product } from "@swifta/shared";
+import { type Product } from "@twizrr/shared";
 import { toast } from "sonner";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 

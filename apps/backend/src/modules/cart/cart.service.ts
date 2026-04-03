@@ -6,7 +6,7 @@ import {
 import { PrismaService } from "../../prisma/prisma.service";
 import { AddToCartDto } from "./dto/add-to-cart.dto";
 import { UpdateCartItemDto } from "./dto/update-cart-item.dto";
-import { PriceType } from "@swifta/shared";
+import { PriceType } from "@twizrr/shared";
 
 @Injectable()
 export class CartService {

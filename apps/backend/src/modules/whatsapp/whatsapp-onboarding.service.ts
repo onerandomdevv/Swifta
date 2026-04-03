@@ -153,7 +153,7 @@ export class WhatsAppOnboardingService {
   private async sendWelcome(phone: string): Promise<void> {
     await this.interactiveService.sendReplyButtons(
       phone,
-      "Welcome to Swifta.\n\nBuy and sell anything on WhatsApp with secure escrow payments. Your money is protected until delivery is confirmed.\n\nHow would you like to get started?",
+      "Welcome to twizrr.\n\nBuy and sell anything on WhatsApp with secure escrow payments. Your money is protected until delivery is confirmed.\n\nHow would you like to get started?",
       [
         { id: "onboard_buyer", title: "Buy Products" },
         { id: "onboard_merchant", title: "Sell Products" },
@@ -165,7 +165,7 @@ export class WhatsAppOnboardingService {
   private async handleLearnMore(phone: string): Promise<void> {
     await this.interactiveService.sendReplyButtons(
       phone,
-      "Swifta allows you to buy and sell products securely through WhatsApp.\n\nMoney is held safely until you receive your goods. You can track deliveries in real-time and buy from verified merchants. Merchants receive payments directly to their bank account.\n\nReady to get started?",
+      "twizrr allows you to buy and sell products securely through WhatsApp.\n\nMoney is held safely until you receive your goods. You can track deliveries in real-time and buy from verified merchants. Merchants receive payments directly to their bank account.\n\nReady to get started?",
       [
         { id: "onboard_buyer", title: "Sign Up to Buy" },
         { id: "onboard_merchant", title: "Sign Up to Sell" },
@@ -395,7 +395,7 @@ export class WhatsAppOnboardingService {
     if (existingUser) {
       await this.interactiveService.sendTextMessage(
         phone,
-        "This email is already registered. If you already have a Swifta account, please visit swifta.store to link your WhatsApp number, or use a different email.",
+        "This email is already registered. If you already have a twizrr account, please visit twizrr.com to link your WhatsApp number, or use a different email.",
       );
       return;
     }
@@ -490,7 +490,7 @@ export class WhatsAppOnboardingService {
         });
         await this.interactiveService.sendTextMessage(
           phone,
-          "Too many incorrect attempts. Please visit swifta.store to register instead, or try again later.",
+          "Too many incorrect attempts. Please visit twizrr.com to register instead, or try again later.",
         );
         return;
       }
@@ -588,7 +588,7 @@ export class WhatsAppOnboardingService {
               {
                 id: "help",
                 title: "Help",
-                description: "Learn how Swifta works",
+                description: "Learn how twizrr works",
               },
             ],
           },
@@ -605,7 +605,7 @@ export class WhatsAppOnboardingService {
         });
         await this.interactiveService.sendTextMessage(
           phone,
-          "This email or phone number is already registered to another account. Please use different details or visit swifta.store.",
+          "This email or phone number is already registered to another account. Please use different details or visit twizrr.com.",
         );
         return;
       }
@@ -614,7 +614,7 @@ export class WhatsAppOnboardingService {
       );
       await this.interactiveService.sendTextMessage(
         phone,
-        "Something went wrong creating your account. Please try again or visit swifta.store to register.",
+        "Something went wrong creating your account. Please try again or visit twizrr.com to register.",
       );
     }
   }
@@ -775,7 +775,7 @@ export class WhatsAppOnboardingService {
     if (existingUser) {
       await this.interactiveService.sendTextMessage(
         phone,
-        "This email is already registered. If you already have a Swifta account, please visit swifta.store to link your WhatsApp number, or use a different email.",
+        "This email is already registered. If you already have a twizrr account, please visit twizrr.com to link your WhatsApp number, or use a different email.",
       );
       return;
     }
@@ -868,7 +868,7 @@ export class WhatsAppOnboardingService {
         });
         await this.interactiveService.sendTextMessage(
           phone,
-          "Too many incorrect attempts. Please visit swifta.store to register, or try again later.",
+          "Too many incorrect attempts. Please visit twizrr.com to register, or try again later.",
         );
         return;
       }
@@ -1274,7 +1274,7 @@ export class WhatsAppOnboardingService {
         });
         await this.interactiveService.sendTextMessage(
           phone,
-          "This email or phone number is already registered to another account. Please use different details or visit swifta.store.",
+          "This email or phone number is already registered to another account. Please use different details or visit twizrr.com.",
         );
         return;
       }
@@ -1283,7 +1283,7 @@ export class WhatsAppOnboardingService {
       );
       await this.interactiveService.sendTextMessage(
         phone,
-        "Something went wrong creating your account. Please try again or visit swifta.store to register.",
+        "Something went wrong creating your account. Please try again or visit twizrr.com to register.",
       );
     }
   }

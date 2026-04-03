@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 import { SchemaType, FunctionDeclaration } from "@google/generative-ai";
 
-export const BUYER_MAIN_MENU = `Welcome to the Swifta Marketplace! ✅
+export const BUYER_MAIN_MENU = `Welcome to the twizrr Marketplace! ✅
 
 I'm your personal shopping assistant. I can help you find products, discover local merchants, and track your deliveries in real-time.
 
@@ -32,7 +32,7 @@ export const BUYER_GEMINI_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
   {
     name: "search_products",
     description:
-      "Search the global Swifta catalogue for a product based on name and optionally location.",
+      "Search the global twizrr catalogue for a product based on name and optionally location.",
     parameters: {
       type: SchemaType.OBJECT,
       properties: {
@@ -57,7 +57,7 @@ export const BUYER_GEMINI_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
   {
     name: "search_merchants",
     description:
-      "Search for verified merchants and shops on Swifta by name or specific location.",
+      "Search for verified merchants and shops on twizrr by name or specific location.",
     parameters: {
       type: SchemaType.OBJECT,
       properties: {
@@ -120,7 +120,7 @@ export const BUYER_GEMINI_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
   {
     name: "browse_categories",
     description:
-      "Browse the available product categories in the Swifta marketplace.",
+      "Browse the available product categories in the twizrr marketplace.",
   },
   {
     name: "list_merchant_products",

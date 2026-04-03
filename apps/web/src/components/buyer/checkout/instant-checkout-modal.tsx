@@ -6,8 +6,8 @@ import { createDirectOrder } from "@/lib/api/order.api";
 import { toast } from "sonner";
 import { StateLgaSelector } from "@/components/ui/state-lga-selector";
 import { cn, formatKobo, optimizeCloudinaryUrl } from "@/lib/utils";
-import type { Product, MerchantProfile } from "@swifta/shared";
-import { VerificationTier } from "@swifta/shared";
+import type { Product, MerchantProfile } from "@twizrr/shared";
+import { VerificationTier } from "@twizrr/shared";
 
 interface Props {
   isOpen: boolean;
@@ -281,7 +281,7 @@ export function InstantCheckoutModal({ isOpen, onClose, product, merchant }: Pro
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                       <span className="text-sm font-bold text-slate-900 dark:text-white">Swifta</span>
+                       <span className="text-sm font-bold text-slate-900 dark:text-white">twizrr</span>
                        <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-[8px] font-black text-emerald-700 uppercase tracking-tighter">Best</span>
                     </div>
                     <span className="text-[10px] font-bold text-primary uppercase tracking-[0.15em] mt-1 block">Coming Soon</span>
@@ -481,7 +481,7 @@ export function InstantCheckoutModal({ isOpen, onClose, product, merchant }: Pro
             </div>
 
             <p className="text-[10px] text-center text-slate-400 dark:text-slate-500 leading-relaxed px-4 pt-2">
-                By clicking "Pay", you agree to Swifta's <a href="#" className="underline hover:text-primary">Terms</a> and <a href="#" className="underline hover:text-primary">Privacy Policy</a>.
+                By clicking "Pay", you agree to twizrr's <a href="#" className="underline hover:text-primary">Terms</a> and <a href="#" className="underline hover:text-primary">Privacy Policy</a>.
             </p>
           </div>
         

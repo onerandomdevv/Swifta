@@ -1,5 +1,5 @@
 import React from "react";
-import type { Product } from "@swifta/shared";
+import type { Product } from "@twizrr/shared";
 
 type InventoryRowProps = {
   product: Product;

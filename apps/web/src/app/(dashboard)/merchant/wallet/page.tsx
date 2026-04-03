@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { MerchantWalletDashboard } from "@/components/merchant/wallet/merchant-wallet-dashboard";
 
 export const metadata: Metadata = {
-  title: "Merchant Wallet | Swifta",
+  title: "Merchant Wallet | twizrr",
   description: "Manage your B2C earnings, payouts, and escrow funds.",
 };
 

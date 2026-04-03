@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getOrder, addTracking, getTracking, downloadInvoice } from "@/lib/api/order.api";
-import { type Order, OrderStatus } from "@swifta/shared";
+import { type Order, OrderStatus } from "@twizrr/shared";
 import { formatKobo } from "@/lib/utils";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -155,7 +155,7 @@ export default function MerchantOrderDetailsPage() {
               </button>
               <div>
                 <h2 className="text-navy-dark dark:text-white text-lg font-black tracking-tighter uppercase leading-none">
-                  Swifta <span className="text-primary italic">Management</span>
+                  twizrr <span className="text-primary italic">Management</span>
                 </h2>
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Order Details View</p>
               </div>
@@ -438,7 +438,7 @@ export default function MerchantOrderDetailsPage() {
                         // Case 1: Cart Checkout (Array in order.items)
                         if (Array.isArray((order as any).items)) {
                           items.push(...(order as any).items.map((item: any) => ({
-                            name: item.name || "Swifta Product",
+                            name: item.name || "twizrr Product",
                             sku: `ST-${item.productId?.slice(0, 5) || "GEN"}-X`,
                             quantity: item.quantity,
                             unitPrice: item.unitPriceKobo,

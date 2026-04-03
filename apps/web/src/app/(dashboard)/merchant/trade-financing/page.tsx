@@ -5,7 +5,7 @@ import {
   getTradeFinancingLoans,
   checkTradeFinancingEligibility,
 } from "@/lib/api/trade-financing.api";
-import { formatKobo } from "@swifta/shared";
+import { formatKobo } from "@twizrr/shared";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 

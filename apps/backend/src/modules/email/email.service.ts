@@ -24,9 +24,9 @@ export class EmailService {
       this.logger.log(`Sending email to ${to}: ${subject}`);
 
       const { data, error } = await this.resend.emails.send({
-        from: `Swifta <${this.fromEmail}>`,
+        from: `twizrr <${this.fromEmail}>`,
         to: [to],
-        subject: `Swifta | ${subject}`,
+        subject: `twizrr | ${subject}`,
         html,
       });
 
@@ -70,12 +70,12 @@ export class EmailService {
     return `
       <div style="font-family: 'DM Sans', 'Inter', sans-serif; max-width: 600px; margin: 0 auto; color: #0F2B4C; line-height: 1.6;">
         <div style="padding: 40px 20px; text-align: center; background-color: #0F2B4C; border-radius: 12px 12px 0 0;">
-          <h1 style="color: #ffffff; margin: 0; font-size: 24px; letter-spacing: -0.03em; font-weight: 700;"><span style="color:#ffffff">Swifta</span></h1>
+          <h1 style="color: #ffffff; margin: 0; font-size: 24px; letter-spacing: -0.03em; font-weight: 700;"><span style="color:#ffffff">twizrr</span></h1>
         </div>
         <div style="padding: 40px 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
           ${content}
           <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 14px; text-align: center;">
-            <p>&copy; ${new Date().getFullYear()} Swifta. Built for Lagos trade.</p>
+            <p>&copy; ${new Date().getFullYear()} twizrr. Built for Lagos trade.</p>
           </div>
         </div>
       </div>
@@ -90,9 +90,9 @@ export class EmailService {
     const safeName = this.escapeHtml(name);
     const safeRole = this.escapeHtml(role);
     const content = `
-      <h2 style="font-size: 20px; margin-bottom: 20px;">Welcome to Swifta, ${safeName}!</h2>
+      <h2 style="font-size: 20px; margin-bottom: 20px;">Welcome to twizrr, ${safeName}!</h2>
       <p>We're excited to have you on board as a <strong>${safeRole}</strong>.</p>
-      <p>Swifta is digitizing Africa's digital trade network, and you're now part of the movement.</p>
+      <p>twizrr is digitizing Africa's digital trade network, and you're now part of the movement.</p>
       ${
         role === "MERCHANT"
           ? `<p>Next step: Complete your business profile and start listing your products to receive orders from buyers.</p>`
@@ -102,7 +102,7 @@ export class EmailService {
         <a href="${this.configService.get("FRONTEND_URL")}/dashboard" style="background-color: #0F2B4C; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Go to Dashboard</a>
       </div>
     `;
-    await this.sendEmail(to, "Welcome to Swifta", this.getLayout(content));
+    await this.sendEmail(to, "Welcome to twizrr", this.getLayout(content));
   }
 
   async sendVerificationOTP(to: string, otp: string): Promise<void> {
@@ -173,7 +173,7 @@ export class EmailService {
       <h2 style="font-size: 20px; margin-bottom: 20px;">Delivery Confirmed Success!</h2>
       <p>Delivery of Order <strong>#${safeReference}</strong> has been confirmed.</p>
       <p>The transaction of <strong>${this.formatNaira(amountKobo)}</strong> is now complete.</p>
-      <p>Thank you for trading with Swifta!</p>
+      <p>Thank you for trading with twizrr!</p>
     `;
     await this.sendEmail(
       to,
@@ -198,7 +198,7 @@ export class EmailService {
     `;
     await this.sendEmail(
       to,
-      "Reset your Swifta Password",
+      "Reset your twizrr Password",
       this.getLayout(content),
     );
   }

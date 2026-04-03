@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { merchantApi } from "@/lib/api/merchant.api";
-import { MerchantProfile, VerificationTier } from "@swifta/shared";
+import { MerchantProfile, VerificationTier } from "@twizrr/shared";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -51,7 +51,7 @@ export function MerchantDiscovery() {
       <div className="flex flex-col gap-6">
         <div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight uppercase">Explore Merchants</h2>
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 font-bold uppercase tracking-wider">Browse verified merchants in the Swifta network</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 font-bold uppercase tracking-wider">Browse verified merchants in the twizrr network</p>
         </div>
 
         {/* Search and Filters */}

@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { productApi } from "@/lib/api/product.api";
 import { getStock, adjustStock } from "@/lib/api/inventory.api";
 import { getCategories } from "@/lib/api/category.api";
-import { type Product, type Category } from "@swifta/shared";
+import { type Product, type Category } from "@twizrr/shared";
 
 export default function EditProductPage() {
   const router = useRouter();

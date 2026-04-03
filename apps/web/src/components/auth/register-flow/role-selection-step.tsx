@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { UserRole } from "@swifta/shared";
+import { UserRole } from "@twizrr/shared";
 
 interface RoleSelectionStepProps {
   role: UserRole | null;
@@ -34,7 +34,7 @@ export function RoleSelectionStep({
           Select Your Role
         </h2>
         <p className="text-foreground-secondary">
-          Choose how you want to interact with the Swifta marketplace.
+          Choose how you want to interact with the twizrr marketplace.
         </p>
       </div>
 

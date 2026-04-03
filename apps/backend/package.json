@@ -1,7 +1,7 @@
 {
-  "name": "@swifta/backend",
+  "name": "@twizrr/backend",
   "version": "0.0.1",
-  "description": "Swifta Backend API",
+  "description": "Twizrr Backend API",
   "author": "",
   "private": true,
   "license": "UNLICENSED",
@@ -39,7 +39,7 @@
     "@nestjs/throttler": "^6.5.0",
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
-    "@swifta/shared": "workspace:*",
+    "@twizrr/shared": "workspace:*",
     "africastalking": "^0.7.9",
     "bcrypt": "^5.1.1",
     "bullmq": "^5.69.3",
