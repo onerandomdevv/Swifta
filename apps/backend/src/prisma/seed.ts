@@ -1,14 +1,14 @@
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import * as bcrypt from "bcrypt";
-import { UserRole } from "@swifta/shared";
+import { UserRole } from "@twizrr/shared";
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log("🌱 Starting Clean Database Seeding Process...");
 
-  const LEGACY_ADMIN_EMAIL = "admin@swifta.store";
+  const LEGACY_ADMIN_EMAIL = "admin@twizrr.com";
   const BOOTSTRAP_ADMIN_EMAIL =
     process.env.ADMIN_BOOTSTRAP_EMAIL || LEGACY_ADMIN_EMAIL;
   const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_BOOTSTRAP_PASSWORD;
@@ -52,7 +52,7 @@ async function main() {
           data: {
             email: BOOTSTRAP_ADMIN_EMAIL,
             phone: "+234000000000",
-            firstName: "Swifta",
+            firstName: "twizrr",
             lastName: "Admin",
             passwordHash: passwordHash,
             role: UserRole.SUPER_ADMIN,
@@ -107,7 +107,7 @@ async function main() {
   await prisma.productAssociation.deleteMany({});
 
   // Optional: Remove the demo merchant user and ALL their data if they exist
-  const DEMO_MERCHANT_EMAIL = "merchant@demo.swifta.store";
+  const DEMO_MERCHANT_EMAIL = "merchant@demo.twizrr.com";
   const demoMerchant = await prisma.user.findUnique({
     where: { email: DEMO_MERCHANT_EMAIL },
     include: { merchantProfile: true },

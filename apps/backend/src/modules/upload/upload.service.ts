@@ -22,7 +22,7 @@ export class UploadService {
 
   async uploadImageToCloudinary(
     file: Express.Multer.File,
-    folder: string = "swifta/merchants",
+    folder: string = "twizrr/merchants",
     transformType?: string,
   ): Promise<string> {
     return new Promise((resolve, reject) => {

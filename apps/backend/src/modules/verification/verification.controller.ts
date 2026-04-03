@@ -17,7 +17,7 @@ import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { CurrentMerchant } from "../../common/decorators/current-merchant.decorator";
-import { UserRole } from "@swifta/shared";
+import { UserRole } from "@twizrr/shared";
 import { PaginationQueryDto } from "../../common/dto/pagination-query.dto";
 
 @Controller()

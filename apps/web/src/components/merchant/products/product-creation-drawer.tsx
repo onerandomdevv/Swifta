@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { productApi } from "@/lib/api/product.api";
 import { getCategories } from "@/lib/api/category.api";
-import { type Category, type Product } from "@swifta/shared";
+import { type Category, type Product } from "@twizrr/shared";
 import { useToast } from "@/providers/toast-provider";
 
 interface ProductCreationDrawerProps {
@@ -403,7 +403,7 @@ export function ProductCreationDrawer({
               <div className="space-y-2">
                 <h3 className="text-3xl font-black text-foreground uppercase tracking-tighter">Product Live</h3>
                 <p className="text-foreground-secondary font-bold max-w-xs mx-auto leading-relaxed">
-                  Your listing has been successfully created. The Swifta marketplace can now discover your products.
+                  Your listing has been successfully created. The twizrr marketplace can now discover your products.
                 </p>
               </div>
               <button

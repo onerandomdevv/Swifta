@@ -607,7 +607,7 @@ export default function BuyerProfilePage() {
             <div className="max-w-md">
               <p className="text-sm font-bold text-slate-900">Deactivate Local Terminal</p>
               <p className="text-xs font-medium text-slate-500 mt-1.5 leading-relaxed">
-                Permanently eliminate your buyer identity and trade history from the Swifta network. This operation is non-reversible.
+                Permanently eliminate your buyer identity and trade history from the twizrr network. This operation is non-reversible.
               </p>
             </div>
             <button

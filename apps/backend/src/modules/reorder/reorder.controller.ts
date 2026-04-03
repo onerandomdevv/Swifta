@@ -9,7 +9,7 @@ import { ReorderService } from "./reorder.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
-import { JwtPayload } from "@swifta/shared";
+import { JwtPayload } from "@twizrr/shared";
 
 @Controller()
 @UseGuards(JwtAuthGuard, RolesGuard)

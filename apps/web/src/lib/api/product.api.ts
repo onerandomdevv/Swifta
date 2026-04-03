@@ -1,5 +1,5 @@
 import { apiClient } from '../api-client';
-import type { CreateProductDto, UpdateProductDto, Product, PaginatedResponse } from '@swifta/shared';
+import type { CreateProductDto, UpdateProductDto, Product, PaginatedResponse } from '@twizrr/shared';
 
 export const productApi = {
   createProduct: (dto: CreateProductDto): Promise<Product> => {

@@ -1,17 +1,17 @@
-# Swifta
+# twizrr
 
 **Nigeria's WhatsApp-Native E-Commerce Platform**
 
 Buy and sell anything on WhatsApp with escrow payment protection. Discover products, follow merchants, and shop securely — all from the app you already use.
 
-🌐 **Website:** [swifta.store](https://swifta.store)
-📱 **WhatsApp:** Message Swifta to start shopping
+🌐 **Website:** [twizrr.com](https://twizrr.com)
+📱 **WhatsApp:** Message twizrr to start shopping
 
 ---
 
-## What is Swifta?
+## What is twizrr?
 
-Swifta is a social commerce marketplace where buyers discover products through a scrollable feed, follow their favorite merchants, and purchase with escrow-protected payments. Merchants list products, manage orders, and get paid instantly to their bank account.
+twizrr is a social commerce marketplace where buyers discover products through a scrollable feed, follow their favorite merchants, and purchase with escrow-protected payments. Merchants list products, manage orders, and get paid instantly to their bank account.
 
 The platform works on two channels:
 - **WhatsApp** — the primary channel for buyers. Search, buy, pay, track, and confirm delivery without leaving WhatsApp.
@@ -43,7 +43,7 @@ Every transaction is protected by escrow. The buyer's money is held securely unt
 
 ### On WhatsApp
 
-Buyers can do everything through the Swifta WhatsApp AI assistant:
+Buyers can do everything through the twizrr WhatsApp AI assistant:
 - **Text search:** "I need a phone case" → get matching products
 - **Image search:** Send a photo of any product → AI identifies it and finds matches
 - **Purchase:** Select, pay, track, and confirm — all in the chat
@@ -80,7 +80,7 @@ Buyers can do everything through the Swifta WhatsApp AI assistant:
 ### Architecture
 
 ```
-swifta/
+twizrr/
 ├── apps/
 │   ├── backend/          → NestJS 10 modular API
 │   └── web/              → Next.js 14 App Router
@@ -143,7 +143,7 @@ swifta/
 ```bash
 # Clone the repository
 git clone <repository_url>
-cd swifta
+cd twizrr
 
 # Install dependencies
 pnpm install
@@ -162,8 +162,8 @@ npx prisma db seed
 cd ../..
 
 # Start development servers
-pnpm --filter @swifta/backend dev    # Backend → http://localhost:4000
-pnpm --filter @swifta/web dev        # Frontend → http://localhost:3000
+pnpm --filter @twizrr/backend dev    # Backend → http://localhost:4000
+pnpm --filter @twizrr/web dev        # Frontend → http://localhost:3000
 ```
 
 ---

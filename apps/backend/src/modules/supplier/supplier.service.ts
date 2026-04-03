@@ -11,7 +11,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { CreateSupplierProductDto } from "./dto/create-supplier-product.dto";
 import { UpdateSupplierProductDto } from "./dto/update-supplier-product.dto";
 import { CreateWholesaleOrderDto } from "./dto/create-wholesale-order.dto";
-import { OrderStatus } from "@swifta/shared";
+import { OrderStatus } from "@twizrr/shared";
 import { PaymentService } from "../payment/payment.service";
 
 @Injectable()

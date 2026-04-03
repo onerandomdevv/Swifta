@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { PriceType, type Product } from "@swifta/shared";
+import { PriceType, type Product } from "@twizrr/shared";
 import { toast } from "sonner";
 import { cn, formatKobo, optimizeCloudinaryUrl } from "@/lib/utils";
 import { VerificationBadge } from "@/components/shared/verification-badge";

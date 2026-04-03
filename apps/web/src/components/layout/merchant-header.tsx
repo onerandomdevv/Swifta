@@ -7,7 +7,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useQuery } from "@tanstack/react-query";
 import { merchantApi } from "@/lib/api/merchant.api";
-import { formatKobo } from "@swifta/shared";
+import { formatKobo } from "@twizrr/shared";
 
 export function MerchantHeader({
   onOpenNotifications,
@@ -57,7 +57,7 @@ export function MerchantHeader({
         </div>
 
         <div className="sm:hidden text-lg font-black text-primary uppercase tracking-tight leading-none">
-          Swifta
+          twizrr
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 import { apiClient } from '../api-client';
-import type { InitializePaymentDto, Payment } from '@swifta/shared';
+import type { InitializePaymentDto, Payment } from '@twizrr/shared';
 
 export async function initializePayment(dto: InitializePaymentDto): Promise<{ authorization_url: string; access_code: string; reference: string }> {
   return apiClient.post('/payments/initialize', dto);

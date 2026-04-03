@@ -4,7 +4,7 @@ import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useBuyerOrders } from "@/hooks/use-buyer-orders";
-import type { Order } from "@swifta/shared";
+import type { Order } from "@twizrr/shared";
 import { formatKobo } from "@/lib/utils";
 
 type TabFilter = "ALL" | "ACTIVE" | "PENDING" | "COMPLETED" | "DISPUTED";

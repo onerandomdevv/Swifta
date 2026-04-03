@@ -6,8 +6,8 @@ import Link from "next/link";
 import { productApi } from "@/lib/api/product.api";
 import { getMerchantReviews } from "@/lib/api/review.api";
 import { addToCart } from "@/lib/api/cart.api";
-import type { Product, Review } from "@swifta/shared";
-import { PriceType } from "@swifta/shared";
+import type { Product, Review } from "@twizrr/shared";
+import { PriceType } from "@twizrr/shared";
 import { toast } from "sonner";
 import { cn, formatKobo, optimizeCloudinaryUrl } from "@/lib/utils";
 import { StarRating } from "@/components/ui/star-rating";
@@ -440,7 +440,7 @@ export function ProductDetailView({ productId, isOwner: initialIsOwner }: Produc
             <div className="animate-in fade-in slide-in-from-bottom-1 duration-300">
                <h3 className="text-sm font-black mb-4 text-slate-900 dark:text-white uppercase tracking-widest">Product Description</h3>
                <p className="text-slate-500 dark:text-slate-400 font-medium leading-relaxed max-w-3xl">
-                 {product?.description || "High-quality professional quality product available on Swifta."}
+                 {product?.description || "High-quality professional quality product available on twizrr."}
                </p>
             </div>
           )}
@@ -544,11 +544,11 @@ export function ProductDetailView({ productId, isOwner: initialIsOwner }: Produc
                         Logistics Guarantee
                     </p>
                     <p className="text-xs text-slate-400 leading-relaxed font-medium">
-                        Swifta handles all logistics calculations. Shipping fees are dynamically adjusted based on the merchant&apos;s location and your delivery target.
+                        twizrr handles all logistics calculations. Shipping fees are dynamically adjusted based on the merchant&apos;s location and your delivery target.
                     </p>
                     <div className="mt-6 pt-6 border-t border-white/10">
                         <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Insurance Coverage</p>
-                        <p className="text-[10px] text-slate-500 mt-1 italic">All transit orders are covered by Swifta Goods-in-Transit protection.</p>
+                        <p className="text-[10px] text-slate-500 mt-1 italic">All transit orders are covered by twizrr Goods-in-Transit protection.</p>
                     </div>
                </div>
             </div>

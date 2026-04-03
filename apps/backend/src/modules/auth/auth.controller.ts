@@ -25,7 +25,7 @@ import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
 import { JwtRefreshGuard } from "../../common/guards/jwt-refresh.guard";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
-import { JwtPayload } from "@swifta/shared";
+import { JwtPayload } from "@twizrr/shared";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 
 @Controller("auth")
@@ -37,14 +37,14 @@ export class AuthController {
     tokens: { accessToken: string; refreshToken: string },
   ) {
     const isProd = process.env.NODE_ENV === "production";
-    res.cookie("swifta_access_token", tokens.accessToken, {
+    res.cookie("twizrr_access_token", tokens.accessToken, {
       httpOnly: true,
       secure: isProd,
       sameSite: isProd ? "none" : false,
       maxAge: 15 * 60 * 1000,
       path: "/",
     });
-    res.cookie("swifta_refresh_token", tokens.refreshToken, {
+    res.cookie("twizrr_refresh_token", tokens.refreshToken, {
       httpOnly: true,
       secure: isProd,
       sameSite: isProd ? "none" : false,
@@ -61,8 +61,8 @@ export class AuthController {
       sameSite: isProd ? ("none" as const) : false,
       path: "/",
     };
-    res.clearCookie("swifta_access_token", cookieOptions);
-    res.clearCookie("swifta_refresh_token", cookieOptions);
+    res.clearCookie("twizrr_access_token", cookieOptions);
+    res.clearCookie("twizrr_refresh_token", cookieOptions);
   }
 
   @Throttle({ default: { limit: 5, ttl: 60000 } })
@@ -179,7 +179,7 @@ export class AuthController {
   ) {
     // Prefer HttpOnly cookie first, fallback to DTO body
     const refreshToken =
-      (req.cookies as Record<string, string>)?.["swifta_refresh_token"] ||
+      (req.cookies as Record<string, string>)?.["twizrr_refresh_token"] ||
       dto.refreshToken;
     const result = await this.authService.refreshTokens(user.sub, refreshToken);
     this.setCookies(res, result);

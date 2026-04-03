@@ -12,7 +12,7 @@ import {
 import {
   Notification as BackendNotification,
   NotificationType,
-} from "@swifta/shared";
+} from "@twizrr/shared";
 
 export interface NotificationUI {
   id: string;

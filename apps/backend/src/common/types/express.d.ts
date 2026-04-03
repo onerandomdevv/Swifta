@@ -1,4 +1,4 @@
-import { JwtPayload } from "@swifta/shared";
+import { JwtPayload } from "@twizrr/shared";
 
 declare global {
   namespace Express {

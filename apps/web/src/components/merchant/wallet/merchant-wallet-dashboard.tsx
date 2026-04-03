@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { getOrderSummary, getOrders } from "@/lib/api/order.api";
 import { merchantApi } from "@/lib/api/merchant.api";
-import type { Order, MerchantProfile } from "@swifta/shared";
+import type { Order, MerchantProfile } from "@twizrr/shared";
 import { cn, formatKobo } from "@/lib/utils";
 import { toast } from "sonner";
 

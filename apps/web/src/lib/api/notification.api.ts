@@ -1,5 +1,5 @@
 import { apiClient } from '../api-client';
-import type { Notification } from '@swifta/shared';
+import type { Notification } from '@twizrr/shared';
 
 export async function getNotifications(page = 1, limit = 20): Promise<Notification[]> {
   return apiClient.get(`/notifications?page=${page}&limit=${limit}`);

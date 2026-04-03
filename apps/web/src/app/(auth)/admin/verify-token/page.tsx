@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { authApi } from "../../../../lib/api/auth.api";
 import { useAuth } from "../../../../providers/auth-provider";
 import { useToast } from "../../../../providers/toast-provider";
-import { getDisplayName } from "@swifta/shared";
+import { getDisplayName } from "@twizrr/shared";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import Link from "next/link";
@@ -105,7 +105,7 @@ export default function VerifyTokenPage() {
             <span className="text-orange-400 font-bold block mb-1 tracking-widest text-xs uppercase">
               Internal Operations Portal
             </span>
-            Secure administration and operational management for the Swifta
+            Secure administration and operational management for the twizrr
             infrastructure.
           </p>
           <div className="flex flex-col gap-3">

@@ -17,7 +17,7 @@ import {
   BUYER_MAIN_MENU,
   BUYER_FRIENDLY_FALLBACK,
 } from "./whatsapp-buyer.constants";
-import { OrderStatus } from "@swifta/shared";
+import { OrderStatus } from "@twizrr/shared";
 import { ReviewService } from "../review/review.service";
 import { UploadService } from "../upload/upload.service";
 import { ImageSearchService } from "./image-search.service";
@@ -272,7 +272,7 @@ export class WhatsAppBuyerService {
       await this.redisService.del(checkoutKey);
 
       const appUrl =
-        this.configService.get("FRONTEND_URL") || "https://swifta.store";
+        this.configService.get("FRONTEND_URL") || "https://twizrr.com";
       const checkoutLink = `${appUrl}/buyer/checkout/${session.productId}?qty=${session.quantity}&delivery=${session.deliveryMethod}`;
 
       const dva = await this.getSafeDva(buyerId);
@@ -581,7 +581,7 @@ export class WhatsAppBuyerService {
     if (session.step === "SELECT_DELIVERY") {
       if (input === "1" || input.toLowerCase().includes("merchant")) {
         session.deliveryMethod = "MERCHANT_DELIVERY";
-      } else if (input === "2" || input.toLowerCase().includes("swifta")) {
+      } else if (input === "2" || input.toLowerCase().includes("twizrr")) {
         session.deliveryMethod = "PLATFORM_LOGISTICS";
       } else {
         await this.interactiveService.sendReplyButtons(
@@ -597,7 +597,7 @@ export class WhatsAppBuyerService {
 
       await this.redisService.del(key);
       const appUrl =
-        this.configService.get("FRONTEND_URL") || "https://swifta.store";
+        this.configService.get("FRONTEND_URL") || "https://twizrr.com";
       const checkoutLink = `${appUrl}/buyer/checkout/${session.productId}?qty=${session.quantity}&delivery=${session.deliveryMethod}`;
 
       const dva = await this.getSafeDva(buyerId);
@@ -1092,7 +1092,7 @@ export class WhatsAppBuyerService {
         `${product.name} (${quantity} units)\n\nHow would you like this delivered?`,
         [
           { id: "delivery_merchant", title: "Direct Merchant" },
-          { id: "delivery_track", title: "Swifta Tracked" },
+          { id: "delivery_track", title: "twizrr Tracked" },
         ],
         product.imageUrl || undefined,
       );
@@ -1441,7 +1441,7 @@ export class WhatsAppBuyerService {
 
       const imageUrl = await this.uploadService.uploadImageToCloudinary(
         file,
-        "swifta/reviews",
+        "twizrr/reviews",
       );
 
       const order = await this.prisma.order.findUnique({
@@ -1747,7 +1747,7 @@ export class WhatsAppBuyerService {
           rows: merchants.map((m) => ({
             id: `merchant_${m.id}`,
             title: m.businessName || "Untitled Shop",
-            description: `${m.averageRating > 0 ? `⭐${m.averageRating.toFixed(1)} | ` : ""}${m.description?.substring(0, 50) || "Verified Swifta Merchant"}`,
+            description: `${m.averageRating > 0 ? `⭐${m.averageRating.toFixed(1)} | ` : ""}${m.description?.substring(0, 50) || "Verified twizrr Merchant"}`,
           })),
         },
       ],
@@ -1777,7 +1777,7 @@ export class WhatsAppBuyerService {
 
     const msg =
       `🏪 *${merchant.businessName}*\n\n` +
-      `${merchant.description || "A verified partner on Swifta."}\n\n` +
+      `${merchant.description || "A verified partner on twizrr."}\n\n` +
       `📍 *Location:* ${merchant.businessAddress || "Abuja, Nigeria"}\n` +
       `✨ *Rating:* ${ratingStr}\n\n` +
       `What would you like to do?`;
@@ -1838,7 +1838,7 @@ export class WhatsAppBuyerService {
    */
   private async sendBuyerWelcomeButtons(phone: string): Promise<void> {
     const welcomeMsg =
-      `Welcome back to Swifta! 👋\n\n` +
+      `Welcome back to twizrr! 👋\n\n` +
       `Secure social commerce for Nigeria. Shop across any category or track your active deliveries.\n\n` +
       `What would you like to do?`;
 

@@ -1,5 +1,5 @@
 import React from "react";
-import type { Order } from "@swifta/shared";
+import type { Order } from "@twizrr/shared";
 
 interface Props {
   order: Order;
@@ -35,7 +35,7 @@ export function OrderReferenceSidebar({ order }: Props) {
             Order ID
           </p>
           <p className="text-sm font-black text-primary uppercase tracking-tighter">
-            Swifta/V5
+            twizrr/V5
           </p>
         </div>
       </div>

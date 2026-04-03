@@ -5,7 +5,7 @@ import { WhatsAppSupplierIntentService } from "./whatsapp-supplier-intent.servic
 import { ParsedIntent } from "./whatsapp-intent.service";
 import { RedisService } from "../../redis/redis.service";
 import { FRIENDLY_FALLBACK } from "./whatsapp.constants";
-import { OrderStatus } from "@swifta/shared";
+import { OrderStatus } from "@twizrr/shared";
 import { WhatsAppInteractiveService } from "./whatsapp-interactive.service";
 
 // Helper to mask phone numbers — only show last 4 digits

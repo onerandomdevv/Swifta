@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { productApi } from "@/lib/api/product.api";
 import { getCategories } from "@/lib/api/category.api";
 import { merchantApi } from "@/lib/api/merchant.api";
-import { type Category, type Product } from "@swifta/shared";
+import { type Category, type Product } from "@twizrr/shared";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 

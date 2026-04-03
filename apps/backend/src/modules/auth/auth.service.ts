@@ -28,7 +28,7 @@ import { AdminRegisterDto } from "./dto/admin-register.dto";
 import { SendPhoneOtpDto } from "./dto/send-phone-otp.dto";
 import { VerifyPhoneOtpDto } from "./dto/verify-phone-otp.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
-import { TokenPair, JwtPayload } from "@swifta/shared";
+import { TokenPair, JwtPayload } from "@twizrr/shared";
 import { WhatsAppService } from "../whatsapp/whatsapp.service";
 import { WHATSAPP_OTP_TEMPLATE } from "../whatsapp/whatsapp.constants";
 import AfricasTalking from "africastalking";
@@ -715,7 +715,7 @@ export class AuthService {
         if (this.smsClient) {
           await this.smsClient.send({
             to: [phone],
-            message: `Your Swifta verification code is ${otp}. It expires in 5 minutes.`,
+            message: `Your twizrr verification code is ${otp}. It expires in 5 minutes.`,
             from: this.configService.get<string>("africastalking.senderId"),
           });
         } else {

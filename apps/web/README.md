@@ -1,6 +1,6 @@
-# Swifta — Frontend
+# twizrr — Frontend
 
-Next.js 14 App Router web application for Swifta.
+Next.js 14 App Router web application for twizrr.
 
 ---
 
@@ -9,7 +9,7 @@ Next.js 14 App Router web application for Swifta.
 - **Next.js 14** (App Router) — framework
 - **TypeScript** — type safety
 - **Tailwind CSS** — styling
-- **@swifta/shared** — shared types, enums, money utilities
+- **@twizrr/shared** — shared types, enums, money utilities
 
 ---
 
@@ -194,7 +194,7 @@ The API client automatically:
 All money from the API arrives in **kobo** (integer). Always convert for display:
 
 ```typescript
-import { formatKobo } from "@swifta/shared";
+import { formatKobo } from "@twizrr/shared";
 
 formatKobo(650000n); // "₦6,500.00"
 formatKobo(32500000n); // "₦325,000.00"
@@ -203,7 +203,7 @@ formatKobo(32500000n); // "₦325,000.00"
 When user types Naira in forms, convert to kobo before sending to API:
 
 ```typescript
-import { nairaToKobo } from "@swifta/shared";
+import { nairaToKobo } from "@twizrr/shared";
 
 nairaToKobo(6500); // 650000n
 ```

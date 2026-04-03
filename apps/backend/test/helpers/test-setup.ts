@@ -3,7 +3,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { AppModule } from "../../src/app.module";
 import { PrismaService } from "../../src/prisma/prisma.service";
 import { JwtService } from "@nestjs/jwt";
-import { UserRole } from "@swifta/shared";
+import { UserRole } from "@twizrr/shared";
 
 export class TestSetup {
   public app: INestApplication;
@@ -29,7 +29,7 @@ export class TestSetup {
   }
 
   async createMockBuyer() {
-    const email = `test.buyer.${Date.now()}@swifta.store`;
+    const email = `test.buyer.${Date.now()}@twizrr.com`;
     const user = await this.prisma.user.create({
       data: {
         email,
@@ -54,7 +54,7 @@ export class TestSetup {
   }
 
   async createMockMerchant() {
-    const email = `test.merchant.${Date.now()}@swifta.store`;
+    const email = `test.merchant.${Date.now()}@twizrr.com`;
     const user = await this.prisma.user.create({
       data: {
         email,

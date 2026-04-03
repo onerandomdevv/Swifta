@@ -11,7 +11,7 @@ import {
   type Category,
   type MerchantProfile,
   type PaginatedResponse,
-} from "@swifta/shared";
+} from "@twizrr/shared";
 import { useAuth } from "@/providers/auth-provider";
 import { useRouter } from "next/navigation";
 

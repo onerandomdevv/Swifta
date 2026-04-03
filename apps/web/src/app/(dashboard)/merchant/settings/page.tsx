@@ -8,7 +8,7 @@ import {
 } from "@/lib/api/merchant.api";
 import { useToast } from "@/providers/toast-provider";
 import { authApi } from "@/lib/api/auth.api";
-import { MerchantProfile } from "@swifta/shared";
+import { MerchantProfile } from "@twizrr/shared";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 
 type SettingsTab = "account" | "notifications" | "security";
@@ -354,7 +354,7 @@ export default function MerchantSettingsPage() {
               <SectionHeader
                 icon="alternate_email"
                 title="Business Username"
-                subtitle="Your unique handle on Swifta. Used for logins and product links."
+                subtitle="Your unique handle on twizrr. Used for logins and product links."
               />
               <Card>
                 <div className="space-y-6">
@@ -543,7 +543,7 @@ export default function MerchantSettingsPage() {
             <SectionHeader
               icon="notifications_active"
               title="Global Notifications"
-              subtitle="Control how and when you receive alerts from Swifta."
+              subtitle="Control how and when you receive alerts from twizrr."
             />
             <Card>
               <div className="space-y-1">

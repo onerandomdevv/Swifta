@@ -11,7 +11,7 @@ import {
 } from "../../../../lib/validations/auth";
 import { useAuth } from "../../../../providers/auth-provider";
 import { useToast } from "../../../../providers/toast-provider";
-import { UserRole } from "@swifta/shared";
+import { UserRole } from "@twizrr/shared";
 import { Logo } from "@/components/ui/logo";
 
 const slides = [
@@ -85,7 +85,7 @@ export default function InternalLoginPage() {
           >
             <img
               src={src}
-              alt="Swifta admin dashboard"
+              alt="twizrr admin dashboard"
               className="w-full h-full object-cover"
             />
           </div>
@@ -102,7 +102,7 @@ export default function InternalLoginPage() {
             <span className="text-orange-400 font-bold block mb-1 tracking-widest text-xs uppercase">
               Internal Operations Portal
             </span>
-            Secure administration and operational management for the Swifta
+            Secure administration and operational management for the twizrr
             infrastructure.
           </p>
           <div className="flex flex-col gap-3">
@@ -189,7 +189,7 @@ export default function InternalLoginPage() {
               </label>
               <input
                 className={`w-full px-4 py-3.5 bg-white border shadow-sm rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all text-slate-900 text-sm ${errors.identifier ? "border-red-400" : "border-slate-200"}`}
-                placeholder="ops@swifta.store"
+                placeholder="ops@twizrr.com"
                 type="text"
                 {...register("identifier", { onChange: () => setFormError(null) })}
               />

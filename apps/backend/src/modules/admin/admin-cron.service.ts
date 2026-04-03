@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { PrismaService } from "../../prisma/prisma.service";
-import { OrderStatus } from "@swifta/shared";
+import { OrderStatus } from "@twizrr/shared";
 import { OrderService } from "../order/order.service";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
 import { RedisService } from "../../redis/redis.service";

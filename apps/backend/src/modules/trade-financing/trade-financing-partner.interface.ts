@@ -13,7 +13,7 @@ export interface MerchantCreditData {
 
 export interface TradeFinancingPartnerClient {
   /**
-   * Evaluates the merchant's creditworthiness based on Swifta sales history + partner logic
+   * Evaluates the merchant's creditworthiness based on twizrr sales history + partner logic
    */
   checkEligibility(merchantData: MerchantCreditData): Promise<{
     eligible: boolean;

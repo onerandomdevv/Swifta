@@ -3,7 +3,7 @@ previews:
 
 services:
   - type: web
-    name: swifta-backend
+    name: twizrr-backend
     runtime: docker
     dockerfilePath: ./apps/backend/Dockerfile
     dockerContext: .
@@ -35,7 +35,7 @@ services:
       - key: RESEND_API_KEY
         sync: false
       - key: EMAIL_FROM
-        value: noreply@swifta.store
+        value: noreply@twizrr.com
       - key: NODE_ENV
         value: production
       - key: PORT

@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { productApi } from "@/lib/api/product.api";
 import { useToast } from "@/providers/toast-provider";
 import { useMerchantInventory } from "@/hooks/use-merchant-data";
-import { type Product } from "@swifta/shared";
+import { type Product } from "@twizrr/shared";
 import { ProductModal } from "@/components/merchant/products/product-modal";
 import { DeleteConfirmationModal } from "@/components/merchant/products/delete-confirmation-modal";
 import { toast } from "sonner";

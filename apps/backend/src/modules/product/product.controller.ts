@@ -21,7 +21,7 @@ import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { CurrentMerchant } from "../../common/decorators/current-merchant.decorator";
-import { UserRole, JwtPayload } from "@swifta/shared";
+import { UserRole, JwtPayload } from "@twizrr/shared";
 
 @Controller("products")
 export class ProductController {

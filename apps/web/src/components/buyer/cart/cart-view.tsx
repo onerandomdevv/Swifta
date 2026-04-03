@@ -11,7 +11,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { toast } from "sonner";
 import Link from "next/link";
 import { cn, formatKobo, optimizeCloudinaryUrl } from "@/lib/utils";
-import { Product, VerificationTier } from "@swifta/shared";
+import { Product, VerificationTier } from "@twizrr/shared";
 import { StateLgaSelector } from "@/components/ui/state-lga-selector";
 
 type PaymentMethod = "ESCROW" | "DIRECT";
@@ -461,7 +461,7 @@ export function CartView({
               {isSubmitting ? "Processing..." : `Checkout Now`}
             </button>
             <p className="text-[9px] text-center text-slate-500 mt-6 leading-relaxed">
-              Secured by Swifta Escrow. Funds are only released after delivery.
+              Secured by twizrr Escrow. Funds are only released after delivery.
             </p>
           </div>
         </aside>

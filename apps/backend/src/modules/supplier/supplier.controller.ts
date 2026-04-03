@@ -14,7 +14,7 @@ import { CreateWholesaleOrderDto } from "./dto/create-wholesale-order.dto";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
-import { UserRole } from "@swifta/shared";
+import { UserRole } from "@twizrr/shared";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 
 @Controller("supplier")

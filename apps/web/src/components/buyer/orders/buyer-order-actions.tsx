@@ -1,6 +1,6 @@
 import React from "react";
-import { formatKobo } from "@swifta/shared";
-import type { Order } from "@swifta/shared";
+import { formatKobo } from "@twizrr/shared";
+import type { Order } from "@twizrr/shared";
 import Link from "next/link";
 
 interface Props {
@@ -73,7 +73,7 @@ export function BuyerOrderActions({
       {order.deliveryMethod === "MERCHANT_DELIVERY" && ["PAID", "DISPATCHED"].includes(order.status) && (
         <div className="mb-6">
           <a
-            href={`https://wa.me/${order.merchant?.phone?.replace(/\D/g, '') || ""}?text=${encodeURIComponent(`Hello ${order.merchant?.businessName}, I'm following up on my Swifta Order #${order.id.slice(0, 8)}.`)}`}
+            href={`https://wa.me/${order.merchant?.phone?.replace(/\D/g, '') || ""}?text=${encodeURIComponent(`Hello ${order.merchant?.businessName}, I'm following up on my twizrr Order #${order.id.slice(0, 8)}.`)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="w-full py-4 bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all hover:scale-[1.02] active:scale-95"

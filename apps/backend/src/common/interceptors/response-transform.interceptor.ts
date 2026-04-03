@@ -6,7 +6,7 @@ import {
 } from "@nestjs/common";
 import { Observable } from "rxjs";
 import { map } from "rxjs/operators";
-import { ApiResponse } from "@swifta/shared";
+import { ApiResponse } from "@twizrr/shared";
 
 @Injectable()
 export class ResponseTransformInterceptor<T> implements NestInterceptor<

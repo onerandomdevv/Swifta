@@ -1,6 +1,6 @@
 import { Injectable, NestMiddleware } from "@nestjs/common";
 import { Request, Response, NextFunction } from "express";
-import { UserRole } from "@swifta/shared";
+import { UserRole } from "@twizrr/shared";
 
 @Injectable()
 export class MerchantContextMiddleware implements NestMiddleware {

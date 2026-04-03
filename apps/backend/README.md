@@ -1,6 +1,6 @@
-# Swifta — Backend
+# twizrr — Backend
 
-NestJS modular monolith API server for Swifta.
+NestJS modular monolith API server for twizrr.
 
 ---
 

@@ -27,7 +27,7 @@ import {
   OrderStatus,
   PaginatedResponse,
   PriceType,
-} from "@swifta/shared";
+} from "@twizrr/shared";
 
 import { paginate } from "../../common/utils/pagination";
 import { validateTransition, getNextStates } from "./order-state-machine";

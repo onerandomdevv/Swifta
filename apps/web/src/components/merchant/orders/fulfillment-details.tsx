@@ -1,7 +1,7 @@
 import React from "react";
 import { formatKobo } from "@/lib/utils";
 import { Money } from "@/components/ui/money";
-import type { Order } from "@swifta/shared";
+import type { Order } from "@twizrr/shared";
 
 interface Props {
   order: Order;

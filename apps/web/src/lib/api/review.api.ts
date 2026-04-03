@@ -1,5 +1,5 @@
 import { apiClient } from "../api-client";
-import { CreateReviewDto, Review } from "@swifta/shared";
+import { CreateReviewDto, Review } from "@twizrr/shared";
 
 export const createReview = async (dto: CreateReviewDto): Promise<Review> => {
   return apiClient.post<Review>("/reviews", dto);

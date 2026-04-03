@@ -11,7 +11,7 @@ import { NotificationService } from "./notification.service";
 import { PaginationQueryDto } from "../../common/dto/pagination-query.dto";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
-import { JwtPayload } from "@swifta/shared";
+import { JwtPayload } from "@twizrr/shared";
 
 @Controller("notifications")
 @UseGuards(JwtAuthGuard)
