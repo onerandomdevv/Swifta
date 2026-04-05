@@ -30,10 +30,10 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: Validate Prisma schema
-        run: pnpm --filter @twizrr/backend exec prisma validate --schema=apps/backend/prisma/schema.prisma
+        run: pnpm --filter @twizrr/backend exec prisma validate --schema=prisma/schema.prisma
 
       - name: Generate Prisma client
-        run: pnpm --filter @twizrr/backend exec prisma generate --schema=apps/backend/prisma/schema.prisma
+        run: pnpm --filter @twizrr/backend exec prisma generate --schema=prisma/schema.prisma
 
       - name: Lint all packages
         run: pnpm lint
