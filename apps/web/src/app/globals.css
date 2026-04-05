@@ -1,81 +1,78 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --color-primary: #00C853;
-  --color-primary-hover: #00A846;
-  --color-primary-light: #E8F5E9;
-  --color-secondary: #0F2A4A;
-  --color-accent: #D97706;
+  --color-primary: 0 200 83;
+  --color-primary-hover: 0 168 70;
+  --color-primary-light: 232 245 233;
+  --color-secondary: 15 42 74;
+  --color-accent: 217 119 6;
 
-  --color-background: #FFFFFF;
-  --color-card: #FFFFFF;
-  --color-section: #F9FAFB;
-  --color-input: #F3F4F6;
+  --color-background: 255 255 255;
+  --color-card: 255 255 255;
+  --color-section: 249 250 251;
+  --color-input: 243 244 246;
 
-  --color-text-primary: #111827;
-  --color-text-secondary: #4B5563;
-  --color-text-tertiary: #9CA3AF;
+  --color-text-primary: 17 24 39;
+  --color-text-secondary: 75 85 99;
+  --color-text-tertiary: 156 163 175;
 
-  --color-border: #E5E7EB;
-  --color-border-focus: #00C853;
+  --color-border: 229 231 235;
+  --color-border-focus: 0 200 83;
 
-  --color-success: #059669;
-  --color-warning: #D97706;
-  --color-error: #DC2626;
-  --color-info: #2563EB;
+  --color-success: 5 150 105;
+  --color-warning: 217 119 6;
+  --color-error: 220 38 38;
+  --color-info: 37 99 235;
 
   --shadow-card: 0 1px 3px rgba(0,0,0,0.08);
   --shadow-elevated: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .dark {
-  --color-primary: #4ADE80;
-  --color-primary-hover: #00C853;
-  --color-primary-light: #1A2E1A;
-  --color-accent: #FBBF24;
+  --color-primary: 74 222 128;
+  --color-primary-hover: 0 200 83;
+  --color-primary-light: 26 46 26;
+  --color-accent: 251 191 36;
 
-  --color-background: #0F1117;
-  --color-card: #1E2230;
-  --color-section: #1A1D27;
-  --color-input: #242836;
+  --color-background: 15 17 23;
+  --color-card: 30 34 48;
+  --color-section: 26 29 39;
+  --color-input: 36 40 54;
 
-  --color-text-primary: #F1F2F4;
-  --color-text-secondary: #9CA3AF;
-  --color-text-tertiary: #6B7280;
+  --color-text-primary: 241 242 244;
+  --color-text-secondary: 156 163 175;
+  --color-text-tertiary: 107 114 128;
 
-  --color-border: #2D3348;
-  --color-border-focus: #4ADE80;
+  --color-border: 45 51 72;
+  --color-border-focus: 74 222 128;
 
-  --color-success: #34D399;
-  --color-warning: #FBBF24;
-  --color-error: #F87171;
-  --color-info: #60A5FA;
+  --color-success: 52 211 153;
+  --color-warning: 251 191 36;
+  --color-error: 248 113 113;
+  --color-info: 96 165 250;
 
   --shadow-card: none;
   --shadow-elevated: none;
 }
 
 body {
-  color: var(--color-text-primary);
-  background: var(--color-background);
+  color: rgb(var(--color-text-primary));
+  background: rgb(var(--color-background));
 }
 
 @keyframes pulse-slow {
-
-  0%,
-  100% {
+  0%, 100% {
     opacity: 1;
     transform: scale(1);
   }
-
   50% {
     opacity: 0.8;
     transform: scale(1.05);
   }
 }
-
 .animate-pulse-slow {
   animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
@@ -84,7 +81,6 @@ body {
   .section-spacing {
     @apply py-32 lg:py-48;
   }
-
   .card-light {
     @apply bg-white border border-slate-100 shadow-soft transition-all duration-300;
   }

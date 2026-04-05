@@ -7,6 +7,26 @@ const nextConfig = {
     domains: ["res.cloudinary.com", "ui-avatars.com"],
   },
   transpilePackages: ["@twizrr/shared"],
+  async rewrites() {
+    return [
+      {
+        source: '/@:slug',
+        destination: '/_at_/:slug',
+      },
+    ];
+  },
+  async redirects() {
+    return [
+      { source: '/buyer/catalogue', destination: '/buyer/feed', permanent: true },
+      { source: '/buyer/products/:id', destination: '/p/:id', permanent: true },
+      { source: '/buyer/merchants/:id', destination: '/@:id', permanent: true },
+      { source: '/buyer/merchants', destination: '/merchants', permanent: true },
+      { source: '/m/:slug', destination: '/@:slug', permanent: true },
+      { source: '/merchant/wholesale', destination: '/merchant/products', permanent: true },
+      { source: '/merchant/procurement', destination: '/merchant/products', permanent: true },
+      { source: '/merchant/trade-financing', destination: '/merchant/dashboard', permanent: true },
+    ];
+  },
 };
 
 export default withSentryConfig(
