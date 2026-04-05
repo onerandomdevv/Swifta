@@ -18,7 +18,6 @@ import { Queue } from "bullmq";
   drainDelay: 60000,
   stalledInterval: 300000,
   lockDuration: 60000,
-  metrics: null,
 })
 export class NotificationProcessor extends WorkerHost {
   private readonly logger = new Logger(NotificationProcessor.name);

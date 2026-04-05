@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "en-US"
+reviews:
+  profile: "chill"
+  auto_review:
+    enabled: true
+  instructions: |
+    You are reviewing Twizrr, a social commerce platform for Nigeria.
+    Please enforce these project-specific rules:
+    
+    1. **Money/Currency**: Twizrr stores ALL money as `BigInt` in kobo (100 kobo = 1 Naira). Never use floating point (number) for price or quantity calculations. Ensure `@IsInt()` is used in DTOs for money fields.
+    2. **Database (Prisma)**:
+       - Always check if database operations are wrapped in `prisma.$transaction([])` if they involve multiple related updates.
+       - Ensure UUIDs are used for primary keys and foreign keys.
+       - Check for "Lost Update" or "Race Condition" risks in inventory or balance updates. Use atomic `increments` or `upserts`.
+    3. **Security (NestJS)**:
+       - Every non-public controller method must have a `@UseGuards(JwtAuthGuard)` and appropriate role guards (e.g., `@Roles(Role.MERCHANT)`).
+       - Ensure sensitive PII (emails, phone numbers) is not leaked in public search results.
+    4. **WhatsApp Assistant**:
+       - Ensure AI logic uses Meta Interactive Messages (Buttons/Lists), not numbered text menus.
+       - Ensure Gemini intent parsing is robust and handles null/undefined safely.
+    5. **Frontend (Next.js)**:
+       - Ensure components are mobile-first (responsive at 375px).
+       - Check for proper error boundaries and loading states in new features.
+    
+    Focus on logic, security, and architectural consistency over minor styling nits.

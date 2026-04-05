@@ -10,6 +10,7 @@ import {
   ParseIntPipe,
   Res,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { OrderService } from "./order.service";
 import { InvoiceService } from "./invoice.service";
 import { ConfirmDeliveryDto } from "./dto/confirm-delivery.dto";
@@ -55,6 +56,7 @@ export class OrderController {
 
   @Post("direct")
   @Roles(UserRole.BUYER, UserRole.MERCHANT)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   createDirectOrder(
     @CurrentUser() user: JwtPayload,
     @Body() dto: CreateDirectOrderDto,
@@ -64,6 +66,7 @@ export class OrderController {
 
   @Post("checkout/cart")
   @Roles(UserRole.BUYER, UserRole.MERCHANT)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   checkoutCart(@CurrentUser() user: JwtPayload, @Body() dto: CheckoutCartDto) {
     return this.orderService.checkoutCart(user.sub, dto);
   }
@@ -93,6 +96,7 @@ export class OrderController {
 
   @Post(":id/dispatch")
   @Roles(UserRole.MERCHANT)
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
   dispatch(
     @CurrentMerchant() merchantId: string | undefined,
     @Param("id") id: string,
@@ -105,6 +109,7 @@ export class OrderController {
 
   @Post(":id/confirm-delivery")
   @Roles(UserRole.BUYER, UserRole.MERCHANT)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   confirmDelivery(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,

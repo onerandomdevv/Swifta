@@ -1,7 +1,5 @@
-$ErrorActionPreference = "Stop"
-
 # Parameterize the branch name
-$branchName = if ($args[0]) { $args[0] } else { "feat/presentation-ready" }
+$branchName = if ($args[0]) { $args[0] } else { git branch --show-current }
 
 function Invoke-SafeCommand {
     param([string]$Command, [string[]]$CommandArgs)
@@ -25,14 +23,20 @@ if ($exists) {
     Invoke-SafeCommand "git" @("checkout", "-b", $branchName)
 }
 
+Write-Host "Running Security Sentinel..." -ForegroundColor Cyan
+Invoke-SafeCommand "node" @("scripts/security-sentinel.js", "apps/backend")
+
 Write-Host "`nRunning Backend Checks..." -ForegroundColor Green
 Set-Location -Path "apps/backend"
+Invoke-SafeCommand "pnpm" @("audit", "--prod", "--audit-level", "high")
 Invoke-SafeCommand "pnpm" @("run", "lint")
 Invoke-SafeCommand "npx" @("tsc", "--noEmit")
 Invoke-SafeCommand "pnpm" @("run", "build")
 
 Write-Host "`nRunning Frontend Checks..." -ForegroundColor Green
 Set-Location -Path "../../apps/web"
+Invoke-SafeCommand "node" @("../../scripts/security-sentinel.js", ".")
+Invoke-SafeCommand "pnpm" @("audit", "--prod", "--audit-level", "high")
 Invoke-SafeCommand "pnpm" @("run", "lint")
 Invoke-SafeCommand "npx" @("tsc", "--noEmit")
 Invoke-SafeCommand "pnpm" @("run", "build")

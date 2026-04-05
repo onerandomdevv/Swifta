@@ -7,10 +7,13 @@ import { useToast } from "@/providers/toast-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 
+import { ResolveDisputeModal } from "@/components/admin/ResolveDisputeModal";
+
 interface AdminOrder {
   id: string;
   totalAmountKobo: number;
   status: string;
+  disputeStatus?: string;
   createdAt: string;
   merchant: {
     businessName: string;
@@ -65,6 +68,11 @@ const ORDER_STATUS_MAP: Record<
     color: "bg-slate-100 text-slate-500",
     icon: "block",
   },
+  DISPUTE: {
+    label: "Under Dispute",
+    color: "bg-red-500 text-white shadow-lg shadow-red-500/20",
+    icon: "gavel",
+  },
 };
 
 export default function AdminOrdersPage() {
@@ -73,6 +81,7 @@ export default function AdminOrdersPage() {
   const { user } = useAuth();
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [overrideStatus, setOverrideStatus] = useState<string>("");
+  const [resolvingDisputeId, setResolvingDisputeId] = useState<string | null>(null);
 
   const { data: orders, isLoading } = useQuery<AdminOrder[]>({
     queryKey: ["admin", "orders", "all"],
@@ -224,7 +233,19 @@ export default function AdminOrdersPage() {
                           {stateConfig.label}
                         </span>
                       </td>
-                      <td className="p-4 md:p-6 text-right whitespace-nowrap">
+                      <td className="p-4 md:p-6 text-right whitespace-nowrap space-x-2">
+                        {order.status === "DISPUTE" && (
+                          <Button
+                            size="sm"
+                            className="bg-brand hover:bg-brand/90 text-white font-black tracking-widest uppercase text-[10px] h-8 px-4"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setResolvingDisputeId(order.id);
+                            }}
+                          >
+                            Resolve
+                          </Button>
+                        )}
                         {user?.role !== "SUPPORT" && (
                           <Button
                             size="sm"
@@ -324,6 +345,14 @@ export default function AdminOrdersPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Dispute Resolution Modal */}
+      {resolvingDisputeId && (
+        <ResolveDisputeModal
+          orderId={resolvingDisputeId}
+          onClose={() => setResolvingDisputeId(null)}
+        />
       )}
     </div>
   );

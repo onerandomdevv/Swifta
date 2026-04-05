@@ -80,7 +80,7 @@ export class MerchantService {
 
     return {
       ...merchantWithoutNin,
-      maskedNin: maskNin(ninNumber),
+      maskedNin: maskNin(ninNumber ?? undefined),
       contact: merchant.user
         ? {
             email: merchant.user.email,

@@ -1,9 +1,5 @@
 import { Injectable, BadRequestException } from "@nestjs/common";
-import {
-  v2 as cloudinary,
-  UploadApiResponse,
-  UploadApiErrorResponse,
-} from "cloudinary";
+import { v2 as cloudinary, UploadApiResponse } from "cloudinary";
 import { ConfigService } from "@nestjs/config";
 import { Readable } from "stream";
 import { CLOUDINARY_TRANSFORMS } from "./cloudinary-transforms";
@@ -41,8 +37,8 @@ export class UploadService {
 
       const upload = cloudinary.uploader.upload_stream(
         options,
-        (error: UploadApiErrorResponse, result: UploadApiResponse) => {
-          if (error) {
+        (error: any, result?: UploadApiResponse) => {
+          if (error || !result) {
             return reject(
               new BadRequestException("Failed to upload file to Cloudinary."),
             );

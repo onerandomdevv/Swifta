@@ -10,11 +10,11 @@ import { VerificationIdType } from "@twizrr/shared";
 
 export class SubmitVerificationDto {
   @IsUrl({ protocols: ["https"], require_protocol: true })
-  governmentIdUrl: string;
+  governmentIdUrl!: string;
 
   @IsEnum(VerificationIdType)
   @IsNotEmpty()
-  idType: VerificationIdType;
+  idType!: VerificationIdType;
 
   @IsOptional()
   @IsUrl({ protocols: ["https"], require_protocol: true })
@@ -22,7 +22,7 @@ export class SubmitVerificationDto {
 
   @IsNotEmpty()
   @IsIn(["TIER_2", "TIER_3"])
-  targetTier: "TIER_2" | "TIER_3";
+  targetTier!: "TIER_2" | "TIER_3";
 
   @IsOptional()
   @IsString()
@@ -37,7 +37,7 @@ export class ReviewVerificationDto {
   @IsIn(["APPROVED", "REJECTED"], {
     message: "decision must be APPROVED or REJECTED",
   })
-  decision: "APPROVED" | "REJECTED";
+  decision!: "APPROVED" | "REJECTED";
 
   @IsOptional()
   @IsString()

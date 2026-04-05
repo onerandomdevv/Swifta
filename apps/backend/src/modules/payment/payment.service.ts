@@ -457,7 +457,7 @@ export class PaymentService {
         // Notifications
         await this.notifications.triggerDirectPurchaseConfirmed(
           payment.order.buyerId,
-          payment.order.merchantId,
+          payment.order.merchantId as string,
           {
             orderId: payment.orderId,
             reference: reference,
@@ -493,7 +493,7 @@ export class PaymentService {
         // CART ORDER PAYMENT CONFIRMATION LOGIC
         await this.notifications.triggerPaymentConfirmed(
           payment.order.buyerId,
-          payment.order.merchantId,
+          payment.order.merchantId as string,
           {
             orderId: payment.orderId,
             reference: reference, // Paystack reference

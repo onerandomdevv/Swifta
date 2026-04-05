@@ -7,7 +7,7 @@ on:
     branches: [dev]
 
 jobs:
-  build:
+  lint-build:
     name: Lint & Build
     runs-on: ubuntu-latest
     env:
@@ -30,10 +30,13 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: Validate Prisma schema
-        run: pnpm --filter @swifta/backend exec prisma validate --schema=prisma/schema.prisma
+        run: pnpm --filter @twizrr/backend exec prisma validate --schema=prisma/schema.prisma
 
       - name: Generate Prisma client
-        run: pnpm --filter @swifta/backend exec prisma generate --schema=prisma/schema.prisma
+        run: pnpm --filter @twizrr/backend exec prisma generate --schema=prisma/schema.prisma
+
+      - name: Lint all packages
+        run: pnpm lint
 
       - name: Build all packages
         run: pnpm build

@@ -2,15 +2,15 @@ import { IsString, IsOptional } from "class-validator";
 
 export class UssdCallbackDto {
   @IsString()
-  sessionId: string;
+  sessionId!: string;
 
   @IsString()
-  phoneNumber: string;
+  phoneNumber!: string;
 
   @IsString()
-  serviceCode: string;
+  serviceCode!: string;
 
   @IsString()
   @IsOptional()
-  text: string;
+  text!: string;
 }

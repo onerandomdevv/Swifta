@@ -9,11 +9,11 @@ import {
 export class CreateSupplierProductDto {
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @IsString()
   @IsNotEmpty()
-  category: string;
+  category!: string;
 
   @IsOptional()
   @IsString()
@@ -21,13 +21,13 @@ export class CreateSupplierProductDto {
 
   @IsNumber()
   @Min(0)
-  wholesalePriceKobo: number;
+  wholesalePriceKobo!: number;
 
   @IsNumber()
   @Min(1)
-  minOrderQty: number;
+  minOrderQty!: number;
 
   @IsString()
   @IsNotEmpty()
-  unit: string;
+  unit!: string;
 }

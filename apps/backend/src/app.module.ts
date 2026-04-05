@@ -18,6 +18,7 @@ import jwtConfig from "./config/jwt.config";
 import paystackConfig from "./config/paystack.config";
 import africastalkingConfig from "./config/africastalking.config";
 import whatsappConfig from "./config/whatsapp.config";
+import { envValidationSchema } from "./common/config/env.validation";
 
 import { PrismaModule } from "./prisma/prisma.module";
 import { RedisModule } from "./redis/redis.module";
@@ -45,6 +46,7 @@ import { CartModule } from "./modules/cart/cart.module";
 import { WishlistModule } from "./modules/wishlist/wishlist.module";
 import { UssdModule } from "./modules/ussd/ussd.module";
 import { DvaModule } from "./modules/dva/dva.module";
+import { WaitlistModule } from "./modules/waitlist/waitlist.module";
 
 import { LoggerModule } from "./common/logger/logger.module";
 
@@ -81,6 +83,7 @@ function sanitizeRedisUrl(url: string | undefined): string | undefined {
         africastalkingConfig,
         whatsappConfig,
       ],
+      validationSchema: envValidationSchema,
     }),
     LoggerModule,
     ScheduleModule.forRoot(),
@@ -167,7 +170,9 @@ function sanitizeRedisUrl(url: string | undefined): string | undefined {
     WishlistModule,
     UssdModule,
     DvaModule,
+    WaitlistModule,
   ],
+
   controllers: [],
   providers: [
     {

@@ -17,7 +17,6 @@ const DISPUTE_WINDOW_HOURS = 48; // Additional window after auto-confirm
   drainDelay: 60000,
   stalledInterval: 300000,
   lockDuration: 60000,
-  metrics: null,
 })
 export class AutoConfirmProcessor extends WorkerHost {
   private readonly logger = new Logger(AutoConfirmProcessor.name);

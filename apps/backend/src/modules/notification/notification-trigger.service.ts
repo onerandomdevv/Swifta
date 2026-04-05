@@ -530,19 +530,42 @@ export class NotificationTriggerService {
     // but here we just provide the capability.
   }
 
-  async triggerOrderDisputeResolved(
-    userId: string,
+  async triggerDisputeResolved(
+    buyerId: string,
+    merchantId: string,
     orderId: string,
-    resolution: string,
+    winner: "BUYER" | "MERCHANT",
   ) {
+    const buyerMsg =
+      winner === "BUYER"
+        ? `The dispute for Order #${orderId.slice(0, 8)} has been resolved in your favour. A refund will be processed.`
+        : `The dispute for Order #${orderId.slice(0, 8)} has been resolved in favour of the merchant.`;
+
+    const merchantMsg =
+      winner === "MERCHANT"
+        ? `The dispute for Order #${orderId.slice(0, 8)} has been resolved in your favour. Payout will be processed.`
+        : `The dispute for Order #${orderId.slice(0, 8)} has been resolved in favour of the buyer.`;
+
+    // Notify buyer
     await this.addJob(
-      userId,
+      buyerId,
       NotificationType.DISPUTE_RESOLVED,
       "Dispute Resolved",
-      `The dispute for Order #${orderId.slice(0, 8)} has been resolved.`,
-      { orderId, resolution },
+      buyerMsg,
+      { orderId, winner },
       [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
       { url: `/buyer/orders/${orderId}` },
+    );
+
+    // Notify merchant
+    await this.addJob(
+      merchantId,
+      NotificationType.DISPUTE_RESOLVED,
+      "Dispute Resolved",
+      merchantMsg,
+      { orderId, winner, isMerchantId: true },
+      [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+      { url: `/merchant/orders/${orderId}` },
     );
   }
 

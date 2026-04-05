@@ -2,12 +2,12 @@ import { IsUUID, IsInt, Min, IsString } from "class-validator";
 
 export class CreateWholesaleOrderDto {
   @IsUUID()
-  productId: string;
+  productId!: string;
 
   @IsInt()
   @Min(1)
-  quantity: number;
+  quantity!: number;
 
   @IsString()
-  deliveryAddress: string;
+  deliveryAddress!: string;
 }

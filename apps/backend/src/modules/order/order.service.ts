@@ -370,7 +370,7 @@ export class OrderService {
     });
 
     let subtotalKobo = 0n;
-    const jsonItems = [];
+    const jsonItems: any[] = [];
 
     // Validations and calculations
     for (const item of items) {
@@ -935,7 +935,7 @@ export class OrderService {
     // Notify both merchant and buyer (best-effort, must not block state transition)
     try {
       await this.notifications.triggerDeliveryConfirmed(
-        order.merchantId,
+        order.merchantId as string,
         order.buyerId,
         {
           orderId,
@@ -963,7 +963,9 @@ export class OrderService {
       this.logger.log(
         `Evaluating tier upgrade for merchant ${order.merchantId}`,
       );
-      await this.verificationService.checkAndUpgradeTier(order.merchantId);
+      await this.verificationService.checkAndUpgradeTier(
+        order.merchantId as string,
+      );
     } catch (error) {
       this.logger.error(
         `Failed to evaluate tier upgrade for merchant ${order.merchantId}: ${error instanceof Error ? error.message : error}`,
@@ -1052,6 +1054,14 @@ export class OrderService {
       order.status !== OrderStatus.DISPATCHED &&
       order.status !== OrderStatus.IN_TRANSIT
     ) {
+      // Explicitly guard against DISPUTE - funds must NOT be auto-released
+      if (order.status === OrderStatus.DISPUTE) {
+        this.logger.warn(
+          `Order ${orderId} is in DISPUTE state. Auto-confirmation blocked — awaiting admin resolution.`,
+        );
+        return;
+      }
+
       this.logger.warn(
         `Order ${orderId} is in ${order.status} state, cannot auto-confirm.`,
       );
@@ -1207,7 +1217,7 @@ export class OrderService {
     // Notify both parties
     await this.notifications.triggerOrderCancelled(
       order.buyerId,
-      order.merchantId,
+      order.merchantId as string,
       orderId,
     );
 
@@ -1258,7 +1268,7 @@ export class OrderService {
     // Notify merchant and admin
     try {
       await this.notifications.triggerOrderDisputed(
-        order.merchantId,
+        order.merchantId as string,
         orderId,
         reason,
       );
@@ -1346,6 +1356,7 @@ export class OrderService {
           break;
         case OrderStatus.CANCELLED:
         case OrderStatus.DISPUTE:
+        case OrderStatus.REFUND_PENDING:
           summary.failed += amount;
           break;
       }

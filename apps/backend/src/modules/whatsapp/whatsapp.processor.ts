@@ -14,7 +14,6 @@ import { WHATSAPP_QUEUE } from "../../queue/queue.constants";
   drainDelay: 30000, // Slightly faster polling for WhatsApp messages, but still much slower than default 5s
   stalledInterval: 300000,
   lockDuration: 60000,
-  metrics: null,
 })
 export class WhatsAppProcessor extends WorkerHost {
   private readonly logger = new Logger(WhatsAppProcessor.name);

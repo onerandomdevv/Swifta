@@ -44,6 +44,10 @@ export class PayoutService {
     }
 
     const merchant = order.merchantProfile;
+    if (!merchant) {
+      this.logger.error(`Merchant profile missing for order ${orderId}`);
+      return;
+    }
 
     // Determine gross amount and platform fee
     const grossAmountKobo = BigInt(order.totalAmountKobo);

@@ -229,7 +229,7 @@ export class LogisticsService {
         buyerPhone,
         booking.orderId,
         newStatus,
-        trackingUrl,
+        trackingUrl ?? undefined,
       );
 
       // Notify Merchant

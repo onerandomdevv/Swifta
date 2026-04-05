@@ -6,6 +6,7 @@ import {
   Get,
   Query,
   Param,
+  ForbiddenException,
 } from "@nestjs/common";
 import { PaymentService } from "./payment.service";
 import { InitializePaymentDto } from "./dto/initialize-payment.dto";
@@ -67,6 +68,9 @@ export class PaymentController {
     @CurrentUser() user: JwtPayload,
     @Body() dto: RequestPayoutDto,
   ) {
+    if (!user.merchantId) {
+      throw new ForbiddenException("Merchant ID not found");
+    }
     return this.paymentService.requestPayout(user.merchantId, dto);
   }
 }

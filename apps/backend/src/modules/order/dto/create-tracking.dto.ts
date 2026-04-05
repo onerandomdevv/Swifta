@@ -9,7 +9,7 @@ export class CreateTrackingDto {
         "status must be a valid tracking status: PREPARING, DISPATCHED, or IN_TRANSIT",
     },
   )
-  status: OrderStatus;
+  status!: OrderStatus;
 
   @IsOptional()
   @IsString()

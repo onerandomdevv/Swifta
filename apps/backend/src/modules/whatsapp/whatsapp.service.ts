@@ -206,7 +206,7 @@ export class WhatsAppService {
           }
         }
 
-        const intent = await this.intentService.parseIntent(messageText);
+        const intent = await this.intentService.parseIntent(messageText || "");
         await (this as any).executeCommand(merchantId, intent, phone);
         return;
       }
@@ -825,7 +825,7 @@ export class WhatsAppService {
           rows: products.map((p) => ({
             id: `manage_stock_${p.id.substring(0, 8)}`,
             title: p.name,
-            description: `Stock: ${p.productStockCache?.stock || 0} ${p.unit}s ${p.productStockCache?.stock <= 10 ? "⚠️ Low Stock" : ""}`,
+            description: `Stock: ${p.productStockCache?.stock || 0} ${p.unit}s ${(p.productStockCache?.stock ?? 0) <= 10 ? "⚠️ Low Stock" : ""}`,
           })),
         },
       ],
@@ -1769,6 +1769,10 @@ export class WhatsAppService {
           let msg = `✅ *Wholesale Details confirmed!*\n\n`;
           msg += `*Item*: ${session.productId.substring(0, 8)} (${session.quantity} units)\n`;
           msg += `*Payment*: ${paymentMethod.replace(/_/g, " ")}\n\n`;
+
+          if (!orderResponse.authorizationUrl) {
+            throw new Error("Failed to generate payment url.");
+          }
 
           await this.interactiveService.sendCTAUrlButton(
             phone,

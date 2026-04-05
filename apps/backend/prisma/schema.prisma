@@ -715,6 +715,7 @@ enum OrderStatus {
   DISPUTE
   PREPARING
   IN_TRANSIT
+  REFUND_PENDING
 }
 
 enum PaymentDirection {
@@ -742,6 +743,7 @@ enum PayoutStatus {
   PROCESSING
   COMPLETED
   FAILED
+  CANCELLED
 }
 
 enum UserRole {
@@ -764,6 +766,8 @@ enum OrderDisputeStatus {
   NONE
   PENDING
   RESOLVED
+  RESOLVED_BUYER
+  RESOLVED_MERCHANT
 }
 
 enum VerificationTier {
@@ -816,4 +820,14 @@ enum DeliveryStatus {
   ARRIVING
   DELIVERED
   FAILED
+}
+
+model MerchantWaitlist {
+  id           String   @id @default(uuid()) @db.Uuid
+  businessName String   @map("business_name")
+  email        String   @unique
+  phone        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("merchant_waitlists")
 }

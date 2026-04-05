@@ -3,7 +3,7 @@ import { IsNotEmpty, IsString, MinLength, Matches } from "class-validator";
 export class ResetPasswordDto {
   @IsNotEmpty({ message: "Reset token is required" })
   @IsString()
-  token: string;
+  token!: string;
 
   @IsNotEmpty({ message: "New password is required" })
   @IsString()
@@ -15,5 +15,5 @@ export class ResetPasswordDto {
         "Password must contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character",
     },
   )
-  newPassword: string;
+  newPassword!: string;
 }

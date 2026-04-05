@@ -1747,7 +1747,7 @@ export class WhatsAppBuyerService {
           rows: merchants.map((m) => ({
             id: `merchant_${m.id}`,
             title: m.businessName || "Untitled Shop",
-            description: `${m.averageRating > 0 ? `⭐${m.averageRating.toFixed(1)} | ` : ""}${m.description?.substring(0, 50) || "Verified twizrr Merchant"}`,
+            description: `${m.averageRating && m.averageRating > 0 ? `⭐${m.averageRating.toFixed(1)} | ` : ""}${m.description?.substring(0, 50) || "Verified twizrr Merchant"}`,
           })),
         },
       ],
@@ -1771,7 +1771,7 @@ export class WhatsAppBuyerService {
     }
 
     const ratingStr =
-      merchant.averageRating > 0
+      merchant.averageRating && merchant.averageRating > 0
         ? `⭐ ${merchant.averageRating.toFixed(1)} (${merchant.reviewCount} reviews)`
         : "No reviews yet";
 
