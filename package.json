@@ -22,10 +22,12 @@
   "lint-staged": {
     "apps/backend/**/*.ts": [
       "eslint --fix",
+      "node scripts/security-sentinel.js apps/backend",
       "prettier --write"
     ],
     "apps/web/**/*.ts": [
       "eslint --fix",
+      "node scripts/security-sentinel.js apps/web",
       "prettier --write"
     ]
   }
