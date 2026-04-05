@@ -3,9 +3,9 @@ import { IsString, IsNotEmpty } from "class-validator";
 export class UpdateBankAccountDto {
   @IsString()
   @IsNotEmpty()
-  bankAccountNumber: string;
+  bankAccountNumber!: string;
 
   @IsString()
   @IsNotEmpty()
-  bankCode: string;
+  bankCode!: string;
 }

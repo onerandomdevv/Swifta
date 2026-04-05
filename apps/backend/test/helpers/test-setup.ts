@@ -6,9 +6,9 @@ import { JwtService } from "@nestjs/jwt";
 import { UserRole } from "@twizrr/shared";
 
 export class TestSetup {
-  public app: INestApplication;
-  public prisma: PrismaService;
-  public jwtService: JwtService;
+  public app!: INestApplication;
+  public prisma!: PrismaService;
+  public jwtService!: JwtService;
 
   async init(): Promise<void> {
     const moduleFixture: TestingModule = await Test.createTestingModule({

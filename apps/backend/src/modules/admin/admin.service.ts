@@ -4,13 +4,21 @@ import {
   BadRequestException,
   Logger,
 } from "@nestjs/common";
+import { InjectQueue } from "@nestjs/bullmq";
+import { Queue } from "bullmq";
 import { PrismaService } from "../../prisma/prisma.service";
-import { OrderStatus, UserRole, VerificationTier } from "@twizrr/shared";
+import {
+  OrderStatus,
+  OrderDisputeStatus,
+  UserRole,
+  VerificationTier,
+  InventoryEventType,
+} from "@twizrr/shared";
 import * as bcrypt from "bcrypt";
 import { RedisService } from "../../redis/redis.service";
 import { AuditLogService } from "./audit-log.service";
 import { VerificationService } from "../verification/verification.service";
-
+import { PAYOUT_QUEUE } from "../../queue/queue.constants";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
 
 @Injectable()
@@ -23,6 +31,7 @@ export class AdminService {
     private notifications: NotificationTriggerService,
     private auditLog: AuditLogService,
     private verificationService: VerificationService,
+    @InjectQueue(PAYOUT_QUEUE) private payoutQueue: Queue,
   ) {}
 
   async getPlatformStats() {
@@ -224,6 +233,219 @@ export class AdminService {
     });
   }
 
+  // ─── Dispute Resolution Center ───
+
+  async resolveDispute(
+    orderId: string,
+    decision: "BUYER" | "MERCHANT",
+    adminUserId: string,
+    notes?: string,
+  ) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        product: true,
+        merchantProfile: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException("Order not found");
+    }
+
+    if (order.status !== OrderStatus.DISPUTE) {
+      throw new BadRequestException(
+        `Order is in ${order.status} status. Only orders in DISPUTE status can be resolved.`,
+      );
+    }
+
+    if (order.disputeStatus !== OrderDisputeStatus.PENDING) {
+      throw new BadRequestException(
+        `Dispute has already been resolved (status: ${order.disputeStatus}).`,
+      );
+    }
+
+    if (decision === "BUYER") {
+      // ── Buyer wins: mark order REFUND_PENDING, release inventory ──
+      const updatedOrder = await this.prisma.$transaction(async (tx) => {
+        const result = await tx.order.update({
+          where: { id: orderId },
+          data: {
+            status: OrderStatus.REFUND_PENDING,
+            disputeStatus: OrderDisputeStatus.RESOLVED_BUYER,
+            payoutStatus: "CANCELLED",
+          },
+        });
+
+        await tx.orderEvent.create({
+          data: {
+            orderId,
+            fromStatus: OrderStatus.DISPUTE,
+            toStatus: OrderStatus.REFUND_PENDING,
+            triggeredBy: adminUserId,
+            metadata: {
+              action: "dispute_resolved_buyer",
+              notes: notes || "Dispute resolved in favour of buyer",
+            },
+          },
+        });
+
+        // Release reserved inventory back to the merchant
+        const merchantId = order.merchantId;
+        if (!merchantId)
+          throw new BadRequestException("Merchant ID not found on order");
+
+        if (order.productId && order.quantity) {
+          // 1. Record event
+          await tx.inventoryEvent.create({
+            data: {
+              productId: order.productId,
+              merchantId,
+              eventType: InventoryEventType.ORDER_RELEASED,
+              quantity: order.quantity,
+              referenceId: orderId,
+              notes: `Dispute resolved in favor of buyer (Order: ${orderId})`,
+            },
+          });
+
+          // 2. Update stock cache atomically
+          await tx.productStockCache.upsert({
+            where: { productId: order.productId },
+            create: { productId: order.productId, stock: order.quantity },
+            update: { stock: { increment: order.quantity } },
+          });
+        } else if (order.items) {
+          const items = order.items as any[];
+          for (const item of items) {
+            if (item.productId && item.quantity) {
+              // 1. Record event
+              await tx.inventoryEvent.create({
+                data: {
+                  productId: item.productId,
+                  merchantId,
+                  eventType: InventoryEventType.ORDER_RELEASED,
+                  quantity: Number(item.quantity),
+                  referenceId: orderId,
+                  notes: `Dispute resolved in favor of buyer (Order: ${orderId})`,
+                },
+              });
+
+              // 2. Update stock cache atomically
+              await tx.productStockCache.updateMany({
+                where: { productId: item.productId },
+                data: { stock: { increment: Number(item.quantity) } },
+              });
+            }
+          }
+        }
+
+        return result;
+      });
+
+      // Audit log
+      await this.auditLog.log(
+        adminUserId,
+        "RESOLVE_DISPUTE_BUYER",
+        "Order",
+        orderId,
+        { decision, notes },
+      );
+
+      // Notify both parties (best-effort)
+      try {
+        await this.notifications.triggerDisputeResolved(
+          order.buyerId,
+          order.merchantId as string,
+          orderId,
+          "BUYER",
+        );
+      } catch (err) {
+        this.logger.error(
+          `Failed to notify dispute resolution (buyer wins): ${err instanceof Error ? err.message : err}`,
+        );
+      }
+
+      this.logger.log(
+        `Dispute on order ${orderId} resolved in favour of BUYER by admin ${adminUserId}`,
+      );
+      return updatedOrder;
+    } else {
+      // ── Merchant wins: complete the order and trigger payout ──
+      const updatedOrder = await this.prisma.$transaction(async (tx) => {
+        const result = await tx.order.update({
+          where: { id: orderId },
+          data: {
+            status: OrderStatus.COMPLETED,
+            disputeStatus: OrderDisputeStatus.RESOLVED_MERCHANT,
+            payoutStatus:
+              order.paymentMethod === "ESCROW" ? "PENDING" : "COMPLETED",
+          },
+        });
+
+        await tx.orderEvent.create({
+          data: {
+            orderId,
+            fromStatus: OrderStatus.DISPUTE,
+            toStatus: OrderStatus.COMPLETED,
+            triggeredBy: adminUserId,
+            metadata: {
+              action: "dispute_resolved_merchant",
+              notes: notes || "Dispute resolved in favour of merchant",
+            },
+          },
+        });
+
+        return result;
+      });
+
+      // Trigger payout for ESCROW orders
+      if (order.paymentMethod === "ESCROW") {
+        try {
+          await this.payoutQueue.add(
+            "process-payout",
+            { orderId },
+            { jobId: `payout-dispute-${orderId}` },
+          );
+          this.logger.log(
+            `Payout queued for dispute-resolved order ${orderId} (merchant wins)`,
+          );
+        } catch (err) {
+          this.logger.error(
+            `Failed to queue payout after dispute resolution: ${err instanceof Error ? err.message : err}`,
+          );
+        }
+      }
+
+      // Audit log
+      await this.auditLog.log(
+        adminUserId,
+        "RESOLVE_DISPUTE_MERCHANT",
+        "Order",
+        orderId,
+        { decision, notes },
+      );
+
+      // Notify both parties (best-effort)
+      try {
+        await this.notifications.triggerDisputeResolved(
+          order.buyerId,
+          order.merchantId as string,
+          orderId,
+          "MERCHANT",
+        );
+      } catch (err) {
+        this.logger.error(
+          `Failed to notify dispute resolution (merchant wins): ${err instanceof Error ? err.message : err}`,
+        );
+      }
+
+      this.logger.log(
+        `Dispute on order ${orderId} resolved in favour of MERCHANT by admin ${adminUserId}`,
+      );
+      return updatedOrder;
+    }
+  }
+
   async deleteProduct(productId: string) {
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
@@ -366,6 +588,61 @@ export class AdminService {
         title: "Delayed Payout Processing",
         message: `${pendingPayouts} payout requests have been waiting > 24 hours for processing.`,
         actionLink: "/admin/payouts",
+      });
+    }
+
+    // Check 4: Unresolved Disputes
+    const unresolvedDisputes = await this.prisma.order.count({
+      where: {
+        status: OrderStatus.DISPUTE,
+        updatedAt: { lt: twentyFourHoursAgo },
+      },
+    });
+
+    if (unresolvedDisputes > 0) {
+      alerts.push({
+        id: "unresolved-disputes",
+        type: "CRITICAL",
+        title: "Unresolved Disputes",
+        message: `${unresolvedDisputes} disputed orders have been waiting > 24 hours for admin resolution.`,
+        actionLink: "/admin/orders?filter=dispute",
+      });
+    }
+
+    // Check 5: Failed Payouts
+    const failedPayouts = await this.prisma.payout.count({
+      where: {
+        status: "FAILED",
+      },
+    });
+
+    if (failedPayouts > 0) {
+      alerts.push({
+        id: "failed-payouts",
+        type: "CRITICAL",
+        title: "Failed Paystack Payouts",
+        message: `${failedPayouts} payouts have failed and require manual review or retry.`,
+        actionLink: "/admin/payouts?filter=failed",
+      });
+    }
+
+    // Check 6: Stuck PENDING Payouts
+    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+    const stuckPayouts = await this.prisma.order.count({
+      where: {
+        payoutStatus: "PENDING",
+        status: OrderStatus.COMPLETED,
+        updatedAt: { lt: sixHoursAgo },
+      },
+    });
+
+    if (stuckPayouts > 0) {
+      alerts.push({
+        id: "stuck-payouts",
+        type: "WARNING",
+        title: "Stuck Pending Payouts",
+        message: `${stuckPayouts} completed orders have been in PENDING payout status for > 6 hours.`,
+        actionLink: "/admin/orders?filter=payout_pending",
       });
     }
 

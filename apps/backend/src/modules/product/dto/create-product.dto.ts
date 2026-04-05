@@ -11,7 +11,7 @@ import {
 export class CreateProductDto {
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @IsOptional()
   @IsString()
@@ -23,15 +23,15 @@ export class CreateProductDto {
 
   @IsString()
   @IsNotEmpty()
-  unit: string;
+  unit!: string;
 
   @IsString()
   @IsNotEmpty()
-  categoryTag: string;
+  categoryTag!: string;
 
   @IsString()
   @IsNotEmpty()
-  categoryId: string;
+  categoryId!: string;
 
   @IsOptional()
   @IsString()

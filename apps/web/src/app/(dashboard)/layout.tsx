@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/providers/auth-provider";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
 
 export default function DashboardLayout({
@@ -11,12 +11,14 @@ export default function DashboardLayout({
 }) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      window.location.href = "/login";
+    const isPublicDiscoveryRoute = /^\/(m|p)(?:\/|$)/.test(pathname);
+    if (!isLoading && !user && !isPublicDiscoveryRoute) {
+      router.replace("/login");
     }
-  }, [user, isLoading]);
+  }, [user, isLoading, pathname, router]);
 
   if (isLoading || !user) {
     return (

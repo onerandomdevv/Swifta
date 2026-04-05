@@ -9,7 +9,7 @@ import {
 export class AdminRegisterDto {
   @IsNotEmpty()
   @IsString()
-  firstName: string;
+  firstName!: string;
 
   @IsOptional()
   @IsString()
@@ -17,18 +17,18 @@ export class AdminRegisterDto {
 
   @IsNotEmpty()
   @IsString()
-  lastName: string;
+  lastName!: string;
 
   @IsNotEmpty()
   @IsEmail()
-  email: string;
+  email!: string;
 
   @IsNotEmpty()
   @IsString()
   @MinLength(8, { message: "Password must be at least 8 characters long" })
-  password: string;
+  password!: string;
 
   @IsNotEmpty()
   @IsString()
-  accessToken: string;
+  accessToken!: string;
 }

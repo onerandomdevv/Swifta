@@ -19,6 +19,12 @@ export class ResponseTransformInterceptor<T> implements NestInterceptor<
   ): Observable<ApiResponse<T>> {
     return next.handle().pipe(
       map((data) => {
+        // Skip transformation for health checks to provide standard monitoring JSON
+        const request = context.switchToHttp().getRequest();
+        if (request.url.includes("/health")) {
+          return data;
+        }
+
         // Prevent double wrapping if the data already contains the 'success' and 'data' envelope
         if (
           data &&

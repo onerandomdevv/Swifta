@@ -9,5 +9,6 @@ export const ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   [OrderStatus.DELIVERED]: [OrderStatus.COMPLETED],
   [OrderStatus.COMPLETED]: [],
   [OrderStatus.CANCELLED]: [],
-  [OrderStatus.DISPUTE]: []
+  [OrderStatus.DISPUTE]: [OrderStatus.REFUND_PENDING, OrderStatus.COMPLETED],
+  [OrderStatus.REFUND_PENDING]: []
 };

@@ -82,8 +82,8 @@ export class ProductController {
     return this.productService.catalogue(
       query.search,
       query.category,
-      query.page,
-      query.limit,
+      query.page ?? 1,
+      query.limit ?? 20,
     );
   }
 

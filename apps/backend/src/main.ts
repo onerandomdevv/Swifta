@@ -4,6 +4,7 @@
 };
 
 import { NestFactory } from "@nestjs/core";
+import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import { AppModule } from "./app.module";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
@@ -28,6 +29,24 @@ async function bootstrap() {
   app.useGlobalFilters(new GlobalExceptionFilter());
 
   app.useGlobalInterceptors(new ResponseTransformInterceptor());
+
+  // Swagger Documentation Setup
+  const config = new DocumentBuilder()
+    .setTitle("Twizrr Backend API")
+    .setDescription(
+      "The official Twizrr Social Commerce API. Built for trust-protected marketplace transactions in Nigeria.",
+    )
+    .setVersion("1.0")
+    .addBearerAuth()
+    .addTag("Twizrr")
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup("api/docs", app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+    customSiteTitle: "Twizrr API Documentation",
+  });
 
   const isDev = process.env.NODE_ENV === "development";
 

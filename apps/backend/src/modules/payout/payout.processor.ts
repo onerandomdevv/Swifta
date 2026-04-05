@@ -8,7 +8,6 @@ import { Logger } from "@nestjs/common";
   drainDelay: 60000,
   stalledInterval: 300000,
   lockDuration: 60000,
-  metrics: null,
 })
 export class PayoutProcessor extends WorkerHost {
   private readonly logger = new Logger(PayoutProcessor.name);

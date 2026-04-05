@@ -10,7 +10,6 @@ import { PrismaService } from "../../prisma/prisma.service";
   drainDelay: 60000,
   stalledInterval: 300000,
   lockDuration: 60000,
-  metrics: null,
 })
 export class ReviewPromptProcessor extends WorkerHost {
   private readonly logger = new Logger(ReviewPromptProcessor.name);

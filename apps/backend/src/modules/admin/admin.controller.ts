@@ -28,19 +28,27 @@ interface AuthenticatedRequest extends Request {
 
 export class CreateAccessTokenDto {
   @IsEnum(UserRole)
-  role: UserRole;
+  role!: UserRole;
 
   @IsString()
   @IsNotEmpty()
-  token: string;
+  token!: string;
 }
 
 export class ToggleMerchantFlagDto {
   @IsIn(["cacVerified", "addressVerified", "bankVerified"])
-  flag: "cacVerified" | "addressVerified" | "bankVerified";
+  flag!: "cacVerified" | "addressVerified" | "bankVerified";
 
   @IsBoolean()
-  value: boolean;
+  value!: boolean;
+}
+
+export class ResolveDisputeDto {
+  @IsIn(["BUYER", "MERCHANT"])
+  decision!: "BUYER" | "MERCHANT";
+
+  @IsString()
+  notes?: string;
 }
 
 @Controller("admin")
@@ -110,6 +118,23 @@ export class AdminController {
     @Req() req: AuthenticatedRequest,
   ) {
     return this.adminService.forceResolveOrder(orderId, status, req.user.sub);
+  }
+
+  // ─── Dispute Resolution ───
+
+  @Post("orders/:id/resolve-dispute")
+  @Roles(UserRole.SUPER_ADMIN, UserRole.OPERATOR)
+  resolveDispute(
+    @Param("id") orderId: string,
+    @Body() dto: ResolveDisputeDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.adminService.resolveDispute(
+      orderId,
+      dto.decision,
+      req.user.sub,
+      dto.notes,
+    );
   }
 
   @Get("products")

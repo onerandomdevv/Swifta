@@ -18,16 +18,16 @@ enum PaymentMethodDto {
 export class CreateDirectOrderDto {
   @IsUUID()
   @IsNotEmpty()
-  productId: string;
+  productId!: string;
 
   @IsNumber()
   @Min(1)
   @IsNotEmpty()
-  quantity: number;
+  quantity!: number;
 
   @IsString()
   @IsNotEmpty()
-  deliveryAddress: string;
+  deliveryAddress!: string;
 
   @IsOptional()
   @IsObject()

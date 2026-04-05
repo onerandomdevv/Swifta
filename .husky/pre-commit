@@ -1,0 +1,2 @@
+npx lint-staged
+pnpm --filter @twizrr/backend exec tsc --noEmit

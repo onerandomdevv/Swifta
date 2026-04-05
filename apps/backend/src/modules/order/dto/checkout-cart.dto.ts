@@ -16,11 +16,11 @@ export class CheckoutCartDto {
   @IsArray()
   @IsUUID("4", { each: true })
   @ArrayNotEmpty()
-  cartItemIds: string[];
+  cartItemIds!: string[];
 
   @IsString()
   @IsNotEmpty()
-  deliveryAddress: string;
+  deliveryAddress!: string;
 
   @IsOptional()
   @IsObject()

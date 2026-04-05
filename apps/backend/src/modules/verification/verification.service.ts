@@ -437,12 +437,12 @@ export class VerificationService {
   }
 
   private async notifyTierUpgrade(merchantId: string, tier: VerificationTier) {
-    const tierNames = {
+    const tierNames: Record<string, string> = {
       [VerificationTier.TIER_1]: "Basic Verified",
       [VerificationTier.TIER_2]: "Identity Verified",
       [VerificationTier.TIER_3]: "Business Verified",
     };
-    const tierBenefits = {
+    const tierBenefits: Record<string, string> = {
       [VerificationTier.TIER_1]:
         "You can now list products and receive orders with escrow protection.",
       [VerificationTier.TIER_2]:

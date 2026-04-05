@@ -59,9 +59,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isLoggingOut = useRef(false);
 
-  // Routes where we should NOT redirect to /login on auth failure
   const isPublicAuthRoute =
-    /^\/(login|register|admin\/login|admin\/join|admin\/verify)(?:\/|$)/.test(
+    pathname === "/" ||
+    /^\/(login|register|admin\/login|admin\/join|admin\/verify|m|p)(?:\/|$)/.test(
       pathname,
     );
 

@@ -202,4 +202,32 @@ export class EmailService {
       this.getLayout(content),
     );
   }
+
+  async sendWaitlistAlert(
+    to: string,
+    businessName: string,
+    email: string,
+    phone: string,
+  ): Promise<void> {
+    const safeName = this.escapeHtml(businessName);
+    const safeEmail = this.escapeHtml(email);
+    const safePhone = this.escapeHtml(phone);
+
+    const content = `
+      <h2 style="font-size: 20px; margin-bottom: 20px;">🚀 New Waitlist Signup!</h2>
+      <p>A new merchant has just joined the Twizrr waitlist.</p>
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 20px 0;">
+        <p style="margin: 5px 0;"><strong>Business:</strong> ${safeName}</p>
+        <p style="margin: 5px 0;"><strong>Email:</strong> ${safeEmail}</p>
+        <p style="margin: 5px 0;"><strong>Phone:</strong> ${safePhone}</p>
+        <p style="margin: 5px 0;"><strong>Date:</strong> ${new Date().toLocaleString("en-NG")}</p>
+      </div>
+      <p>Time to reach out and say hi!</p>
+    `;
+    await this.sendEmail(
+      to,
+      `New Waitlist Signup: ${safeName}`,
+      this.getLayout(content),
+    );
+  }
 }

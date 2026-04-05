@@ -5,12 +5,28 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "turbo": "latest",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.57.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "prettier": "latest",
+    "turbo": "latest",
     "typescript": "latest"
   },
-  "packageManager": "pnpm@9.0.0"
+  "packageManager": "pnpm@9.0.0",
+  "lint-staged": {
+    "apps/backend/**/*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "apps/web/**/*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  }
 }

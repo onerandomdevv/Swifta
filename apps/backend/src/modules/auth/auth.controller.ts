@@ -9,6 +9,7 @@ import {
   Res,
   Get,
   Req,
+  UnauthorizedException,
 } from "@nestjs/common";
 import type { Response, Request } from "express";
 import { Throttle } from "@nestjs/throttler";
@@ -181,6 +182,11 @@ export class AuthController {
     const refreshToken =
       (req.cookies as Record<string, string>)?.["twizrr_refresh_token"] ||
       dto.refreshToken;
+
+    if (!refreshToken) {
+      throw new UnauthorizedException("Refresh token required");
+    }
+
     const result = await this.authService.refreshTokens(user.sub, refreshToken);
     this.setCookies(res, result);
     return { success: true };

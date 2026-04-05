@@ -13,12 +13,12 @@ export class AddToCartDto {
   @IsString()
   @IsNotEmpty()
   @IsUUID()
-  productId: string;
+  productId!: string;
 
   @IsNumber()
   @IsNotEmpty()
   @Min(1)
-  quantity: number;
+  quantity!: number;
 
   @IsEnum(PriceType)
   @IsOptional()
