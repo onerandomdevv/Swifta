@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
-import { ThemeProvider } from "next-themes";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import Providers from "@/providers/providers";
 import "./globals.css";
@@ -29,10 +28,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} ${jetbrainsMono.variable} antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="system">
-          <Providers>{children}</Providers>
-        </ThemeProvider>
+      <body className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}>
+        <Providers>{children}</Providers>
         <SpeedInsights />
       </body>
     </html>
