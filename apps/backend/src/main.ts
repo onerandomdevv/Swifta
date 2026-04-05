@@ -30,25 +30,27 @@ async function bootstrap() {
 
   app.useGlobalInterceptors(new ResponseTransformInterceptor());
 
-  // Swagger Documentation Setup
-  const config = new DocumentBuilder()
-    .setTitle("Twizrr Backend API")
-    .setDescription(
-      "The official Twizrr Social Commerce API. Built for trust-protected marketplace transactions in Nigeria.",
-    )
-    .setVersion("1.0")
-    .addBearerAuth()
-    .addTag("Twizrr")
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup("api/docs", app, document, {
-    swaggerOptions: {
-      persistAuthorization: true,
-    },
-    customSiteTitle: "Twizrr API Documentation",
-  });
-
   const isDev = process.env.NODE_ENV === "development";
+
+  // Swagger Documentation Setup (Development Only)
+  if (isDev) {
+    const config = new DocumentBuilder()
+      .setTitle("Twizrr Backend API")
+      .setDescription(
+        "The official Twizrr Social Commerce API. Built for trust-protected marketplace transactions in Nigeria.",
+      )
+      .setVersion("1.0")
+      .addBearerAuth()
+      .addTag("Twizrr")
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup("api/docs", app, document, {
+      swaggerOptions: {
+        persistAuthorization: true,
+      },
+      customSiteTitle: "Twizrr API Documentation",
+    });
+  }
 
   if (!isDev) {
     app.use(helmet());

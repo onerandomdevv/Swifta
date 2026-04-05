@@ -41,7 +41,12 @@ export default function MerchantWaitlistPage() {
   const onSubmit = async (data: WaitlistValues) => {
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/waitlist`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!apiUrl) {
+        throw new Error("API URL is not configured");
+      }
+
+      const response = await fetch(`${apiUrl}/waitlist`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -59,7 +64,7 @@ export default function MerchantWaitlistPage() {
         toast.error(result.message || "Something went wrong. Please try again.");
       }
     } catch (error) {
-      toast.error("Failed to connect to the server. Please try again later.");
+      toast.error(error instanceof Error ? error.message : "Failed to connect to the server. Please try again later.");
     } finally {
       setIsSubmitting(false);
     }
@@ -199,10 +204,11 @@ export default function MerchantWaitlistPage() {
 
                   <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                     <div className="space-y-1.5 focus-within:text-[#00C853] transition-colors">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 ml-1">
+                      <label htmlFor="businessName" className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 ml-1">
                         Business Name
                       </label>
                       <input
+                        id="businessName"
                         {...register("businessName")}
                         placeholder="e.g. Twizrr Electronics"
                         className="w-full h-12 px-4 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-xl focus:ring-[1px] focus:ring-[#00C853] focus:border-[#00C853] outline-none transition-all placeholder:text-slate-400 text-sm font-medium"
@@ -213,10 +219,11 @@ export default function MerchantWaitlistPage() {
                     </div>
 
                     <div className="space-y-1.5 focus-within:text-[#00C853] transition-colors">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 ml-1">
+                      <label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 ml-1">
                         Official Email
                       </label>
                       <input
+                        id="email"
                         {...register("email")}
                         type="email"
                         placeholder="business@example.com"
@@ -228,10 +235,11 @@ export default function MerchantWaitlistPage() {
                     </div>
 
                     <div className="space-y-1.5 focus-within:text-[#00C853] transition-colors">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 ml-1">
+                      <label htmlFor="phone" className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 ml-1">
                         Phone (Optional)
                       </label>
                       <input
+                        id="phone"
                         {...register("phone")}
                         placeholder="+234..."
                         className="w-full h-12 px-4 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-xl focus:ring-[1px] focus:ring-[#00C853] focus:border-[#00C853] outline-none transition-all placeholder:text-slate-400 text-sm font-medium"

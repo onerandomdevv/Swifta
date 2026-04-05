@@ -1,6 +1,6 @@
 import {
   IsNotEmpty,
-  IsNumber,
+  IsInt,
   IsString,
   IsUUID,
   Min,
@@ -20,7 +20,7 @@ export class CreateDirectOrderDto {
   @IsNotEmpty()
   productId!: string;
 
-  @IsNumber()
+  @IsInt()
   @Min(1)
   @IsNotEmpty()
   quantity!: number;

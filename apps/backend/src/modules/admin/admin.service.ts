@@ -268,14 +268,31 @@ export class AdminService {
     if (decision === "BUYER") {
       // ── Buyer wins: mark order REFUND_PENDING, release inventory ──
       const updatedOrder = await this.prisma.$transaction(async (tx) => {
-        const result = await tx.order.update({
-          where: { id: orderId },
+        // 1. Atomic status check & update
+        const updateResult = await tx.order.updateMany({
+          where: {
+            id: orderId,
+            status: OrderStatus.DISPUTE,
+            disputeStatus: OrderDisputeStatus.PENDING,
+          },
           data: {
             status: OrderStatus.REFUND_PENDING,
             disputeStatus: OrderDisputeStatus.RESOLVED_BUYER,
             payoutStatus: "CANCELLED",
           },
         });
+
+        if (updateResult.count === 0) {
+          throw new BadRequestException(
+            "Order is not in DISPUTE status or has already been resolved.",
+          );
+        }
+
+        // Fetch the order for subsequent steps (needed for inventory release data)
+        const freshOrder = await tx.order.findUnique({
+          where: { id: orderId },
+        });
+        if (!freshOrder) throw new NotFoundException("Order no longer exists");
 
         await tx.orderEvent.create({
           data: {
@@ -295,14 +312,14 @@ export class AdminService {
         if (!merchantId)
           throw new BadRequestException("Merchant ID not found on order");
 
-        if (order.productId && order.quantity) {
+        if (freshOrder.productId && freshOrder.quantity) {
           // 1. Record event
           await tx.inventoryEvent.create({
             data: {
-              productId: order.productId,
+              productId: freshOrder.productId,
               merchantId,
               eventType: InventoryEventType.ORDER_RELEASED,
-              quantity: order.quantity,
+              quantity: freshOrder.quantity,
               referenceId: orderId,
               notes: `Dispute resolved in favor of buyer (Order: ${orderId})`,
             },
@@ -310,12 +327,15 @@ export class AdminService {
 
           // 2. Update stock cache atomically
           await tx.productStockCache.upsert({
-            where: { productId: order.productId },
-            create: { productId: order.productId, stock: order.quantity },
-            update: { stock: { increment: order.quantity } },
+            where: { productId: freshOrder.productId },
+            create: {
+              productId: freshOrder.productId,
+              stock: freshOrder.quantity,
+            },
+            update: { stock: { increment: freshOrder.quantity } },
           });
-        } else if (order.items) {
-          const items = order.items as any[];
+        } else if (freshOrder.items) {
+          const items = freshOrder.items as any[];
           for (const item of items) {
             if (item.productId && item.quantity) {
               // 1. Record event
@@ -330,16 +350,20 @@ export class AdminService {
                 },
               });
 
-              // 2. Update stock cache atomically
-              await tx.productStockCache.updateMany({
+              // 2. Update stock cache atomically (Using upsert to avoid no-op on missing row)
+              await tx.productStockCache.upsert({
                 where: { productId: item.productId },
-                data: { stock: { increment: Number(item.quantity) } },
+                create: {
+                  productId: item.productId,
+                  stock: Number(item.quantity),
+                },
+                update: { stock: { increment: Number(item.quantity) } },
               });
             }
           }
         }
 
-        return result;
+        return freshOrder;
       });
 
       // Audit log
@@ -372,8 +396,13 @@ export class AdminService {
     } else {
       // ── Merchant wins: complete the order and trigger payout ──
       const updatedOrder = await this.prisma.$transaction(async (tx) => {
-        const result = await tx.order.update({
-          where: { id: orderId },
+        // 1. Atomic status check & update
+        const updateResult = await tx.order.updateMany({
+          where: {
+            id: orderId,
+            status: OrderStatus.DISPUTE,
+            disputeStatus: OrderDisputeStatus.PENDING,
+          },
           data: {
             status: OrderStatus.COMPLETED,
             disputeStatus: OrderDisputeStatus.RESOLVED_MERCHANT,
@@ -381,6 +410,12 @@ export class AdminService {
               order.paymentMethod === "ESCROW" ? "PENDING" : "COMPLETED",
           },
         });
+
+        if (updateResult.count === 0) {
+          throw new BadRequestException(
+            "Order is not in DISPUTE status or has already been resolved.",
+          );
+        }
 
         await tx.orderEvent.create({
           data: {
@@ -395,12 +430,20 @@ export class AdminService {
           },
         });
 
-        return result;
+        // Fetch the order for subsequent steps
+        const freshOrder = await tx.order.findUnique({
+          where: { id: orderId },
+        });
+        if (!freshOrder) throw new NotFoundException("Order no longer exists");
+
+        return freshOrder;
       });
 
       // Trigger payout for ESCROW orders
       if (order.paymentMethod === "ESCROW") {
         try {
+          // Await payout queue addition here. If it fails, the order is still COMPLETED in DB,
+          // but we log it as a critical error. In a more advanced system, we'd use a transactional outbox.
           await this.payoutQueue.add(
             "process-payout",
             { orderId },
@@ -410,9 +453,9 @@ export class AdminService {
             `Payout queued for dispute-resolved order ${orderId} (merchant wins)`,
           );
         } catch (err) {
-          this.logger.error(
-            `Failed to queue payout after dispute resolution: ${err instanceof Error ? err.message : err}`,
-          );
+          const msg = `CRITICAL: Failed to queue payout for COMPLETED dispute ${orderId}: ${err instanceof Error ? err.message : err}`;
+          this.logger.error(msg);
+          // TODO: Trigger a SystemAlert to notify admin that a payout needs manual re-queueing
         }
       }
 

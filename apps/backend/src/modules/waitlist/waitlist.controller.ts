@@ -1,7 +1,11 @@
-import { Controller, Post, Body, Get } from "@nestjs/common";
+import { Controller, Post, Body, Get, UseGuards } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import { WaitlistService } from "./waitlist.service";
 import { CreateWaitlistDto } from "./dto/create-waitlist.dto";
+import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
+import { RolesGuard } from "../../common/guards/roles.guard";
+import { Roles } from "../../common/decorators/roles.decorator";
+import { UserRole } from "@twizrr/shared";
 
 @Controller("waitlist")
 export class WaitlistController {
@@ -20,6 +24,8 @@ export class WaitlistController {
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.OPERATOR)
   async findAll() {
     const data = await this.waitlistService.findAll();
     return {

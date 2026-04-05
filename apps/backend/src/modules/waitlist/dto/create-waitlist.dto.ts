@@ -30,9 +30,9 @@ export class CreateWaitlistDto {
   })
   @IsString()
   @IsOptional()
-  @Matches(/^\+234[789][01]\d{8}$/, {
+  @Matches(/^\+234[789]\d{9}$/, {
     message:
-      "Phone number must be a valid Nigerian number in E.164 format (e.g., +2348012345678)",
+      "Phone number must be a valid Nigerian number in E.164 format (e.g., +234XXXXXXXXXX)",
   })
   phone?: string;
 }

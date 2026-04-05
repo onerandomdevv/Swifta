@@ -1,7 +1,7 @@
-import { IsNumber, IsPositive } from "class-validator";
+import { IsInt, IsPositive } from "class-validator";
 
 export class RequestPayoutDto {
-  @IsNumber()
+  @IsInt()
   @IsPositive()
   amount!: number;
 }

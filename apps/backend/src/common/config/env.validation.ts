@@ -10,8 +10,8 @@ export const envValidationSchema = Joi.object({
   REDIS_URL: Joi.string().required(),
 
   // Security & Auth
-  JWT_ACCESS_SECRET: Joi.string().required(),
-  JWT_REFRESH_SECRET: Joi.string().required(),
+  JWT_ACCESS_SECRET: Joi.string().min(32).required(),
+  JWT_REFRESH_SECRET: Joi.string().min(32).required(),
 
   // Payments (Paystack)
   PAYSTACK_SECRET_KEY: Joi.string().required(),
@@ -46,5 +46,5 @@ export const envValidationSchema = Joi.object({
   // Misc
   WAITLIST_NOTIFY_EMAIL: Joi.string().email().optional(),
   ADMIN_BOOTSTRAP_EMAIL: Joi.string().email().default("admin@twizrr.com"),
-  ADMIN_BOOTSTRAP_PASSWORD: Joi.string().required(),
+  ADMIN_BOOTSTRAP_PASSWORD: Joi.string().min(8).required(),
 });

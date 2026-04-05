@@ -1,7 +1,7 @@
 import {
   IsEnum,
+  IsInt,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
@@ -15,7 +15,7 @@ export class AddToCartDto {
   @IsUUID()
   productId!: string;
 
-  @IsNumber()
+  @IsInt()
   @IsNotEmpty()
   @Min(1)
   quantity!: number;
