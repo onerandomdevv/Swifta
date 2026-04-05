@@ -20,7 +20,12 @@ import { toast } from "sonner";
 const waitlistSchema = z.object({
   businessName: z.string().min(2, "Business name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
-  phone: z.string().optional(),
+  phone: z.string()
+    .optional()
+    .or(z.literal(""))
+    .refine((val) => !val || /^\+234[789]\d{9}$/.test(val), {
+      message: "Please enter a valid Nigerian phone number (+234...)"
+    }),
 });
 
 type WaitlistValues = z.infer<typeof waitlistSchema>;
@@ -61,7 +66,11 @@ export default function MerchantWaitlistPage() {
         toast.success("You've been added to the waitlist!");
         reset();
       } else {
-        toast.error(result.message || "Something went wrong. Please try again.");
+        // Handle NestJS validation error arrays
+        const errorMessage = Array.isArray(result.message) 
+          ? result.message.join(". ") 
+          : result.message || "Something went wrong. Please try again.";
+        toast.error(errorMessage);
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to connect to the server. Please try again later.");
@@ -236,14 +245,17 @@ export default function MerchantWaitlistPage() {
 
                     <div className="space-y-1.5 focus-within:text-[#00C853] transition-colors">
                       <label htmlFor="phone" className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 ml-1">
-                        Phone (Optional)
+                        Phone (Optional — E.164)
                       </label>
                       <input
                         id="phone"
                         {...register("phone")}
-                        placeholder="+234..."
+                        placeholder="e.g. +2348012345678"
                         className="w-full h-12 px-4 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-xl focus:ring-[1px] focus:ring-[#00C853] focus:border-[#00C853] outline-none transition-all placeholder:text-slate-400 text-sm font-medium"
                       />
+                      {errors.phone && (
+                        <p className="text-red-500 text-[10px] mt-1 ml-1 font-bold italic">{errors.phone.message}</p>
+                      )}
                     </div>
 
                     <div className="pt-2">

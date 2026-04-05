@@ -335,16 +335,24 @@ export class AdminService {
             update: { stock: { increment: freshOrder.quantity } },
           });
         } else if (freshOrder.items) {
-          const items = freshOrder.items as any[];
-          for (const item of items) {
-            if (item.productId && item.quantity) {
+          const items = Array.isArray(freshOrder.items) ? freshOrder.items : [];
+          for (const item of items as any[]) {
+            if (
+              item &&
+              typeof item === "object" &&
+              "productId" in item &&
+              "quantity" in item
+            ) {
+              const productId = item.productId as string;
+              const quantity = Number(item.quantity);
+
               // 1. Record event
               await tx.inventoryEvent.create({
                 data: {
-                  productId: item.productId,
+                  productId: productId,
                   merchantId,
                   eventType: InventoryEventType.ORDER_RELEASED,
-                  quantity: Number(item.quantity),
+                  quantity: quantity,
                   referenceId: orderId,
                   notes: `Dispute resolved in favor of buyer (Order: ${orderId})`,
                 },
@@ -352,12 +360,12 @@ export class AdminService {
 
               // 2. Update stock cache atomically (Using upsert to avoid no-op on missing row)
               await tx.productStockCache.upsert({
-                where: { productId: item.productId },
+                where: { productId: productId },
                 create: {
-                  productId: item.productId,
-                  stock: Number(item.quantity),
+                  productId: productId,
+                  stock: quantity,
                 },
-                update: { stock: { increment: Number(item.quantity) } },
+                update: { stock: { increment: quantity } },
               });
             }
           }
