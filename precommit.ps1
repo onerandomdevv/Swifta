@@ -1,7 +1,5 @@
-$ErrorActionPreference = "Stop"
-
 # Parameterize the branch name
-$branchName = if ($args[0]) { $args[0] } else { "feat/presentation-ready" }
+$branchName = if ($args[0]) { $args[0] } else { git branch --show-current }
 
 function Invoke-SafeCommand {
     param([string]$Command, [string[]]$CommandArgs)
