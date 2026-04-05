@@ -336,15 +336,19 @@ export class AdminService {
           });
         } else if (freshOrder.items) {
           const items = Array.isArray(freshOrder.items) ? freshOrder.items : [];
-          for (const item of items as any[]) {
+          for (const item of items) {
             if (
               item &&
               typeof item === "object" &&
               "productId" in item &&
-              "quantity" in item
+              "quantity" in item &&
+              typeof item.productId === "string" &&
+              item.productId
             ) {
-              const productId = item.productId as string;
+              const productId = item.productId;
               const quantity = Number(item.quantity);
+
+              if (isNaN(quantity)) continue;
 
               // 1. Record event
               await tx.inventoryEvent.create({
