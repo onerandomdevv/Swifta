@@ -12,8 +12,26 @@ export const PlatformConfig = {
     ),
   },
   timers: {
+    // 168h = 7 days, 72h = 3 days (default)
     autoConfirmationHours: parseInt(
       process.env.AUTO_CONFIRMATION_HOURS || "72",
+    ),
+    // Reminder hours (relative to DISPATCHED timestamp).
+    // They default to 1/3 and 2/3 of the window if not provided.
+    autoConfirmReminderFirstHours: parseInt(
+      process.env.AUTO_CONFIRM_REMINDER_FIRST_HOURS ||
+        Math.floor(
+          parseInt(process.env.AUTO_CONFIRMATION_HOURS || "72") / 3,
+        ).toString(),
+    ),
+    autoConfirmReminderFinalHours: parseInt(
+      process.env.AUTO_CONFIRM_REMINDER_FINAL_HOURS ||
+        Math.floor(
+          (parseInt(process.env.AUTO_CONFIRMATION_HOURS || "72") * 2) / 3,
+        ).toString(),
+    ),
+    autoConfirmDisputeWindowHours: parseInt(
+      process.env.AUTO_CONFIRM_DISPUTE_WINDOW_HOURS || "48",
     ),
     escrowWindowHours: parseInt(process.env.ESCROW_WINDOW_HOURS || "24"),
     otpExpiryEmailMinutes: parseInt(

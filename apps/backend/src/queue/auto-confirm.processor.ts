@@ -22,9 +22,10 @@ import { PlatformConfig } from "../config/platform.config";
  * DO NOT add auto-confirm logic elsewhere (e.g. cron jobs) — it will cause double payouts.
  */
 const AUTO_CONFIRM_HOURS = PlatformConfig.timers.autoConfirmationHours;
-const REMINDER_FIRST = Math.floor(AUTO_CONFIRM_HOURS / 3); // ~24h at 72h window
-const REMINDER_FINAL = Math.floor((AUTO_CONFIRM_HOURS * 2) / 3); // ~48h at 72h window
-const DISPUTE_WINDOW_HOURS = 48; // Additional window after auto-confirm
+const REMINDER_FIRST = PlatformConfig.timers.autoConfirmReminderFirstHours;
+const REMINDER_FINAL = PlatformConfig.timers.autoConfirmReminderFinalHours;
+const DISPUTE_WINDOW_HOURS =
+  PlatformConfig.timers.autoConfirmDisputeWindowHours;
 
 @Injectable()
 @Processor(AUTO_CONFIRM_QUEUE, {
