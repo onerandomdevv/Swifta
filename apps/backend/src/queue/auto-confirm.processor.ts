@@ -196,7 +196,7 @@ export class AutoConfirmProcessor extends WorkerHost {
         );
 
         // 1. Mark order as COMPLETED with dispute window
-        await (this.prisma.order as any).update({
+        await this.prisma.order.update({
           where: { id: order.id },
           data: {
             status: OrderStatus.COMPLETED,
