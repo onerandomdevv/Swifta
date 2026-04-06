@@ -1,4 +1,9 @@
 -- 1. Ensure new enum values already exist on the Postgres type VerificationTier
+-- Safeguard: Ensure new enum values exist even if previous migration edits were skipped
+ALTER TYPE "VerificationTier" ADD VALUE IF NOT EXISTS 'TIER_1';
+ALTER TYPE "VerificationTier" ADD VALUE IF NOT EXISTS 'TIER_2';
+ALTER TYPE "VerificationTier" ADD VALUE IF NOT EXISTS 'TIER_3';
+
 -- (Added via history fix in 20260306142423_v3_scale_and_trust)
 
 -- 2. Add temporary column verification_tier_new on merchant_profiles table

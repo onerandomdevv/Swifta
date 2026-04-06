@@ -348,7 +348,7 @@ export class WhatsAppBuyerService {
       return;
     }
 
-    if (id === "search_products") {
+    if (id === "search_products" || id === "search_product") {
       await this.interactiveService.sendTextMessage(
         phone,
         "What are you looking for? (e.g., 'iPhone 15' or 'Nike sneakers')",
@@ -947,7 +947,7 @@ export class WhatsAppBuyerService {
             title: "Try something else",
             rows: [
               {
-                id: "search_product",
+                id: "search_products",
                 title: "Search via Name",
                 description: "Search for products",
               },
