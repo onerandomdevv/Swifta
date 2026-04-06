@@ -724,8 +724,7 @@ export class WhatsAppService {
     });
 
     const totalRevenue = orders.reduce(
-      (sum, o) =>
-        sum + Number(o.totalAmountKobo || 0) + Number(o.deliveryFeeKobo || 0),
+      (sum, o) => sum + Number(o.totalAmountKobo || 0),
       0,
     );
 
