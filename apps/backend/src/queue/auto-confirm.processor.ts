@@ -6,10 +6,24 @@ import { PrismaService } from "../prisma/prisma.service";
 import { PayoutService } from "../modules/payout/payout.service";
 import { WhatsAppService } from "../modules/whatsapp/whatsapp.service";
 import { OrderStatus } from "@twizrr/shared";
+import { PlatformConfig } from "../config/platform.config";
 
-const AUTO_CONFIRM_HOURS = 168; // 7 days
-const REMINDER_3DAYS = 72;
-const REMINDER_5DAYS = 120;
+/**
+ * AUTO-CONFIRM PROCESSOR — the ONLY auto-confirm implementation.
+ *
+ * This BullMQ processor handles the complete auto-confirm lifecycle:
+ *   1. First reminder at 1/3 of the auto-confirm window
+ *   2. Final warning at 2/3 of the auto-confirm window
+ *   3. Auto-confirmation + payout at the full window
+ *
+ * The auto-confirm window is configured via PlatformConfig.timers.autoConfirmationHours
+ * (env: AUTO_CONFIRMATION_HOURS, default: 72h).
+ *
+ * DO NOT add auto-confirm logic elsewhere (e.g. cron jobs) — it will cause double payouts.
+ */
+const AUTO_CONFIRM_HOURS = PlatformConfig.timers.autoConfirmationHours;
+const REMINDER_FIRST = Math.floor(AUTO_CONFIRM_HOURS / 3); // ~24h at 72h window
+const REMINDER_FINAL = Math.floor((AUTO_CONFIRM_HOURS * 2) / 3); // ~48h at 72h window
 const DISPUTE_WINDOW_HOURS = 48; // Additional window after auto-confirm
 
 @Injectable()
@@ -46,12 +60,13 @@ export class AutoConfirmProcessor extends WorkerHost {
   }
 
   /**
-   * D: Send 24h reminder to buyers who haven't confirmed delivery
+   * Send reminder to buyers past 1/3 of the auto-confirm window
    */
   private async send24hReminders() {
-    const cutoffDate = new Date(Date.now() - REMINDER_3DAYS * 60 * 60 * 1000);
+    this.logger.log(`Checking for orders past ${REMINDER_FIRST}h mark...`);
+    const cutoffDate = new Date(Date.now() - REMINDER_FIRST * 60 * 60 * 1000);
     const twoDaysCutoff = new Date(
-      Date.now() - REMINDER_5DAYS * 60 * 60 * 1000,
+      Date.now() - REMINDER_FINAL * 60 * 60 * 1000,
     );
 
     const orders = await this.prisma.order.findMany({
@@ -90,10 +105,11 @@ export class AutoConfirmProcessor extends WorkerHost {
   }
 
   /**
-   * D: Send 48h final warning to buyers who haven't confirmed delivery
+   * Send final warning to buyers past 2/3 of the auto-confirm window
    */
   private async send48hWarnings() {
-    const cutoffDate = new Date(Date.now() - REMINDER_5DAYS * 60 * 60 * 1000);
+    this.logger.log(`Checking for orders past ${REMINDER_FINAL}h mark...`);
+    const cutoffDate = new Date(Date.now() - REMINDER_FINAL * 60 * 60 * 1000);
     const threeDaysCutoff = new Date(
       Date.now() - AUTO_CONFIRM_HOURS * 60 * 60 * 1000,
     );
