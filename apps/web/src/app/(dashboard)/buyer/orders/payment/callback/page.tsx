@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { verifyPayment } from "@/lib/api/payment.api";
 import { formatKobo } from "@/lib/utils";
@@ -84,6 +84,18 @@ function ConfettiCanvas() {
 }
 
 export default function PaymentCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="bg-[#f8fafc] flex items-center justify-center min-h-screen p-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
+      </div>
+    }>
+      <PaymentCallbackContent />
+    </Suspense>
+  );
+}
+
+function PaymentCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const reference = searchParams.get("reference");

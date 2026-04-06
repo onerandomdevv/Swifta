@@ -9,7 +9,28 @@ import { Skeleton } from "@/components/ui/skeleton";
 import EmptyState from "@/components/ui/empty-state";
 import { type Product } from "@twizrr/shared";
 
+import { Suspense } from "react";
+
 export default function ExplorePage() {
+  return (
+    <Suspense fallback={
+      <div className="container px-4 py-8 md:py-12 flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4">
+          <Skeleton className="h-10 w-48 mx-auto" />
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 mt-8">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="aspect-square w-full rounded-2xl" />
+            ))}
+          </div>
+        </div>
+      </div>
+    }>
+      <ExploreContent />
+    </Suspense>
+  );
+}
+
+function ExploreContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   
