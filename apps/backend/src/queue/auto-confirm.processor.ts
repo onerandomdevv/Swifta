@@ -91,7 +91,6 @@ export class AutoConfirmProcessor extends WorkerHost {
       include: {
         user: true,
         product: true,
-        supplierProduct: true,
       },
     });
 
@@ -101,8 +100,7 @@ export class AutoConfirmProcessor extends WorkerHost {
       const phone = order.user?.phone;
       if (!phone) continue;
 
-      const itemName =
-        order.product?.name ?? order.supplierProduct?.name ?? "your order";
+      const itemName = order.product?.name ?? "your order";
 
       try {
         await this.whatsappService.sendWhatsAppMessage(

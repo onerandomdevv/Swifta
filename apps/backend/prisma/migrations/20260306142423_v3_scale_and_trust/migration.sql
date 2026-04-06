@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "VerificationTier" AS ENUM ('UNVERIFIED', 'BASIC', 'VERIFIED', 'TRUSTED');
+CREATE TYPE "VerificationTier" AS ENUM ('UNVERIFIED', 'BASIC', 'VERIFIED', 'TRUSTED', 'TIER_1', 'TIER_2', 'TIER_3');
 
 -- CreateEnum
 CREATE TYPE "PaymentMethod" AS ENUM ('ESCROW', 'DIRECT');
