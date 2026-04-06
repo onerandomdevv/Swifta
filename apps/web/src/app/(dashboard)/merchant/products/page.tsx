@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { productApi } from "@/lib/api/product.api";
@@ -26,6 +26,19 @@ function getStockInfo(product: Product) {
 }
 
 export default function MerchantProductsPage() {
+  return (
+    <Suspense fallback={
+      <div className="h-full bg-background-light dark:bg-background-dark p-8 flex flex-col items-center justify-center gap-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Loading products...</p>
+      </div>
+    }>
+      <MerchantProductsContent />
+    </Suspense>
+  );
+}
+
+function MerchantProductsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const toastCtx = useToast();
