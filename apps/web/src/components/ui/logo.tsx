@@ -1,69 +1,54 @@
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 interface LogoProps {
-  variant?: "light" | "dark";
   size?: "xs" | "sm" | "md" | "lg";
   showWordmark?: boolean;
   className?: string;
+  variant?: "light" | "dark";
 }
 
 export function Logo({
-  variant, // variant is now optional and can be ignored if we use classes
   size = "md",
   showWordmark = true,
   className = "",
+  variant = "light",
 }: LogoProps) {
-  // Use currentColor or CSS variables for the dark blue parts
   const accentColor = "#00C853";
 
-  const sizeMap = {
-    xs: { svg: 22, text: "text-xs" },
-    sm: { svg: 28, text: "text-base" },
-    md: { svg: 36, text: "text-lg" },
-    lg: { svg: 44, text: "text-2xl" },
+  const sizeMap: Record<string, { box: string; font: string; iconSize: string }> = {
+    xs: { box: "h-5 w-5", font: "text-base", iconSize: "text-xs" },
+    sm: { box: "h-6 w-6", font: "text-lg", iconSize: "text-sm" },
+    md: { box: "h-8 w-8", font: "text-xl", iconSize: "text-base" },
+    lg: { box: "h-10 w-10", font: "text-2xl", iconSize: "text-lg" },
   };
 
-  const { svg, text } = sizeMap[size];
-  const svgHeight = Math.round(svg * (30 / 44));
+  const { box, font, iconSize } = sizeMap[size] || sizeMap.md;
 
   return (
-    <span className={cn("inline-flex items-center gap-2", className)}>
-      <svg
-        width={svg}
-        height={svgHeight}
-        viewBox="0 0 66 44"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="shrink-0"
+    <Link
+      href="/"
+      className={cn("inline-flex items-center gap-2 transition-opacity hover:opacity-90", className)}
+    >
+      <div
+        className={cn(
+          "flex items-center justify-center rounded-lg font-bold text-white shadow-sm",
+          box
+        )}
+        style={{ backgroundColor: accentColor }}
       >
-        <rect
-          x="3"
-          y="6"
-          width="34"
-          height="32"
-          rx="16"
-          stroke="currentColor"
-          strokeWidth="5.5"
-          fill="none"
-          className="text-foreground"
-        />
-        <rect
-          x="29"
-          y="6"
-          width="34"
-          height="32"
-          rx="16"
-          stroke={accentColor}
-          strokeWidth="5.5"
-          fill="none"
-        />
-      </svg>
+        <span className={iconSize}>T</span>
+      </div>
       {showWordmark && (
-        <span className={cn(text, "font-bold tracking-[-0.03em] font-display")}>
-          <span className="text-foreground">Swift</span>
-          <span style={{ color: accentColor }}>a</span>
+        <span
+          className={cn(
+            font,
+            "font-bold tracking-tight text-foreground font-inter"
+          )}
+        >
+          Twizrr
         </span>
       )}
-    </span>
+    </Link>
   );
 }
