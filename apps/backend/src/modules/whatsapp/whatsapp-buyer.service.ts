@@ -398,43 +398,7 @@ export class WhatsAppBuyerService {
       const quantity = parseInt(parts[2]) || 1;
 
       try {
-        let product;
-        if (productIdRaw.length === 36) {
-          product = await this.prisma.product.findUnique({
-            where: { id: productIdRaw },
-          });
-        } else if (productIdRaw.length < 4) {
-          await this.interactiveService.sendTextMessage(
-            phone,
-            "Product code too short. Please provide at least 4 characters of the product code.",
-          );
-          return;
-        } else {
-          const productsRaw = await this.prisma.$queryRaw<any[]>`
-            SELECT id FROM products 
-            WHERE id::text LIKE ${productIdRaw + "%"}
-            LIMIT 5
-          `;
-          if (productsRaw.length > 1) {
-            await this.interactiveService.sendTextMessage(
-              phone,
-              `Multiple products match the code "${productIdRaw}". Please provide a longer code to narrow it down.`,
-            );
-            return;
-          }
-          if (productsRaw.length === 1) {
-            product = { id: productsRaw[0].id } as any;
-          }
-        }
-
-        if (product) {
-          await this.handleBuyProduct(buyerId, phone, product.id, quantity);
-        } else {
-          await this.interactiveService.sendTextMessage(
-            phone,
-            "This product is no longer available. Please search for another item.",
-          );
-        }
+        await this.handleBuyProduct(buyerId, phone, productIdRaw, quantity);
       } catch (err) {
         this.logger.error(
           `Buy interactive handler error: ${err instanceof Error ? err.message : err}`,
@@ -1034,26 +998,85 @@ export class WhatsAppBuyerService {
 
     const quantity = rawQuantity || 1;
 
-    const products = await this.prisma.$queryRaw<any[]>`
-      SELECT 
-        id, 
-        name, 
-        unit,
-        price_per_unit_kobo AS "pricePerUnitKobo",
-        retail_price_kobo AS \"retailPriceKobo\",
-        wholesale_price_kobo AS \"wholesalePriceKobo\",
-        image_url AS \"imageUrl\"
-      FROM products 
-      WHERE id::text LIKE ${partialId + "%"}
-        AND is_active = true
-      LIMIT 1
-    `;
-    const product = products[0];
+    let product: any = null;
+    const selectFields = {
+      id: true,
+      name: true,
+      unit: true,
+      pricePerUnitKobo: true,
+      retailPriceKobo: true,
+      wholesalePriceKobo: true,
+      imageUrl: true,
+      minOrderQuantity: true,
+    };
+
+    // 1. Exact productCode match
+    product = await this.prisma.product.findFirst({
+      where: { productCode: partialId, isActive: true },
+      select: selectFields,
+    });
+
+    // 2. Case-insensitive productCode match
+    if (!product) {
+      product = await this.prisma.product.findFirst({
+        where: {
+          productCode: { equals: partialId, mode: "insensitive" },
+          isActive: true,
+        },
+        select: selectFields,
+      });
+    }
+
+    // 3. UUID full match
+    if (!product && partialId.length === 36) {
+      product = await this.prisma.product.findFirst({
+        where: { id: partialId, isActive: true },
+        select: selectFields,
+      });
+    }
+
+    // 4. UUID prefix match (Needs to be at least 4 chars)
+    if (!product) {
+      if (partialId.length < 4) {
+        await this.interactiveService.sendTextMessage(
+          phone,
+          "Product code too short. Please provide at least 4 characters.",
+        );
+        return;
+      }
+
+      const productsRaw = await this.prisma.$queryRaw<any[]>`
+        SELECT 
+          id, 
+          name, 
+          unit,
+          price_per_unit_kobo AS "pricePerUnitKobo",
+          retail_price_kobo AS "retailPriceKobo",
+          wholesale_price_kobo AS "wholesalePriceKobo",
+          image_url AS "imageUrl",
+          min_order_quantity AS "minOrderQuantity"
+        FROM products 
+        WHERE id::text LIKE ${partialId + "%"}
+          AND is_active = true
+        LIMIT 5
+      `;
+
+      if (productsRaw.length > 1) {
+        await this.interactiveService.sendTextMessage(
+          phone,
+          `Multiple products match "${partialId}". Please provide a longer code.`,
+        );
+        return;
+      }
+      if (productsRaw.length === 1) {
+        product = productsRaw[0];
+      }
+    }
 
     if (!product) {
       await this.interactiveService.sendTextMessage(
         phone,
-        `Product ID "${partialId}" not found.`,
+        `Product "${partialId}" not found or no longer available.`,
       );
       return;
     }

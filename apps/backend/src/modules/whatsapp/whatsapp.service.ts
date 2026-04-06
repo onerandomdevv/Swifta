@@ -718,7 +718,6 @@ export class WhatsAppService {
       },
       select: {
         totalAmountKobo: true,
-        deliveryFeeKobo: true,
         product: { select: { name: true } },
       },
     });
