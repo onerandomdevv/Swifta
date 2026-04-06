@@ -1,3 +1,62 @@
+import { Logger } from "@nestjs/common";
+
+const logger = new Logger("PlatformConfig");
+
+const parseEnvInt = (key: string, defaultValue: number): number => {
+  const val = process.env[key];
+  if (!val) return defaultValue;
+  const parsed = parseInt(val, 10);
+  if (isNaN(parsed) || parsed <= 0) {
+    logger.warn(
+      `Invalid value for ${key}: "${val}". Falling back to ${defaultValue}`,
+    );
+    return defaultValue;
+  }
+  return parsed;
+};
+
+// 1. Parse base timers
+const autoConfirmationHours = parseEnvInt("AUTO_CONFIRMATION_HOURS", 72);
+const defaultFirst = Math.floor(autoConfirmationHours / 3);
+const defaultFinal = Math.floor((autoConfirmationHours * 2) / 3);
+
+let autoConfirmReminderFirstHours = parseEnvInt(
+  "AUTO_CONFIRM_REMINDER_FIRST_HOURS",
+  defaultFirst,
+);
+let autoConfirmReminderFinalHours = parseEnvInt(
+  "AUTO_CONFIRM_REMINDER_FINAL_HOURS",
+  defaultFinal,
+);
+const autoConfirmDisputeWindowHours = parseEnvInt(
+  "AUTO_CONFIRM_DISPUTE_WINDOW_HOURS",
+  48,
+);
+
+// 2. Validate Invariants
+// Ensure reminders are sequential and within the window
+if (autoConfirmReminderFirstHours >= autoConfirmReminderFinalHours) {
+  logger.warn(
+    `Configuration error: First reminder (${autoConfirmReminderFirstHours}h) must be less than final reminder (${autoConfirmReminderFinalHours}h). Clamping first reminder.`,
+  );
+  autoConfirmReminderFirstHours = Math.floor(autoConfirmReminderFinalHours / 2);
+}
+
+if (autoConfirmReminderFinalHours >= autoConfirmationHours) {
+  logger.warn(
+    `Configuration error: Final reminder (${autoConfirmReminderFinalHours}h) must be less than auto-confirmation window (${autoConfirmationHours}h). Clamping reminders.`,
+  );
+  autoConfirmReminderFinalHours = Math.floor((autoConfirmationHours * 2) / 3);
+  autoConfirmReminderFirstHours = Math.floor(autoConfirmationHours / 3);
+}
+
+// Ensure dispute window is logically sound
+if (autoConfirmDisputeWindowHours > autoConfirmationHours) {
+  logger.warn(
+    `Configuration error: Dispute window (${autoConfirmDisputeWindowHours}h) is unusually long compared to auto-confirm (${autoConfirmationHours}h).`,
+  );
+}
+
 export const PlatformConfig = {
   fees: {
     escrowPercent: parseFloat(process.env.PLATFORM_FEE_ESCROW || "2"),
@@ -12,38 +71,15 @@ export const PlatformConfig = {
     ),
   },
   timers: {
-    // 168h = 7 days, 72h = 3 days (default)
-    autoConfirmationHours: parseInt(
-      process.env.AUTO_CONFIRMATION_HOURS || "72",
-    ),
-    // Reminder hours (relative to DISPATCHED timestamp).
-    // They default to 1/3 and 2/3 of the window if not provided.
-    autoConfirmReminderFirstHours: parseInt(
-      process.env.AUTO_CONFIRM_REMINDER_FIRST_HOURS ||
-        Math.floor(
-          parseInt(process.env.AUTO_CONFIRMATION_HOURS || "72") / 3,
-        ).toString(),
-    ),
-    autoConfirmReminderFinalHours: parseInt(
-      process.env.AUTO_CONFIRM_REMINDER_FINAL_HOURS ||
-        Math.floor(
-          (parseInt(process.env.AUTO_CONFIRMATION_HOURS || "72") * 2) / 3,
-        ).toString(),
-    ),
-    autoConfirmDisputeWindowHours: parseInt(
-      process.env.AUTO_CONFIRM_DISPUTE_WINDOW_HOURS || "48",
-    ),
-    escrowWindowHours: parseInt(process.env.ESCROW_WINDOW_HOURS || "24"),
-    otpExpiryEmailMinutes: parseInt(
-      process.env.OTP_EXPIRY_EMAIL_MINUTES || "10",
-    ),
-    otpExpiryAuthMinutes: parseInt(process.env.OTP_EXPIRY_AUTH_MINUTES || "15"),
-    otpExpiryWhatsappMinutes: parseInt(
-      process.env.OTP_EXPIRY_WHATSAPP_MINUTES || "5",
-    ),
-    onboardingSessionTtl: parseInt(
-      process.env.ONBOARDING_SESSION_TTL_SECONDS || "3600",
-    ),
+    autoConfirmationHours,
+    autoConfirmReminderFirstHours,
+    autoConfirmReminderFinalHours,
+    autoConfirmDisputeWindowHours,
+    escrowWindowHours: parseEnvInt("ESCROW_WINDOW_HOURS", 24),
+    otpExpiryEmailMinutes: parseEnvInt("OTP_EXPIRY_EMAIL_MINUTES", 10),
+    otpExpiryAuthMinutes: parseEnvInt("OTP_EXPIRY_AUTH_MINUTES", 15),
+    otpExpiryWhatsappMinutes: parseEnvInt("OTP_EXPIRY_WHATSAPP_MINUTES", 5),
+    onboardingSessionTtl: parseEnvInt("ONBOARDING_SESSION_TTL_SECONDS", 3600),
   },
   getPlatformFeePercent(tier: string, paymentMethod: string): number {
     if (paymentMethod === "DIRECT") {

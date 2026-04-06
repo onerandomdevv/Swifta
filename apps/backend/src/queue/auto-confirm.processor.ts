@@ -45,6 +45,18 @@ export class AutoConfirmProcessor extends WorkerHost {
     super();
   }
 
+  /**
+   * Formats hours into a human-readable string (e.g. "72 hours" or "3 days")
+   */
+  private formatDuration(hours: number): string {
+    if (hours === 0) return "0 hours";
+    if (hours % 24 === 0) {
+      const days = hours / 24;
+      return `${days} day${days !== 1 ? "s" : ""}`;
+    }
+    return `${hours} hour${hours !== 1 ? "s" : ""}`;
+  }
+
   async process(job: Job<any, any, string>): Promise<any> {
     this.logger.log(`Auto-confirm job: ${job.name} (id=${job.id})`);
 
@@ -95,7 +107,7 @@ export class AutoConfirmProcessor extends WorkerHost {
       try {
         await this.whatsappService.sendWhatsAppMessage(
           phone,
-          `⏰ *Delivery Reminder*\n\nYour order #${order.id.substring(0, 8)} for *${itemName}* was dispatched 72 hours ago. If it has arrived, please confirm delivery with your OTP code to complete the transaction.\n\nIf there's an issue with delivery, open a dispute via the twizrr app before the payment is released.`,
+          `⏰ *Delivery Reminder*\n\nYour order #${order.id.substring(0, 8)} for *${itemName}* was dispatched ${this.formatDuration(REMINDER_FIRST)} ago. If it has arrived, please confirm delivery with your OTP code to complete the transaction.\n\nIf there's an issue with delivery, open a dispute via the twizrr app before the payment is released.`,
         );
       } catch (err) {
         this.logger.warn(
@@ -138,9 +150,10 @@ export class AutoConfirmProcessor extends WorkerHost {
         order.product?.name ?? order.supplierProduct?.name ?? "your order";
 
       try {
+        const remainingHours = AUTO_CONFIRM_HOURS - REMINDER_FINAL;
         await this.whatsappService.sendWhatsAppMessage(
           phone,
-          `⚠️ *Final Reminder — Action Required*\n\nYour order #${order.id.substring(0, 8)} for *${itemName}* has been dispatched for 5 days.\n\n*If you do not confirm or dispute within 48 hours, the order will be auto-confirmed and the merchant will be paid automatically.*\n\nPlease confirm delivery with your OTP or open a dispute on the twizrr app.`,
+          `⚠️ *Final Reminder — Action Required*\n\nYour order #${order.id.substring(0, 8)} for *${itemName}* has been dispatched for ${this.formatDuration(REMINDER_FINAL)}.\n\n*If you do not confirm or dispute within ${this.formatDuration(remainingHours)}, the order will be auto-confirmed and the merchant will be paid automatically.*\n\nPlease confirm delivery with your OTP or open a dispute on the twizrr app.`,
         );
       } catch (err) {
         this.logger.warn(
@@ -196,7 +209,7 @@ export class AutoConfirmProcessor extends WorkerHost {
           data: {
             orderId: order.id,
             status: OrderStatus.COMPLETED,
-            note: `Auto-confirmed after ${AUTO_CONFIRM_HOURS} hours without buyer confirmation. Dispute window ends at ${disputeWindowEndsAt.toISOString()}.`,
+            note: `Auto-confirmed after ${this.formatDuration(AUTO_CONFIRM_HOURS)} without buyer confirmation. Dispute window ends at ${disputeWindowEndsAt.toISOString()}.`,
           },
         });
 
@@ -218,7 +231,7 @@ export class AutoConfirmProcessor extends WorkerHost {
           try {
             await this.whatsappService.sendWhatsAppMessage(
               order.user.phone,
-              `✅ *Order Auto-Confirmed*\n\nYour order #${order.id.substring(0, 8)} for *${itemName}* has been automatically confirmed after ${AUTO_CONFIRM_HOURS} hours.\n\nIf you did not receive your goods, you can open a dispute within the next ${DISPUTE_WINDOW_HOURS} hours via the twizrr app. After that, the payment will be released to the merchant.\n\nThank you for using twizrr! 🙏`,
+              `✅ *Order Auto-Confirmed*\n\nYour order #${order.id.substring(0, 8)} for *${itemName}* has been automatically confirmed after ${this.formatDuration(AUTO_CONFIRM_HOURS)}.\n\nIf you did not receive your goods, you can open a dispute within the next ${this.formatDuration(DISPUTE_WINDOW_HOURS)} via the twizrr app. After that, the payment will be released to the merchant.\n\nThank you for using twizrr! 🙏`,
             );
 
             // Trigger V5 Review Prompt
@@ -239,7 +252,7 @@ export class AutoConfirmProcessor extends WorkerHost {
           try {
             await this.whatsappService.sendWhatsAppMessage(
               merchantPhone,
-              `💰 *Order #${order.id.substring(0, 8)} Auto-Confirmed!*\n\nYour order for *${itemName}* has been auto-confirmed by the system. Payout is now processing.\n\nNote: The buyer has a ${DISPUTE_WINDOW_HOURS}-hour window to raise a dispute if needed.`,
+              `💰 *Order #${order.id.substring(0, 8)} Auto-Confirmed!*\n\nYour order for *${itemName}* has been auto-confirmed by the system. Payout is now processing.\n\nNote: The buyer has a ${this.formatDuration(DISPUTE_WINDOW_HOURS)} window to raise a dispute if needed.`,
             );
           } catch (err) {
             this.logger.warn(
