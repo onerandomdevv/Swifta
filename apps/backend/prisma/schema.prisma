@@ -772,9 +772,6 @@ enum OrderDisputeStatus {
 
 enum VerificationTier {
   UNVERIFIED
-  BASIC
-  VERIFIED
-  TRUSTED
   TIER_1
   TIER_2
   TIER_3

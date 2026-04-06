@@ -86,7 +86,7 @@ export const GEMINI_FUNCTION_DECLARATIONS = [
   {
     name: "get_sales_summary",
     description:
-      "Get merchant sales/revenue summary. Triggered by: 'how market', 'my sales', 'how much I sell', 'how business'",
+      "Get merchant sales/revenue summary. Triggered by: 'my sales', 'how much I sell', 'how business', 'sales report'",
     parameters: {
       type: "object" as const,
       properties: {
@@ -101,7 +101,7 @@ export const GEMINI_FUNCTION_DECLARATIONS = [
   {
     name: "get_inventory",
     description:
-      "Get stock levels for all or specific product. Triggered by: 'check my stock', 'wetin dey my store', 'inventory', 'my goods'",
+      "Get stock levels for all or specific product. Triggered by: 'check my stock', 'inventory', 'my goods', 'stock balance'",
     parameters: {
       type: "object" as const,
       properties: {
@@ -133,7 +133,7 @@ export const GEMINI_FUNCTION_DECLARATIONS = [
   {
     name: "get_products",
     description:
-      "List all merchant products. Triggered by: 'my products', 'wetin I dey sell', 'show listings'",
+      "List all merchant products. Triggered by: 'my products', 'show listings', 'what do I sell'",
     parameters: { type: "object" as const, properties: {} },
   },
   {

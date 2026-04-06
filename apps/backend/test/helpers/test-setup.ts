@@ -70,7 +70,7 @@ export class TestSetup {
             slug: "zaza-fashion-hub",
             businessAddress: "123 E2E Street, Lagos",
             cacNumber: "RC123456",
-            verificationTier: "VERIFIED",
+            verificationTier: "TIER_1",
           },
         },
       },

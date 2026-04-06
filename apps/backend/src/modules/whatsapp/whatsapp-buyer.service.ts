@@ -947,9 +947,9 @@ export class WhatsAppBuyerService {
             title: "Try something else",
             rows: [
               {
-                id: "search_products",
-                title: "Search Products",
-                description: "Search for materials",
+                id: "search_product",
+                title: "Search via Name",
+                description: "Search for products",
               },
               {
                 id: "show_buyer_menu",
