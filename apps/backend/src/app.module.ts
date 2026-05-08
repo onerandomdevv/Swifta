@@ -74,6 +74,7 @@ function sanitizeRedisUrl(url: string | undefined): string | undefined {
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: [".env.local", ".env"],
       load: [
         configuration,
         databaseConfig,
