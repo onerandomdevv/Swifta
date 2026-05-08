@@ -40,7 +40,7 @@ export class JwtAccessStrategy extends PassportStrategy(
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([cookieExtractor]),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>("jwt.accessSecret"),
+      secretOrKey: configService.getOrThrow<string>("jwt.accessSecret"),
     });
   }
 
