@@ -75,7 +75,7 @@ export class WhatsAppSupplierIntentService {
 
     if (!this.geminiClient.isConfigured()) {
       this.logger.warn(
-        "Gemini API key missing - falling back to unknown intent.",
+        "Gemini client not configured - falling back to unknown intent.",
       );
       return { functionName: "unknown", params: {} };
     }

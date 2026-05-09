@@ -1,8 +1,10 @@
-import { Injectable, BadRequestException } from "@nestjs/common";
+import { Injectable, BadRequestException, Logger } from "@nestjs/common";
 import { CloudinaryClient } from "../../integrations/cloudinary/cloudinary.client";
 
 @Injectable()
 export class UploadService {
+  private readonly logger = new Logger(UploadService.name);
+
   constructor(private cloudinaryClient: CloudinaryClient) {}
 
   async uploadImageToCloudinary(
@@ -16,7 +18,8 @@ export class UploadService {
         folder,
         transformType,
       );
-    } catch {
+    } catch (error) {
+      this.logger.error("Failed to upload file to Cloudinary", error);
       throw new BadRequestException("Failed to upload file to Cloudinary.");
     }
   }

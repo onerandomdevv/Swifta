@@ -1,4 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
 import { PaystackClient } from "../../integrations/paystack/paystack.client";
 import { ConfigService } from "@nestjs/config";
@@ -27,21 +28,6 @@ export class PayoutService {
     });
     if (!order) {
       this.logger.error(`Order not found for payout: ${orderId}`);
-      return;
-    }
-
-    // Check if a payout is already completed or processing for this order
-    const existingPayout = await this.prisma.payout.findFirst({
-      where: {
-        orderId,
-        status: { in: ["COMPLETED", "PROCESSING"] },
-      },
-    });
-
-    if (existingPayout) {
-      this.logger.warn(
-        `Payout already exists for order ${orderId} with status ${existingPayout.status}. Skipping.`,
-      );
       return;
     }
 
@@ -85,31 +71,14 @@ export class PayoutService {
       return;
     }
 
-    const payout = await this.prisma.$transaction(async (tx) => {
-      const createdPayout = await tx.payout.create({
-        data: {
-          orderId,
-          merchantId: merchant.id,
-          amountKobo: payoutAmountKobo,
-          platformFeeKobo,
-          status: "PROCESSING",
-          initiatedAt: new Date(),
-        },
-      });
-
-      await this.ledgerService.recordPayoutInitiated(
-        {
-          payoutId: createdPayout.id,
-          orderId,
-          merchantId: merchant.id,
-          amountKobo: payoutAmountKobo,
-          platformFeeKobo,
-        },
-        tx,
-      );
-
-      return createdPayout;
+    const payout = await this.createActivePayout({
+      orderId,
+      merchantId: merchant.id,
+      amountKobo: payoutAmountKobo,
+      platformFeeKobo,
     });
+
+    if (!payout) return;
 
     try {
       this.logger.log(
@@ -162,6 +131,53 @@ export class PayoutService {
           tx,
         );
       });
+    }
+  }
+
+  private async createActivePayout(input: {
+    orderId: string;
+    merchantId: string;
+    amountKobo: bigint;
+    platformFeeKobo: bigint;
+  }) {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const createdPayout = await tx.payout.create({
+          data: {
+            orderId: input.orderId,
+            merchantId: input.merchantId,
+            amountKobo: input.amountKobo,
+            platformFeeKobo: input.platformFeeKobo,
+            status: "PROCESSING",
+            initiatedAt: new Date(),
+          },
+        });
+
+        await this.ledgerService.recordPayoutInitiated(
+          {
+            payoutId: createdPayout.id,
+            orderId: input.orderId,
+            merchantId: input.merchantId,
+            amountKobo: input.amountKobo,
+            platformFeeKobo: input.platformFeeKobo,
+          },
+          tx,
+        );
+
+        return createdPayout;
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        this.logger.warn(
+          `Active payout already exists for order ${input.orderId}. Skipping duplicate transfer.`,
+        );
+        return null;
+      }
+
+      throw error;
     }
   }
 }

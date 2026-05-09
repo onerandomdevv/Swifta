@@ -24,7 +24,7 @@ import {
   OrderStatus,
   UserRole,
 } from "@twizrr/shared";
-import { Prisma } from "@prisma/client";
+import { Prisma, WebhookStatus } from "@prisma/client";
 import * as crypto from "crypto";
 import { PAYOUT_QUEUE, LOGISTICS_QUEUE } from "../../queue/queue.constants";
 
@@ -291,8 +291,8 @@ export class PaymentService {
           eventId: identity.eventId,
           eventType: identity.eventType,
           reference: identity.reference,
-          payload,
-          status: "PROCESSING",
+          payload: this.sanitizeWebhookPayload(payload),
+          status: WebhookStatus.PROCESSING,
         },
       });
 
@@ -315,20 +315,32 @@ export class PaymentService {
           },
         });
 
-        if (existing?.status === "FAILED") {
-          const retry = await this.prisma.webhookEvent.update({
-            where: { id: existing.id },
+        if (existing?.status === WebhookStatus.FAILED) {
+          const retry = await this.prisma.webhookEvent.updateMany({
+            where: { id: existing.id, status: WebhookStatus.FAILED },
             data: {
-              status: "PROCESSING",
+              status: WebhookStatus.PROCESSING,
               error: null,
               retryCount: { increment: 1 },
-              payload,
+              payload: this.sanitizeWebhookPayload(payload),
             },
           });
 
+          if (retry.count !== 1) {
+            return {
+              id: existing.id,
+              eventId: identity.eventId,
+              shouldProcess: false,
+            };
+          }
+
+          const retryEvent = await this.prisma.webhookEvent.findUniqueOrThrow({
+            where: { id: existing.id },
+          });
+
           return {
-            id: retry.id,
-            eventId: retry.eventId,
+            id: retryEvent.id,
+            eventId: retryEvent.eventId,
             shouldProcess: true,
           };
         }
@@ -348,7 +360,7 @@ export class PaymentService {
     await this.prisma.webhookEvent.update({
       where: { id },
       data: {
-        status: "PROCESSED",
+        status: WebhookStatus.PROCESSED,
         processedAt: new Date(),
         error: null,
       },
@@ -359,10 +371,30 @@ export class PaymentService {
     await this.prisma.webhookEvent.update({
       where: { id },
       data: {
-        status: "FAILED",
+        status: WebhookStatus.FAILED,
         error: error instanceof Error ? error.message : String(error),
       },
     });
+  }
+
+  private sanitizeWebhookPayload(payload: any): Prisma.InputJsonValue {
+    const data = payload?.data || {};
+    return {
+      event: payload?.event || "unknown",
+      data: {
+        id: data.id,
+        reference: data.reference,
+        transferCode: data.transfer_code,
+        customerCode: data.customer?.customer_code || data.customer_code,
+        eventId: data.event_id,
+        status: data.status,
+        amount: data.amount,
+        currency: data.currency,
+        gatewayResponse: data.gateway_response,
+        paidAt: data.paid_at,
+        channel: data.channel,
+      },
+    } as Prisma.InputJsonValue;
   }
 
   /**
@@ -811,28 +843,16 @@ export class PaymentService {
       );
     }
 
-    // 5. Validate available balance
-    const orders = await this.prisma.order.aggregate({
-      where: { merchantId, status: "COMPLETED" },
-      _sum: { totalAmountKobo: true, platformFeeKobo: true },
-    });
-
-    const payouts = await this.prisma.payout.aggregate({
-      where: { merchantId, status: { in: ["COMPLETED", "PROCESSING"] } },
-      _sum: { amountKobo: true },
-    });
-
     const pendingRequests = await this.prisma.payoutRequest.aggregate({
       where: { merchantId, status: { in: ["PENDING", "PROCESSING"] } },
       _sum: { amountKobo: true },
     });
 
-    const availableBalance = this.ledgerService.calculateAvailableBalance({
-      grossOrdersKobo: BigInt(orders._sum.totalAmountKobo || 0),
-      platformFeesKobo: BigInt(orders._sum.platformFeeKobo || 0),
-      completedOrProcessingPayoutsKobo: BigInt(payouts._sum.amountKobo || 0),
-      pendingPayoutRequestsKobo: BigInt(pendingRequests._sum.amountKobo || 0),
-    });
+    const availableBalance =
+      await this.ledgerService.getMerchantAvailableBalance(
+        merchantId,
+        BigInt(pendingRequests._sum.amountKobo || 0),
+      );
 
     if (BigInt(dto.amount) > availableBalance) {
       throw new BadRequestException(

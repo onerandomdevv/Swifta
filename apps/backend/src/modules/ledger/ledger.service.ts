@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, Optional } from "@nestjs/common";
 import { LedgerDirection, LedgerEntryType, Prisma } from "@prisma/client";
 
 import { PlatformConfig } from "../../config/platform.config";
@@ -61,7 +61,7 @@ export interface RecordLedgerEntryInput {
 export class LedgerService {
   private readonly logger = new Logger(LedgerService.name);
 
-  constructor(private readonly prisma?: PrismaService) {}
+  constructor(@Optional() private readonly prisma?: PrismaService) {}
 
   calculateCheckoutTotals(input: CheckoutTotalsInput): CheckoutTotals {
     const paymentMethod = this.resolvePaymentMethod(
@@ -120,6 +120,38 @@ export class LedgerService {
       input.completedOrProcessingPayoutsKobo -
       input.pendingPayoutRequestsKobo
     );
+  }
+
+  async getMerchantAvailableBalance(
+    merchantId: string,
+    pendingPayoutRequestsKobo: bigint = 0n,
+    tx?: Prisma.TransactionClient,
+  ): Promise<bigint> {
+    const client = tx || this.prisma;
+    if (!client) {
+      throw new Error("LedgerService requires PrismaService to read balance");
+    }
+
+    const entries = await client.ledgerEntry.findMany({
+      where: { merchantId },
+      select: { entryType: true, amountKobo: true },
+    });
+
+    const balance = entries.reduce((total, entry) => {
+      switch (entry.entryType) {
+        case LedgerEntryType.PAYMENT_RECEIVED:
+          return total + BigInt(entry.amountKobo);
+        case LedgerEntryType.PLATFORM_FEE_ASSESSED:
+        case LedgerEntryType.PAYOUT_INITIATED:
+        case LedgerEntryType.REFUND_INITIATED:
+        case LedgerEntryType.REFUND_COMPLETED:
+          return total - BigInt(entry.amountKobo);
+        default:
+          return total;
+      }
+    }, 0n);
+
+    return balance - pendingPayoutRequestsKobo;
   }
 
   async recordEntry(
@@ -227,7 +259,6 @@ export class LedgerService {
     tx?: Prisma.TransactionClient,
   ) {
     const platformFeeKobo = input.platformFeeKobo ?? 0n;
-    const escrowHeldKobo = input.amountKobo - platformFeeKobo;
 
     await this.recordEntry(
       {
@@ -260,6 +291,7 @@ export class LedgerService {
     );
 
     if (input.paymentMethod === "ESCROW") {
+      const escrowHeldKobo = input.amountKobo - platformFeeKobo;
       await this.recordEntry(
         {
           entryType: LedgerEntryType.ESCROW_HELD,
@@ -381,8 +413,8 @@ export class LedgerService {
     merchantTier: string | null | undefined,
     requestedPaymentMethod: PaymentMethodInput,
   ): "DIRECT" | "ESCROW" {
-    const isTier2Or3 = merchantTier === "TIER_2" || merchantTier === "TIER_3";
-    return requestedPaymentMethod === "DIRECT" && isTier2Or3
+    return requestedPaymentMethod === "DIRECT" &&
+      PlatformConfig.canUseDirectPayment(merchantTier)
       ? "DIRECT"
       : "ESCROW";
   }

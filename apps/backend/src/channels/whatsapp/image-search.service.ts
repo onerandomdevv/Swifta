@@ -1,5 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { Prisma } from "@prisma/client";
 import { GeminiClient } from "../../integrations/ai/gemini.client";
 import { GoogleVisionClient } from "../../integrations/ai/google-vision.client";
 import { MetaWhatsAppClient } from "../../integrations/meta-whatsapp/meta-whatsapp.client";
@@ -193,7 +194,7 @@ export class ImageSearchService {
     if (!terms || terms.length === 0) return [];
 
     const searchConditions = terms.map((term) => ({
-      name: { contains: term, mode: "insensitive" as any },
+      name: { contains: term, mode: Prisma.QueryMode.insensitive },
     }));
 
     return this.prisma.product.findMany({

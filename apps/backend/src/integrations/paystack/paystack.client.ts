@@ -271,12 +271,25 @@ export class PaystackClient {
   ): Promise<{ code: string; name: string } | null> {
     const banks = await this.getBanks();
     const lower = bankName.toLowerCase();
-    const match = banks.find(
-      (bank) =>
-        bank.name.toLowerCase().includes(lower) ||
-        lower.includes(bank.name.toLowerCase()),
+    const exactMatch = banks.find((bank) => bank.name.toLowerCase() === lower);
+    if (exactMatch) {
+      return { code: exactMatch.code, name: exactMatch.name };
+    }
+
+    const partialMatches = banks.filter((bank) =>
+      bank.name.toLowerCase().includes(lower),
     );
 
+    if (partialMatches.length > 1) {
+      this.logger.warn(
+        `Ambiguous Paystack bank name "${bankName}" matched: ${partialMatches
+          .map((bank) => bank.name)
+          .join(", ")}`,
+      );
+      return null;
+    }
+
+    const match = partialMatches[0];
     return match ? { code: match.code, name: match.name } : null;
   }
 }

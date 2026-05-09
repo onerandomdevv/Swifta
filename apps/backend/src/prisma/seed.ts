@@ -71,19 +71,18 @@ async function main() {
     { name: "Fashion", slug: "fashion", icon: "checkroom" },
     { name: "Home & Kitchen", slug: "home-kitchen", icon: "kitchen" },
     { name: "Health & Beauty", slug: "health-beauty", icon: "face" },
-    { name: "Auto Parts", slug: "auto-parts", icon: "directions_car" },
-    { name: "Agriculture", slug: "agriculture", icon: "agriculture" },
-    {
-      name: "Office & Stationery",
-      slug: "office-stationery",
-      icon: "print",
-    },
     {
       name: "Food & Groceries",
       slug: "food-groceries",
       icon: "local_grocery_store",
     },
-    { name: "Books & Media", slug: "books-media", icon: "menu_book" },
+    { name: "Phones & Gadgets", slug: "phones-gadgets", icon: "smartphone" },
+    {
+      name: "Sports & Fitness",
+      slug: "sports-fitness",
+      icon: "fitness_center",
+    },
+    { name: "Baby & Kids", slug: "baby-kids", icon: "child_care" },
     { name: "Other", slug: "other", icon: "category" },
   ];
 

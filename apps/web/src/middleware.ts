@@ -59,6 +59,8 @@ const ROLE_DASHBOARDS = {
   BUYER: "/buyer/feed",
   MERCHANT: "/merchant/dashboard",
   SUPER_ADMIN: "/admin/dashboard",
+  OPERATOR: "/admin/dashboard",
+  SUPPORT: "/admin/dashboard",
 };
 
 type Role = keyof typeof ROLE_DASHBOARDS;
@@ -73,7 +75,7 @@ export function middleware(request: NextRequest) {
   );
 
   // 2. Auth State
-  const token = cookies.get("hwos_access_token")?.value;
+  const token = cookies.get("twizrr_access_token")?.value;
   const payload = token ? decodeJwt(token) : null;
   const userRole = payload?.role as Role | undefined;
 
@@ -112,7 +114,10 @@ export function middleware(request: NextRequest) {
     );
   }
 
-  if (path.startsWith("/admin") && userRole !== "SUPER_ADMIN") {
+  if (
+    path.startsWith("/admin") &&
+    !["SUPER_ADMIN", "OPERATOR", "SUPPORT"].includes(userRole ?? "")
+  ) {
     return NextResponse.redirect(
       new URL(ROLE_DASHBOARDS[userRole!] || "/", request.url),
     );

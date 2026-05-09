@@ -75,8 +75,10 @@ export class WhatsAppIntentService {
     const lower = text.toLowerCase();
 
     if (lower.includes("dispatch")) {
-      const match = lower.match(/dispatch\s+([a-zA-Z0-9]+)/);
-      const orderReference = match ? match[1] : undefined;
+      const match = lower.match(/\bdispatch(?:\s+order)?\s+([a-z0-9_-]+)\b/i);
+      const orderReference = match
+        ? match[1].replace(/[.,;:!?]+$/, "")
+        : undefined;
       return {
         functionName: "dispatch_order",
         params: orderReference ? { orderReference } : {},

@@ -70,7 +70,7 @@ assessed platform fees, escrow holds, payout initiation, and payout
 completion/failure. `LedgerService.getOrderTimeline()` provides a chronological
 view of an order's money events.
 
-Next money hardening step:
+Next money-hardening step:
 
 1. Add integration tests around Paystack payment/transfer webhook handlers.
 2. Move webhook-driven state changes further toward ledger entries plus

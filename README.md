@@ -1,132 +1,175 @@
 # twizrr
 
-**Nigeria's WhatsApp-Native E-Commerce Platform**
+**Nigeria's WhatsApp-native e-commerce platform**
 
-Buy and sell anything on WhatsApp with escrow payment protection. Discover products, follow merchants, and shop securely — all from the app you already use.
+twizrr is a social commerce marketplace where buyers discover products, follow merchants, pay through escrow, and confirm delivery from WhatsApp or the web. Merchants manage listings, orders, payouts, and customer updates from the dashboard and supported chat channels.
 
-🌐 **Website:** [twizrr.com](https://twizrr.com)
-📱 **WhatsApp:** Message twizrr to start shopping
+Website: [twizrr.com](https://twizrr.com)
 
 ---
 
 ## What is twizrr?
 
-twizrr is a social commerce marketplace where buyers discover products through a scrollable feed, follow their favorite merchants, and purchase with escrow-protected payments. Merchants list products, manage orders, and get paid instantly to their bank account.
+twizrr combines a social product feed, merchant storefronts, WhatsApp commerce, escrow payments, delivery confirmation, ratings, and automated merchant payouts.
 
-The platform works on two channels:
-- **WhatsApp** — the primary channel for buyers. Search, buy, pay, track, and confirm delivery without leaving WhatsApp.
-- **Web** — a social media-style product feed for discovery, plus full dashboards for merchants to manage their business.
+The platform currently supports two main user-facing channels:
 
-Every transaction is protected by escrow. The buyer's money is held securely until they confirm delivery with an OTP code. No trust required — the system handles it.
+- **WhatsApp**: buyer, merchant, and supplier flows for search, onboarding, order updates, payment guidance, delivery confirmation, and product discovery.
+- **Web**: Next.js app for product discovery, authentication, dashboards, merchant tools, and platform administration.
+
+Every escrow transaction keeps buyer funds protected until delivery is confirmed. Once the confirmation flow completes, payout processing moves money to the merchant through Paystack.
 
 ---
 
 ## How It Works
 
-### For Buyers
+### Buyers
 
-1. Browse the product feed or search for what you need
-2. Follow (star) merchants you like — their products appear in your personalized feed
-3. Tap **Buy Now** or add to cart
-4. Pay securely via Paystack — your money is held in escrow
-5. Track your delivery in real-time
-6. Enter your OTP code to confirm receipt
-7. Merchant gets paid. Rate your experience.
+1. Browse the feed or search for a product.
+2. Follow merchants and discover products from trusted sellers.
+3. Buy directly or add products to cart.
+4. Pay securely through Paystack.
+5. Track delivery updates through the app and WhatsApp.
+6. Confirm delivery with OTP.
+7. Review the merchant after completion.
 
-### For Merchants
+### Merchants
 
-1. Create your business page with a unique username
-2. List products with photos, prices, and descriptions
-3. Receive orders with instant WhatsApp notifications
-4. Pack and dispatch — buyer gets tracking updates
-5. Money lands in your bank account automatically after delivery confirmation
+1. Create a merchant profile and storefront.
+2. Add products, images, stock, prices, and categories.
+3. Receive orders and notifications.
+4. Dispatch orders and update delivery state.
+5. Receive payout after buyer confirmation or auto-confirmation.
 
-### On WhatsApp
+### WhatsApp
 
-Buyers can do everything through the twizrr WhatsApp AI assistant:
-- **Text search:** "I need a phone case" → get matching products
-- **Image search:** Send a photo of any product → AI identifies it and finds matches
-- **Purchase:** Select, pay, track, and confirm — all in the chat
-- **Merchant management:** Merchants check sales, update prices, and dispatch orders via WhatsApp
+The WhatsApp channel supports:
+
+- Text search and intent-based product discovery.
+- Image search through AI and catalogue matching.
+- Buyer authentication and onboarding flows.
+- Merchant onboarding and operational commands.
+- Supplier-oriented flows.
+- Interactive messages through Meta WhatsApp Cloud API.
 
 ---
 
 ## Key Features
 
-**Social Commerce Feed** — Instagram-style scrollable product feed. Follow merchants. Discover products. Buy in one tap.
+- **Social commerce feed**: product discovery with merchant profiles and follow mechanics.
+- **Escrow payments**: Paystack-backed checkout and payment verification.
+- **Ledger module**: append-only money movement tracking for stable financial operations.
+- **Merchant payouts**: payout orchestration through Paystack transfers.
+- **WhatsApp commerce**: dedicated channel layer for buyer, merchant, supplier, and shared WhatsApp flows.
+- **AI integrations**: Gemini and Google Vision clients isolated under the integrations layer.
+- **Image search**: WhatsApp product image recognition and catalogue matching.
+- **Verified merchants**: trust and verification workflows.
+- **Ratings and reviews**: post-delivery feedback and review processing.
+- **Queues and webhooks**: BullMQ workers for reminders, review prompts, auto-confirmation, payouts, and webhook-backed payment flows.
 
-**Escrow Payments** — Buyer's money is protected until delivery is confirmed via OTP. Powered by Paystack.
+---
 
-**WhatsApp AI Assistant** — Three specialized bots (buyer, merchant, supplier) powered by Google Gemini with function-calling for intent parsing.
+## Monorepo Structure
 
-**AI Image Search** — Send a product photo via WhatsApp. Google Cloud Vision identifies it, searches the catalogue, and returns matching products.
+```text
+twizrr/
+├── apps/
+│   ├── backend/              # NestJS API, workers, channels, integrations
+│   └── web/                  # Next.js App Router frontend
+├── packages/
+│   └── shared/               # Shared TypeScript types, enums, constants, utilities
+├── turbo.json                # Turborepo task config
+├── pnpm-workspace.yaml       # Workspace package config
+├── docker-compose.yml        # Local services
+└── README.md
+```
 
-**Instant Bank Payouts** — Delivery confirmed → merchant's money is automatically transferred to their bank account via Paystack Transfers.
+### Backend Architecture
 
-**Verified Merchants** — Tiered verification system (Unverified → Basic → Verified → Trusted) with document review and performance tracking.
+```text
+apps/backend/src/
+├── app.module.ts             # Thin root module
+├── core/                     # Global infrastructure wiring
+├── domains/                  # Domain composition modules
+├── channels/                 # External/user-facing channels
+│   ├── whatsapp/
+│   └── ussd/
+├── integrations/             # Third-party provider clients
+│   ├── africastalking/
+│   ├── ai/
+│   ├── cloudinary/
+│   ├── meta-whatsapp/
+│   ├── paystack/
+│   └── resend/
+├── modules/                  # Business modules
+│   ├── auth/
+│   ├── ledger/
+│   ├── order/
+│   ├── payment/
+│   ├── payout/
+│   └── ...
+├── queue/                    # BullMQ processors and queue registration
+├── prisma/                   # Prisma service and database utilities
+└── config/                   # Config namespaces and env validation
+```
 
-**Multi-Category Marketplace** — Electronics, Fashion, Building Materials, Home & Kitchen, Health & Beauty, Auto Parts, Agriculture, Food & Groceries, and more.
+The backend now separates responsibilities into:
 
-**Ratings & Reviews** — Post-delivery review prompts via WhatsApp. Merchant ratings displayed on profiles and product cards.
+- **Core layer**: global NestJS setup, config, cache, scheduling, static files, throttling, Prisma, and Redis.
+- **Domain layer**: grouped business domains for commerce, money, users/trust, and channels.
+- **Channels layer**: WhatsApp and USSD entry points kept outside business modules.
+- **Integrations layer**: Paystack, Cloudinary, Resend, Africa's Talking, Meta WhatsApp, Gemini, and Google Vision clients.
+- **Modules layer**: business logic for auth, orders, payments, payouts, ledger, merchants, uploads, reviews, logistics, and related features.
 
-**Real-Time Tracking** — Order status updates pushed to buyer via WhatsApp and in-app notifications.
+More backend architecture notes live in:
 
-**Business Pages** — Every merchant gets a shareable profile page with their products, ratings, and verification status.
+- `apps/backend/src/domains/README.md`
+- `apps/backend/src/integrations/README.md`
+- `apps/backend/docs/STABILITY_ROADMAP.md`
+- `apps/backend/prisma/MIGRATIONS.md`
 
 ---
 
 ## Tech Stack
 
-### Architecture
-
-```
-twizrr/
-├── apps/
-│   ├── backend/          → NestJS 10 modular API
-│   └── web/              → Next.js 14 App Router
-├── packages/
-│   └── shared/           → Shared TypeScript types, DTOs, enums
-├── docker-compose.yml    → Local PostgreSQL & Redis
-└── pnpm-workspace.yaml   → Monorepo workspace config
-```
-
-### Core Technologies
-
 | Layer | Technology |
-|-------|-----------|
+| --- | --- |
 | Frontend | Next.js 14, React 18, Tailwind CSS, React Query, React Hook Form, Zod |
 | Backend | NestJS 10, TypeScript, Prisma ORM |
-| Database | PostgreSQL 16 (Supabase managed) |
-| Cache & Queues | Redis (Upstash) + BullMQ |
-| Payments | Paystack (Checkout, Transfers, Webhooks, Bank Resolution) |
-| Messaging | Meta WhatsApp Business Cloud API (Interactive Messages) |
-| AI | Google Gemini 2.0 Flash (intent parsing), Google Cloud Vision (image search) |
+| Database | PostgreSQL on Neon |
+| Cache and Queues | Redis, BullMQ |
+| Payments | Paystack checkout, transfers, webhooks, bank resolution |
+| Messaging | Meta WhatsApp Business Cloud API, Africa's Talking |
+| AI | Google Gemini, Google Cloud Vision |
 | Email | Resend |
-| SMS | Africa's Talking |
-| Image CDN | Cloudinary (with auto-optimization transforms) |
-| Monitoring | Sentry (error tracking), Vercel Speed Insights |
-| Deployment | Vercel (frontend), Render (backend), Supabase (database), Upstash (Redis) |
+| Image CDN | Cloudinary |
+| Monorepo | pnpm workspaces, Turborepo |
 
-### Key Architecture Decisions
+---
 
-- **Monorepo** with Turborepo and pnpm workspaces
-- **Append-only event tables** for inventory tracking (InventoryEvent → ProductStockCache)
-- **All money stored as BigInt** (kobo) — no floating-point currency math
-- **UUID primary keys** everywhere
-- **BullMQ** for async job processing (payouts, notifications, auto-confirmation timers)
-- **JWT authentication** with role-based access control (roles: Buyer, Merchant, Supplier)
-- **Paystack webhook signature verification** on all payment callbacks
-- **WhatsApp function-calling only** — AI can call predefined functions, never generates free-form responses to users
+## Important Backend Services
+
+- **Paystack**: payment initialization, verification, webhook handling, bank resolution, transfer recipients, and payouts.
+- **Ledger**: financial event recording and idempotency support for money movement.
+- **Meta WhatsApp**: outbound messages, interactive WhatsApp responses, and channel delivery.
+- **Gemini and Google Vision**: buyer intent parsing and image search support.
+- **Cloudinary**: product image upload, delivery, and transformation helpers.
+- **Resend**: transactional email delivery.
+- **Africa's Talking**: SMS and USSD-related provider integration.
+- **Redis and BullMQ**: background jobs for checkout reminders, review prompts, auto-confirmation, webhook processing, and payout workflows.
 
 ---
 
 ## User Roles
 
 | Role | Access |
-|------|--------|
-| **Buyer** | Browse catalogue, purchase products, track orders, rate merchants |
-| **Merchant** | List products, manage orders, receive payouts, manage business page. Can toggle to buyer mode to purchase from other merchants |
-| **Supplier** | Wholesale product management, merchant orders (B2B — coming soon) |
+| --- | --- |
+| Buyer | Browse products, purchase, track orders, confirm delivery, review merchants |
+| Merchant | Manage storefront, products, orders, dispatch, payouts, and buyer interactions |
+| Supplier | Supplier-side commerce flows and WhatsApp-assisted operations |
+| Super Admin | Platform administration and privileged management |
+| Operator | Internal operational support |
+| Support | Customer and merchant support workflows |
 
 ---
 
@@ -135,73 +178,115 @@ twizrr/
 ### Prerequisites
 
 - Node.js >= 20
-- pnpm >= 8 (`npm install -g pnpm`)
-- Docker Desktop (for local PostgreSQL & Redis)
+- pnpm >= 8
+- Docker Desktop, if using local services
+- PostgreSQL connection string
+- Redis connection string
 
 ### Setup
 
 ```bash
-# Clone the repository
 git clone <repository_url>
 cd twizrr
 
-# Install dependencies
 pnpm install
-
-# Start local database and Redis
 docker-compose up -d
+```
 
-# Set up environment variables
-# Copy .env.example to .env in apps/backend and apps/web
-# Fill in: Paystack keys, database URL, Redis URL, Gemini API key, etc.
+Create the required environment files for the backend and web apps. Backend keys include database, Redis, JWT, Paystack, Cloudinary, Resend, Africa's Talking, Gemini, Google Vision, and WhatsApp provider values.
 
-# Run database migrations and seed
+```bash
 cd apps/backend
 npx prisma migrate dev
 npx prisma db seed
 cd ../..
-
-# Start development servers
-pnpm --filter @twizrr/backend dev    # Backend → http://localhost:4000
-pnpm --filter @twizrr/web dev        # Frontend → http://localhost:3000
 ```
+
+Start the apps:
+
+```bash
+pnpm --filter @twizrr/backend dev
+pnpm --filter @twizrr/web dev
+```
+
+Backend: `http://localhost:4000`
+
+Frontend: `http://localhost:3000`
 
 ---
 
-## Security
+## Verification
 
-- **Escrow payment protection** — buyer funds held until OTP-verified delivery
-- **JWT authentication** with HttpOnly cookies and refresh token rotation
-- **Role-based access control** with guard decorators on every endpoint
-- **Paystack webhook signature verification** on all payment callbacks
-- **WhatsApp AI guardrails** — function-calling only, no free-form AI responses
-- **Rate limiting** via @nestjs/throttler on API endpoints
-- **Input sanitization** against XSS on all user inputs
-- **Staff access token system** — operators onboarded via secure token-based workflow
-- **Audit logging** on admin actions
+Backend verification:
+
+```bash
+cd apps/backend
+pnpm run lint
+npx tsc --noEmit
+pnpm run build
+```
+
+The backend build runs Prisma generation before compiling NestJS.
+
+---
+
+## Security and Reliability
+
+- JWT authentication with HttpOnly cookies and refresh-token rotation.
+- Role-based access control through guards and decorators.
+- Paystack webhook signature verification.
+- WhatsApp webhook and provider isolation.
+- Required environment validation through Joi.
+- Redis-backed token and OTP workflows.
+- Append-only inventory and ledger patterns for auditability.
+- Idempotency support for webhook and ledger-sensitive operations.
+- Queue-based processing for time-based and retryable workflows.
+
+---
+
+## Current Architecture Status
+
+Recent backend architecture work added:
+
+- `core/` module for centralized infrastructure setup.
+- `domains/` composition modules for higher-level system boundaries.
+- `channels/` layer for WhatsApp and USSD.
+- `integrations/` layer for third-party providers.
+- `ledger/` module for financial event tracking.
+- New Prisma migrations for Neon drift repair, ledger entries, ledger idempotency, and webhook events.
+- Documentation for stability and migration handling.
 
 ---
 
 ## Roadmap
 
-**Current (V5):** Social commerce marketplace with WhatsApp AI, escrow payments, multi-category catalogue, ratings, and merchant business pages.
+Current focus:
 
-**Next (V6):** Security hardening (Prembly identity verification), Paystack Dedicated Virtual Accounts (eliminate payment link browser hop), dispute resolution center, admin dashboard upgrades, price intelligence, dark mode.
+- Stabilize backend architecture and database migrations.
+- Keep external integrations isolated and testable.
+- Strengthen payment, ledger, webhook, and queue reliability.
+- Improve WhatsApp commerce flows for buyers, merchants, and suppliers.
 
-**Future:** B2B supplier marketplace, trade financing, SwiftCoins loyalty program, group buying, Remotion video generation for merchant marketing.
+Next:
+
+- Expand admin and support tooling.
+- Improve dispute handling.
+- Add stronger identity and merchant verification.
+- Deepen supplier/B2B workflows.
+- Improve observability, alerting, and operational dashboards.
 
 ---
 
 ## Team
 
-Built by **codedDevs** — a software development team based in Lagos, Nigeria.
+Built by **codedDevs**, a software development team based in Lagos, Nigeria.
 
-- **Kareem Aliameen** — Product & Engineering Lead
-- **Yusuf Saheed** — CTO & Engineering Lead
+- Kareem Aliameen: Product and Engineering Lead
+- Yusuf Saheed: CTO and Engineering Lead
 
+Email: codeddevs.team@gmail.com
 
-📧 codeddevs.team@gmail.com
-🐙 [github.com/coded-devs](https://github.com/coded-devs)
+GitHub: [github.com/coded-devs](https://github.com/coded-devs)
 
 ---
 

@@ -37,6 +37,11 @@ const SALT_ROUNDS = 10;
 const REFRESH_TOKEN_PREFIX = "refresh_token:";
 const REFRESH_TOKEN_TTL = 7 * 24 * 60 * 60; // 7 days in seconds
 
+type JwtExpiresIn = NonNullable<JwtSignOptions["expiresIn"]>;
+
+const jwtTtl = (configService: ConfigService, key: string): JwtExpiresIn =>
+  configService.getOrThrow<string>(key) as JwtExpiresIn;
+
 const EMAIL_OTP_PREFIX = "email_otp:";
 const EMAIL_OTP_TTL = PlatformConfig.timers.otpExpiryEmailMinutes * 60; // Convert minutes to seconds
 const EMAIL_OTP_RATE_PREFIX = "email_otp_count:";
@@ -588,15 +593,11 @@ export class AuthService {
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
         secret: this.configService.getOrThrow<string>("jwt.accessSecret"),
-        expiresIn: this.configService.getOrThrow<string>(
-          "jwt.accessTtl",
-        ) as JwtSignOptions["expiresIn"],
+        expiresIn: jwtTtl(this.configService, "jwt.accessTtl"),
       }),
       this.jwtService.signAsync(payload, {
         secret: this.configService.getOrThrow<string>("jwt.refreshSecret"),
-        expiresIn: this.configService.getOrThrow<string>(
-          "jwt.refreshTtl",
-        ) as JwtSignOptions["expiresIn"],
+        expiresIn: jwtTtl(this.configService, "jwt.refreshTtl"),
       }),
     ]);
 
