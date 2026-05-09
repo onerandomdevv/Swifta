@@ -1,11 +1,11 @@
-import { Module, forwardRef } from "@nestjs/common";
+import { Module } from "@nestjs/common";
 import { DvaController } from "./dva.controller";
 import { DvaService } from "./dva.service";
 import { PrismaModule } from "../../prisma/prisma.module";
-import { PaymentModule } from "../payment/payment.module";
+import { PaystackModule } from "../../integrations/paystack/paystack.module";
 
 @Module({
-  imports: [PrismaModule, forwardRef(() => PaymentModule)],
+  imports: [PrismaModule, PaystackModule],
   controllers: [DvaController],
   providers: [DvaService],
   exports: [DvaService],

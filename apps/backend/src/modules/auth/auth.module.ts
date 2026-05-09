@@ -1,6 +1,6 @@
 import { Module, forwardRef } from "@nestjs/common";
 import { PassportModule } from "@nestjs/passport";
-import { JwtModule } from "@nestjs/jwt";
+import { JwtModule, type JwtSignOptions } from "@nestjs/jwt";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { AuthController } from "./auth.controller";
 import { InternalAuthController } from "./internal-auth.controller";
@@ -12,7 +12,7 @@ import { RedisModule } from "../../redis/redis.module";
 import { AdminModule } from "../admin/admin.module";
 import { NotificationModule } from "../notification/notification.module";
 import { EmailModule } from "../email/email.module";
-import { WhatsAppModule } from "../whatsapp/whatsapp.module";
+import { WhatsAppModule } from "../../channels/whatsapp/whatsapp.module";
 
 @Module({
   imports: [
@@ -20,8 +20,12 @@ import { WhatsAppModule } from "../whatsapp/whatsapp.module";
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>("jwt.accessSecret"),
-        signOptions: { expiresIn: configService.get<string>("jwt.accessTtl") },
+        secret: configService.getOrThrow<string>("jwt.accessSecret"),
+        signOptions: {
+          expiresIn: configService.getOrThrow<string>(
+            "jwt.accessTtl",
+          ) as JwtSignOptions["expiresIn"],
+        },
       }),
       inject: [ConfigService],
     }),

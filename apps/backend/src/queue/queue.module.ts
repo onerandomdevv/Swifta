@@ -1,7 +1,7 @@
 import { Module, Global, Logger, forwardRef } from "@nestjs/common";
 import { BullModule } from "@nestjs/bullmq";
 import { ConfigService } from "@nestjs/config";
-import { WhatsAppModule } from "../modules/whatsapp/whatsapp.module";
+import { WhatsAppModule } from "../channels/whatsapp/whatsapp.module";
 import { PayoutModule } from "../modules/payout/payout.module";
 import {
   NOTIFICATION_QUEUE,

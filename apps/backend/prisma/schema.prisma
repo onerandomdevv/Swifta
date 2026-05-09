@@ -162,6 +162,7 @@ model Order {
   items               Json?              @map("items")
   creditApplication   CreditApplication?
   deliveryBooking     DeliveryBooking?
+  ledgerEntries       LedgerEntry[]
   orderEvents         OrderEvent[]
   trackingEvents      OrderTracking[]
   metadata            Json?              @map("metadata")
@@ -195,6 +196,7 @@ model Payout {
   completedAt          DateTime?       @map("completed_at")
   failureReason        String?         @map("failure_reason")
   createdAt            DateTime        @default(now()) @map("created_at")
+  ledgerEntries        LedgerEntry[]
   merchant             MerchantProfile @relation(fields: [merchantId], references: [id])
   order                Order           @relation(fields: [orderId], references: [id])
 
@@ -241,6 +243,26 @@ model PaymentEvent {
   @@map("payment_events")
 }
 
+model WebhookEvent {
+  id          String    @id @default(uuid()) @db.Uuid
+  provider    String
+  eventId     String    @map("event_id")
+  eventType   String    @map("event_type")
+  reference   String?
+  status      String    @default("PROCESSING")
+  payload     Json
+  error       String?
+  retryCount  Int       @default(0) @map("retry_count")
+  receivedAt  DateTime  @default(now()) @map("received_at")
+  processedAt DateTime? @map("processed_at")
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  @@unique([provider, eventId])
+  @@index([provider, eventType])
+  @@index([reference])
+  @@map("webhook_events")
+}
+
 model Payment {
   id                  String           @id @default(uuid()) @db.Uuid
   orderId             String           @map("order_id") @db.Uuid
@@ -254,11 +276,41 @@ model Payment {
   verifiedAt          DateTime?        @map("verified_at")
   createdAt           DateTime         @default(now()) @map("created_at")
   updatedAt           DateTime         @default(now()) @updatedAt @map("updated_at")
+  ledgerEntries       LedgerEntry[]
   paymentEvents       PaymentEvent[]
   order               Order            @relation(fields: [orderId], references: [id])
 
   @@index([orderId])
   @@map("payments")
+}
+
+model LedgerEntry {
+  id          String          @id @default(uuid()) @db.Uuid
+  entryType   LedgerEntryType @map("entry_type")
+  direction   LedgerDirection
+  amountKobo  BigInt          @map("amount_kobo")
+  currency    String          @default("NGN")
+  orderId     String?         @map("order_id") @db.Uuid
+  paymentId   String?         @map("payment_id") @db.Uuid
+  payoutId    String?         @map("payout_id") @db.Uuid
+  merchantId  String?         @map("merchant_id") @db.Uuid
+  userId      String?         @map("user_id") @db.Uuid
+  reference   String?
+  idempotencyKey String?       @unique @map("idempotency_key")
+  metadata    Json?           @default("{}")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  order       Order?          @relation(fields: [orderId], references: [id])
+  payment     Payment?        @relation(fields: [paymentId], references: [id])
+  payout      Payout?         @relation(fields: [payoutId], references: [id])
+
+  @@index([orderId])
+  @@index([paymentId])
+  @@index([payoutId])
+  @@index([merchantId])
+  @@index([userId])
+  @@index([entryType])
+  @@index([createdAt])
+  @@map("ledger_entries")
 }
 
 model PayoutRequest {
@@ -728,6 +780,27 @@ enum PaymentStatus {
   SUCCESS
   FAILED
   REFUNDED
+}
+
+enum LedgerEntryType {
+  CHECKOUT_CREATED
+  PAYMENT_INITIALIZED
+  PAYMENT_RECEIVED
+  PLATFORM_FEE_ASSESSED
+  ESCROW_HELD
+  PAYOUT_INITIATED
+  PAYOUT_FAILED
+  PAYOUT_COMPLETED
+  REFUND_INITIATED
+  REFUND_COMPLETED
+}
+
+enum LedgerDirection {
+  CREDIT
+  DEBIT
+  HOLD
+  RELEASE
+  INFO
 }
 
 enum PayoutRequestStatus {

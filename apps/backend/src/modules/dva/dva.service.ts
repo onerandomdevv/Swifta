@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
-import { PaystackClient } from "../payment/paystack.client";
+import { PaystackClient } from "../../integrations/paystack/paystack.client";
 
 @Injectable()
 export class DvaService {

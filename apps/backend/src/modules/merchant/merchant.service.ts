@@ -7,7 +7,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { UpdateMerchantDto } from "./dto/update-merchant.dto";
 import { UpdateBankAccountDto } from "./dto/update-bank-account.dto";
 import { UserRole, VerificationTier, maskNin } from "@twizrr/shared";
-import { PaystackClient } from "../payment/paystack.client";
+import { PaystackClient } from "../../integrations/paystack/paystack.client";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
 import { UpdatePreferencesDto } from "./dto/update-preferences.dto";
 

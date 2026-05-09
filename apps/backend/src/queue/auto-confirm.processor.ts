@@ -4,7 +4,7 @@ import { Injectable, Logger, Inject, forwardRef } from "@nestjs/common";
 import { AUTO_CONFIRM_QUEUE } from "./queue.constants";
 import { PrismaService } from "../prisma/prisma.service";
 import { PayoutService } from "../modules/payout/payout.service";
-import { WhatsAppService } from "../modules/whatsapp/whatsapp.service";
+import { WhatsAppService } from "../channels/whatsapp/whatsapp.service";
 import { OrderStatus } from "@twizrr/shared";
 import { PlatformConfig } from "../config/platform.config";
 

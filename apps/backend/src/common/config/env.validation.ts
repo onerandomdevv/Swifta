@@ -12,6 +12,7 @@ export const envValidationSchema = Joi.object({
   // Security & Auth
   JWT_ACCESS_SECRET: Joi.string().min(32).required(),
   JWT_REFRESH_SECRET: Joi.string().min(32).required(),
+  ONBOARDING_OTP_SECRET: Joi.string().min(32).optional(),
 
   // Payments (Paystack)
   PAYSTACK_SECRET_KEY: Joi.string().required(),
@@ -35,6 +36,8 @@ export const envValidationSchema = Joi.object({
   // AI & Vision
   GOOGLE_CLOUD_API_KEY: Joi.string().required(),
   GEMINI_API_KEY: Joi.string().required(),
+  GEMINI_MODEL: Joi.string().optional(),
+  GEMINI_VISION_MODEL: Joi.string().optional(),
 
   // WhatsApp
   WHATSAPP_BOT_NUMBER: Joi.string().required(),

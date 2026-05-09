@@ -11,24 +11,27 @@ import { ConfigService } from "@nestjs/config";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Queue } from "bullmq";
 import { PrismaService } from "../../prisma/prisma.service";
-import { PaystackClient } from "./paystack.client";
+import { PaystackClient } from "../../integrations/paystack/paystack.client";
 import { OrderService } from "../order/order.service";
 import { DvaService } from "../dva/dva.service";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
 import { InitializePaymentDto } from "./dto/initialize-payment.dto";
 import { RequestPayoutDto } from "./dto/request-payout.dto";
+import { LedgerService } from "../ledger/ledger.service";
 import {
   PaymentStatus,
   PaymentDirection,
   OrderStatus,
   UserRole,
 } from "@twizrr/shared";
+import { Prisma } from "@prisma/client";
 import * as crypto from "crypto";
 import { PAYOUT_QUEUE, LOGISTICS_QUEUE } from "../../queue/queue.constants";
 
 @Injectable()
 export class PaymentService {
   private readonly logger = new Logger(PaymentService.name);
+  private readonly paystackProvider = "paystack";
 
   constructor(
     private prisma: PrismaService,
@@ -39,8 +42,8 @@ export class PaymentService {
     private config: ConfigService,
     @InjectQueue(PAYOUT_QUEUE) private payoutQueue: Queue,
     @InjectQueue(LOGISTICS_QUEUE) private logisticsQueue: Queue,
-    @Inject(forwardRef(() => DvaService))
     private dvaService: DvaService,
+    private ledgerService: LedgerService,
   ) {}
 
   // ──────────────────────────────────────────────
@@ -160,6 +163,18 @@ export class PaymentService {
         },
       });
 
+      await this.ledgerService.recordPaymentInitialized(
+        {
+          paymentId: newPayment.id,
+          orderId: order.id,
+          buyerId,
+          merchantId: order.merchantId,
+          amountKobo: BigInt(totalKobo),
+          reference: paymentReference,
+        },
+        tx,
+      );
+
       return newPayment;
     });
 
@@ -179,6 +194,27 @@ export class PaymentService {
   async handleWebhook(payload: any) {
     const event = payload.event;
     this.logger.log(`Webhook received: ${event}`);
+    const webhookEvent = await this.startWebhookEvent(payload);
+
+    if (!webhookEvent.shouldProcess) {
+      this.logger.log(
+        `Duplicate Paystack webhook skipped: ${webhookEvent.eventId}`,
+      );
+      return { status: "duplicate" };
+    }
+
+    try {
+      const result = await this.dispatchPaystackWebhook(payload);
+      await this.markWebhookProcessed(webhookEvent.id);
+      return result;
+    } catch (error) {
+      await this.markWebhookFailed(webhookEvent.id, error);
+      throw error;
+    }
+  }
+
+  private async dispatchPaystackWebhook(payload: any) {
+    const event = payload.event;
 
     // ── CHARGE SUCCESS (buyer payment) ──
     if (event === "charge.success") {
@@ -206,6 +242,127 @@ export class PaymentService {
 
     this.logger.log(`Ignoring webhook event: ${event}`);
     return { status: "ignored" };
+  }
+
+  private getPaystackWebhookIdentity(payload: any): {
+    eventId: string;
+    eventType: string;
+    reference?: string;
+  } {
+    const eventType = payload?.event || "unknown";
+    const data = payload?.data || {};
+    const reference =
+      data.reference ||
+      data.transfer_code ||
+      data.customer?.customer_code ||
+      data.customer_code;
+    const providerEventId =
+      data.id ||
+      data.event_id ||
+      data.reference ||
+      data.transfer_code ||
+      data.customer?.customer_code ||
+      data.customer_code;
+    const eventId = providerEventId
+      ? `${eventType}:${providerEventId}`
+      : `${eventType}:${crypto
+          .createHash("sha256")
+          .update(JSON.stringify(payload))
+          .digest("hex")}`;
+
+    return {
+      eventId,
+      eventType,
+      reference: reference ? String(reference) : undefined,
+    };
+  }
+
+  private async startWebhookEvent(payload: any): Promise<{
+    id: string;
+    eventId: string;
+    shouldProcess: boolean;
+  }> {
+    const identity = this.getPaystackWebhookIdentity(payload);
+
+    try {
+      const created = await this.prisma.webhookEvent.create({
+        data: {
+          provider: this.paystackProvider,
+          eventId: identity.eventId,
+          eventType: identity.eventType,
+          reference: identity.reference,
+          payload,
+          status: "PROCESSING",
+        },
+      });
+
+      return {
+        id: created.id,
+        eventId: created.eventId,
+        shouldProcess: true,
+      };
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        const existing = await this.prisma.webhookEvent.findUnique({
+          where: {
+            provider_eventId: {
+              provider: this.paystackProvider,
+              eventId: identity.eventId,
+            },
+          },
+        });
+
+        if (existing?.status === "FAILED") {
+          const retry = await this.prisma.webhookEvent.update({
+            where: { id: existing.id },
+            data: {
+              status: "PROCESSING",
+              error: null,
+              retryCount: { increment: 1 },
+              payload,
+            },
+          });
+
+          return {
+            id: retry.id,
+            eventId: retry.eventId,
+            shouldProcess: true,
+          };
+        }
+
+        return {
+          id: existing?.id || "",
+          eventId: identity.eventId,
+          shouldProcess: false,
+        };
+      }
+
+      throw error;
+    }
+  }
+
+  private async markWebhookProcessed(id: string): Promise<void> {
+    await this.prisma.webhookEvent.update({
+      where: { id },
+      data: {
+        status: "PROCESSED",
+        processedAt: new Date(),
+        error: null,
+      },
+    });
+  }
+
+  private async markWebhookFailed(id: string, error: unknown): Promise<void> {
+    await this.prisma.webhookEvent.update({
+      where: { id },
+      data: {
+        status: "FAILED",
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
   }
 
   /**
@@ -240,6 +397,7 @@ export class PaymentService {
       this.logger.error(
         `Webhook processing failed for ${reference}: ${message}`,
       );
+      throw err;
     }
 
     return { status: "received" };
@@ -279,17 +437,33 @@ export class PaymentService {
     }
 
     if (event === "transfer.success") {
-      await this.prisma.payout.update({
-        where: { id: payout.id },
-        data: {
-          status: "COMPLETED",
-          completedAt: new Date(),
-        },
-      });
+      const wasCompleted = payout.status === "COMPLETED";
+      await this.prisma.$transaction(async (tx) => {
+        await tx.payout.update({
+          where: { id: payout.id },
+          data: {
+            status: "COMPLETED",
+            completedAt: new Date(),
+          },
+        });
 
-      await this.prisma.order.update({
-        where: { id: payout.orderId },
-        data: { payoutStatus: "COMPLETED" },
+        await tx.order.update({
+          where: { id: payout.orderId },
+          data: { payoutStatus: "COMPLETED" },
+        });
+
+        if (!wasCompleted) {
+          await this.ledgerService.recordPayoutCompleted(
+            {
+              payoutId: payout.id,
+              orderId: payout.orderId,
+              merchantId: payout.merchantId,
+              amountKobo: BigInt(payout.amountKobo),
+              reference: transferCode,
+            },
+            tx,
+          );
+        }
       });
 
       await this.notifications.triggerPayoutCompleted(payout.merchantId, {
@@ -299,17 +473,34 @@ export class PaymentService {
       });
     } else {
       // transfer.failed or transfer.reversed
-      await this.prisma.payout.update({
-        where: { id: payout.id },
-        data: {
-          status: "FAILED",
-          failureReason: payload.data?.reason || event,
-        },
-      });
+      const failureReason = payload.data?.reason || event;
+      const wasFailed = payout.status === "FAILED";
+      await this.prisma.$transaction(async (tx) => {
+        await tx.payout.update({
+          where: { id: payout.id },
+          data: {
+            status: "FAILED",
+            failureReason,
+          },
+        });
 
-      await this.prisma.order.update({
-        where: { id: payout.orderId },
-        data: { payoutStatus: "FAILED" },
+        await tx.order.update({
+          where: { id: payout.orderId },
+          data: { payoutStatus: "FAILED" },
+        });
+
+        if (!wasFailed) {
+          await this.ledgerService.recordPayoutFailed(
+            {
+              payoutId: payout.id,
+              orderId: payout.orderId,
+              merchantId: payout.merchantId,
+              amountKobo: BigInt(payout.amountKobo),
+              reason: failureReason,
+            },
+            tx,
+          );
+        }
       });
 
       await this.notifications.triggerPayoutFailed(payout.merchantId, {
@@ -411,6 +602,24 @@ export class PaymentService {
             },
           },
         });
+
+        await this.ledgerService.recordPaymentReceived(
+          {
+            paymentId: payment.id,
+            orderId: payment.orderId,
+            buyerId: payment.order.buyerId,
+            merchantId: payment.order.merchantId,
+            amountKobo: BigInt(payment.amountKobo),
+            platformFeeKobo:
+              payment.order.platformFeeKobo === null ||
+              payment.order.platformFeeKobo === undefined
+                ? null
+                : BigInt(payment.order.platformFeeKobo),
+            paymentMethod: payment.order.paymentMethod,
+            reference,
+          },
+          tx,
+        );
       });
 
       // Transition order via state machine (PENDING_PAYMENT → PAID)
@@ -618,13 +827,12 @@ export class PaymentService {
       _sum: { amountKobo: true },
     });
 
-    const grossOrders = BigInt(orders._sum.totalAmountKobo || 0);
-    const platformFees = BigInt(orders._sum.platformFeeKobo || 0);
-    const existingPayouts =
-      BigInt(payouts._sum.amountKobo || 0) +
-      BigInt(pendingRequests._sum.amountKobo || 0);
-
-    const availableBalance = grossOrders - platformFees - existingPayouts;
+    const availableBalance = this.ledgerService.calculateAvailableBalance({
+      grossOrdersKobo: BigInt(orders._sum.totalAmountKobo || 0),
+      platformFeesKobo: BigInt(orders._sum.platformFeeKobo || 0),
+      completedOrProcessingPayoutsKobo: BigInt(payouts._sum.amountKobo || 0),
+      pendingPayoutRequestsKobo: BigInt(pendingRequests._sum.amountKobo || 0),
+    });
 
     if (BigInt(dto.amount) > availableBalance) {
       throw new BadRequestException(

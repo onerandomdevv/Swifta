@@ -3,7 +3,7 @@ import { Job } from "bullmq";
 import { Injectable, Logger } from "@nestjs/common";
 import { CHECKOUT_REMINDER_QUEUE } from "./queue.constants";
 import { PrismaService } from "../prisma/prisma.service";
-import { WhatsAppService } from "../modules/whatsapp/whatsapp.service";
+import { WhatsAppService } from "../channels/whatsapp/whatsapp.service";
 import { OrderStatus } from "@twizrr/shared";
 
 @Injectable()

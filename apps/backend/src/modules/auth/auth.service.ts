@@ -9,7 +9,7 @@ import {
   forwardRef,
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
-import { JwtService } from "@nestjs/jwt";
+import { JwtService, type JwtSignOptions } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
 import { randomInt, randomBytes, createHash } from "crypto";
 import * as bcrypt from "bcrypt";
@@ -17,6 +17,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { RedisService } from "../../redis/redis.service";
 import { EmailService } from "../email/email.service";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
+import { SmsService } from "../notification/sms.service";
 import { RegisterDto } from "./dto/register.dto";
 import { PlatformConfig } from "../../config/platform.config";
 import { LoginDto } from "./dto/login.dto";
@@ -29,9 +30,8 @@ import { SendPhoneOtpDto } from "./dto/send-phone-otp.dto";
 import { VerifyPhoneOtpDto } from "./dto/verify-phone-otp.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
 import { TokenPair, JwtPayload } from "@twizrr/shared";
-import { WhatsAppService } from "../whatsapp/whatsapp.service";
-import { WHATSAPP_OTP_TEMPLATE } from "../whatsapp/whatsapp.constants";
-import AfricasTalking from "africastalking";
+import { WhatsAppService } from "../../channels/whatsapp/whatsapp.service";
+import { WHATSAPP_OTP_TEMPLATE } from "../../channels/whatsapp/whatsapp.constants";
 
 const SALT_ROUNDS = 10;
 const REFRESH_TOKEN_PREFIX = "refresh_token:";
@@ -69,7 +69,6 @@ function normalizePhone(phone: string): string {
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
-  private smsClient: any;
 
   constructor(
     private prisma: PrismaService,
@@ -78,18 +77,10 @@ export class AuthService {
     private redis: RedisService,
     private emailService: EmailService,
     private notificationTriggerService: NotificationTriggerService,
+    private smsService: SmsService,
     @Inject(forwardRef(() => WhatsAppService))
     private whatsappService: WhatsAppService,
-  ) {
-    const atConfig = {
-      apiKey: this.configService.get<string>("africastalking.apiKey"),
-      username: this.configService.get<string>("africastalking.username"),
-    };
-    if (atConfig.apiKey && atConfig.username) {
-      const africastalkingClient = AfricasTalking(atConfig);
-      this.smsClient = africastalkingClient.SMS;
-    }
-  }
+  ) {}
 
   async register(dto: RegisterDto): Promise<TokenPair & { user: any }> {
     const normalizedPhone = normalizePhone(dto.phone);
@@ -596,12 +587,16 @@ export class AuthService {
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>("jwt.accessSecret"),
-        expiresIn: this.configService.get<string>("jwt.accessTtl"),
+        secret: this.configService.getOrThrow<string>("jwt.accessSecret"),
+        expiresIn: this.configService.getOrThrow<string>(
+          "jwt.accessTtl",
+        ) as JwtSignOptions["expiresIn"],
       }),
       this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>("jwt.refreshSecret"),
-        expiresIn: this.configService.get<string>("jwt.refreshTtl"),
+        secret: this.configService.getOrThrow<string>("jwt.refreshSecret"),
+        expiresIn: this.configService.getOrThrow<string>(
+          "jwt.refreshTtl",
+        ) as JwtSignOptions["expiresIn"],
       }),
     ]);
 
@@ -712,17 +707,10 @@ export class AuthService {
       );
 
       try {
-        if (this.smsClient) {
-          await this.smsClient.send({
-            to: [phone],
-            message: `Your twizrr verification code is ${otp}. It expires in 5 minutes.`,
-            from: this.configService.get<string>("africastalking.senderId"),
-          });
-        } else {
-          this.logger.warn(
-            "AfricasTalking SMS client not configured. OTP generated but not sent.",
-          );
-        }
+        await this.smsService.sendSms(
+          phone,
+          `Your twizrr verification code is ${otp}. It expires in 5 minutes.`,
+        );
       } catch (smsError) {
         this.logger.error("Failed to send SMS via AfricasTalking", smsError);
       }

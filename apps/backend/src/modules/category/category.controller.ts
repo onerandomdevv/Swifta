@@ -33,14 +33,14 @@ export class CategoryController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN)
   create(@Body() dto: CreateCategoryDto) {
     return this.categoryService.create(dto);
   }
 
   @Put(":id")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN)
   update(
     @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: UpdateCategoryDto,
@@ -50,7 +50,7 @@ export class CategoryController {
 
   @Delete(":id")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN)
   remove(@Param("id", ParseUUIDPipe) id: string) {
     return this.categoryService.remove(id);
   }

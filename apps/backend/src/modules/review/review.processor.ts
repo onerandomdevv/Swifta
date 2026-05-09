@@ -2,7 +2,7 @@ import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
 import { Job } from "bullmq";
 import { ReviewService } from "./review.service";
-import { WhatsAppService } from "../whatsapp/whatsapp.service";
+import { WhatsAppService } from "../../channels/whatsapp/whatsapp.service";
 import { REVIEW_QUEUE } from "../../queue/queue.constants";
 import { PrismaService } from "../../prisma/prisma.service";
 

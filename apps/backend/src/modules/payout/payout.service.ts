@@ -1,8 +1,9 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
-import { PaystackClient } from "../payment/paystack.client";
+import { PaystackClient } from "../../integrations/paystack/paystack.client";
 import { ConfigService } from "@nestjs/config";
 import { NotificationTriggerService } from "../notification/notification-trigger.service";
+import { LedgerService } from "../ledger/ledger.service";
 
 @Injectable()
 export class PayoutService {
@@ -13,6 +14,7 @@ export class PayoutService {
     private readonly paystack: PaystackClient,
     private readonly config: ConfigService,
     private readonly notifications: NotificationTriggerService,
+    private readonly ledgerService: LedgerService,
   ) {}
 
   async initiatePayout(orderId: string) {
@@ -49,48 +51,64 @@ export class PayoutService {
       return;
     }
 
-    // Determine gross amount and platform fee
-    const grossAmountKobo = BigInt(order.totalAmountKobo);
-
-    // Use saved platform fee directly from the order with legacy fallback
-    let platformFeeKoboCount = 0n;
-    if (order.platformFeeKobo === null || order.platformFeeKobo === undefined) {
-      this.logger.warn(
-        `Missing platformFeeKobo on order ${orderId}. Defaulting to 0 for legacy order payout.`,
-      );
-      platformFeeKoboCount = 0n;
-    } else {
-      platformFeeKoboCount = BigInt(order.platformFeeKobo);
-    }
-
-    const payoutAmountKobo = grossAmountKobo - platformFeeKoboCount;
+    const payoutBreakdown = this.ledgerService.calculateOrderPayout(order);
+    const platformFeeKobo = payoutBreakdown.platformFeeKobo;
+    const payoutAmountKobo = payoutBreakdown.payoutAmountKobo;
 
     if (!merchant.paystackRecipientCode) {
       this.logger.error(
         `Merchant ${merchant.id} has no registered bank account / recipient code.`,
       );
-      await this.prisma.payout.create({
-        data: {
-          orderId,
-          merchantId: merchant.id,
-          amountKobo: payoutAmountKobo,
-          platformFeeKobo: platformFeeKoboCount,
-          status: "FAILED",
-          failureReason: "Merchant has no registered bank account",
-        },
+      await this.prisma.$transaction(async (tx) => {
+        const failedPayout = await tx.payout.create({
+          data: {
+            orderId,
+            merchantId: merchant.id,
+            amountKobo: payoutAmountKobo,
+            platformFeeKobo,
+            status: "FAILED",
+            failureReason: "Merchant has no registered bank account",
+          },
+        });
+
+        await this.ledgerService.recordPayoutFailed(
+          {
+            payoutId: failedPayout.id,
+            orderId,
+            merchantId: merchant.id,
+            amountKobo: payoutAmountKobo,
+            reason: "Merchant has no registered bank account",
+          },
+          tx,
+        );
       });
       return;
     }
 
-    const payout = await this.prisma.payout.create({
-      data: {
-        orderId,
-        merchantId: merchant.id,
-        amountKobo: payoutAmountKobo,
-        platformFeeKobo: platformFeeKoboCount,
-        status: "PROCESSING",
-        initiatedAt: new Date(),
-      },
+    const payout = await this.prisma.$transaction(async (tx) => {
+      const createdPayout = await tx.payout.create({
+        data: {
+          orderId,
+          merchantId: merchant.id,
+          amountKobo: payoutAmountKobo,
+          platformFeeKobo,
+          status: "PROCESSING",
+          initiatedAt: new Date(),
+        },
+      });
+
+      await this.ledgerService.recordPayoutInitiated(
+        {
+          payoutId: createdPayout.id,
+          orderId,
+          merchantId: merchant.id,
+          amountKobo: payoutAmountKobo,
+          platformFeeKobo,
+        },
+        tx,
+      );
+
+      return createdPayout;
     });
 
     try {
@@ -124,12 +142,25 @@ export class PayoutService {
       this.logger.error(
         `Paystack Transfer Failed for Order ${orderId}: ${error.message}`,
       );
-      await this.prisma.payout.update({
-        where: { id: payout.id },
-        data: {
-          status: "FAILED",
-          failureReason: error.message,
-        },
+      await this.prisma.$transaction(async (tx) => {
+        await tx.payout.update({
+          where: { id: payout.id },
+          data: {
+            status: "FAILED",
+            failureReason: error.message,
+          },
+        });
+
+        await this.ledgerService.recordPayoutFailed(
+          {
+            payoutId: payout.id,
+            orderId,
+            merchantId: merchant.id,
+            amountKobo: payoutAmountKobo,
+            reason: error.message,
+          },
+          tx,
+        );
       });
     }
   }

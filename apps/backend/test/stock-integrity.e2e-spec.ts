@@ -1,7 +1,7 @@
 import request from "supertest";
 import { TestSetup } from "./helpers/test-setup";
 import { OrderStatus } from "@prisma/client";
-import { PaystackClient } from "../src/modules/payment/paystack.client";
+import { PaystackClient } from "../src/integrations/paystack/paystack.client";
 import { PaymentService } from "../src/modules/payment/payment.service";
 
 describe("Stock Integrity (e2e)", () => {
