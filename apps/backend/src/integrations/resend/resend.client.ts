@@ -17,7 +17,7 @@ export class ResendClient {
     this.resend = new Resend(apiKey);
     this.fromEmail =
       this.configService.get<string>("resend.fromEmail") ||
-      "onboarding@resend.dev";
+      "no-reply@twizrr.com";
   }
 
   async sendEmail(

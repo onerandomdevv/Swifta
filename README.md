@@ -193,12 +193,17 @@ pnpm install
 docker-compose up -d
 ```
 
-Create the required environment files for the backend and web apps. Backend keys include database, Redis, JWT, Paystack, Cloudinary, Resend, Africa's Talking, Gemini, Google Vision, and WhatsApp provider values.
+Create the required environment files:
+
+- Copy `apps/backend/.env.example` to `apps/backend/.env`.
+- Copy `apps/web/.env.example` to `apps/web/.env.local`.
+
+Backend values must include `DATABASE_URL`, `DIRECT_URL`, `REDIS_URL`, JWT secrets, `ONBOARDING_OTP_SECRET`, Paystack keys, Cloudinary keys, `RESEND_API_KEY`, Africa's Talking keys, Gemini/Google Vision keys, and WhatsApp provider keys.
 
 ```bash
 cd apps/backend
-npx prisma migrate dev
-npx prisma db seed
+pnpm exec prisma migrate dev
+pnpm exec prisma db seed
 cd ../..
 ```
 

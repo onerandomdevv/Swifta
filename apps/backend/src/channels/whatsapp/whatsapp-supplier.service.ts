@@ -546,19 +546,16 @@ export class WhatsAppSupplierService {
   // =======================================================================
   private async sendWhatsAppMessage(to: string, text: string): Promise<void> {
     try {
-      await this.metaWhatsAppClient.sendMessage(
-        {
-          messaging_product: "whatsapp",
-          recipient_type: "individual",
-          to,
-          type: "text",
-          text: {
-            preview_url: false,
-            body: text,
-          },
+      await this.metaWhatsAppClient.sendMessage({
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to,
+        type: "text",
+        text: {
+          preview_url: false,
+          body: text,
         },
-        { throwOnError: false },
-      );
+      });
     } catch (error) {
       this.logger.error(
         `Fetch error sending WhatsApp message: ${error instanceof Error ? error.message : error}`,

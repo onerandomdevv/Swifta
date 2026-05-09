@@ -1326,9 +1326,7 @@ export class WhatsAppBuyerService {
 
   async sendWhatsAppMessage(phone: string, text: string): Promise<void> {
     try {
-      await this.metaWhatsAppClient.sendTextMessage(phone, text, {
-        throwOnError: false,
-      });
+      await this.metaWhatsAppClient.sendTextMessage(phone, text);
     } catch (error) {
       this.logger.error("Failed to send WhatsApp message", error);
     }

@@ -89,10 +89,7 @@ function sanitizeRedisUrl(url: string | undefined): string | undefined {
             port: parseInt(parsedUrl.port, 10) || 6379,
             password: parsedUrl.password || undefined,
             username: parsedUrl.username || undefined,
-            tls:
-              parsedUrl.protocol === "rediss:"
-                ? { rejectUnauthorized: false }
-                : undefined,
+            tls: parsedUrl.protocol === "rediss:" ? {} : undefined,
             family: 0,
             ttl: 60 * 1000,
             enableReadyCheck: false,

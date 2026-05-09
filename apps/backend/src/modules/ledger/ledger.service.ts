@@ -146,6 +146,8 @@ export class LedgerService {
         case LedgerEntryType.REFUND_INITIATED:
         case LedgerEntryType.REFUND_COMPLETED:
           return total - BigInt(entry.amountKobo);
+        case LedgerEntryType.PAYOUT_FAILED:
+          return total + BigInt(entry.amountKobo);
         default:
           return total;
       }
@@ -349,7 +351,7 @@ export class LedgerService {
     return this.recordEntry(
       {
         entryType: LedgerEntryType.PAYOUT_FAILED,
-        direction: LedgerDirection.INFO,
+        direction: LedgerDirection.CREDIT,
         amountKobo: input.amountKobo,
         orderId: input.orderId,
         payoutId: input.payoutId,

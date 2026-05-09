@@ -666,14 +666,23 @@ export class PaymentService {
         // Clear cart items for the products in this order
         const orderItems = payment.order.items as any[];
         if (Array.isArray(orderItems) && orderItems.length > 0) {
-          const productIds = orderItems
-            .map((item: any) => item.productId)
-            .filter(Boolean);
-          if (productIds.length > 0) {
+          const cartItemFilters = orderItems.reduce<
+            Prisma.CartItemWhereInput[]
+          >((filters, item: any) => {
+            if (item.productId && item.priceType) {
+              filters.push({
+                productId: item.productId,
+                priceType: item.priceType,
+              });
+            }
+            return filters;
+          }, []);
+
+          if (cartItemFilters.length > 0) {
             const deleted = await this.prisma.cartItem.deleteMany({
               where: {
                 buyerId: payment.order.buyerId,
-                productId: { in: productIds },
+                OR: cartItemFilters,
               },
             });
             this.logger.log(

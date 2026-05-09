@@ -34,8 +34,13 @@ export class WhatsAppOnboardingService {
     private configService: ConfigService,
     private paystackClient: PaystackClient,
   ) {
-    this.otpHashSecret =
-      this.configService.get<string>("app.onboardingOtpSecret") || "";
+    const otpHashSecret = this.configService.get<string>(
+      "app.onboardingOtpSecret",
+    );
+    if (!otpHashSecret) {
+      throw new Error("app.onboardingOtpSecret is required");
+    }
+    this.otpHashSecret = otpHashSecret;
   }
 
   private maskIdentifier(identifier: string): string {

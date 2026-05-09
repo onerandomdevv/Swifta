@@ -24,6 +24,7 @@ import {
 } from "./whatsapp.constants";
 import { OrderStatus, VerificationTier } from "@twizrr/shared";
 import { MetaWhatsAppClient } from "../../integrations/meta-whatsapp/meta-whatsapp.client";
+import { CloudinaryClient } from "../../integrations/cloudinary/cloudinary.client";
 
 function maskPhone(phone: string): string {
   if (!phone) return "unknown";
@@ -64,6 +65,7 @@ export class WhatsAppService {
     private redisService: RedisService,
     private interactiveService: WhatsAppInteractiveService,
     private metaWhatsAppClient: MetaWhatsAppClient,
+    private cloudinaryClient: CloudinaryClient,
   ) {}
 
   // =======================================================================
@@ -1475,9 +1477,7 @@ export class WhatsAppService {
   // =======================================================================
   async sendWhatsAppMessage(phone: string, text: string): Promise<void> {
     try {
-      await this.metaWhatsAppClient.sendTextMessage(phone, text, {
-        throwOnError: false,
-      });
+      await this.metaWhatsAppClient.sendTextMessage(phone, text);
     } catch (error) {
       this.logger.error(
         `Failed to send WhatsApp message to ${maskPhone(phone)}: ${error instanceof Error ? error.message : error}`,
@@ -2099,8 +2099,14 @@ export class WhatsAppService {
         if (messageText?.toLowerCase() === "skip") {
           data.imageUrl = null;
         } else if (imageId) {
-          // Simplified placeholder logic
-          data.imageUrl = this.metaWhatsAppClient.getMediaGraphUrl(imageId);
+          data.imageUrl = await this.uploadWhatsAppProductImage(imageId);
+          if (!data.imageUrl) {
+            await this.interactiveService.sendTextMessage(
+              phone,
+              "I couldn't save that photo. Please send the product image again or reply 'skip'.",
+            );
+            return;
+          }
         } else if (!messageText) {
           await this.interactiveService.sendTextMessage(
             phone,
@@ -2192,5 +2198,18 @@ export class WhatsAppService {
       );
       await this.redisService.del(sessionKey);
     }
+  }
+
+  private async uploadWhatsAppProductImage(
+    imageId: string,
+  ): Promise<string | null> {
+    const image = await this.metaWhatsAppClient.downloadImage(imageId);
+    if (!image) return null;
+
+    return this.cloudinaryClient.uploadBuffer(
+      Buffer.from(image.base64Data, "base64"),
+      "twizrr/whatsapp-products",
+      "product",
+    );
   }
 }

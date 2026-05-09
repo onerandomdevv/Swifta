@@ -2,5 +2,5 @@ import { registerAs } from "@nestjs/config";
 
 export default registerAs("resend", () => ({
   apiKey: process.env.RESEND_API_KEY,
-  fromEmail: process.env.EMAIL_FROM || "onboarding@resend.dev",
+  fromEmail: process.env.EMAIL_FROM,
 }));
