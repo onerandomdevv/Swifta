@@ -22,7 +22,7 @@ jobs:
     environment: ${{ github.ref_name == 'main' && 'production' || 'development' }}
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL || secrets.NEON_DATABASE_URL }}
-      DIRECT_URL: ${{ secrets.DIRECT_URL || secrets.NEON_DIRECT_URL || secrets.DATABASE_URL || secrets.NEON_DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.DIRECT_URL || secrets.NEON_DIRECT_URL }}
 
     steps:
       - name: Checkout
@@ -45,6 +45,10 @@ jobs:
         run: |
           if [ -z "$DATABASE_URL" ]; then
             echo "DATABASE_URL or NEON_DATABASE_URL secret is required."
+            exit 1
+          fi
+          if [ -z "$DIRECT_URL" ]; then
+            echo "DIRECT_URL or NEON_DIRECT_URL secret is required for migrations."
             exit 1
           fi
 
