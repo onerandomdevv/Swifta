@@ -6,9 +6,6 @@ on:
     paths:
       - "apps/backend/prisma/**"
       - "apps/backend/prisma.config.ts"
-      - "apps/backend/package.json"
-      - "pnpm-lock.yaml"
-      - ".github/workflows/prisma-migrate.yml"
   workflow_dispatch:
 
 concurrency:
