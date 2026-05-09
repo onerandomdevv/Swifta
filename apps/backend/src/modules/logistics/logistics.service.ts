@@ -10,7 +10,7 @@ import {
 import { PrismaService } from "../../prisma/prisma.service";
 import type { LogisticsClient } from "./clients/logistics.client";
 import { DeliveryStatus, OrderStatus, UserRole } from "@prisma/client";
-import { WhatsAppService } from "../whatsapp/whatsapp.service";
+import { WhatsAppService } from "../../channels/whatsapp/whatsapp.service";
 
 @Injectable()
 export class LogisticsService {

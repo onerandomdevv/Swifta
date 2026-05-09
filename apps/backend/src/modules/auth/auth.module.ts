@@ -16,7 +16,7 @@ import { RedisModule } from "../../redis/redis.module";
 import { AdminModule } from "../admin/admin.module";
 import { NotificationModule } from "../notification/notification.module";
 import { EmailModule } from "../email/email.module";
-import { WhatsAppModule } from "../whatsapp/whatsapp.module";
+import { WhatsAppModule } from "../../channels/whatsapp/whatsapp.module";
 
 type JwtExpiresIn = NonNullable<JwtSignOptions["expiresIn"]>;
 

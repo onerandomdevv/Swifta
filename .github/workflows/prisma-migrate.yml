@@ -1,0 +1,59 @@
+name: Prisma Migrate Deploy
+
+on:
+  push:
+    branches: [dev, main]
+    paths:
+      - "apps/backend/prisma/**"
+      - "apps/backend/prisma.config.ts"
+      - "apps/backend/package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/prisma-migrate.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: prisma-migrate-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Apply Prisma migrations
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'production' || 'development' }}
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL || secrets.NEON_DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.DIRECT_URL || secrets.NEON_DIRECT_URL }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Validate database secrets
+        shell: bash
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL or NEON_DATABASE_URL secret is required."
+            exit 1
+          fi
+          if [ -z "$DIRECT_URL" ]; then
+            echo "DIRECT_URL or NEON_DIRECT_URL secret is required for migrations."
+            exit 1
+          fi
+
+      - name: Apply migrations
+        run: pnpm --filter @twizrr/backend exec prisma migrate deploy --schema=prisma/schema.prisma
+
+      - name: Verify migration status
+        run: pnpm --filter @twizrr/backend exec prisma migrate status --schema=prisma/schema.prisma

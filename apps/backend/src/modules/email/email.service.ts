@@ -1,20 +1,16 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { Resend } from "resend";
 import { PlatformConfig } from "../../config/platform.config";
+import { ResendClient } from "../../integrations/resend/resend.client";
 
 @Injectable()
 export class EmailService {
-  private resend: Resend;
   private readonly logger = new Logger(EmailService.name);
-  private fromEmail: string;
 
-  constructor(private configService: ConfigService) {
-    const apiKey = this.configService.get<string>("RESEND_API_KEY");
-    this.resend = new Resend(apiKey);
-    this.fromEmail =
-      this.configService.get<string>("EMAIL_FROM") || "onboarding@resend.dev";
-  }
+  constructor(
+    private configService: ConfigService,
+    private resendClient: ResendClient,
+  ) {}
 
   /**
    * Core send method wrapped in try/catch to ensure email failures never break the flow
@@ -23,21 +19,9 @@ export class EmailService {
     try {
       this.logger.log(`Sending email to ${to}: ${subject}`);
 
-      const { data, error } = await this.resend.emails.send({
-        from: `twizrr <${this.fromEmail}>`,
-        to: [to],
-        subject: `twizrr | ${subject}`,
-        html,
-      });
+      const messageId = await this.resendClient.sendEmail(to, subject, html);
 
-      if (error) {
-        this.logger.error(
-          `Resend API Error: ${error.message} (to: ${to}, subject: ${subject})`,
-        );
-        throw new Error(`Resend API Error: ${error.message}`);
-      }
-
-      this.logger.log(`Email sent successfully: ${data?.id}`);
+      this.logger.log(`Email sent successfully: ${messageId}`);
     } catch (err: any) {
       this.logger.error(
         `Critical error in EmailService.sendEmail: ${err.message}`,

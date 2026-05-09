@@ -94,6 +94,9 @@ export const PlatformConfig = {
     }
     return this.fees.escrowPercent;
   },
+  canUseDirectPayment(tier: string | null | undefined): boolean {
+    return tier === "TIER_2" || tier === "TIER_3";
+  },
   calculateFeeKobo(
     subtotalKobo: bigint,
     tier: string,

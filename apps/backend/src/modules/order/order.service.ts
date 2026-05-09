@@ -20,7 +20,7 @@ import {
   REVIEW_QUEUE,
   CHECKOUT_REMINDER_QUEUE,
 } from "../../queue/queue.constants";
-import { WhatsAppService } from "../whatsapp/whatsapp.service";
+import { WhatsAppService } from "../../channels/whatsapp/whatsapp.service";
 import {
   InventoryEventType,
   Order,
@@ -38,7 +38,7 @@ import { CreateTrackingDto } from "./dto/create-tracking.dto";
 import { CheckoutCartDto } from "./dto/checkout-cart.dto";
 
 import { PayoutService } from "../payout/payout.service";
-import { PlatformConfig } from "../../config/platform.config";
+import { LedgerService } from "../ledger/ledger.service";
 
 @Injectable()
 export class OrderService {
@@ -60,6 +60,7 @@ export class OrderService {
     @Inject(forwardRef(() => WhatsAppService))
     private whatsappService: WhatsAppService,
     private payoutService: PayoutService,
+    private ledgerService: LedgerService,
   ) {}
 
   // ──────────────────────────────────────────────
@@ -124,20 +125,7 @@ export class OrderService {
 
     // Determine payment method based on merchant verification tier
     const merchantTier = product.merchantProfile?.verificationTier;
-    const isTier2Or3 = merchantTier === "TIER_2" || merchantTier === "TIER_3";
-    const paymentMethod =
-      requestedMethod === "DIRECT" && isTier2Or3 ? "DIRECT" : "ESCROW";
-
     const subtotalKobo = BigInt(resolvedPriceKobo) * BigInt(quantity);
-    const platformFeePercent = PlatformConfig.getPlatformFeePercent(
-      merchantTier,
-      paymentMethod,
-    );
-    const platformFeeKobo = PlatformConfig.calculateFeeKobo(
-      subtotalKobo,
-      merchantTier,
-      paymentMethod,
-    );
 
     let calculatedDeliveryFeeKobo = 0n;
     if (
@@ -155,9 +143,13 @@ export class OrderService {
       calculatedDeliveryFeeKobo = BigInt(quote.costKobo);
     }
 
-    // Add delivery fee logic
-    const totalKobo =
-      subtotalKobo + platformFeeKobo + calculatedDeliveryFeeKobo;
+    const totals = this.ledgerService.calculateCheckoutTotals({
+      subtotalKobo,
+      deliveryFeeKobo: calculatedDeliveryFeeKobo,
+      merchantTier,
+      requestedPaymentMethod: requestedMethod,
+    });
+    const paymentMethod = totals.paymentMethod;
 
     const idempotencyKey =
       dto.idempotencyKey ||
@@ -207,14 +199,14 @@ export class OrderService {
             unitPriceKobo: resolvedPriceKobo,
             deliveryAddress,
             deliveryDetails: deliveryDetails ? (deliveryDetails as any) : null,
-            totalAmountKobo: totalKobo,
-            deliveryFeeKobo: calculatedDeliveryFeeKobo,
+            totalAmountKobo: totals.totalAmountKobo,
+            deliveryFeeKobo: totals.deliveryFeeKobo,
             currency: "NGN",
             status: OrderStatus.PENDING_PAYMENT,
             paymentMethod,
             deliveryMethod,
-            platformFeeKobo,
-            platformFeePercent,
+            platformFeeKobo: totals.platformFeeKobo,
+            platformFeePercent: totals.platformFeePercent,
             quoteId: null,
             idempotencyKey,
             payoutStatus: "PENDING",
@@ -246,6 +238,17 @@ export class OrderService {
           },
         },
       });
+
+      await this.ledgerService.recordCheckoutCreated(
+        {
+          orderId: newOrder.id,
+          buyerId,
+          merchantId: product.merchantId,
+          totals,
+          idempotencyKey,
+        },
+        tx,
+      );
 
       return newOrder;
     });
@@ -288,7 +291,11 @@ export class OrderService {
     await this.checkoutReminderQueue.add(
       "send-checkout-reminder",
       { orderId: order.id },
-      { delay: 60 * 60 * 1000 },
+      {
+        delay: 60 * 60 * 1000,
+        jobId: `checkout-reminder-${order.id}`,
+        removeOnComplete: true,
+      },
     );
 
     // Call payment service to get the authorization URL dynamically
@@ -301,8 +308,8 @@ export class OrderService {
     return {
       orderId: order.id,
       authorizationUrl: paymentData.authorization_url,
-      totalAmountKobo: Number(totalKobo), // For notifications/events, cast back to number
-      platformFeeKobo,
+      totalAmountKobo: Number(totals.totalAmountKobo), // For notifications/events, cast back to number
+      platformFeeKobo: totals.platformFeeKobo,
       paymentMethod,
     };
   }
@@ -431,21 +438,6 @@ export class OrderService {
 
     // Determine payment method and platform fee
     const merchantTier = merchantProfile.verificationTier;
-    const isTier2Or3 = merchantTier === "TIER_2" || merchantTier === "TIER_3";
-    const paymentMethod =
-      requestedMethod === "DIRECT" && isTier2Or3 ? "DIRECT" : "ESCROW";
-
-    // Dynamic platform fee based on config/tier
-    const platformFeePercentage = PlatformConfig.getPlatformFeePercent(
-      merchantTier,
-      paymentMethod,
-    );
-    const platformFeeKobo = PlatformConfig.calculateFeeKobo(
-      subtotalKobo,
-      merchantTier,
-      paymentMethod,
-    );
-
     let calculatedDeliveryFeeKobo = 0n;
     if (
       deliveryMethod === "PLATFORM_LOGISTICS" &&
@@ -462,8 +454,14 @@ export class OrderService {
       calculatedDeliveryFeeKobo = BigInt(quote.costKobo);
     }
 
-    const totalKobo =
-      subtotalKobo + platformFeeKobo + calculatedDeliveryFeeKobo;
+    const totals = this.ledgerService.calculateCheckoutTotals({
+      subtotalKobo,
+      deliveryFeeKobo: calculatedDeliveryFeeKobo,
+      merchantTier,
+      requestedPaymentMethod: requestedMethod,
+    });
+    const paymentMethod = totals.paymentMethod;
+
     const idempotencyKey =
       dto.idempotencyKey ||
       this.generateDeterministicKey("cart", buyerId, {
@@ -512,14 +510,14 @@ export class OrderService {
             merchantId,
             deliveryAddress,
             deliveryDetails: deliveryDetails ? (deliveryDetails as any) : null,
-            totalAmountKobo: totalKobo,
-            deliveryFeeKobo: calculatedDeliveryFeeKobo,
+            totalAmountKobo: totals.totalAmountKobo,
+            deliveryFeeKobo: totals.deliveryFeeKobo,
             currency: "NGN",
             status: OrderStatus.PENDING_PAYMENT,
             paymentMethod,
             deliveryMethod: deliveryMethod as any,
-            platformFeeKobo,
-            platformFeePercent: platformFeePercentage,
+            platformFeeKobo: totals.platformFeeKobo,
+            platformFeePercent: totals.platformFeePercent,
             items: jsonItems,
             quoteId: null,
             idempotencyKey,
@@ -547,6 +545,17 @@ export class OrderService {
         },
       });
 
+      await this.ledgerService.recordCheckoutCreated(
+        {
+          orderId: newOrder.id,
+          buyerId,
+          merchantId,
+          totals,
+          idempotencyKey,
+        },
+        tx,
+      );
+
       // 4. NOTE: Cart items are NOT cleared here anymore.
       // They will be cleared in the webhook handler after payment succeeds.
       // This prevents data loss when buyers abandon payment.
@@ -557,7 +566,11 @@ export class OrderService {
     await this.checkoutReminderQueue.add(
       "send-checkout-reminder",
       { orderId: order.id },
-      { delay: 60 * 60 * 1000 },
+      {
+        delay: 60 * 60 * 1000,
+        jobId: `checkout-reminder-${order.id}`,
+        removeOnComplete: true,
+      },
     );
 
     // Generate Payment Link
@@ -570,8 +583,8 @@ export class OrderService {
     return {
       orderId: order.id,
       authorizationUrl: paymentData.authorization_url,
-      totalAmountKobo: Number(totalKobo),
-      platformFeeKobo: Number(platformFeeKobo),
+      totalAmountKobo: Number(totals.totalAmountKobo),
+      platformFeeKobo: Number(totals.platformFeeKobo),
       paymentMethod,
     };
   }

@@ -4,7 +4,7 @@ import { LogisticsController } from "./logistics.controller";
 import { LogisticsService } from "./logistics.service";
 import { MockLogisticsClient } from "./clients/logistics.client";
 import { PrismaModule } from "../../prisma/prisma.module";
-import { WhatsAppModule } from "../whatsapp/whatsapp.module";
+import { WhatsAppModule } from "../../channels/whatsapp/whatsapp.module";
 import { LogisticsProcessor } from "../../queue/logistics.processor";
 import { LOGISTICS_QUEUE } from "../../queue/queue.constants";
 

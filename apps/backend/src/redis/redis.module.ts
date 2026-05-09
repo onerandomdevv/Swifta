@@ -42,7 +42,7 @@ function sanitizeRedisUrl(url: string | undefined): string | undefined {
           const isTls = urlString.startsWith("rediss://");
 
           return new Redis(urlString, {
-            tls: isTls ? { rejectUnauthorized: false } : undefined,
+            tls: isTls ? {} : undefined,
             family: 0,
             maxRetriesPerRequest: null,
             enableReadyCheck: false, // Required for Upstash compatibility

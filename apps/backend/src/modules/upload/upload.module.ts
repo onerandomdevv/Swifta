@@ -3,9 +3,11 @@ import { UploadController } from "./upload.controller";
 import { UploadService } from "./upload.service";
 import { MulterModule } from "@nestjs/platform-express";
 import { memoryStorage } from "multer";
+import { CloudinaryModule } from "../../integrations/cloudinary/cloudinary.module";
 
 @Module({
   imports: [
+    CloudinaryModule,
     MulterModule.register({
       storage: memoryStorage(),
       limits: {
