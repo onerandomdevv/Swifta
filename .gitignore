@@ -39,4 +39,10 @@ coverage/
 # Confidential Documentation
 ENGINEERING_AUDIT_REPORT.md
 HARDWARE_OS_Backend_Fullstack_Guide.md
+
+# AI assistant local files — do not commit
 CLAUDE.md
+GEMINI.md
+.cursorrules
+PROMPTS.md
+DESIGN.md

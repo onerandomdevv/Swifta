@@ -8,7 +8,7 @@ NestJS modular monolith API server for twizrr.
 
 - **NestJS** (Express adapter) — framework
 - **Prisma** — ORM and migrations
-- **PostgreSQL 16** — database (Supabase-managed in prod)
+- **PostgreSQL 17** — database (Neon-hosted in prod)
 - **Redis 7** — sessions + job queue
 - **BullMQ** — async background jobs
 - **Paystack** — payment processing

@@ -9,7 +9,7 @@ import {
   forwardRef,
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
-import { JwtService } from "@nestjs/jwt";
+import { JwtService, type JwtSignOptions } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
 import { randomInt, randomBytes, createHash } from "crypto";
 import * as bcrypt from "bcrypt";
@@ -36,6 +36,11 @@ import AfricasTalking from "africastalking";
 const SALT_ROUNDS = 10;
 const REFRESH_TOKEN_PREFIX = "refresh_token:";
 const REFRESH_TOKEN_TTL = 7 * 24 * 60 * 60; // 7 days in seconds
+
+type JwtExpiresIn = NonNullable<JwtSignOptions["expiresIn"]>;
+
+const jwtTtl = (configService: ConfigService, key: string): JwtExpiresIn =>
+  configService.getOrThrow<string>(key) as JwtExpiresIn;
 
 const EMAIL_OTP_PREFIX = "email_otp:";
 const EMAIL_OTP_TTL = PlatformConfig.timers.otpExpiryEmailMinutes * 60; // Convert minutes to seconds
@@ -596,12 +601,12 @@ export class AuthService {
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>("jwt.accessSecret"),
-        expiresIn: this.configService.get<string>("jwt.accessTtl"),
+        secret: this.configService.getOrThrow<string>("jwt.accessSecret"),
+        expiresIn: jwtTtl(this.configService, "jwt.accessTtl"),
       }),
       this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>("jwt.refreshSecret"),
-        expiresIn: this.configService.get<string>("jwt.refreshTtl"),
+        secret: this.configService.getOrThrow<string>("jwt.refreshSecret"),
+        expiresIn: jwtTtl(this.configService, "jwt.refreshTtl"),
       }),
     ]);
 

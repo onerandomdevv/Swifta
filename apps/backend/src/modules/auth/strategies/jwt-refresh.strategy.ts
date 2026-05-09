@@ -31,7 +31,7 @@ export class JwtRefreshStrategy extends PassportStrategy(
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([cookieExtractor]),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>("jwt.refreshSecret"),
+      secretOrKey: configService.getOrThrow<string>("jwt.refreshSecret"),
     });
   }
 

@@ -65,7 +65,7 @@ Buyers can do everything through the twizrr WhatsApp AI assistant:
 
 **Verified Merchants** — Tiered verification system (Unverified → Basic → Verified → Trusted) with document review and performance tracking.
 
-**Multi-Category Marketplace** — Electronics, Fashion, Building Materials, Home & Kitchen, Health & Beauty, Auto Parts, Agriculture, Food & Groceries, and more.
+**Multi-Category Marketplace** — Electronics, Fashion, Home & Kitchen, Health & Beauty, Food & Groceries, Phones & Gadgets, Sports & Fitness, Baby & Kids, and more.
 
 **Ratings & Reviews** — Post-delivery review prompts via WhatsApp. Merchant ratings displayed on profiles and product cards.
 
@@ -96,7 +96,7 @@ twizrr/
 |-------|-----------|
 | Frontend | Next.js 14, React 18, Tailwind CSS, React Query, React Hook Form, Zod |
 | Backend | NestJS 10, TypeScript, Prisma ORM |
-| Database | PostgreSQL 16 (Supabase managed) |
+| Database | PostgreSQL 17 (Neon hosted) |
 | Cache & Queues | Redis (Upstash) + BullMQ |
 | Payments | Paystack (Checkout, Transfers, Webhooks, Bank Resolution) |
 | Messaging | Meta WhatsApp Business Cloud API (Interactive Messages) |
@@ -105,7 +105,7 @@ twizrr/
 | SMS | Africa's Talking |
 | Image CDN | Cloudinary (with auto-optimization transforms) |
 | Monitoring | Sentry (error tracking), Vercel Speed Insights |
-| Deployment | Vercel (frontend), Render (backend), Supabase (database), Upstash (Redis) |
+| Deployment | Vercel (frontend), Render (backend), Neon (database), Upstash (Redis) |
 
 ### Key Architecture Decisions
 
