@@ -9,8 +9,9 @@ import { PaymentModule } from "../payment/payment.module";
 import { ReorderModule } from "../reorder/reorder.module";
 import { VerificationModule } from "../verification/verification.module";
 import { LogisticsModule } from "../logistics/logistics.module";
-import { WhatsAppModule } from "../whatsapp/whatsapp.module";
+import { WhatsAppModule } from "../../channels/whatsapp/whatsapp.module";
 import { PayoutModule } from "../payout/payout.module";
+import { LedgerModule } from "../ledger/ledger.module";
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { PayoutModule } from "../payout/payout.module";
     forwardRef(() => PaymentModule),
     forwardRef(() => ReorderModule),
     VerificationModule,
+    LedgerModule,
     forwardRef(() => LogisticsModule),
     forwardRef(() => WhatsAppModule),
     PayoutModule,

@@ -4,7 +4,7 @@ import { ReviewService } from "./review.service";
 import { ReviewController } from "./review.controller";
 import { PrismaModule } from "../../prisma/prisma.module";
 import { ReviewPromptProcessor } from "./review.processor";
-import { WhatsAppModule } from "../whatsapp/whatsapp.module";
+import { WhatsAppModule } from "../../channels/whatsapp/whatsapp.module";
 
 @Module({
   imports: [

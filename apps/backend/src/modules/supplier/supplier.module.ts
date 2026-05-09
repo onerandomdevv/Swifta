@@ -3,7 +3,7 @@ import { SupplierController } from "./supplier.controller";
 import { SupplierService } from "./supplier.service";
 
 import { PaymentModule } from "../payment/payment.module";
-import { WhatsAppModule } from "../whatsapp/whatsapp.module";
+import { WhatsAppModule } from "../../channels/whatsapp/whatsapp.module";
 import { PrismaModule } from "../../prisma/prisma.module";
 
 @Module({

@@ -1,7 +1,7 @@
 import { Module, Global, Logger, forwardRef } from "@nestjs/common";
 import { BullModule } from "@nestjs/bullmq";
 import { ConfigService } from "@nestjs/config";
-import { WhatsAppModule } from "../modules/whatsapp/whatsapp.module";
+import { WhatsAppModule } from "../channels/whatsapp/whatsapp.module";
 import { PayoutModule } from "../modules/payout/payout.module";
 import {
   NOTIFICATION_QUEUE,
@@ -63,10 +63,7 @@ function sanitizeRedisUrl(url: string | undefined): string | undefined {
               port: parseInt(redisUrl.port, 10) || 6379,
               password: redisUrl.password || undefined,
               username: redisUrl.username || undefined,
-              tls:
-                redisUrl.protocol === "rediss:"
-                  ? { rejectUnauthorized: false }
-                  : undefined,
+              tls: redisUrl.protocol === "rediss:" ? {} : undefined,
               family: 0,
               enableReadyCheck: false,
               maxRetriesPerRequest: null,

@@ -1,54 +1,26 @@
-import { Injectable, BadRequestException } from "@nestjs/common";
-import { v2 as cloudinary, UploadApiResponse } from "cloudinary";
-import { ConfigService } from "@nestjs/config";
-import { Readable } from "stream";
-import { CLOUDINARY_TRANSFORMS } from "./cloudinary-transforms";
+import { Injectable, BadRequestException, Logger } from "@nestjs/common";
+import { CloudinaryClient } from "../../integrations/cloudinary/cloudinary.client";
 
 @Injectable()
 export class UploadService {
-  constructor(private configService: ConfigService) {
-    // Initialize Cloudinary with environment variables
-    cloudinary.config({
-      cloud_name: this.configService.get<string>("CLOUDINARY_CLOUD_NAME"),
-      api_key: this.configService.get<string>("CLOUDINARY_API_KEY"),
-      api_secret: this.configService.get<string>("CLOUDINARY_API_SECRET"),
-      // or optionally URL: this.configService.get<string>('CLOUDINARY_URL')
-    });
-  }
+  private readonly logger = new Logger(UploadService.name);
+
+  constructor(private cloudinaryClient: CloudinaryClient) {}
 
   async uploadImageToCloudinary(
     file: Express.Multer.File,
     folder: string = "twizrr/merchants",
     transformType?: string,
   ): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const options: any = { folder };
-      if (
-        transformType &&
-        CLOUDINARY_TRANSFORMS[
-          transformType as keyof typeof CLOUDINARY_TRANSFORMS
-        ]
-      ) {
-        options.transformation =
-          CLOUDINARY_TRANSFORMS[
-            transformType as keyof typeof CLOUDINARY_TRANSFORMS
-          ];
-      }
-
-      const upload = cloudinary.uploader.upload_stream(
-        options,
-        (error: any, result?: UploadApiResponse) => {
-          if (error || !result) {
-            return reject(
-              new BadRequestException("Failed to upload file to Cloudinary."),
-            );
-          }
-          resolve(result.secure_url);
-        },
+    try {
+      return await this.cloudinaryClient.uploadBuffer(
+        file.buffer,
+        folder,
+        transformType,
       );
-
-      // Convert buffer directly into a readable stream
-      Readable.from(file.buffer).pipe(upload);
-    });
+    } catch (error) {
+      this.logger.error("Failed to upload file to Cloudinary", error);
+      throw new BadRequestException("Failed to upload file to Cloudinary.");
+    }
   }
 }

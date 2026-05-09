@@ -23,8 +23,8 @@ NestJS modular monolith API server for twizrr.
 docker-compose up -d                         # Start Postgres + Redis
 cp .env.example apps/backend/.env            # Configure environment
 cd apps/backend
-npx prisma migrate dev                       # Run migrations
-npx prisma db seed                           # Seed test data
+pnpm exec prisma migrate dev                 # Run migrations
+pnpm exec prisma db seed                     # Seed test data
 pnpm dev                                     # Start on http://localhost:4000
 ```
 
@@ -122,12 +122,12 @@ User, MerchantProfile, Product, RFQ, Quote, Order, OrderEvent, Payment, PaymentE
 ### Commands
 
 ```bash
-npx prisma studio              # Visual DB browser
-npx prisma migrate dev         # Create + apply migration
-npx prisma generate            # Regenerate client
-npx prisma migrate reset       # Drop + recreate DB
-npx prisma db seed             # Seed test data
-npx prisma validate            # Validate schema
+pnpm exec prisma studio        # Visual DB browser
+pnpm exec prisma migrate dev   # Create + apply migration
+pnpm exec prisma generate      # Regenerate client
+pnpm exec prisma migrate reset # Drop + recreate DB
+pnpm exec prisma db seed       # Seed test data
+pnpm exec prisma validate      # Validate schema
 ```
 
 ---

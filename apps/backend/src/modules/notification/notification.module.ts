@@ -7,10 +7,16 @@ import { SmsService } from "./sms.service";
 import { PrismaModule } from "../../prisma/prisma.module";
 import { QueueModule } from "../../queue/queue.module";
 import { ConfigModule } from "@nestjs/config";
+import { AfricasTalkingModule } from "../../integrations/africastalking/africastalking.module";
 
 @Global()
 @Module({
-  imports: [PrismaModule, forwardRef(() => QueueModule), ConfigModule],
+  imports: [
+    PrismaModule,
+    forwardRef(() => QueueModule),
+    ConfigModule,
+    AfricasTalkingModule,
+  ],
   controllers: [NotificationController],
   providers: [
     NotificationService,
