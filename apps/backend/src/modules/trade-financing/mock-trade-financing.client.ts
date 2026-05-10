@@ -3,7 +3,7 @@ import {
   MerchantCreditData,
 } from "./trade-financing-partner.interface";
 import { Injectable, Logger } from "@nestjs/common";
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "node:crypto";
 
 @Injectable()
 export class MockTradeFinancingClient implements TradeFinancingPartnerClient {
@@ -59,7 +59,7 @@ export class MockTradeFinancingClient implements TradeFinancingPartnerClient {
   ) {
     this.logger.debug(`Mock trade financing initiated for order ${orderId}`);
 
-    const mockLoanRef = `TF-${uuidv4().substring(0, 8).toUpperCase()}`;
+    const mockLoanRef = `TF-${randomUUID().substring(0, 8).toUpperCase()}`;
     const mockDisbRef = `TF-DSB-${Date.now()}`;
 
     return {

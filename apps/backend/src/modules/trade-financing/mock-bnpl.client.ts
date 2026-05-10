@@ -1,6 +1,6 @@
 import { BnplPartnerClient, BuyerCreditData } from "./bnpl-partner.interface";
 import { Injectable, Logger } from "@nestjs/common";
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "node:crypto";
 
 @Injectable()
 export class MockBnplClient implements BnplPartnerClient {
@@ -61,7 +61,7 @@ export class MockBnplClient implements BnplPartnerClient {
     this.logger.debug(`Mock loan initiated for order ${orderId}`);
 
     // The mock client always approves an initiated loan request assuming eligibility passed earlier
-    const mockLoanRef = `MOCK-LOAN-${uuidv4().substring(0, 8).toUpperCase()}`;
+    const mockLoanRef = `MOCK-LOAN-${randomUUID().substring(0, 8).toUpperCase()}`;
     const mockDisbRef = `MOCK-DSB-${Date.now()}`;
 
     // Note: In a real integration, this is where the partner transfers funds to our Paystack account.
